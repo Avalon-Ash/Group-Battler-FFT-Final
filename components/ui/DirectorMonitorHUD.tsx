@@ -15,7 +15,7 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine }
     const accentColor = targetAgent?.team === Team.BLUE ? 'text-cyan-400' : 'text-red-500';
     const barColor = targetAgent?.team === Team.BLUE ? 'bg-cyan-500' : 'bg-red-500';
     const borderColor = targetAgent?.team === Team.BLUE ? 'border-cyan-500/50' : 'border-red-500/50';
-    const glowColor = targetAgent?.team === Team.BLUE ? 'rgba(6, 182, 212, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+    const glowColor = targetAgent?.team === Team.BLUE ? 'var(--token-literal-cyan-tint40)' : 'var(--token-literal-red-tint40)';
 
     const hpPct = targetAgent && targetAgent.maxHp > 0 ? Math.max(0, targetAgent.hp / targetAgent.maxHp) * 100 : 0;
     const mpPct = targetAgent && targetAgent.maxMp > 0 ? Math.max(0, targetAgent.mp / targetAgent.maxMp) * 100 : 0;

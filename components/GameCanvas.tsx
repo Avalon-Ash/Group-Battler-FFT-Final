@@ -128,7 +128,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.translate(-x, -y); 
             const sprite = SpriteManager.getObstacleSprite(type ?? "WALL", engine.mapConfig.layout, draggedObstacle.originQ, draggedObstacle.originR);
             const liftOffset = 40; 
-            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowColor = 'var(--token-literal-black-tint50)';
             ctx.shadowBlur = 30;
             ctx.shadowOffsetY = 30;
             ctx.globalAlpha = 0.9;

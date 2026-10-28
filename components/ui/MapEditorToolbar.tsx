@@ -170,7 +170,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                             onClick={() => setDraftBodyType(undefined)} 
                             title="隨機體型" 
                             className="touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all"
-                            style={draftBodyType === undefined ? { backgroundColor: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9' } : { color: '#64748b' }}
+                            style={draftBodyType === undefined ? { backgroundColor: 'var(--token-literal-cyan-tint20)', color: 'var(--token-literal-cyan300)' } : { color: 'var(--token-literal-slate500)' }}
                         >
                             隨機
                         </button>
@@ -182,7 +182,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                                     onClick={() => setDraftBodyType(typeKey)} 
                                     title={`指定${profile.label}體型`} 
                                     className="touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all"
-                                    style={draftBodyType === typeKey ? { backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d' } : { color: '#64748b' }}
+                                    style={draftBodyType === typeKey ? { backgroundColor: 'var(--token-literal-amber-tint20)', color: 'var(--token-literal-amber300)' } : { color: 'var(--token-literal-slate500)' }}
                                 >
                                     {profile.label}
                                 </button>

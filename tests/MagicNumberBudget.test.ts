@@ -44,6 +44,23 @@ function countMagicNumbers(file: string): number {
     return count;
 }
 
+function countColorLiterals(file: string): number {
+    const source = readFileSync(path.join(ROOT, file), 'utf8');
+    const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true,
+        file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const colorStart = /^(?:#[\da-fA-F]{3,8}|rgba?\(|hsla?\()/;
+    let count = 0;
+    function visit(node: ts.Node): void {
+        let value: string | undefined;
+        if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) value = node.text;
+        else if (ts.isTemplateExpression(node)) value = node.head.text;
+        if (value !== undefined && colorStart.test(value) && !isNamedConstant(node)) count++;
+        ts.forEachChild(node, visit);
+    }
+    visit(tree);
+    return count;
+}
+
 describe('Magic number budget', () => {
     it('allows decreases but rejects per-file increases and unbudgeted numbers', () => {
         const budget: Record<string, number> = JSON.parse(readFileSync(path.join(__dirname, 'magic-number-budget.json'), 'utf8'));
@@ -56,5 +73,20 @@ describe('Magic number budget', () => {
             if (current > baseline) violations.push(`${file}: current=${current}, baseline=${baseline}`);
         }
         expect(violations, `Magic number budget exceeded:\n${violations.join('\n')}`).toEqual([]);
+    });
+});
+
+describe('Color literal budget', () => {
+    it('allows decreases but rejects per-file increases and unbudgeted colors', () => {
+        const budget: Record<string, number> = JSON.parse(readFileSync(path.join(__dirname, 'color-literal-budget.json'), 'utf8'));
+        const files = execFileSync('git', ['-c', `safe.directory=${ROOT.replace(/\\/g, '/')}`, 'ls-files', '--', 'engine/', 'components/', 'hooks/'], { cwd: ROOT, encoding: 'utf8' })
+            .split(/\r?\n/).filter(file => /\.(ts|tsx)$/.test(file)).sort();
+        const violations: string[] = [];
+        for (const file of files) {
+            const current = countColorLiterals(file);
+            const baseline = budget[file] ?? 0;
+            if (current > baseline) violations.push(`${file}: current=${current}, baseline=${baseline}`);
+        }
+        expect(violations, `Color literal budget exceeded:\n${violations.join('\n')}`).toEqual([]);
     });
 });

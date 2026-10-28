@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { TEAM_COLORS } from '../../../constants';
 import type { GameEngine } from '../../../engine/game';
 import { Role, Team, BodyTypeId } from '../../../types';
 import { BODY_TYPE_PROFILE, resolveBodyType } from '../../../data/units/appearance/bodyTypes';
@@ -108,12 +109,12 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
     // 2. Early return for empty state (when no unit selected or unit missing/dead)
     if (!agentId || isDead) {
         return (
-            <div className="flex flex-col items-center justify-center h-full min-h-[220px] p-6 text-center select-none" style={{ color: '#64748b' }}>
+            <div className="flex flex-col items-center justify-center h-full min-h-[220px] p-6 text-center select-none" style={{ color: 'var(--token-literal-slate500)' }}>
                 <Icons.Select className="w-8 h-8 mb-2 opacity-30" />
-                <div className="text-xs font-bold tracking-wider uppercase" style={{ color: '#94a3b8' }}>
+                <div className="text-xs font-bold tracking-wider uppercase" style={{ color: 'var(--token-literal-slate400)' }}>
                     請先選取單位
                 </div>
-                <div className="text-[10px] mt-1" style={{ color: '#475569' }}>
+                <div className="text-[10px] mt-1" style={{ color: 'var(--token-literal-slate600)' }}>
                     在戰場中點選任意單位以檢視詳情
                 </div>
             </div>
@@ -121,8 +122,8 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
     }
 
     const isBlue = currentTeam === Team.BLUE;
-    const teamAccentColor = isBlue ? '#60a5fa' : '#f87171';
-    const teamBorderColor = isBlue ? 'rgba(59, 130, 246, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+    const teamAccentColor = isBlue ? TEAM_COLORS[Team.BLUE].uiAccent : TEAM_COLORS[Team.RED].uiAccent;
+    const teamBorderColor = isBlue ? TEAM_COLORS[Team.BLUE].uiBorder : TEAM_COLORS[Team.RED].uiBorder;
 
     const hpPct = currentMaxHp > 0 ? (currentHp / currentMaxHp) * 100 : 0;
     const mpPct = currentMaxMp > 0 ? (currentMp / currentMaxMp) * 100 : 0;
@@ -159,7 +160,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                                 {agent.id}
                             </div>
                             <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-[10px] font-bold uppercase tracking-wider truncate" style={{ color: '#94a3b8' }}>
+                                <span className="text-[10px] font-bold uppercase tracking-wider truncate" style={{ color: 'var(--token-literal-slate400)' }}>
                                     {ROLE_MAP[currentRole]?.label || currentRole}
                                 </span>
                                 <button
@@ -169,7 +170,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                                             ? 'text-white shadow-md'
                                             : 'bg-white/10 hover:text-white hover:bg-white/20'
                                     }`}
-                                    style={isConfigExpanded ? { backgroundColor: '#06b6d4' } : { color: '#94a3b8' }}
+                                    style={isConfigExpanded ? { backgroundColor: 'var(--token-literal-cyan500)' } : { color: 'var(--token-literal-slate400)' }}
                                     title="編輯單位屬性"
                                 >
                                     <Icons.Settings className={`w-4 h-4 ${isConfigExpanded ? 'animate-spin-slow' : ''}`} />
@@ -185,8 +186,8 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
                             style={
                                 tab === 'STATUS'
-                                    ? { backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }
-                                    : { color: '#64748b' }
+                                    ? { backgroundColor: 'var(--token-literal-sky400-tint20)', color: 'var(--token-literal-sky400)' }
+                                    : { color: 'var(--token-literal-slate500)' }
                             }
                             title="狀態監控"
                         >
@@ -197,8 +198,8 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
                             style={
                                 tab === 'AI'
-                                    ? { backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d' }
-                                    : { color: '#64748b' }
+                                    ? { backgroundColor: 'var(--token-literal-amber-tint20)', color: 'var(--token-literal-amber300)' }
+                                    : { color: 'var(--token-literal-slate500)' }
                             }
                             title="行為樹監控 (AI)"
                         >
@@ -209,8 +210,8 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
                             style={
                                 tab === 'SKILLS'
-                                    ? { backgroundColor: 'rgba(34, 211, 238, 0.2)', color: '#67e8f9' }
-                                    : { color: '#64748b' }
+                                    ? { backgroundColor: 'var(--token-literal-cyan-bright-tint20)', color: 'var(--token-literal-cyan300)' }
+                                    : { color: 'var(--token-literal-slate500)' }
                             }
                             title="技能配置 (LINK)"
                         >
@@ -227,7 +228,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                 >
                     <div className="grid grid-cols-4 gap-2 bg-black/40 p-2 rounded-xl border border-white/10 shadow-inner">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: '#64748b' }}>
+                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-slate500)' }}>
                                 職業
                             </label>
                             <select
@@ -243,7 +244,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: '#64748b' }}>
+                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-slate500)' }}>
                                 體型
                             </label>
                             <select
@@ -261,13 +262,13 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'rgba(34, 197, 94, 0.7)' }}>
+                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-emerald-tint70)' }}>
                                 生命值
                             </label>
                             <input
                                 type="number"
                                 className="liquid-input h-8 w-full text-center font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 p-0"
-                                style={{ color: '#4ade80' }}
+                                style={{ color: 'var(--token-literal-emerald400)' }}
                                 value={hpDraft}
                                 onFocus={() => {
                                     setIsHpFocused(true);
@@ -290,13 +291,13 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'rgba(59, 130, 246, 0.7)' }}>
+                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-blue-tint70)' }}>
                                 能量值
                             </label>
                             <input
                                 type="number"
                                 className="liquid-input h-8 w-full text-center font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 p-0"
-                                style={{ color: '#60a5fa' }}
+                                style={{ color: 'var(--token-literal-blue400)' }}
                                 value={mpDraft}
                                 onFocus={() => {
                                     setIsMpFocused(true);
@@ -326,14 +327,14 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                     <div className="h-1.5 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
                         <div
                             className="h-full transition-all duration-300"
-                            style={{ width: `${Math.max(0, hpPct)}%`, backgroundColor: '#10b981' }}
+                            style={{ width: `${Math.max(0, hpPct)}%`, backgroundColor: 'var(--token-literal-emerald500)' }}
                         />
                     </div>
                     {currentMaxMp > 0 && (
                         <div className="h-1 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
                             <div
                                 className="h-full transition-all duration-300"
-                                style={{ width: `${mpPct}%`, backgroundColor: '#06b6d4' }}
+                                style={{ width: `${mpPct}%`, backgroundColor: 'var(--token-literal-cyan500)' }}
                             />
                         </div>
                     )}
@@ -346,33 +347,33 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                     <div className="p-3 overflow-y-auto custom-scrollbar space-y-3">
                         <div className="bg-black/30 rounded-xl p-3 border border-white/5 space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#64748b' }}>
+                                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--token-literal-slate500)' }}>
                                     行為樹狀態 | 執行流程
                                 </span>
                                 <div className="flex gap-1">
                                     {agent.effects.STUN.remaining > 0 && (
-                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', borderColor: 'rgba(245, 158, 11, 0.5)', color: '#fcd34d' }}>
+                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'var(--token-literal-amber-tint20)', borderColor: 'var(--token-literal-amber-tint50)', color: 'var(--token-literal-amber300)' }}>
                                             暈眩
                                         </span>
                                     )}
                                     {agent.effects.SILENCE.remaining > 0 && (
-                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'rgba(51, 65, 85, 0.5)', borderColor: '#64748b', color: '#cbd5e1' }}>
+                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'var(--token-literal-slate-tint50)', borderColor: 'var(--token-literal-slate500)', color: 'var(--token-literal-slate300)' }}>
                                             沉默
                                         </span>
                                     )}
                                     {agent.banished && (
-                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'rgba(168, 85, 247, 0.2)', borderColor: 'rgba(168, 85, 247, 0.5)', color: '#d8b4fe' }}>
+                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'var(--token-literal-purple-tint20)', borderColor: 'var(--token-literal-purple-tint50)', color: 'var(--token-literal-purple300)' }}>
                                             放逐
                                         </span>
                                     )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? '#475569' : '#fbbf24' }}>
+                                <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? 'var(--token-literal-slate600)' : 'var(--token-literal-amber400)' }}>
                                     {Helpers.getAIStateLabel(displayAiState(agent))}
                                 </span>
-                                <span className="text-[10px] font-mono" style={{ color: '#334155' }}>/</span>
-                                <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? '#475569' : '#67e8f9' }}>
+                                <span className="text-[10px] font-mono" style={{ color: 'var(--token-literal-slate700)' }}>/</span>
+                                <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? 'var(--token-literal-slate600)' : 'var(--token-literal-cyan300)' }}>
                                     {Helpers.getActionStateLabel(agent.actionState)}
                                 </span>
                             </div>
@@ -381,20 +382,20 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                         {/* Vital Metrics Grid */}
                         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                             <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: '#64748b' }}>目前座標 (Q, R)</span>
+                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>目前座標 (Q, R)</span>
                                 <span className="text-sm font-bold text-white mt-1">({agent.q}, {agent.r})</span>
                             </div>
                             <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: '#64748b' }}>護盾值 (SHIELD)</span>
-                                <span className="text-sm font-bold mt-1" style={{ color: '#38bdf8' }}>{Math.round(agent.shield)}</span>
+                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>護盾值 (SHIELD)</span>
+                                <span className="text-sm font-bold mt-1" style={{ color: 'var(--token-literal-sky400)' }}>{Math.round(agent.shield)}</span>
                             </div>
                             <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: '#64748b' }}>生命值 (HP / MAX)</span>
-                                <span className="text-sm font-bold mt-1" style={{ color: '#4ade80' }}>{Math.round(currentHp)} / {Math.round(currentMaxHp)}</span>
+                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>生命值 (HP / MAX)</span>
+                                <span className="text-sm font-bold mt-1" style={{ color: 'var(--token-literal-emerald400)' }}>{Math.round(currentHp)} / {Math.round(currentMaxHp)}</span>
                             </div>
                             <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: '#64748b' }}>能量值 (MP / MAX)</span>
-                                <span className="text-sm font-bold mt-1" style={{ color: '#60a5fa' }}>{Math.round(currentMp)} / {Math.round(currentMaxMp)}</span>
+                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>能量值 (MP / MAX)</span>
+                                <span className="text-sm font-bold mt-1" style={{ color: 'var(--token-literal-blue400)' }}>{Math.round(currentMp)} / {Math.round(currentMaxMp)}</span>
                             </div>
                         </div>
                     </div>

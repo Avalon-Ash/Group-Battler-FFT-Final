@@ -1,6 +1,7 @@
 import { GameEngine } from "../game";
 import { KILL_STREAK_WINDOW, KILL_SPREE_MIN_KILLS, KILL_SPREE_MAX_TIER, BATTLE_RULES } from "../../constants";
 import { GameEvent, Point } from "../../types";
+import { ANNOUNCER_TEXT_COLORS } from "../../constants/palette";
 
 export class AnnouncerSystem {
     public update(dt: number, engine: GameEngine) {
@@ -26,7 +27,7 @@ export class AnnouncerSystem {
                 pos: pos,
                 sourceId: killerId,
                 text: "FIRST BLOOD",
-                color: "#ef4444",
+                color: ANNOUNCER_TEXT_COLORS.firstBlood,
                 value: 1
             });
             outEvents.push({ type: 'KILL_SPREE', pos, sourceId: killerId, value: 1 });
@@ -48,12 +49,12 @@ export class AnnouncerSystem {
 
         if (streak >= 2) {
             let streakText = "DOUBLE KILL";
-            let streakColor = "#cbd5e1";
+            let streakColor: string = ANNOUNCER_TEXT_COLORS.doubleKill;
             let rank = 2;
             
-            if (streak === 3) { streakText = "TRIPLE KILL"; streakColor = "#fcd34d"; rank = 3; }
-            else if (streak === 4) { streakText = "QUADRA KILL"; streakColor = "#fb923c"; rank = 4; }
-            else if (streak >= BATTLE_RULES.PENTA_KILL_TIER) { streakText = "PENTA KILL"; streakColor = "#ef4444"; rank = BATTLE_RULES.PENTA_KILL_TIER; }
+            if (streak === 3) { streakText = "TRIPLE KILL"; streakColor = ANNOUNCER_TEXT_COLORS.tripleKill; rank = 3; }
+            else if (streak === 4) { streakText = "QUADRA KILL"; streakColor = ANNOUNCER_TEXT_COLORS.quadraKill; rank = 4; }
+            else if (streak >= BATTLE_RULES.PENTA_KILL_TIER) { streakText = "PENTA KILL"; streakColor = ANNOUNCER_TEXT_COLORS.pentaKill; rank = BATTLE_RULES.PENTA_KILL_TIER; }
             
             outEvents.push({
                 type: 'KILL_STREAK',

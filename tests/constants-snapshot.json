@@ -1212,6 +1212,8 @@
       "secondary": "#fde047",
       "glow": "rgba(59, 130, 246, 0.6)",
       "armorLight": "#f1f5f9",
+      "uiAccent": "#60a5fa",
+      "uiBorder": "rgba(59, 130, 246, 0.3)",
       "borderRadius": "1rem"
     },
     "1": {
@@ -1219,8 +1221,17 @@
       "secondary": "#fb923c",
       "glow": "rgba(239, 68, 68, 0.6)",
       "armorLight": "#fca5a5",
+      "uiAccent": "#f87171",
+      "uiBorder": "rgba(239, 68, 68, 0.3)",
       "borderRadius": "0.25rem"
     }
+  },
+  "ANNOUNCER_TEXT_COLORS": {
+    "firstBlood": "#ef4444",
+    "doubleKill": "#cbd5e1",
+    "tripleKill": "#fcd34d",
+    "quadraKill": "#fb923c",
+    "pentaKill": "#ef4444"
   },
   "TERRAIN_SKIN": {
     "texturePxPerHex": 96,

@@ -122,9 +122,9 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine
                     onClick={handleToggleMute}
                     className="touch-target px-4 py-1.5 rounded-lg font-bold transition-all text-xs border"
                     style={{
-                        backgroundColor: settings.muted ? 'rgba(239, 68, 68, 0.25)' : 'rgba(6, 182, 212, 0.2)',
-                        borderColor: settings.muted ? 'rgba(239, 68, 68, 0.5)' : 'rgba(6, 182, 212, 0.4)',
-                        color: settings.muted ? '#fca5a5' : '#67e8f9',
+                        backgroundColor: settings.muted ? 'var(--token-literal-red-tint25)' : 'var(--token-literal-cyan-tint20)',
+                        borderColor: settings.muted ? 'var(--token-literal-red-tint50)' : 'var(--token-literal-cyan-tint40)',
+                        color: settings.muted ? 'var(--token-literal-red300)' : 'var(--token-literal-cyan300)',
                     }}
                 >
                     {settings.muted ? '已靜音' : '聲音開啟'}
@@ -143,9 +143,9 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine
                         onClick={handleToggleAnnouncer}
                         className="touch-target px-4 py-1.5 rounded-lg font-bold transition-all text-xs border"
                         style={{
-                            backgroundColor: settings.announcer ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                            borderColor: settings.announcer ? 'rgba(6, 182, 212, 0.4)' : 'rgba(255, 255, 255, 0.2)',
-                            color: settings.announcer ? '#67e8f9' : 'rgba(255, 255, 255, 0.6)',
+                            backgroundColor: settings.announcer ? 'var(--token-literal-cyan-tint20)' : 'var(--token-literal-white-tint5)',
+                            borderColor: settings.announcer ? 'var(--token-literal-cyan-tint40)' : 'var(--token-literal-white-tint20)',
+                            color: settings.announcer ? 'var(--token-literal-cyan300)' : 'var(--token-literal-white-tint60)',
                         }}
                     >
                         {settings.announcer ? '開啟' : '關閉'}
@@ -162,7 +162,7 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine
                         <div key={bus} className="flex flex-col gap-1.5 p-3 bg-white/5 rounded-xl border border-white/5">
                             <div className="flex items-center justify-between">
                                 <span className="font-semibold text-white/90">{label}</span>
-                                <span className="font-mono text-[11px]" style={{ color: '#22d3ee' }}>{percent}%</span>
+                                <span className="font-mono text-[11px]" style={{ color: 'var(--token-literal-cyan400)' }}>{percent}%</span>
                             </div>
                             <div className="text-[10px] text-white/50">{desc}</div>
                             <input
@@ -177,7 +177,7 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine
                                 className={`w-full rounded-lg cursor-pointer h-1.5 ${
                                     settings.muted ? 'opacity-40 cursor-not-allowed' : ''
                                 }`}
-                                style={{ accentColor: '#22d3ee' }}
+                                style={{ accentColor: 'var(--token-literal-cyan400)' }}
                             />
                         </div>
                     );

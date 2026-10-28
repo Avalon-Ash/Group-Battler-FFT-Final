@@ -45,7 +45,7 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                                             : 'after:left-[2px]'
                                     }`}
                                     style={{
-                                        backgroundColor: checked ? '#06b6d4' : '#334155',
+                                        backgroundColor: checked ? 'var(--token-literal-cyan500)' : 'var(--token-literal-slate700)',
                                     }}
                                 />
                             </label>
@@ -64,7 +64,7 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                         <div key={field.id} className="space-y-1.5">
                             <div className="flex justify-between text-[10px] text-white/50 font-bold uppercase tracking-wider">
                                 <span>{field.label}</span>
-                                <span className="font-mono" style={{ color: '#22d3ee' }}>
+                                <span className="font-mono" style={{ color: 'var(--token-literal-cyan400)' }}>
                                     {displayVal}
                                 </span>
                             </div>
@@ -83,7 +83,7 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                                     onChange(sliderField.createCommand(parsed));
                                 }}
                                 className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-cyan-500"
-                                style={{ backgroundColor: '#334155' }}
+                                style={{ backgroundColor: 'var(--token-literal-slate700)' }}
                             />
                         </div>
                     );
