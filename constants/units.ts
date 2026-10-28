@@ -232,3 +232,145 @@ export const UNIT_BODY_MOTION = {
     fallTumble: 1.4,
     fallShrink: 0.45,
 } as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const CORE_BAKE = {
+    /** 稜晶肩部高度（半高倍數） */
+    PRISM_SHOULDER_Y: 0.4,
+    /** 稜晶腰線高度（半高倍數） */
+    PRISM_WAIST_Y: 0.15,
+    /** 稜晶頂面高光不透明度（比例） */
+    PRISM_HIGHLIGHT_ALPHA: 0.85,
+    /** 稜晶內芯不透明度（比例） */
+    PRISM_INNER_ALPHA: 0.55,
+    /** 稜晶內芯垂直位置（半高倍數） */
+    PRISM_INNER_Y: 0.05,
+    /** 稜晶內芯半寬（半寬倍數） */
+    PRISM_INNER_WIDTH: 0.35,
+    /** 稜晶內芯半高（半高倍數） */
+    PRISM_INNER_HEIGHT: 0.3,
+    /** 稜晶腰線不透明度（比例） */
+    PRISM_WAIST_ALPHA: 0.7,
+    /** 稜晶輪廓線寬（px） */
+    PRISM_OUTLINE_WIDTH: 1.4,
+    /** 碎晶尖端水平位置（半寬倍數） */
+    SHARD_TOP_X: 0.25,
+    /** 碎晶尖端高度（半高倍數） */
+    SHARD_TOP_Y: 1.05,
+    /** 碎晶缺角水平位置（半寬倍數） */
+    SHARD_CHIP_X: 0.55,
+    /** 碎晶缺角高度（半高倍數） */
+    SHARD_CHIP_Y: 0.72,
+    /** 碎晶右上肩水平位置（半寬倍數） */
+    SHARD_UPPER_RIGHT_X: 0.9,
+    /** 碎晶右上肩高度（半高倍數） */
+    SHARD_UPPER_RIGHT_Y: 0.35,
+    /** 碎晶崩口水平位置（半寬倍數） */
+    SHARD_NOTCH_X: 0.62,
+    /** 碎晶崩口高度（半高倍數） */
+    SHARD_NOTCH_Y: 0.05,
+    /** 碎晶右下肩水平位置（半寬倍數） */
+    SHARD_LOWER_RIGHT_X: 0.95,
+    /** 碎晶右下肩垂直位置（半高倍數） */
+    SHARD_LOWER_RIGHT_Y: 0.42,
+    /** 碎晶底尖向左位移（半寬倍數） */
+    SHARD_BOTTOM_LEFT: 0.1,
+    /** 碎晶左下肩向左位移（半寬倍數） */
+    SHARD_LOWER_LEFT_X: 0.95,
+    /** 碎晶左下肩垂直位置（半高倍數） */
+    SHARD_LOWER_LEFT_Y: 0.38,
+    /** 碎晶左上肩高度（半高倍數） */
+    SHARD_UPPER_LEFT_Y: 0.45,
+    /** 碎晶亮面下點向左位移（半寬倍數） */
+    SHARD_LIGHT_LOWER_LEFT: 0.05,
+    /** 碎晶亮面下點垂直位置（半高倍數） */
+    SHARD_LIGHT_LOWER_Y: 0.1,
+    /** 碎晶亮面上點水平位置（半寬倍數） */
+    SHARD_LIGHT_UPPER_X: 0.05,
+    /** 碎晶高光點向左位移（半寬倍數） */
+    SHARD_HIGHLIGHT_LEFT: 0.1,
+    /** 碎晶高光點高度（半高倍數） */
+    SHARD_HIGHLIGHT_Y: 0.35,
+    /** 碎晶高光不透明度（比例） */
+    SHARD_HIGHLIGHT_ALPHA: 0.6,
+    /** 裂縫起點水平位置（半寬倍數） */
+    CRACK_START_X: 0.1,
+    /** 裂縫起點高度（半高倍數） */
+    CRACK_START_Y: 0.75,
+    /** 裂縫上折點向左位移（半寬倍數） */
+    CRACK_UPPER_LEFT: 0.2,
+    /** 裂縫上折點高度（半高倍數） */
+    CRACK_UPPER_Y: 0.35,
+    /** 裂縫中點水平位置（半寬倍數） */
+    CRACK_MID_X: 0.15,
+    /** 裂縫中點高度（半高倍數） */
+    CRACK_MID_Y: 0.05,
+    /** 裂縫下折點向左位移（半寬倍數） */
+    CRACK_LOWER_LEFT: 0.15,
+    /** 裂縫下折點垂直位置（半高倍數） */
+    CRACK_LOWER_Y: 0.35,
+    /** 裂縫終點水平位置（半寬倍數） */
+    CRACK_END_X: 0.05,
+    /** 裂縫終點垂直位置（半高倍數） */
+    CRACK_END_Y: 0.8,
+    /** 裂縫暗底線寬（px） */
+    CRACK_SHADOW_WIDTH: 2.6,
+    /** 裂縫餘燼線寬（px） */
+    CRACK_EMBER_WIDTH: 1.2,
+    /** 碎晶輪廓線寬（px） */
+    SHARD_OUTLINE_WIDTH: 1.8,
+    /** 核心光暈半徑（半高倍數） */
+    GLOW_RADIUS: 2.1,
+    /** 核心光暈主色漸層位置（比例） */
+    GLOW_MAIN_STOP: 0.35,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const PEDESTAL_BAKE = {
+    /** 棋座陰影放大（倍） */
+    SHADOW_SCALE: 1.08,
+    /** 棋座底緣線寬（px） */
+    BOTTOM_LINE_WIDTH: 1.5,
+    /** 頂面光源向左偏移（半徑倍數） */
+    TOP_LIGHT_LEFT: 0.28,
+    /** 頂面光源向上偏移（半徑倍數） */
+    TOP_LIGHT_UP: 0.35,
+    /** 頂面光源內圈半徑（半徑倍數） */
+    TOP_LIGHT_RADIUS: 0.05,
+    /** 頂面底色漸層位置（比例） */
+    TOP_BASE_STOP: 0.45,
+    /** 頂面深色漸層位置（比例） */
+    TOP_DEEP_STOP: 0.85,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const IMPERIAL_TOKEN_BAKE = {
+    /** 金邊暗底線寬（px） */
+    RIM_SHADOW_WIDTH: 5,
+    /** 金邊高光線寬（px） */
+    RIM_WIDTH: 2.5,
+    /** 內緣向內縮距（px） */
+    INNER_RIM_INSET: 5,
+    /** 內緣亮線線寬（px） */
+    INNER_RIM_WIDTH: 1.5,
+    /** 儀表環半徑（棋座半徑倍數） */
+    RING_RADIUS: 0.7,
+    /** 六角徽章線寬（px） */
+    EMBLEM_WIDTH: 1.5,
+    /** 徽章內芯半徑（徽章半徑倍數） */
+    EMBLEM_CORE_RADIUS: 0.45,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const COVENANT_TOKEN_BAKE = {
+    /** 棋座裂縫暗底線寬（px） */
+    CRACK_SHADOW_WIDTH: 2.5,
+    /** 缺角內緣向內縮距（px） */
+    INNER_RIM_INSET: 5,
+    /** 魔紋環半徑（棋座半徑倍數） */
+    RING_RADIUS: 0.6,
+    /** 魔紋環線寬（px） */
+    RING_WIDTH: 1.5,
+    /** 魔紋環虛線間隔（px） */
+    RING_DASH_GAP: 5,
+} as const;

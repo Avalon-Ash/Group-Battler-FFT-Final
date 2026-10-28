@@ -1,3 +1,4 @@
+import { TERRAIN_DRAW } from "../../../constants";
 import { imulMix3 as edgeHash } from '../../math/hash';
 import { ISO_SCALE_Y, HEX_SIZE, TerrainTheme, RENDER_CACHE, TERRAIN_SKIN } from "../../../constants";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
@@ -101,18 +102,18 @@ function paintEdgeDecor(sCtx: CanvasRenderingContext2D, type: string, vertices: 
             for (let j = 0; j < n; j++) {
                 const p = at((j + 0.5) / n);
                 const L = cfg.minLen + (cfg.maxLen - cfg.minLen) * edgeHash(variant, i, j);
-                const sway = (edgeHash(variant, i, j + 97) - 0.5) * 3;
+                const sway = (edgeHash(variant, i, j + TERRAIN_DRAW.FRINGE_SWAY_SEED) - 0.5) * 3;
                 sCtx.strokeStyle = cfg.color;
                 sCtx.lineWidth = cfg.width;
                 sCtx.beginPath();
                 sCtx.moveTo(p.x, p.y - 1);
-                sCtx.quadraticCurveTo(p.x + sway * 0.3, p.y + L * 0.5, p.x + sway, p.y + L);
+                sCtx.quadraticCurveTo(p.x + sway * TERRAIN_DRAW.FRINGE_CONTROL_X, p.y + L * 0.5, p.x + sway, p.y + L);
                 sCtx.stroke();
                 sCtx.strokeStyle = cfg.tipColor;
-                sCtx.lineWidth = cfg.width * 0.6;
+                sCtx.lineWidth = cfg.width * TERRAIN_DRAW.FRINGE_TIP_WIDTH;
                 sCtx.beginPath();
                 sCtx.moveTo(p.x, p.y - 1);
-                sCtx.quadraticCurveTo(p.x + sway * 0.3, p.y + L * 0.35, p.x + sway * 0.6, p.y + L * 0.6);
+                sCtx.quadraticCurveTo(p.x + sway * TERRAIN_DRAW.FRINGE_CONTROL_X, p.y + L * TERRAIN_DRAW.TIP_CONTROL_Y, p.x + sway * TERRAIN_DRAW.TIP_END_X, p.y + L * TERRAIN_DRAW.TIP_END_Y);
                 sCtx.stroke();
             }
         } else if (cfg.kind === 'EAVE') {
@@ -122,9 +123,9 @@ function paintEdgeDecor(sCtx: CanvasRenderingContext2D, type: string, vertices: 
             const n = Math.max(1, Math.floor(len / cfg.dripEvery));
             sCtx.fillStyle = cfg.color;
             for (let j = 0; j < n; j++) {
-                const p = at((j + 0.3 + 0.4 * edgeHash(variant, i, j)) / n);
-                const L = cfg.dripMin + (cfg.dripMax - cfg.dripMin) * edgeHash(variant, i, j + 31);
-                const w = cfg.dripWidth * (0.6 + 0.4 * edgeHash(variant, i, j + 57));
+                const p = at((j + TERRAIN_DRAW.EAVE_POSITION_BASE + TERRAIN_DRAW.EAVE_POSITION_RANGE * edgeHash(variant, i, j)) / n);
+                const L = cfg.dripMin + (cfg.dripMax - cfg.dripMin) * edgeHash(variant, i, j + TERRAIN_DRAW.EAVE_LENGTH_SEED);
+                const w = cfg.dripWidth * (TERRAIN_DRAW.EAVE_WIDTH_BASE + TERRAIN_DRAW.EAVE_WIDTH_RANGE * edgeHash(variant, i, j + TERRAIN_DRAW.EAVE_WIDTH_SEED));
                 sCtx.beginPath();
                 sCtx.moveTo(p.x - w, p.y);
                 sCtx.lineTo(p.x + w, p.y);
@@ -141,14 +142,14 @@ function paintEdgeDecor(sCtx: CanvasRenderingContext2D, type: string, vertices: 
             if (cfg.dripEvery > 0) {
                 const n = Math.max(1, Math.floor(len / cfg.dripEvery));
                 for (let j = 0; j < n; j++) {
-                    if (edgeHash(variant, i, j + 211) < 0.35) continue;
-                    const p = at((j + 0.2 + 0.6 * edgeHash(variant, i, j)) / n);
-                    const L = cfg.dripMin + (cfg.dripMax - cfg.dripMin) * edgeHash(variant, i, j + 19);
+                    if (edgeHash(variant, i, j + TERRAIN_DRAW.GLOW_SKIP_SEED) < TERRAIN_DRAW.GLOW_SKIP_CHANCE) continue;
+                    const p = at((j + TERRAIN_DRAW.GLOW_POSITION_BASE + TERRAIN_DRAW.GLOW_POSITION_RANGE * edgeHash(variant, i, j)) / n);
+                    const L = cfg.dripMin + (cfg.dripMax - cfg.dripMin) * edgeHash(variant, i, j + TERRAIN_DRAW.GLOW_LENGTH_SEED);
                     const g = sCtx.createLinearGradient(p.x, p.y, p.x, p.y + L);
                     g.addColorStop(0, cfg.color);
                     g.addColorStop(1, 'rgba(0,0,0,0)');
                     sCtx.strokeStyle = g;
-                    sCtx.lineWidth = cfg.width * 0.8;
+                    sCtx.lineWidth = cfg.width * TERRAIN_DRAW.GLOW_WIDTH;
                     sCtx.beginPath(); sCtx.moveTo(p.x, p.y); sCtx.lineTo(p.x, p.y + L); sCtx.stroke();
                 }
             }
@@ -277,7 +278,7 @@ export const TerrainRenderer = {
     ): TerrainSpriteEntry {
         const visualTopY = VisualMath.getIsoVisualY(0, height, floatOffset);
         // 舊基座深度：光照漸層的錨點（非外露格與外露格的上段畫面維持不變）
-        const currentPedestalDepth = Math.max(PEDESTAL_DEPTH, -visualTopY + 15);
+        const currentPedestalDepth = Math.max(PEDESTAL_DEPTH, -visualTopY + TERRAIN_DRAW.PEDESTAL_CLEARANCE);
         const r = size + EXPANSION_BIAS;
         const vertices = HexGeometry.getVertices(r, true, layout);
 
@@ -405,7 +406,7 @@ export const TerrainRenderer = {
                     const varOffsets = TERRAIN_SKIN.variantOffsets;
                     const varOffset = varOffsets[variant % varOffsets.length];
                     patMatrix.translateSelf(minX + varOffset.x, faceTopY);
-                    patMatrix.scaleSelf(TERRAIN_SKIN.sideTexturePxPerUnit * (r / 96), TERRAIN_SKIN.sideTexturePxPerUnit * (r / 96));
+                    patMatrix.scaleSelf(TERRAIN_SKIN.sideTexturePxPerUnit * (r / TERRAIN_DRAW.SIDE_TEXTURE_REF_RADIUS), TERRAIN_SKIN.sideTexturePxPerUnit * (r / TERRAIN_DRAW.SIDE_TEXTURE_REF_RADIUS));
                     sidePattern.setTransform(patMatrix);
                     sCtx.fillStyle = sidePattern;
                     sCtx.fillRect(minX, faceTopY, faceW, faceH);
@@ -442,7 +443,7 @@ export const TerrainRenderer = {
             if (Number.isFinite(r)) {
                 const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
                 topGrad.addColorStop(0, theme.rim);
-                topGrad.addColorStop(0.3, theme.top);
+                topGrad.addColorStop(TERRAIN_DRAW.TOP_MAIN_STOP, theme.top);
                 topGrad.addColorStop(1, theme.sideDark);
                 sCtx.fillStyle = topGrad;
             } else {
@@ -510,7 +511,7 @@ export const TerrainRenderer = {
 
             // 頂面輪廓線：平接邊淡化、有落差邊維持較強 alpha
             sCtx.strokeStyle = theme.rim;
-            sCtx.lineWidth = 1.5;
+            sCtx.lineWidth = TERRAIN_DRAW.TEXTURED_RIM_WIDTH;
             for (let i = 0; i < 6; i++) {
                 const a = vertices[i], b = vertices[(i + 1) % 6];
                 sCtx.beginPath();
@@ -531,8 +532,8 @@ export const TerrainRenderer = {
             sCtx.fill();
             paintStaticDetail(sCtx, size, theme, type, variant);
             sCtx.strokeStyle = theme.rim;
-            sCtx.lineWidth = 1.5;
-            sCtx.globalAlpha = 0.6;
+            sCtx.lineWidth = TERRAIN_DRAW.FALLBACK_RIM_WIDTH;
+            sCtx.globalAlpha = TERRAIN_DRAW.FALLBACK_RIM_ALPHA;
             sCtx.stroke();
             sCtx.globalAlpha = 1.0;
         }

@@ -1,3 +1,4 @@
+import { BACKGROUND_DRAW } from "../../constants";
 import { murmur2Mix as starHash } from '../math/hash';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  BackgroundRenderer — 場景背景繪製器                     ║
@@ -211,9 +212,9 @@ export class BackgroundRenderer {
         const seed = ST.STARS_SEED;
         for(let i=0; i<count; i++) {
             const sx = (Math.sin(i * seed) * 0.5 + 0.5) * w;
-            const sy = (Math.cos(i * seed * 1.5) * 0.5 + 0.5) * h * ST.STARS_HEIGHT_PCT;
-            const size = starHash(i, 1013) * ST.STARS_MAX_SIZE;
-            ctx.globalAlpha = starHash(i, 2017) * ST.STARS_ALPHA_RANGE + ST.STARS_MIN_ALPHA;
+            const sy = (Math.cos(i * seed * BACKGROUND_DRAW.STAR_Y_FREQUENCY) * 0.5 + 0.5) * h * ST.STARS_HEIGHT_PCT;
+            const size = starHash(i, BACKGROUND_DRAW.STAR_SIZE_SEED) * ST.STARS_MAX_SIZE;
+            ctx.globalAlpha = starHash(i, BACKGROUND_DRAW.STAR_ALPHA_SEED) * ST.STARS_ALPHA_RANGE + ST.STARS_MIN_ALPHA;
             ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
         }
     }
@@ -225,9 +226,9 @@ export class BackgroundRenderer {
         if (Number.isFinite(w) && Number.isFinite(h)) {
             const grad = ctx.createLinearGradient(0, 0, w, h * SR.HEIGHT_RATIO);
             grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
-            grad.addColorStop(0.3, BACKGROUND_COLORS.SKY_RIVER_SECONDARY);
+            grad.addColorStop(BACKGROUND_DRAW.RIVER_FIRST_STOP, BACKGROUND_COLORS.SKY_RIVER_SECONDARY);
             grad.addColorStop(0.5, BACKGROUND_COLORS.SKY_RIVER_PRIMARY);
-            grad.addColorStop(0.7, BACKGROUND_COLORS.SKY_RIVER_SECONDARY);
+            grad.addColorStop(BACKGROUND_DRAW.RIVER_SECOND_STOP, BACKGROUND_COLORS.SKY_RIVER_SECONDARY);
             grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
             ctx.globalCompositeOperation = 'screen';
             ctx.fillStyle = grad;
@@ -470,7 +471,7 @@ export class BackgroundRenderer {
             if (!this.sandstormMistGrad || this.sandstormMistKey !== mKey) {
                 const mistGrad = ctx.createLinearGradient(0, mistY, 0, h);
                 mistGrad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
-                mistGrad.addColorStop(0.4, color);
+                mistGrad.addColorStop(BACKGROUND_DRAW.MIST_COLOR_STOP, color);
                 mistGrad.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
                 this.sandstormMistGrad = mistGrad;
                 this.sandstormMistKey = mKey;

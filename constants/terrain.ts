@@ -472,3 +472,219 @@ export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
     'OBSIDIAN_PILLAR': { main: '#18181b', light: '#27272a', dark: '#09090b', detail: '#ef4444', highlight: '#fca5a5' },
     'SANDSTONE': { main: '#b45309', light: '#d97706', dark: '#92400e', detail: '#f59e0b', highlight: '#fde047' }
 };
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const TERRAIN_DRAW = {
+    /** 垂草擺動取樣種子偏移（整數） */
+    FRINGE_SWAY_SEED: 97,
+    /** 垂草曲線控制點水平擺幅（倍） */
+    FRINGE_CONTROL_X: 0.3,
+    /** 垂草亮梢線寬（倍） */
+    FRINGE_TIP_WIDTH: 0.6,
+    /** 亮梢控制點長度（倍） */
+    TIP_CONTROL_Y: 0.35,
+    /** 亮梢端點水平擺幅（倍） */
+    TIP_END_X: 0.6,
+    /** 亮梢端點長度（倍） */
+    TIP_END_Y: 0.6,
+    /** 屋簷滴落格內起始位置（比例） */
+    EAVE_POSITION_BASE: 0.3,
+    /** 屋簷滴落位置隨機範圍（比例） */
+    EAVE_POSITION_RANGE: 0.4,
+    /** 屋簷滴落長度取樣種子偏移（整數） */
+    EAVE_LENGTH_SEED: 31,
+    /** 屋簷滴落最小寬度（倍） */
+    EAVE_WIDTH_BASE: 0.6,
+    /** 屋簷滴落寬度隨機範圍（倍） */
+    EAVE_WIDTH_RANGE: 0.4,
+    /** 屋簷滴落寬度取樣種子偏移（整數） */
+    EAVE_WIDTH_SEED: 57,
+    /** 發光滴落是否顯示的取樣種子偏移（整數） */
+    GLOW_SKIP_SEED: 211,
+    /** 發光滴落略過機率（比例） */
+    GLOW_SKIP_CHANCE: 0.35,
+    /** 發光滴落格內起始位置（比例） */
+    GLOW_POSITION_BASE: 0.2,
+    /** 發光滴落位置隨機範圍（比例） */
+    GLOW_POSITION_RANGE: 0.6,
+    /** 發光滴落長度取樣種子偏移（整數） */
+    GLOW_LENGTH_SEED: 19,
+    /** 發光滴落線寬（倍） */
+    GLOW_WIDTH: 0.8,
+    /** 既有底座深度相對頂面的留白（px） */
+    PEDESTAL_CLEARANCE: 15,
+    /** 側面貼圖參照半徑（px） */
+    SIDE_TEXTURE_REF_RADIUS: 96,
+    /** 頂面主色漸層位置（比例） */
+    TOP_MAIN_STOP: 0.3,
+    /** 貼圖地塊輪廓線寬（px） */
+    TEXTURED_RIM_WIDTH: 1.5,
+    /** 程序地塊輪廓線寬（px） */
+    FALLBACK_RIM_WIDTH: 1.5,
+    /** 程序地塊輪廓不透明度（比例） */
+    FALLBACK_RIM_ALPHA: 0.6,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const TERRAIN_LOOP_DRAW = {
+    /** 無效液面色的紅通道（0～255） */
+    FALLBACK_RED: 239,
+    /** 無效液面色的綠通道（0～255） */
+    FALLBACK_GREEN: 68,
+    /** 無效液面色的藍通道（0～255） */
+    FALLBACK_BLUE: 68,
+    /** 硬殼顆粒亂數流種子倍率（倍） */
+    CRUST_GRAIN_SEED_MULT: 31,
+    /** 硬殼裂縫淡化終點相對寬度（倍） */
+    CRACK_FADE_END: 1.5,
+    /** 硬殼板塊中心明度（倍） */
+    PLATE_BRIGHTNESS: 1.12,
+    /** 硬殼板塊向外減光（倍） */
+    PLATE_DARKEN: 0.3,
+    /** 硬殼高溫色混合強度（比例） */
+    HEAT_MIX: 0.85,
+    /** 硬殼漂移垂直變體偏移（倍） */
+    DRIFT_Y_VARIANT: 0.61,
+    /** 泡泡變體相位（週期比例） */
+    BUBBLE_PHASE_VARIANT: 0.17,
+    /** 泡泡可見週期（比例） */
+    BUBBLE_VISIBLE: 0.7,
+    /** 泡泡變體角偏移（rad） */
+    BUBBLE_ANGLE_VARIANT: 1.3,
+    /** 泡泡最小繪製半徑（px） */
+    BUBBLE_MIN_RADIUS: 0.1,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const OBSTACLE_DRAW = {
+    /** 動畫相位取樣縱座標倍率（倍） */
+    PHASE_R_MULT: 7,
+    /** 動畫相位取樣橫座標倍率（倍） */
+    PHASE_Q_MULT: 13,
+    /** 動畫相位取樣橫座標偏移（整數） */
+    PHASE_Q_OFFSET: 5,
+    /** 動畫相位取樣桶數（個） */
+    PHASE_BUCKETS: 997,
+    /** 星芒起始高度相對精靈高度（倍） */
+    GLINT_HEIGHT_START: 0.3,
+    /** 星芒移動高度相對精靈高度（倍） */
+    GLINT_HEIGHT_TRAVEL: 0.55,
+    /** 星芒畫布尺寸相對半徑（倍） */
+    GLINT_CANVAS_DIAMETER: 3.4,
+    /** 星芒主色漸層位置（比例） */
+    GLINT_MAIN_STOP: 0.35,
+    /** 星芒十字線寬（px） */
+    GLINT_LINE_WIDTH: 0.8,
+    /** 星芒十字半徑（倍） */
+    GLINT_CROSS_RADIUS: 1.6,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const ENV_DRAW = {
+    /** 牆頂面不透明度（比例） */
+    WALL_CAP_ALPHA: 0.9,
+    /** 牆頂細節半徑（倍） */
+    WALL_DETAIL_RADIUS: 0.4,
+    /** 岩塊輪廓節點數（個） */
+    ROCK_SEGMENTS: 7,
+    /** 岩塊基礎半徑（倍） */
+    ROCK_RADIUS_BASE: 0.8,
+    /** 岩塊半徑波動幅度（倍） */
+    ROCK_RADIUS_WAVE: 0.2,
+    /** 岩塊裂紋垂直終點（半徑倍數） */
+    ROCK_CRACK_Y: 0.2,
+    /** 大岩塊水平位置（px） */
+    BIG_ROCK_X: 5,
+    /** 大岩塊垂直位置（px） */
+    BIG_ROCK_Y: 5,
+    /** 大岩塊半徑（px） */
+    BIG_ROCK_RADIUS: 22,
+    /** 大岩塊高度（px） */
+    BIG_ROCK_HEIGHT: 25,
+    /** 中岩塊向左位移（px） */
+    MID_ROCK_LEFT: 15,
+    /** 中岩塊高度（px） */
+    MID_ROCK_HEIGHT: 18,
+    /** 中岩塊輪廓相位（rad） */
+    MID_ROCK_SEED: 2.1,
+    /** 小岩塊垂直位置（px） */
+    SMALL_ROCK_Y: 15,
+    /** 小岩塊半徑（px） */
+    SMALL_ROCK_RADIUS: 12,
+    /** 小岩塊高度（px） */
+    SMALL_ROCK_HEIGHT: 12,
+    /** 小岩塊輪廓相位（rad） */
+    SMALL_ROCK_SEED: 4.3,
+    /** 石柱符文光暈模糊（px） */
+    PILLAR_RUNE_BLUR: 5,
+    /** 平頂石柱符文半高（px） */
+    FLAT_RUNE_HALF_HEIGHT: 15,
+    /** 平頂石柱符文半寬（px） */
+    FLAT_RUNE_HALF_WIDTH: 5,
+    /** 尖頂石柱符文半高（px） */
+    POINTY_RUNE_HALF_HEIGHT: 20,
+    /** 尖頂符文分枝起點向上距離（px） */
+    POINTY_RUNE_BRANCH_TOP: 10,
+    /** 尖頂符文分枝橫向比例（倍） */
+    POINTY_RUNE_BRANCH_X: 0.3,
+    /** 尖頂符文分枝終點向上距離（px） */
+    POINTY_RUNE_BRANCH_END: 5,
+    /** 樹幹寬度（px） */
+    TRUNK_WIDTH: 14,
+    /** 樹幹底端延伸（px） */
+    TRUNK_BASE_EXTENSION: 5,
+    /** 尖頂版面樹冠寬度（倍） */
+    POINTY_TREE_WIDTH: 0.9,
+    /** 樹冠起始位置向下偏移（px） */
+    CROWN_BASE_OFFSET: 5,
+    /** 平頂樹冠下緣曲線深度（px） */
+    FLAT_CROWN_CURVE: 8,
+    /** 尖頂樹冠下緣凹點深度（px） */
+    POINTY_CROWN_DIP: 5,
+    /** 晶簇左肩高度（倍） */
+    SHARD_LEFT_SHOULDER: 0.2,
+    /** 晶簇右肩高度（倍） */
+    SHARD_RIGHT_SHOULDER: 0.3,
+    /** 晶簇亮面不透明度（倍） */
+    SHARD_LIGHT_ALPHA: 0.6,
+    /** 平頂左晶向左位移（px） */
+    FLAT_LEFT_SHARD_X: 10,
+    /** 平頂左晶垂直位置（px） */
+    FLAT_LEFT_SHARD_Y: 5,
+    /** 平頂左晶高度（倍） */
+    FLAT_LEFT_SHARD_HEIGHT: 0.8,
+    /** 平頂左晶向左傾角（rad） */
+    FLAT_LEFT_SHARD_TILT: 0.2,
+    /** 平頂右晶半寬（px） */
+    FLAT_RIGHT_SHARD_WIDTH: 12,
+    /** 平頂右晶高度（倍） */
+    FLAT_RIGHT_SHARD_HEIGHT: 0.6,
+    /** 平頂右晶傾角（rad） */
+    FLAT_RIGHT_SHARD_TILT: 0.2,
+    /** 平頂主晶垂直位置（px） */
+    FLAT_MAIN_SHARD_Y: 8,
+    /** 平頂主晶半寬（px） */
+    FLAT_MAIN_SHARD_WIDTH: 18,
+    /** 平頂主晶高度（倍） */
+    FLAT_MAIN_SHARD_HEIGHT: 1.1,
+    /** 尖頂主晶垂直位置（px） */
+    POINTY_MAIN_SHARD_Y: 5,
+    /** 尖頂主晶半寬（px） */
+    POINTY_MAIN_SHARD_WIDTH: 15,
+    /** 尖頂左晶向左位移（px） */
+    POINTY_LEFT_SHARD_X: 8,
+    /** 尖頂左晶半寬（px） */
+    POINTY_LEFT_SHARD_WIDTH: 8,
+    /** 尖頂左晶高度（倍） */
+    POINTY_LEFT_SHARD_HEIGHT: 0.6,
+    /** 尖頂左晶向左傾角（rad） */
+    POINTY_LEFT_SHARD_TILT: 0.15,
+    /** 尖頂右晶水平位置（px） */
+    POINTY_RIGHT_SHARD_X: 8,
+    /** 尖頂右晶半寬（px） */
+    POINTY_RIGHT_SHARD_WIDTH: 8,
+    /** 尖頂右晶高度（倍） */
+    POINTY_RIGHT_SHARD_HEIGHT: 0.6,
+    /** 尖頂右晶傾角（rad） */
+    POINTY_RIGHT_SHARD_TILT: 0.15,
+} as const;

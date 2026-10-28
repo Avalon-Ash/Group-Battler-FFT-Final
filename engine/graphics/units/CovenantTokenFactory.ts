@@ -1,3 +1,4 @@
+import { COVENANT_TOKEN_BAKE } from "../../../constants";
 // Ashen（RED）棋座程序化畫法：碎裂焦黑的六角，缺角、斷邊、裂縫透出餘燼。
 // 顏色全部來自 FACTION_SKINS（data/units/factionSkin.ts）；手繪貼圖存在時由 UnitFactory 逐層取代。
 import { HexLayout } from "../../../types";
@@ -70,7 +71,7 @@ export const CovenantTokenFactory: PedestalPainter = {
             ctx.beginPath();
             pts.forEach((q, i) => (i === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y)));
             ctx.strokeStyle = p.sideShadow;
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = COVENANT_TOKEN_BAKE.CRACK_SHADOW_WIDTH;
             ctx.stroke();
             ctx.strokeStyle = p.ember;
             ctx.lineWidth = 1;
@@ -111,16 +112,16 @@ export const CovenantTokenFactory: PedestalPainter = {
         }
 
         // 內緣（齒尖金屬光）
-        tracePedestalOutline(ctx, projectIso(chippedHexPlane(p.radius - 5, layout)));
+        tracePedestalOutline(ctx, projectIso(chippedHexPlane(p.radius - COVENANT_TOKEN_BAKE.INNER_RIM_INSET, layout)));
         ctx.strokeStyle = p.innerRim;
         ctx.lineWidth = 1;
         ctx.stroke();
 
         // 魔紋環（虛線六角）
-        tracePedestalOutline(ctx, projectIso(hexPlane(p.radius * 0.6, layout)));
+        tracePedestalOutline(ctx, projectIso(hexPlane(p.radius * COVENANT_TOKEN_BAKE.RING_RADIUS, layout)));
         ctx.strokeStyle = p.ring;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([10, 5]);
+        ctx.lineWidth = COVENANT_TOKEN_BAKE.RING_WIDTH;
+        ctx.setLineDash([10, COVENANT_TOKEN_BAKE.RING_DASH_GAP]);
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.restore();

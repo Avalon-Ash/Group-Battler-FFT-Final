@@ -120,3 +120,15 @@ export const MATERIAL_CONFIG = {
     },
 };
 
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const NOISE_SEEDS = {
+    /** 分形噪聲各層種子間隔（整數） */
+    OCTAVE_STEP: 101,
+    /** 顆粒紋理基礎種子（整數） */
+    GRAIN_BASE: 9001,
+    /** 顆粒紋理變體種子間隔（整數） */
+    GRAIN_VARIANT_STEP: 7919,
+    /** 地格變體選擇種子（整數） */
+    TILE_VARIANT: 4242,
+} as const;

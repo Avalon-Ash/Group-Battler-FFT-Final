@@ -1,3 +1,4 @@
+import { CORE_BAKE } from "../../../constants";
 // 棋座核心（懸浮六角晶體）的烘焙：Lionheart 乾淨稜晶、Ashen 裂紋碎晶。
 // 顏色與樣式來自 FACTION_SKINS（skin.core），尺寸來自 constants/units.ts 的 CORE_VISUAL。
 // 本檔只在烘焙期執行（SpriteManager 快取），每幀只剩兩次 drawImage。
@@ -27,10 +28,10 @@ function tracePoly(ctx: CanvasRenderingContext2D, pts: Pt[]): void {
 function drawPrism(ctx: CanvasRenderingContext2D, c: CoreSkin, w: number, h: number): void {
     const top: Pt = [0, -h];
     const bottom: Pt = [0, h];
-    const ul: Pt = [-w, -h * 0.4];
-    const ur: Pt = [w, -h * 0.4];
-    const ll: Pt = [-w, h * 0.4];
-    const lr: Pt = [w, h * 0.4];
+    const ul: Pt = [-w, -h * CORE_BAKE.PRISM_SHOULDER_Y];
+    const ur: Pt = [w, -h * CORE_BAKE.PRISM_SHOULDER_Y];
+    const ll: Pt = [-w, h * CORE_BAKE.PRISM_SHOULDER_Y];
+    const lr: Pt = [w, h * CORE_BAKE.PRISM_SHOULDER_Y];
 
     tracePoly(ctx, [top, ul, ll, bottom]);
     ctx.fillStyle = c.light;
@@ -40,74 +41,74 @@ function drawPrism(ctx: CanvasRenderingContext2D, c: CoreSkin, w: number, h: num
     ctx.fill();
 
     // 頂面高光與內芯
-    tracePoly(ctx, [top, ul, [0, -h * 0.15]]);
+    tracePoly(ctx, [top, ul, [0, -h * CORE_BAKE.PRISM_WAIST_Y]]);
     ctx.fillStyle = c.highlight;
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = CORE_BAKE.PRISM_HIGHLIGHT_ALPHA;
     ctx.fill();
-    ctx.globalAlpha = 0.55;
+    ctx.globalAlpha = CORE_BAKE.PRISM_INNER_ALPHA;
     ctx.fillStyle = c.inner;
     ctx.beginPath();
-    ctx.ellipse(0, h * 0.05, w * 0.35, h * 0.3, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, h * CORE_BAKE.PRISM_INNER_Y, w * CORE_BAKE.PRISM_INNER_WIDTH, h * CORE_BAKE.PRISM_INNER_HEIGHT, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
 
     // 腰線（六角腰）與細邊
     ctx.strokeStyle = c.edge;
     ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.7;
+    ctx.globalAlpha = CORE_BAKE.PRISM_WAIST_ALPHA;
     ctx.beginPath();
-    ctx.moveTo(ul[0], ul[1]); ctx.lineTo(0, -h * 0.15); ctx.lineTo(ur[0], ur[1]);
-    ctx.moveTo(ll[0], ll[1]); ctx.lineTo(0, h * 0.15); ctx.lineTo(lr[0], lr[1]);
+    ctx.moveTo(ul[0], ul[1]); ctx.lineTo(0, -h * CORE_BAKE.PRISM_WAIST_Y); ctx.lineTo(ur[0], ur[1]);
+    ctx.moveTo(ll[0], ll[1]); ctx.lineTo(0, h * CORE_BAKE.PRISM_WAIST_Y); ctx.lineTo(lr[0], lr[1]);
     ctx.stroke();
     ctx.globalAlpha = 1;
     tracePoly(ctx, [top, ur, lr, bottom, ll, ul]);
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = CORE_BAKE.PRISM_OUTLINE_WIDTH;
     ctx.lineJoin = 'miter';
     ctx.stroke();
 }
 
 /** 碎裂的深紅碎晶：頂端缺角、右側崩口、一條透出餘燼的裂縫，焦黑粗邊 */
 function drawShard(ctx: CanvasRenderingContext2D, c: CoreSkin, w: number, h: number): void {
-    const top: Pt = [w * 0.25, -h * 1.05];
-    const chip: Pt = [w * 0.55, -h * 0.72];
-    const ur: Pt = [w * 0.9, -h * 0.35];
-    const notch: Pt = [w * 0.62, -h * 0.05];
-    const lr: Pt = [w * 0.95, h * 0.42];
-    const bottom: Pt = [-w * 0.1, h];
-    const ll: Pt = [-w * 0.95, h * 0.38];
-    const ul: Pt = [-w, -h * 0.45];
+    const top: Pt = [w * CORE_BAKE.SHARD_TOP_X, -h * CORE_BAKE.SHARD_TOP_Y];
+    const chip: Pt = [w * CORE_BAKE.SHARD_CHIP_X, -h * CORE_BAKE.SHARD_CHIP_Y];
+    const ur: Pt = [w * CORE_BAKE.SHARD_UPPER_RIGHT_X, -h * CORE_BAKE.SHARD_UPPER_RIGHT_Y];
+    const notch: Pt = [w * CORE_BAKE.SHARD_NOTCH_X, -h * CORE_BAKE.SHARD_NOTCH_Y];
+    const lr: Pt = [w * CORE_BAKE.SHARD_LOWER_RIGHT_X, h * CORE_BAKE.SHARD_LOWER_RIGHT_Y];
+    const bottom: Pt = [-w * CORE_BAKE.SHARD_BOTTOM_LEFT, h];
+    const ll: Pt = [-w * CORE_BAKE.SHARD_LOWER_LEFT_X, h * CORE_BAKE.SHARD_LOWER_LEFT_Y];
+    const ul: Pt = [-w, -h * CORE_BAKE.SHARD_UPPER_LEFT_Y];
     const outline: Pt[] = [top, chip, ur, notch, lr, bottom, ll, ul];
 
     tracePoly(ctx, outline);
     ctx.fillStyle = c.dark;
     ctx.fill();
     // 受光的左半
-    tracePoly(ctx, [top, ul, ll, bottom, [-w * 0.05, h * 0.1], [w * 0.05, -h * 0.5]]);
+    tracePoly(ctx, [top, ul, ll, bottom, [-w * CORE_BAKE.SHARD_LIGHT_LOWER_LEFT, h * CORE_BAKE.SHARD_LIGHT_LOWER_Y], [w * CORE_BAKE.SHARD_LIGHT_UPPER_X, -h * 0.5]]);
     ctx.fillStyle = c.light;
     ctx.fill();
-    tracePoly(ctx, [top, ul, [-w * 0.1, -h * 0.35]]);
+    tracePoly(ctx, [top, ul, [-w * CORE_BAKE.SHARD_HIGHLIGHT_LEFT, -h * CORE_BAKE.SHARD_HIGHLIGHT_Y]]);
     ctx.fillStyle = c.highlight;
-    ctx.globalAlpha = 0.6;
+    ctx.globalAlpha = CORE_BAKE.SHARD_HIGHLIGHT_ALPHA;
     ctx.fill();
     ctx.globalAlpha = 1;
 
     // 裂縫：深色底線＋餘燼亮線
-    const crack: Pt[] = [[w * 0.1, -h * 0.75], [-w * 0.2, -h * 0.35], [w * 0.15, -h * 0.05], [-w * 0.15, h * 0.35], [w * 0.05, h * 0.8]];
+    const crack: Pt[] = [[w * CORE_BAKE.CRACK_START_X, -h * CORE_BAKE.CRACK_START_Y], [-w * CORE_BAKE.CRACK_UPPER_LEFT, -h * CORE_BAKE.CRACK_UPPER_Y], [w * CORE_BAKE.CRACK_MID_X, -h * CORE_BAKE.CRACK_MID_Y], [-w * CORE_BAKE.CRACK_LOWER_LEFT, h * CORE_BAKE.CRACK_LOWER_Y], [w * CORE_BAKE.CRACK_END_X, h * CORE_BAKE.CRACK_END_Y]];
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(crack[0][0], crack[0][1]);
     for (let i = 1; i < crack.length; i++) ctx.lineTo(crack[i][0], crack[i][1]);
     ctx.strokeStyle = c.edge;
-    ctx.lineWidth = 2.6;
+    ctx.lineWidth = CORE_BAKE.CRACK_SHADOW_WIDTH;
     ctx.stroke();
     ctx.strokeStyle = c.inner;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = CORE_BAKE.CRACK_EMBER_WIDTH;
     ctx.stroke();
 
     tracePoly(ctx, outline);
     ctx.strokeStyle = c.edge;
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = CORE_BAKE.SHARD_OUTLINE_WIDTH;
     ctx.lineJoin = 'miter';
     ctx.stroke();
 }
@@ -131,10 +132,10 @@ function bakeBody(skin: FactionSkin, texture: CanvasImageSource | null): HTMLCan
 function bakeGlow(skin: FactionSkin): HTMLCanvasElement {
     const size = CORE_VISUAL.canvasSize;
     const { canvas, ctx } = createCanvas(size, size);
-    const r = CORE_VISUAL.halfHeight * skin.core.sizeScale * 2.1;
+    const r = CORE_VISUAL.halfHeight * skin.core.sizeScale * CORE_BAKE.GLOW_RADIUS;
     const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, r);
     g.addColorStop(0, skin.core.glow);
-    g.addColorStop(0.35, skin.core.glow + '66');
+    g.addColorStop(CORE_BAKE.GLOW_MAIN_STOP, skin.core.glow + '66');
     g.addColorStop(1, skin.core.glow + '00');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);

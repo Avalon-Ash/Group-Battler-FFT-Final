@@ -1,3 +1,4 @@
+import { TACTICAL_DRAW } from "../../constants";
 // ╔══════════════════════════════════════════════════════════╗
 // ║  TacticalRenderer — 選取單位的路徑／目標連線、導播框、除錯  ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §3、§4。   ║
@@ -64,19 +65,19 @@ export class TacticalRenderer {
             // 單位的腳下高度一律來自 UnitFrame（含漂浮位移與移動過渡）；路徑格的高度維持以格為單位
             const hH = hFrame.groundH;
             const startPx = highlight.px;
-            const startPy = highlight.py - hH - 30;
+            const startPy = highlight.py - hH - TACTICAL_DRAW.PATH_LIFT;
             if (highlight.trajectory.length > 0) {
                 ctx.beginPath();
                 ctx.moveTo(startPx, startPy);
                 highlight.trajectory.forEach(hex => {
                     const p = HexUtils.toPx(hex.q, hex.r, engine.mapConfig);
                     const h = grid.getTerrainHeight(hex.q, hex.r, engine);
-                    ctx.lineTo(p.x, p.y - h - 30);
+                    ctx.lineTo(p.x, p.y - h - TACTICAL_DRAW.PATH_LIFT);
                 });
                 ctx.strokeStyle = TACTICAL_COLORS.TRAJECTORY;
                 ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]); 
-                ctx.globalAlpha = 0.6;
+                ctx.setLineDash([TACTICAL_DRAW.PATH_DASH_LENGTH, TACTICAL_DRAW.PATH_DASH_GAP]); 
+                ctx.globalAlpha = TACTICAL_DRAW.PATH_ALPHA;
                 ctx.stroke();
                 ctx.setLineDash([]); 
                 ctx.globalAlpha = 1.0;
@@ -85,31 +86,31 @@ export class TacticalRenderer {
                 const dH = grid.getTerrainHeight(dest.q, dest.r, engine);
                 ctx.save();
                 ctx.translate(dP.x, dP.y - dH);
-                ctx.scale(1, 0.6);
+                ctx.scale(1, TACTICAL_DRAW.DESTINATION_SQUASH);
                 ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); 
-                ctx.fillStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = 0.3; ctx.fill();
-                ctx.strokeStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = 0.8; ctx.lineWidth=2; ctx.stroke();
+                ctx.fillStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = TACTICAL_DRAW.DESTINATION_FILL_ALPHA; ctx.fill();
+                ctx.strokeStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = TACTICAL_DRAW.DESTINATION_LINE_ALPHA; ctx.lineWidth=2; ctx.stroke();
                 ctx.restore();
             }
             if (highlight.target && highlight.target.hp > 0) {
                 const t = highlight.target;
                 const tH = frames.get(t)?.groundH ?? 0;
                 const endPx = t.px;
-                const endPy = t.py - tH - 30;
+                const endPy = t.py - tH - TACTICAL_DRAW.TARGET_LIFT;
                 
                 if (Number.isFinite(startPx) && Number.isFinite(startPy) && Number.isFinite(endPx) && Number.isFinite(endPy)) {
                     const grad = ctx.createLinearGradient(startPx, startPy, endPx, endPy);
                     const isEnemy = highlight.team !== t.team;
                     const color = isEnemy ? TACTICAL_COLORS.TARGET_ENEMY : TACTICAL_COLORS.TARGET_ALLY;
                     grad.addColorStop(0, TACTICAL_COLORS.TARGET_FADE); 
-                    grad.addColorStop(0.2, color);
+                    grad.addColorStop(TACTICAL_DRAW.TARGET_COLOR_STOP, color);
                     grad.addColorStop(1, color);
                     ctx.beginPath();
                     ctx.moveTo(startPx, startPy);
                     ctx.lineTo(endPx, endPy);
                     ctx.strokeStyle = grad;
                     ctx.lineWidth = 2;
-                    ctx.globalAlpha = 0.8 + Math.sin(globalTime * 10) * 0.2; 
+                    ctx.globalAlpha = TACTICAL_DRAW.TARGET_ALPHA_BASE + Math.sin(globalTime * 10) * TACTICAL_DRAW.TARGET_ALPHA_PULSE; 
                     ctx.stroke();
                     ctx.globalAlpha = 1.0;
                 }
@@ -127,11 +128,11 @@ export class TacticalRenderer {
         ctx.save();
         // Removed ctx.resetTransform() to respect the DPR scaling from RenderPipeline
 
-        const pad = 40;
-        const cornerSize = 25;
+        const pad = TACTICAL_DRAW.DIRECTOR_PADDING;
+        const cornerSize = TACTICAL_DRAW.DIRECTOR_CORNER;
         
         ctx.strokeStyle = TACTICAL_COLORS.DIRECTOR_FRAME;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = TACTICAL_DRAW.DIRECTOR_LINE_WIDTH;
 
         // Top Left
         ctx.beginPath();
@@ -165,17 +166,17 @@ export class TacticalRenderer {
         if (blink) {
             ctx.fillStyle = TACTICAL_COLORS.DIRECTOR_REC;
             ctx.beginPath();
-            ctx.arc(pad + 15, pad + 15, 5, 0, Math.PI * 2);
+            ctx.arc(pad + TACTICAL_DRAW.REC_OFFSET_X, pad + TACTICAL_DRAW.REC_OFFSET_Y, TACTICAL_DRAW.REC_RADIUS, 0, Math.PI * 2);
             ctx.fill();
         }
 
         ctx.fillStyle = TACTICAL_COLORS.DIRECTOR_TEXT;
         ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText('DIRECTOR_CAM_FEED', pad + 25, pad + 18);
+        ctx.fillText('DIRECTOR_CAM_FEED', pad + TACTICAL_DRAW.DIRECTOR_LABEL_X, pad + TACTICAL_DRAW.DIRECTOR_LABEL_Y);
         
         ctx.textAlign = 'right';
-        ctx.fillText(`TRK_ID: ${engine.directorTargetId}`, width - pad - 5, height - pad - 10);
+        ctx.fillText(`TRK_ID: ${engine.directorTargetId}`, width - pad - TACTICAL_DRAW.TRACK_LABEL_INSET, height - pad - 10);
 
         ctx.restore();
     }
@@ -186,27 +187,27 @@ export class TacticalRenderer {
         ctx.textAlign = 'left';
 
         if (!RenderStats.enabled) {
-            ctx.fillText(`FPS: ${fps}`, 10, 20);
+            ctx.fillText(`FPS: ${fps}`, 10, TACTICAL_DRAW.DEBUG_FPS_Y);
         } else {
             const hud = RenderStats.getHudStats();
-            ctx.fillText(`FPS: ${hud.fps} (1% low: ${hud.onePercentLow} | max1s: ${hud.max1sMs.toFixed(1)}ms | frame total: ${hud.frameTotalMs.toFixed(1)}ms | JS合計: ${hud.jsTotalMs.toFixed(1)}ms)`, 10, 20);
+            ctx.fillText(`FPS: ${hud.fps} (1% low: ${hud.onePercentLow} | max1s: ${hud.max1sMs.toFixed(1)}ms | frame total: ${hud.frameTotalMs.toFixed(1)}ms | JS合計: ${hud.jsTotalMs.toFixed(1)}ms)`, 10, TACTICAL_DRAW.DEBUG_FPS_Y);
             const summary = RenderStats.formatSummary();
             const text = summary ? `${summary} | tier:${getQualityTier()}` : `tier:${getQualityTier()}`;
-            ctx.fillText(text, 10, 32);
-            ctx.fillText(RenderStats.formatSpikeSummary(), 10, 44);
+            ctx.fillText(text, 10, TACTICAL_DRAW.DEBUG_SUMMARY_Y);
+            ctx.fillText(RenderStats.formatSpikeSummary(), 10, TACTICAL_DRAW.DEBUG_SPIKE_Y);
         }
 
         // SUDDEN DEATH WARNING
         if (engine.battleTime > 60) {
-            const blink = Math.floor(performance.now() / 500) % 2 === 0;
+            const blink = Math.floor(performance.now() / TACTICAL_DRAW.SUDDEN_DEATH_BLINK_MS) % 2 === 0;
             if (blink) {
                 ctx.fillStyle = TACTICAL_COLORS.SUDDEN_DEATH_ALERT; // red-500
                 ctx.font = 'bold 14px monospace';
                 ctx.textAlign = 'center';
-                ctx.fillText('⚠️ SUDDEN DEATH ⚠️', ctx.canvas.width / 2, 30);
+                ctx.fillText('⚠️ SUDDEN DEATH ⚠️', ctx.canvas.width / 2, TACTICAL_DRAW.SUDDEN_DEATH_TITLE_Y);
                 ctx.font = '10px monospace';
                 ctx.fillStyle = TACTICAL_COLORS.SUDDEN_DEATH_SUB;
-                ctx.fillText('DAMAGE UP / HEALING DOWN', ctx.canvas.width / 2, 45);
+                ctx.fillText('DAMAGE UP / HEALING DOWN', ctx.canvas.width / 2, TACTICAL_DRAW.SUDDEN_DEATH_SUBTITLE_Y);
             }
         }
     }

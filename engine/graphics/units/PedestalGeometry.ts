@@ -1,3 +1,4 @@
+import { PEDESTAL_BAKE } from "../../../constants";
 // 棋座共用幾何：六角輪廓、等距投影、側面厚度。供 Imperial／Covenant 棋座畫法與 UnitFactory 使用。
 import { HexLayout } from "../../../types";
 import { ISO_SCALE_Y } from "../../../constants";
@@ -33,7 +34,7 @@ export function drawPedestalSlab(ctx: CanvasRenderingContext2D, skin: FactionSki
     // 落地陰影（比棋座略大、往下偏移）
     ctx.save();
     ctx.translate(0, t + 2);
-    ctx.scale(1.08, 1.08);
+    ctx.scale(PEDESTAL_BAKE.SHADOW_SCALE, PEDESTAL_BAKE.SHADOW_SCALE);
     tracePedestalOutline(ctx, outline);
     ctx.fillStyle = p.dropShadow;
     ctx.fill();
@@ -60,7 +61,7 @@ export function drawPedestalSlab(ctx: CanvasRenderingContext2D, skin: FactionSki
     ctx.translate(0, t);
     tracePedestalOutline(ctx, outline);
     ctx.strokeStyle = p.sideShadow;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = PEDESTAL_BAKE.BOTTOM_LINE_WIDTH;
     ctx.stroke();
     ctx.restore();
 }
@@ -73,10 +74,10 @@ export function fillPedestalTop(ctx: CanvasRenderingContext2D, skin: FactionSkin
     tracePedestalOutline(ctx, outline);
     ctx.clip();
     ctx.scale(1, ISO_SCALE_Y);
-    const grad = ctx.createRadialGradient(-r * 0.28, -r * 0.35, r * 0.05, 0, 0, r);
+    const grad = ctx.createRadialGradient(-r * PEDESTAL_BAKE.TOP_LIGHT_LEFT, -r * PEDESTAL_BAKE.TOP_LIGHT_UP, r * PEDESTAL_BAKE.TOP_LIGHT_RADIUS, 0, 0, r);
     grad.addColorStop(0, p.topHighlight);
-    grad.addColorStop(0.45, p.topBase);
-    grad.addColorStop(0.85, p.topDeep);
+    grad.addColorStop(PEDESTAL_BAKE.TOP_BASE_STOP, p.topBase);
+    grad.addColorStop(PEDESTAL_BAKE.TOP_DEEP_STOP, p.topDeep);
     grad.addColorStop(1, p.topEdge);
     ctx.fillStyle = grad;
     ctx.fillRect(-r, -r, r * 2, r * 2);

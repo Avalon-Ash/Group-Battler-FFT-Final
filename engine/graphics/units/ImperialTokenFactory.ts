@@ -1,3 +1,4 @@
+import { IMPERIAL_TOKEN_BAKE } from "../../../constants";
 // Lionheart（BLUE）棋座程序化畫法：乾淨的金邊六角、皇家藍琺瑯頂面。
 // 顏色全部來自 FACTION_SKINS（data/units/factionSkin.ts）；手繪貼圖存在時由 UnitFactory 逐層取代。
 import { HexLayout } from "../../../types";
@@ -34,20 +35,20 @@ export const ImperialTokenFactory: PedestalPainter = {
         // 金邊：暗金底線＋亮金高光，連續不斷
         tracePedestalOutline(ctx, outline);
         ctx.strokeStyle = p.rimShadow;
-        ctx.lineWidth = 5;
+        ctx.lineWidth = IMPERIAL_TOKEN_BAKE.RIM_SHADOW_WIDTH;
         ctx.stroke();
         ctx.strokeStyle = p.rim;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = IMPERIAL_TOKEN_BAKE.RIM_WIDTH;
         ctx.stroke();
 
         // 內緣亮線
-        tracePedestalOutline(ctx, projectIso(hexPlane(p.radius - 5, layout)));
+        tracePedestalOutline(ctx, projectIso(hexPlane(p.radius - IMPERIAL_TOKEN_BAKE.INNER_RIM_INSET, layout)));
         ctx.strokeStyle = p.innerRim;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = IMPERIAL_TOKEN_BAKE.INNER_RIM_WIDTH;
         ctx.stroke();
 
         // 內環（儀表環，虛線六角）
-        tracePedestalOutline(ctx, projectIso(hexPlane(p.radius * 0.7, layout)));
+        tracePedestalOutline(ctx, projectIso(hexPlane(p.radius * IMPERIAL_TOKEN_BAKE.RING_RADIUS, layout)));
         ctx.strokeStyle = p.ring;
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 2]);
@@ -64,9 +65,9 @@ export const ImperialTokenFactory: PedestalPainter = {
         ctx.globalAlpha = p.emblemAlpha;
         tracePedestalOutline(ctx, projectIso(hexPlane(er, layout)));
         ctx.strokeStyle = p.emblem;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = IMPERIAL_TOKEN_BAKE.EMBLEM_WIDTH;
         ctx.stroke();
-        tracePedestalOutline(ctx, projectIso(hexPlane(er * 0.45, layout)));
+        tracePedestalOutline(ctx, projectIso(hexPlane(er * IMPERIAL_TOKEN_BAKE.EMBLEM_CORE_RADIUS, layout)));
         ctx.fillStyle = p.emblem;
         ctx.fill();
         ctx.restore();

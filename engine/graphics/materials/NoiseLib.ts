@@ -1,3 +1,4 @@
+import { NOISE_SEEDS } from "../../../data/vfx/materialConfig";
 import { floatXorHash2 as hash2 } from '../../math/hash';
 /**
  * NoiseLib — Canvas 2D 版的 shader 噪聲庫
@@ -43,7 +44,7 @@ function fbm(x: number, y: number, cfg: NoiseFieldConfig, seed: number): number 
     let sum = 0;
     let norm = 0;
     for (let o = 0; o < cfg.octaves; o++) {
-        sum += valueNoise(x * freq, y * freq, seed + o * 101) * amp;
+        sum += valueNoise(x * freq, y * freq, seed + o * NOISE_SEEDS.OCTAVE_STEP) * amp;
         norm += amp;
         amp *= cfg.persistence;
         freq *= cfg.lacunarity;
@@ -78,7 +79,7 @@ export function getGrainTile(cfg: SurfaceGrainConfig, variant: number, size: num
     const img = ctx.createImageData(size, size);
     const data = img.data;
     const half = size / 2;
-    const seed = 9001 + variant * 7919;
+    const seed = NOISE_SEEDS.GRAIN_BASE + variant * NOISE_SEEDS.GRAIN_VARIANT_STEP;
 
     // 變體整體明度偏移：讓相鄰格子有區塊色差，避免整張地圖像同一塊材質
     const centered = cfg.variants > 1 ? (variant / (cfg.variants - 1)) - 0.5 : 0;
@@ -134,7 +135,7 @@ export function tileHash01(q: number, r: number, seed: number): number {
 /** 由格座標推導變體編號（確定性，同一格永遠同一張） */
 export function variantFor(q: number, r: number, variants: number): number {
     if (variants <= 1) return 0;
-    const h = hash2(Math.round(q), Math.round(r), 4242);
+    const h = hash2(Math.round(q), Math.round(r), NOISE_SEEDS.TILE_VARIANT);
     return Math.min(variants - 1, Math.floor(h * variants));
 }
 

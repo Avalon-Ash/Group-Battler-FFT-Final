@@ -59,3 +59,25 @@ export const VFX_NEUTRALS = {
 } as const;
 
 export type VFXNeutralId = keyof typeof VFX_NEUTRALS;
+
+/** 奧義命中光爆三階色表，保留既有色值。 */
+export const ULT_IMPACT_COLORS = {
+    /** 藍方光爆中心顏色（CSS 色值） */
+    BLUE_CORE: '#ffffff',
+    /** 藍方光爆中段顏色（CSS 色值） */
+    BLUE_MID: '#93c5fd',
+    /** 藍方光爆外緣顏色（CSS 色值） */
+    BLUE_EDGE: '#2563eb',
+    /** 紅方光爆中心顏色（CSS 色值） */
+    RED_CORE: '#ffffff',
+    /** 紅方光爆中段顏色（CSS 色值） */
+    RED_MID: '#fdba74',
+    /** 紅方光爆外緣顏色（CSS 色值） */
+    RED_EDGE: '#dc2626',
+    /** 中性光爆中心顏色（CSS 色值） */
+    NEUTRAL_CORE: '#ffffff',
+    /** 中性光爆中段顏色（CSS 色值） */
+    NEUTRAL_MID: '#e2e8f0',
+    /** 中性光爆外緣顏色（CSS 色值） */
+    NEUTRAL_EDGE: '#94a3b8',
+} as const;
