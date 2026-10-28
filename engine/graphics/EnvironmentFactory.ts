@@ -1,3 +1,4 @@
+import { ENV_DRAW } from "../../constants";
 
 import { OBSTACLE_STYLES, ObstacleStyle, HEX_SIZE, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
@@ -95,13 +96,13 @@ export const EnvironmentFactory = {
         ctx.translate(0, topY);
         
         ctx.fillStyle = style.light;
-        ctx.globalAlpha = 0.9;
+        ctx.globalAlpha = ENV_DRAW.WALL_CAP_ALPHA;
         HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
         ctx.fill();
         
         // Inner Detail
         ctx.fillStyle = style.detail;
-        ctx.beginPath(); ctx.arc(0, 0, r*0.4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, r*ENV_DRAW.WALL_DETAIL_RADIUS, 0, Math.PI*2); ctx.fill();
         
         // Rim
         ctx.strokeStyle = style.highlight;
@@ -121,10 +122,10 @@ export const EnvironmentFactory = {
             
             // Generate jagged polygon
             const points = [];
-            const segments = 7;
+            const segments = ENV_DRAW.ROCK_SEGMENTS;
             for(let i=0; i<segments; i++) {
                 const angle = (i / segments) * Math.PI * 2 + seed;
-                const dist = r * (0.8 + Math.sin(angle * 3 + seed) * 0.2);
+                const dist = r * (ENV_DRAW.ROCK_RADIUS_BASE + Math.sin(angle * 3 + seed) * ENV_DRAW.ROCK_RADIUS_WAVE);
                 points.push({
                     x: Math.cos(angle) * dist,
                     y: Math.sin(angle) * dist * ISO_SCALE_Y
@@ -183,7 +184,7 @@ export const EnvironmentFactory = {
             // Detail cracks
             ctx.beginPath();
             ctx.moveTo(0,0);
-            ctx.lineTo(r*0.5, r*0.2);
+            ctx.lineTo(r*0.5, r*ENV_DRAW.ROCK_CRACK_Y);
             ctx.strokeStyle = style.dark;
             ctx.stroke();
 
@@ -192,11 +193,11 @@ export const EnvironmentFactory = {
 
         // Draw 3 Rocks clustered
         // Big one
-        drawRock(5, 5, 22, 25, 0.5);
+        drawRock(ENV_DRAW.BIG_ROCK_X, ENV_DRAW.BIG_ROCK_Y, ENV_DRAW.BIG_ROCK_RADIUS, ENV_DRAW.BIG_ROCK_HEIGHT, 0.5);
         // Medium
-        drawRock(-15, 0, 16, 18, 2.1);
+        drawRock(-ENV_DRAW.MID_ROCK_LEFT, 0, 16, ENV_DRAW.MID_ROCK_HEIGHT, ENV_DRAW.MID_ROCK_SEED);
         // Small
-        drawRock(10, 15, 12, 12, 4.3);
+        drawRock(10, ENV_DRAW.SMALL_ROCK_Y, ENV_DRAW.SMALL_ROCK_RADIUS, ENV_DRAW.SMALL_ROCK_HEIGHT, ENV_DRAW.SMALL_ROCK_SEED);
     },
 
     drawIsoPillar(ctx: CanvasRenderingContext2D, style: ObstacleStyle, layout: HexLayout) {
@@ -223,17 +224,17 @@ export const EnvironmentFactory = {
         ctx.strokeStyle = style.detail;
         ctx.lineWidth = 2;
         ctx.shadowColor = style.detail;
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = ENV_DRAW.PILLAR_RUNE_BLUR;
         
         if (layout === 'FLAT') {
             ctx.beginPath();
-            ctx.moveTo(0, -15); ctx.lineTo(0, 15);
-            ctx.moveTo(-5, 0); ctx.lineTo(5, 0);
+            ctx.moveTo(0, -ENV_DRAW.FLAT_RUNE_HALF_HEIGHT); ctx.lineTo(0, ENV_DRAW.FLAT_RUNE_HALF_HEIGHT);
+            ctx.moveTo(-ENV_DRAW.FLAT_RUNE_HALF_WIDTH, 0); ctx.lineTo(ENV_DRAW.FLAT_RUNE_HALF_WIDTH, 0);
             ctx.stroke();
         } else {
             ctx.beginPath();
-            ctx.moveTo(0, -20); ctx.lineTo(0, 20);
-            ctx.moveTo(0, -10); ctx.lineTo(verts[0].x * 0.3, -5); 
+            ctx.moveTo(0, -ENV_DRAW.POINTY_RUNE_HALF_HEIGHT); ctx.lineTo(0, ENV_DRAW.POINTY_RUNE_HALF_HEIGHT);
+            ctx.moveTo(0, -ENV_DRAW.POINTY_RUNE_BRANCH_TOP); ctx.lineTo(verts[0].x * ENV_DRAW.POINTY_RUNE_BRANCH_X, -ENV_DRAW.POINTY_RUNE_BRANCH_END); 
             ctx.stroke();
         }
         ctx.restore();
@@ -248,19 +249,19 @@ export const EnvironmentFactory = {
     },
 
     drawIsoTree(ctx: CanvasRenderingContext2D, style: ObstacleStyle, layout: HexLayout) {
-        const trunkW = 14;
+        const trunkW = ENV_DRAW.TRUNK_WIDTH;
         const trunkH = BLOCK_HEIGHT * 1.0;
         
         ctx.fillStyle = '#3f2e1e';
         ctx.beginPath();
         // Simple trunk
-        ctx.fillRect(-trunkW/2, -trunkH, trunkW, trunkH + 5); 
+        ctx.fillRect(-trunkW/2, -trunkH, trunkW, trunkH + ENV_DRAW.TRUNK_BASE_EXTENSION); 
         
         const layers = 3;
-        const baseWidth = layout === 'FLAT' ? HEX_SIZE : HEX_SIZE * 0.9;
+        const baseWidth = layout === 'FLAT' ? HEX_SIZE : HEX_SIZE * ENV_DRAW.POINTY_TREE_WIDTH;
         // Layers scale boosted to 2.0 to avoid stubby trees
         const layerHeight = BLOCK_HEIGHT * ENV_SPRITE.TREE_LAYER_HEIGHT_MULT; 
-        let currentY = -trunkH + 5;
+        let currentY = -trunkH + ENV_DRAW.CROWN_BASE_OFFSET;
         
         for (let i = 0; i < layers; i++) {
             const ratio = 1 - (i / layers);
@@ -273,11 +274,11 @@ export const EnvironmentFactory = {
             if (layout === 'FLAT') {
                 // Wide Triangle
                 ctx.lineTo(width/2, currentY);
-                ctx.quadraticCurveTo(0, currentY + 8, -width/2, currentY);
+                ctx.quadraticCurveTo(0, currentY + ENV_DRAW.FLAT_CROWN_CURVE, -width/2, currentY);
             } else {
                 // Sharper Triangle
                 ctx.lineTo(width/2, currentY);
-                ctx.lineTo(0, currentY + 5); // Pointy dip
+                ctx.lineTo(0, currentY + ENV_DRAW.POINTY_CROWN_DIP); // Pointy dip
                 ctx.lineTo(-width/2, currentY);
             }
             
@@ -315,17 +316,17 @@ export const EnvironmentFactory = {
             ctx.globalAlpha = alpha;
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.lineTo(-w, -h * 0.2);
+            ctx.lineTo(-w, -h * ENV_DRAW.SHARD_LEFT_SHOULDER);
             ctx.lineTo(0, -h); 
-            ctx.lineTo(w, -h * 0.3);
+            ctx.lineTo(w, -h * ENV_DRAW.SHARD_RIGHT_SHOULDER);
             ctx.closePath();
             ctx.fill();
             
             ctx.fillStyle = style.light;
-            ctx.globalAlpha = alpha * 0.6;
+            ctx.globalAlpha = alpha * ENV_DRAW.SHARD_LIGHT_ALPHA;
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.lineTo(w, -h * 0.3);
+            ctx.lineTo(w, -h * ENV_DRAW.SHARD_RIGHT_SHOULDER);
             ctx.lineTo(0, -h);
             ctx.fill();
             
@@ -340,13 +341,13 @@ export const EnvironmentFactory = {
         };
 
         if (layout === 'FLAT') {
-            drawShard(-10, 5, 10, baseH * 0.8, -0.2);
-            drawShard(10, 2, 12, baseH * 0.6, 0.2);
-            drawShard(0, 8, 18, baseH * 1.1, 0); 
+            drawShard(-ENV_DRAW.FLAT_LEFT_SHARD_X, ENV_DRAW.FLAT_LEFT_SHARD_Y, 10, baseH * ENV_DRAW.FLAT_LEFT_SHARD_HEIGHT, -ENV_DRAW.FLAT_LEFT_SHARD_TILT);
+            drawShard(10, 2, ENV_DRAW.FLAT_RIGHT_SHARD_WIDTH, baseH * ENV_DRAW.FLAT_RIGHT_SHARD_HEIGHT, ENV_DRAW.FLAT_RIGHT_SHARD_TILT);
+            drawShard(0, ENV_DRAW.FLAT_MAIN_SHARD_Y, ENV_DRAW.FLAT_MAIN_SHARD_WIDTH, baseH * ENV_DRAW.FLAT_MAIN_SHARD_HEIGHT, 0); 
         } else {
-            drawShard(0, 5, 15, baseH * 1.0, 0); 
-            drawShard(-8, 0, 8, baseH * 0.6, -0.15);
-            drawShard(8, 0, 8, baseH * 0.6, 0.15);
+            drawShard(0, ENV_DRAW.POINTY_MAIN_SHARD_Y, ENV_DRAW.POINTY_MAIN_SHARD_WIDTH, baseH * 1.0, 0); 
+            drawShard(-ENV_DRAW.POINTY_LEFT_SHARD_X, 0, ENV_DRAW.POINTY_LEFT_SHARD_WIDTH, baseH * ENV_DRAW.POINTY_LEFT_SHARD_HEIGHT, -ENV_DRAW.POINTY_LEFT_SHARD_TILT);
+            drawShard(ENV_DRAW.POINTY_RIGHT_SHARD_X, 0, ENV_DRAW.POINTY_RIGHT_SHARD_WIDTH, baseH * ENV_DRAW.POINTY_RIGHT_SHARD_HEIGHT, ENV_DRAW.POINTY_RIGHT_SHARD_TILT);
         }
     },
 

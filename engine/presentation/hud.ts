@@ -1,3 +1,4 @@
+import { HUD_TEXT_MOTION } from "../../constants";
 
 import { GameEngine } from "../game";
 import { Team } from "../../types";
@@ -40,7 +41,7 @@ export class HUDSystem {
     private pool: FloatingText[] = [];
 
     constructor() {
-        for(let i=0; i<50; i++) this.pool.push(this.createEmpty());
+        for(let i=0; i<HUD_TEXT_MOTION.POOL_SIZE; i++) this.pool.push(this.createEmpty());
     }
 
     public reset() {
@@ -95,16 +96,16 @@ export class HUDSystem {
         let vx = 0, vy = 0, life = TEXT_LIFESPAN;
         if (type === 'SHOUT') {
             // SHOUT 的生命週期現在由詠唱時間決定
-            const safeDuration = Math.min(5.0, duration > 0 ? duration : 1.0);
+            const safeDuration = Math.min(HUD_TEXT_MOTION.CAST_MAX_DURATION, duration > 0 ? duration : 1.0);
             life = safeDuration + 0.5;
-            if (isUlt) { vy = -5; size = 24; }
-            else { vy = -20; size = 14; }
+            if (isUlt) { vy = -HUD_TEXT_MOTION.ULT_SHOUT_RISE; size = HUD_TEXT_MOTION.ULT_SHOUT_SIZE; }
+            else { vy = -HUD_TEXT_MOTION.SHOUT_RISE; size = HUD_TEXT_MOTION.SHOUT_SIZE; }
         } else if (type === 'CC') {
-            vy = -20; life = 1.5;
+            vy = -HUD_TEXT_MOTION.CC_RISE; life = HUD_TEXT_MOTION.CC_LIFE;
         } else if (type === 'KILL_STREAK') {
-            vx = 0; vy = -30; life = 3.5; size = 32; 
+            vx = 0; vy = -HUD_TEXT_MOTION.STREAK_RISE; life = HUD_TEXT_MOTION.STREAK_LIFE; size = HUD_TEXT_MOTION.STREAK_SIZE; 
         } else {
-            vx = (Math.random() - 0.5) * 60; vy = -100; 
+            vx = (Math.random() - 0.5) * 60; vy = -HUD_TEXT_MOTION.DAMAGE_RISE; 
         }
 
         let ft = this.pool.length > 0 ? this.pool.pop()! : this.createEmpty();
@@ -133,10 +134,10 @@ export class HUDSystem {
         if (text) {
             text.isShattered = true;
             text.shatterType = 'SUCCESS';
-            text.vy = -400; // 快速向上升華
+            text.vy = -HUD_TEXT_MOTION.SUCCESS_RISE; // 快速向上升華
             text.vx = 0;    // 保持中心
-            text.life = 0.3; // 更短的時間，表現俐落感
-            text.maxLife = 0.3;
+            text.life = HUD_TEXT_MOTION.SUCCESS_LIFE; // 更短的時間，表現俐落感
+            text.maxLife = HUD_TEXT_MOTION.SUCCESS_LIFE;
         }
     }
 
@@ -151,11 +152,11 @@ export class HUDSystem {
             text.isShattered = true;
             text.shatterType = 'BREAK';
             text.color = team === Team.RED ? TEXT_PAINTER_COLORS.CAST_BREAK_RED : TEXT_PAINTER_COLORS.CAST_BREAK_BLUE; // 陣營色錯位（TextPainter）
-            text.vy = -250; // 用力向上炸飛
-            text.vx = (Math.random() - 0.5) * 400; // 隨機左右噴飛
-            text.vRot = (Math.random() - 0.5) * 30; // 劇烈旋轉
-            text.life = 0.4; // 快速消失
-            text.maxLife = 0.4;
+            text.vy = -HUD_TEXT_MOTION.BREAK_RISE; // 用力向上炸飛
+            text.vx = (Math.random() - 0.5) * HUD_TEXT_MOTION.BREAK_SCATTER; // 隨機左右噴飛
+            text.vRot = (Math.random() - 0.5) * HUD_TEXT_MOTION.BREAK_SPIN; // 劇烈旋轉
+            text.life = HUD_TEXT_MOTION.BREAK_LIFE; // 快速消失
+            text.maxLife = HUD_TEXT_MOTION.BREAK_LIFE;
         }
     }
 
@@ -196,8 +197,8 @@ export class HUDSystem {
                 const g = d.isShattered ? GRAVITY * 4.0 : GRAVITY; // 碎片重力更強
                 d.vy += g * dt;
             }
-            else if (d.type === 'SHOUT' || d.type === 'CC') d.vy *= 0.95; 
-            else if (d.type === 'KILL_STREAK') d.vy *= 0.92; 
+            else if (d.type === 'SHOUT' || d.type === 'CC') d.vy *= HUD_TEXT_MOTION.SHOUT_DAMPING; 
+            else if (d.type === 'KILL_STREAK') d.vy *= HUD_TEXT_MOTION.STREAK_DAMPING; 
             
             if (d.life <= 0) {
                 this.release(d);

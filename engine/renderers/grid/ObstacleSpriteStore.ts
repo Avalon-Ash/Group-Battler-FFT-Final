@@ -1,3 +1,4 @@
+import { OBSTACLE_DRAW } from "../../../constants";
 import { imulVariant2 } from '../../math/hash';
 /**
  * ObstacleSpriteStore — 障礙物預渲染精靈（VISUAL_ROADMAP O2）
@@ -154,7 +155,7 @@ class ObstacleSpriteStoreImpl {
         const anim = OBSTACLE_SPRITE.ANIM[type];
         if (!anim) return set[0];
         // 相位：同一個雜湊換個種子（變體已用掉低位）
-        const phase = obstacleVariant(r * 7 + 3, q * 13 + 5, 997) / 997;
+        const phase = obstacleVariant(r * OBSTACLE_DRAW.PHASE_R_MULT + 3, q * OBSTACLE_DRAW.PHASE_Q_MULT + OBSTACLE_DRAW.PHASE_Q_OFFSET, OBSTACLE_DRAW.PHASE_BUCKETS) / OBSTACLE_DRAW.PHASE_BUCKETS;
         if (anim.kind === 'sway') return set[loopFrameIndex(time, anim.period, set.length, phase)];
         let ov = this.overlays.get(key);
         if (!ov) {
@@ -169,7 +170,7 @@ class ObstacleSpriteStoreImpl {
         } else if (anim.kind === 'glint') {
             const t = u / anim.visible;
             o.alpha = u < anim.visible ? anim.amp * Math.sin(Math.PI * t) : 0;
-            o.y = -ov.spriteH * (0.3 + 0.55 * Math.min(1, t)) - o.height / 2;
+            o.y = -ov.spriteH * (OBSTACLE_DRAW.GLINT_HEIGHT_START + OBSTACLE_DRAW.GLINT_HEIGHT_TRAVEL * Math.min(1, t)) - o.height / 2;
         }
         return ov.sprite;
     }
@@ -194,7 +195,7 @@ class ObstacleSpriteStoreImpl {
             return { spriteH, sprite: { ...base, overlay: { image: canvas, x: -v.ax * k - pad, y: -v.ay * k - pad, width: w, height: h, alpha: 0 } } };
         }
         const r = anim.kind === 'glint' ? anim.radius : 1;
-        const size = r * 3.4;
+        const size = r * OBSTACLE_DRAW.GLINT_CANVAS_DIAMETER;
         const { canvas, ctx } = createCanvas(Math.ceil(size * s), Math.ceil(size * s));
         ctx.setTransform(s, 0, 0, s, (size / 2) * s, (size / 2) * s);
         drawGlint(ctx, 0, 0, r, 1);
@@ -280,15 +281,15 @@ function drawGlint(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
     ctx.globalAlpha = alpha;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.35, 'rgba(200,240,255,0.55)');
+    g.addColorStop(OBSTACLE_DRAW.GLINT_MAIN_STOP, 'rgba(200,240,255,0.55)');
     g.addColorStop(1, 'rgba(200,240,255,0)');
     ctx.fillStyle = g;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
     ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = 0.8;
+    ctx.lineWidth = OBSTACLE_DRAW.GLINT_LINE_WIDTH;
     ctx.beginPath();
-    ctx.moveTo(x - r * 1.6, y); ctx.lineTo(x + r * 1.6, y);
-    ctx.moveTo(x, y - r * 1.6); ctx.lineTo(x, y + r * 1.6);
+    ctx.moveTo(x - r * OBSTACLE_DRAW.GLINT_CROSS_RADIUS, y); ctx.lineTo(x + r * OBSTACLE_DRAW.GLINT_CROSS_RADIUS, y);
+    ctx.moveTo(x, y - r * OBSTACLE_DRAW.GLINT_CROSS_RADIUS); ctx.lineTo(x, y + r * OBSTACLE_DRAW.GLINT_CROSS_RADIUS);
     ctx.stroke();
 }
 

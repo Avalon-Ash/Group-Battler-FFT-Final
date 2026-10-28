@@ -1,3 +1,4 @@
+import { FROZEN_STREAK } from "../../../../constants";
 // ╔══════════════════════════════════════════════════════════╗
 // ║  FrozenPainter — 凍結：單位被封在六角冰塊裡               ║
 // ║  職責：把半透明六角稜柱冰塊烘焙一次成離屏畫布，疊在精靈之上   ║
@@ -68,7 +69,7 @@ export function bakeIceBlock(createSurface: SurfaceFactory = createCanvas): HTML
             ctx.globalAlpha = B.streakAlpha;
             ctx.fillStyle = B.ramp.core;
             for (const [u0, w] of B.streaks) {
-                quad(ctx, lerp(f.a, f.b, u0, 0.12), lerp(f.a, f.b, u0 + w, 0.12), lerp(f.a, f.b, u0 + w + 0.18, 0.85), lerp(f.a, f.b, u0 + 0.18, 0.85));
+                quad(ctx, lerp(f.a, f.b, u0, FROZEN_STREAK.BOTTOM), lerp(f.a, f.b, u0 + w, FROZEN_STREAK.BOTTOM), lerp(f.a, f.b, u0 + w + FROZEN_STREAK.SLANT, FROZEN_STREAK.TOP), lerp(f.a, f.b, u0 + FROZEN_STREAK.SLANT, FROZEN_STREAK.TOP));
                 ctx.fill();
             }
         }

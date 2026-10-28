@@ -202,3 +202,213 @@ export const TEXT_PAINTER_COLORS = {
     TECH_BG: 'rgba(15, 23, 42, 0.4)',
     GRAD_TRANSPARENT: 'rgba(255, 255, 255, 0)'
 };
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const UI_ICON_BAKE = {
+    /** 技能符號光暈模糊（px） */
+    SKILL_GLOW_BLUR: 5,
+    /** 斬擊弧半徑（px） */
+    SLASH_RADIUS: 8,
+    /** 斬擊斜線端點距中心（px） */
+    SLASH_EXTENT: 8,
+    /** 箭身端點距中心（px） */
+    ARROW_EXTENT: 6,
+    /** 箭頭垂直終點向上距離（px） */
+    ARROW_HEAD_END_UP: 2,
+    /** 火球半徑（px） */
+    FIREBALL_RADIUS: 6,
+    /** 火球尾線頂端向上距離（px） */
+    FIREBALL_TAIL_TOP: 8,
+    /** 火球尾線底端向上距離（px） */
+    FIREBALL_TAIL_BOTTOM: 4,
+    /** 閃電符號半高（px） */
+    BOLT_HALF_HEIGHT: 8,
+    /** 閃電折點向左位移（px） */
+    BOLT_KINK_LEFT: 4,
+    /** 閃電底端向左位移（px） */
+    BOLT_BOTTOM_LEFT: 2,
+    /** 光束十字端點距中心（px） */
+    BEAM_EXTENT: 8,
+    /** 重擊方塊向左位移（px） */
+    SMASH_LEFT: 6,
+    /** 重擊方塊向上位移（px） */
+    SMASH_TOP: 8,
+    /** 重擊方塊寬度（px） */
+    SMASH_WIDTH: 12,
+    /** 重擊方塊高度（px） */
+    SMASH_HEIGHT: 8,
+    /** 炸彈半徑（px） */
+    BOMB_RADIUS: 6,
+    /** 引信起點向上距離（px） */
+    BOMB_FUSE_START_UP: 4,
+    /** 引信終點水平位置（px） */
+    BOMB_FUSE_END_X: 8,
+    /** 引信終點向上距離（px） */
+    BOMB_FUSE_END_UP: 8,
+    /** 預設技能圖示半徑（px） */
+    DEFAULT_SKILL_RADIUS: 6,
+    /** 狀態符號光暈模糊（px） */
+    STATUS_GLOW_BLUR: 5,
+    /** 暈眩螺旋每點半徑增量（px） */
+    HALO_SPIRAL_STEP: 1.5,
+    /** 沉默方框半寬（px） */
+    LOCK_HALF_WIDTH: 12,
+    /** 沉默方框向上位移（px） */
+    LOCK_TOP: 10,
+    /** 沉默方框寬度（px） */
+    LOCK_WIDTH: 24,
+    /** 沉默點水平間距（px） */
+    LOCK_DOT_SPACING: 6,
+    /** 沉默點向上距離（px） */
+    LOCK_DOT_UP: 2,
+    /** 放逐稜晶圖示半徑（px） */
+    PRISM_RADIUS: 14,
+    /** 中毒符文半徑（px） */
+    POISON_RUNE_RADIUS: 14,
+    /** 中毒交叉線向左位移（px） */
+    POISON_CROSS_LEFT: 4,
+    /** 中毒交叉線向上位移（px） */
+    POISON_CROSS_UP: 4,
+    /** 再生十字半高（px） */
+    REGEN_HALF_HEIGHT: 10,
+    /** 再生十字半寬（px） */
+    REGEN_HALF_WIDTH: 10,
+    /** 預設符文半徑（px） */
+    DEFAULT_RUNE_RADIUS: 14,
+    /** 骷髏頭部向上距離（px） */
+    SKULL_HEAD_UP: 4,
+    /** 骷髏頭部半徑（px） */
+    SKULL_HEAD_RADIUS: 8,
+    /** 骷髏下顎向左位移（px） */
+    SKULL_JAW_LEFT: 6,
+    /** 骷髏下顎寬度（px） */
+    SKULL_JAW_WIDTH: 12,
+    /** 骷髏下顎高度（px） */
+    SKULL_JAW_HEIGHT: 8,
+    /** 骷髏左眼向左距離（px） */
+    SKULL_EYE_LEFT: 3,
+    /** 骷髏眼睛向上距離（px） */
+    SKULL_EYE_UP: 4,
+    /** 嘲諷左括號向左距離（px） */
+    ANGRY_LEFT: 10,
+    /** 嘲諷括號半高（px） */
+    ANGRY_HALF_HEIGHT: 10,
+    /** 嘲諷左括號折點向左距離（px） */
+    ANGRY_LEFT_KINK: 5,
+    /** 嘲諷中心直線半高（px） */
+    ANGRY_CENTER_HALF_HEIGHT: 12,
+    /** 嘲諷右括號折點水平位置（px） */
+    ANGRY_RIGHT_KINK: 5,
+    /** 致盲眼形水平半徑（px） */
+    EYE_RADIUS_X: 12,
+    /** 致盲眼形垂直半徑（px） */
+    EYE_RADIUS_Y: 6,
+    /** 致盲斜線端點距中心（px） */
+    EYE_SLASH_EXTENT: 12,
+    /** 護盾十字半高（px） */
+    SHIELD_CROSS_HALF_HEIGHT: 8,
+    /** 護盾十字半寬（px） */
+    SHIELD_CROSS_HALF_WIDTH: 8,
+    /** 預設狀態圖示半徑（px） */
+    DEFAULT_STATUS_RADIUS: 8,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const TACTICAL_DRAW = {
+    /** 既有路徑連線離地高度（px） */
+    PATH_LIFT: 30,
+    /** 路徑虛線長度（px） */
+    PATH_DASH_LENGTH: 5,
+    /** 路徑虛線間隔（px） */
+    PATH_DASH_GAP: 5,
+    /** 路徑連線不透明度（比例） */
+    PATH_ALPHA: 0.6,
+    /** 目的地標記垂直壓縮（倍） */
+    DESTINATION_SQUASH: 0.6,
+    /** 目的地填色不透明度（比例） */
+    DESTINATION_FILL_ALPHA: 0.3,
+    /** 目的地輪廓不透明度（比例） */
+    DESTINATION_LINE_ALPHA: 0.8,
+    /** 既有目標連線離地高度（px） */
+    TARGET_LIFT: 30,
+    /** 目標連線實色起點（比例） */
+    TARGET_COLOR_STOP: 0.2,
+    /** 目標連線基礎不透明度（比例） */
+    TARGET_ALPHA_BASE: 0.8,
+    /** 目標連線透明度脈動幅度（比例） */
+    TARGET_ALPHA_PULSE: 0.2,
+    /** 導播框邊距（px） */
+    DIRECTOR_PADDING: 40,
+    /** 導播框角邊長（px） */
+    DIRECTOR_CORNER: 25,
+    /** 導播框線寬（px） */
+    DIRECTOR_LINE_WIDTH: 1.5,
+    /** 錄影點相對邊距橫向位置（px） */
+    REC_OFFSET_X: 15,
+    /** 錄影點相對邊距縱向位置（px） */
+    REC_OFFSET_Y: 15,
+    /** 錄影點半徑（px） */
+    REC_RADIUS: 5,
+    /** 導播標籤相對邊距橫向位置（px） */
+    DIRECTOR_LABEL_X: 25,
+    /** 導播標籤相對邊距縱向位置（px） */
+    DIRECTOR_LABEL_Y: 18,
+    /** 追蹤標籤右側內縮（px） */
+    TRACK_LABEL_INSET: 5,
+    /** 幀率文字縱向位置（px） */
+    DEBUG_FPS_Y: 20,
+    /** 效能摘要縱向位置（px） */
+    DEBUG_SUMMARY_Y: 32,
+    /** 尖峰摘要縱向位置（px） */
+    DEBUG_SPIKE_Y: 44,
+    /** 驟死警告閃爍半週期（ms） */
+    SUDDEN_DEATH_BLINK_MS: 500,
+    /** 驟死警告標題縱向位置（px） */
+    SUDDEN_DEATH_TITLE_Y: 30,
+    /** 驟死警告副標題縱向位置（px） */
+    SUDDEN_DEATH_SUBTITLE_Y: 45,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const HUD_TEXT_MOTION = {
+    /** 浮字物件池初始大小（個） */
+    POOL_SIZE: 50,
+    /** 詠唱浮字最長時間（s） */
+    CAST_MAX_DURATION: 5.0,
+    /** 奧義呼喊初始上升速度（px/s） */
+    ULT_SHOUT_RISE: 5,
+    /** 奧義呼喊字級（px） */
+    ULT_SHOUT_SIZE: 24,
+    /** 一般呼喊初始上升速度（px/s） */
+    SHOUT_RISE: 20,
+    /** 一般呼喊字級（px） */
+    SHOUT_SIZE: 14,
+    /** 控制提示初始上升速度（px/s） */
+    CC_RISE: 20,
+    /** 控制提示壽命（s） */
+    CC_LIFE: 1.5,
+    /** 連殺提示初始上升速度（px/s） */
+    STREAK_RISE: 30,
+    /** 連殺提示壽命（s） */
+    STREAK_LIFE: 3.5,
+    /** 連殺提示字級（px） */
+    STREAK_SIZE: 32,
+    /** 傷害浮字初始上升速度（px/s） */
+    DAMAGE_RISE: 100,
+    /** 施法成功文字上升速度（px/s） */
+    SUCCESS_RISE: 400,
+    /** 施法成功文字壽命（s） */
+    SUCCESS_LIFE: 0.3,
+    /** 施法中斷文字上升速度（px/s） */
+    BREAK_RISE: 250,
+    /** 施法中斷文字橫向速度範圍（px/s） */
+    BREAK_SCATTER: 400,
+    /** 施法中斷文字旋轉速度範圍（rad/s） */
+    BREAK_SPIN: 30,
+    /** 施法中斷文字壽命（s） */
+    BREAK_LIFE: 0.4,
+    /** 呼喊與控制浮字每幀速度保留率（比例） */
+    SHOUT_DAMPING: 0.95,
+    /** 連殺浮字每幀速度保留率（比例） */
+    STREAK_DAMPING: 0.92,
+} as const;

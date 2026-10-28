@@ -1,3 +1,4 @@
+import { POST_PROCESS } from "../../constants";
 
 import { createCanvas } from "../graphics/CanvasUtils";
 import { MaterialPainter } from "../graphics/materials/MaterialPainter";
@@ -23,7 +24,7 @@ export class PostProcessor {
     public apply(ctx: CanvasRenderingContext2D, width: number, height: number, trauma: number, transitionAberration: number = 0) {
         // FLASHING & JITTER REMOVED. 
         // We only support the transition aberration during scene changes.
-        if (transitionAberration <= 0.01 || !postFxEnabled()) return;
+        if (transitionAberration <= POST_PROCESS.ABERRATION_MIN || !postFxEnabled()) return;
 
         const w = Math.floor(width);
         const h = Math.floor(height);
@@ -39,8 +40,8 @@ export class PostProcessor {
         this.tempCtx.clearRect(0, 0, w, h);
         this.tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
 
-        if (transitionAberration > 0.05) {
-            const offset = Math.floor(transitionAberration * 15.0); 
+        if (transitionAberration > POST_PROCESS.ABERRATION_SPLIT_MIN) {
+            const offset = Math.floor(transitionAberration * POST_PROCESS.ABERRATION_OFFSET); 
             ctx.save();
             ctx.globalAlpha = 0.5;
             ctx.drawImage(this.tempCanvas, -offset, 0);
@@ -96,14 +97,14 @@ export class PostProcessor {
             this.tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
 
             const blurAmount = Math.floor(progress * 4);
-            ctx.filter = `blur(${blurAmount}px) grayscale(${progress * 50}%)`;
+            ctx.filter = `blur(${blurAmount}px) grayscale(${progress * POST_PROCESS.FINISH_GRAYSCALE}%)`;
             ctx.clearRect(0, 0, w, h);
             ctx.drawImage(this.tempCanvas, 0, 0, w, h);
             ctx.filter = 'none';
         }
 
         // 壓暗在所有階層都保留（戰鬥結束的提示）
-        ctx.fillStyle = `rgba(0, 0, 0, ${progress * 0.6})`;
+        ctx.fillStyle = `rgba(0, 0, 0, ${progress * POST_PROCESS.FINISH_DIM_ALPHA})`;
         ctx.fillRect(0, 0, w, h);
         ctx.restore();
     }

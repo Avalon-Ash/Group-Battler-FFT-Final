@@ -1,3 +1,4 @@
+import { TERRAIN_CACHE_KEY } from "../../../constants";
 /**
  * TerrainBlockCache — 地形六角格 Sprite 快取與量化調度器
  * -----------------------------------------------------------------------------
@@ -30,7 +31,7 @@ export type SurfaceFactory = (width: number, height: number) => { canvas: HTMLCa
  */
 export function quantizeRenderScale(scale: number, steps: readonly number[] = RENDER_CACHE.SCALE_STEPS): number {
     for (let i = 0; i < steps.length; i++) {
-        if (steps[i] >= scale - 1e-4) {
+        if (steps[i] >= scale - TERRAIN_CACHE_KEY.SCALE_EPSILON) {
             return steps[i];
         }
     }
@@ -99,20 +100,20 @@ export function terrainSpriteKey(
 
     let scaleIdx = 0;
     for (let i = 0; i < RENDER_CACHE.SCALE_STEPS.length; i++) {
-        if (Math.abs(RENDER_CACHE.SCALE_STEPS[i] - scaleStep) < 0.01) {
+        if (Math.abs(RENDER_CACHE.SCALE_STEPS[i] - scaleStep) < TERRAIN_CACHE_KEY.SCALE_MATCH_EPSILON) {
             scaleIdx = i;
             break;
         }
     }
 
-    const hOffset = Math.max(0, Math.min(511, hKey + 100));
+    const hOffset = Math.max(0, Math.min(TERRAIN_CACHE_KEY.HEIGHT_MASK, hKey + 100));
     const fOffset = Math.max(0, Math.min(FLOAT_BIT_MASK, floatKey + FLOAT_KEY_BIAS));
     const packedInt = ((edgeMask & EDGE_MASK_BIT_MASK) << EDGE_MASK_BIT_SHIFT)
         | ((scaleIdx & SCALE_BIT_MASK) << SCALE_BIT_SHIFT)
-        | ((hOffset & 511) << 13)
+        | ((hOffset & TERRAIN_CACHE_KEY.HEIGHT_MASK) << TERRAIN_CACHE_KEY.HEIGHT_SHIFT)
         | ((baseLevel & BASE_LEVEL_BIT_MASK) << BASE_LEVEL_BIT_SHIFT)
         | ((fOffset & FLOAT_BIT_MASK) << FLOAT_BIT_SHIFT)
-        | (variant & 15);
+        | (variant & TERRAIN_CACHE_KEY.VARIANT_MASK);
 
     return {
         theme,

@@ -130,3 +130,47 @@ export const SHOUT_GLOW = {
     /** SUCCESS 昇華光暈隨壽命遞減，模糊量以此級距量化以重用 sprite */
     SUCCESS_BLUR_STEP: 3,
 } as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const TERRAIN_CACHE_KEY = {
+    /** 縮放級距比較容差（倍） */
+    SCALE_EPSILON: 1e-4,
+    /** 快取縮放索引匹配容差（倍） */
+    SCALE_MATCH_EPSILON: 0.01,
+    /** 快取高度欄位遮罩（位元） */
+    HEIGHT_MASK: 511,
+    /** 快取高度欄位左移位數（bit） */
+    HEIGHT_SHIFT: 13,
+    /** 快取變體欄位遮罩（位元） */
+    VARIANT_MASK: 15,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const BACKGROUND_DRAW = {
+    /** 星星垂直分布頻率倍率（倍） */
+    STAR_Y_FREQUENCY: 1.5,
+    /** 星星尺寸取樣種子（整數） */
+    STAR_SIZE_SEED: 1013,
+    /** 星星透明度取樣種子（整數） */
+    STAR_ALPHA_SEED: 2017,
+    /** 星河第一段次色漸層位置（比例） */
+    RIVER_FIRST_STOP: 0.3,
+    /** 星河第二段次色漸層位置（比例） */
+    RIVER_SECOND_STOP: 0.7,
+    /** 沙塵霧主色漸層位置（比例） */
+    MIST_COLOR_STOP: 0.4,
+} as const;
+
+/** 程序繪製參數：保留原始數值與運算次序。 */
+export const POST_PROCESS = {
+    /** 色差處理啟用門檻（比例） */
+    ABERRATION_MIN: 0.01,
+    /** 色差分離啟用門檻（比例） */
+    ABERRATION_SPLIT_MIN: 0.05,
+    /** 色差分離最大水平位移（px） */
+    ABERRATION_OFFSET: 15.0,
+    /** 結束畫面最大灰階（百分比） */
+    FINISH_GRAYSCALE: 50,
+    /** 結束畫面最大壓暗不透明度（比例） */
+    FINISH_DIM_ALPHA: 0.6,
+} as const;

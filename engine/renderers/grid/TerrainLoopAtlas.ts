@@ -1,3 +1,4 @@
+import { TERRAIN_LOOP_DRAW } from "../../../constants";
 import { mulberry32 as seeded } from '../../math/hash';
 import { HEX_SIZE, ISO_SCALE_Y, RENDER_CACHE } from "../../../constants";
 import { HexLayout } from "../../../types";
@@ -57,7 +58,7 @@ type RGB = [number, number, number];
 
 function parseHex(color: string): RGB {
     const m = /^#?([0-9a-f]{6})$/i.exec(color.trim());
-    if (!m) return [239, 68, 68];
+    if (!m) return [TERRAIN_LOOP_DRAW.FALLBACK_RED, TERRAIN_LOOP_DRAW.FALLBACK_GREEN, TERRAIN_LOOP_DRAW.FALLBACK_BLUE];
     const n = parseInt(m[1], 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
@@ -94,7 +95,7 @@ function bakeCrustTile(scale: number): HTMLCanvasElement {
     const { canvas, ctx } = createCanvas(size, size);
     const img = ctx.createImageData(size, size);
     const data = img.data;
-    const grain = seeded(c.seed * 31 + 1);
+    const grain = seeded(c.seed * TERRAIN_LOOP_DRAW.CRUST_GRAIN_SEED_MULT + 1);
     for (let py = 0; py < size; py++) {
         for (let px = 0; px < size; px++) {
             const x = (px + 0.5) / scale, y = (py + 0.5) / scale;
@@ -106,11 +107,11 @@ function bakeCrustTile(scale: number): HTMLCanvasElement {
                 if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
             }
             const edge = d2 - d1;
-            const a = smoothstep(c.crack * 0.5, c.crack * 1.5, edge) * c.alpha;
+            const a = smoothstep(c.crack * 0.5, c.crack * TERRAIN_LOOP_DRAW.CRACK_FADE_END, edge) * c.alpha;
             const hot = 1 - smoothstep(c.crack, c.crack + c.heat, edge);
-            const plate = 1.12 - 0.3 * Math.min(1, d1 / cellSpan);
+            const plate = TERRAIN_LOOP_DRAW.PLATE_BRIGHTNESS - TERRAIN_LOOP_DRAW.PLATE_DARKEN * Math.min(1, d1 / cellSpan);
             const g = 1 + c.grain * (grain() - 0.5);
-            const col = mixRgb(crust, heat, hot * 0.85);
+            const col = mixRgb(crust, heat, hot * TERRAIN_LOOP_DRAW.HEAT_MIX);
             const k = (py * size + px) * 4;
             data[k] = Math.min(255, col[0] * plate * g);
             data[k + 1] = Math.min(255, col[1] * plate * g);
@@ -390,7 +391,7 @@ export const TerrainLoopAtlas = {
             // 2. 硬殼：無縫貼圖沿圓周漂移（諧波整數 → 頭尾接上），變體錯開位置
             const ang = TWO_PI * c.drift.harmonic * u;
             let ox = (Math.cos(ang) * c.drift.radius + shift * T) % T;
-            let oy = (Math.sin(ang) * c.drift.radius + shift * T * 0.61) % T;
+            let oy = (Math.sin(ang) * c.drift.radius + shift * T * TERRAIN_LOOP_DRAW.DRIFT_Y_VARIANT) % T;
             if (ox > 0) ox -= T;
             if (oy > 0) oy -= T;
             for (let tx = ox - Math.ceil((r + ox) / T) * T; tx < r; tx += T) {
@@ -403,15 +404,15 @@ export const TerrainLoopAtlas = {
             const bub = c.bubbles;
             const bubCol = parseHex(bub.color);
             for (let k = 0; k < bub.count; k++) {
-                const ph = ((u * bub.harmonic + k / bub.count + variant * 0.17) % 1 + 1) % 1;
-                if (ph >= 0.7) continue;
-                const life = ph / 0.7;
+                const ph = ((u * bub.harmonic + k / bub.count + variant * TERRAIN_LOOP_DRAW.BUBBLE_PHASE_VARIANT) % 1 + 1) % 1;
+                if (ph >= TERRAIN_LOOP_DRAW.BUBBLE_VISIBLE) continue;
+                const life = ph / TERRAIN_LOOP_DRAW.BUBBLE_VISIBLE;
                 const rr = bub.radius * Math.sin(Math.PI * life);
-                const a0 = TWO_PI * (k / bub.count) + variant * 1.3;
+                const a0 = TWO_PI * (k / bub.count) + variant * TERRAIN_LOOP_DRAW.BUBBLE_ANGLE_VARIANT;
                 const bx = Math.cos(a0) * r * bub.orbit, by = Math.sin(a0) * r * bub.orbit;
                 ctx.fillStyle = rgbCss(bubCol, bub.alpha * (1 - life * 0.5));
                 ctx.beginPath();
-                ctx.arc(bx, by, Math.max(0.1, rr), 0, TWO_PI);
+                ctx.arc(bx, by, Math.max(TERRAIN_LOOP_DRAW.BUBBLE_MIN_RADIUS, rr), 0, TWO_PI);
                 ctx.fill();
             }
             ctx.restore();

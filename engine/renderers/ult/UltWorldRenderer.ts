@@ -1,3 +1,4 @@
+import { ULT_IMPACT_COLORS } from "../../../data/vfx/parts/vfxPalette";
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UltWorldRenderer — 奧義世界層共用演出繪製器 (UF A3)       ║
 // ║  職責：命中點局部光爆                                     ║
@@ -21,9 +22,9 @@ export class UltWorldRenderer {
     private readonly impactSpriteNeutral: HTMLCanvasElement;
 
     constructor() {
-        this.impactSpriteBlue = this.bakeImpactSprite('#ffffff', '#93c5fd', '#2563eb');
-        this.impactSpriteRed = this.bakeImpactSprite('#ffffff', '#fdba74', '#dc2626');
-        this.impactSpriteNeutral = this.bakeImpactSprite('#ffffff', '#e2e8f0', '#94a3b8');
+        this.impactSpriteBlue = this.bakeImpactSprite(ULT_IMPACT_COLORS.BLUE_CORE, ULT_IMPACT_COLORS.BLUE_MID, ULT_IMPACT_COLORS.BLUE_EDGE);
+        this.impactSpriteRed = this.bakeImpactSprite(ULT_IMPACT_COLORS.RED_CORE, ULT_IMPACT_COLORS.RED_MID, ULT_IMPACT_COLORS.RED_EDGE);
+        this.impactSpriteNeutral = this.bakeImpactSprite(ULT_IMPACT_COLORS.NEUTRAL_CORE, ULT_IMPACT_COLORS.NEUTRAL_MID, ULT_IMPACT_COLORS.NEUTRAL_EDGE);
     }
 
     /** 一次性烘焙命中光爆（加法混合 lighter 使用） */
