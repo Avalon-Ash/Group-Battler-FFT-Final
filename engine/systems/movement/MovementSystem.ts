@@ -1,3 +1,4 @@
+import { COMBAT_PARAM, MOVEMENT_RULES } from '../../../constants';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  MovementSystem — 單位移動路徑執行                      ║
 // ║  職責：路徑跟隨 / 等角 3D 座標插值 / 跳躍拋物線          ║
@@ -49,7 +50,7 @@ export class MovementSystem {
         const distToTarget = HexUtils.dist(a, targetHex);
 
         // 1. 如果已經在射程內，停止移動並返回成功 (使用與 AI 相同的容差)
-        if (distToTarget <= effRange + 0.1) {
+        if (distToTarget <= effRange + COMBAT_PARAM.RANGE_TOLERANCE) {
             if (a.isMoving) stopMovement(a);
             return NodeState.SUCCESS;
         }
@@ -122,7 +123,7 @@ export class MovementSystem {
 
                 if (canTrySqueeze) {
                     a.stuckTicks++;
-                    if (a.stuckTicks > 15) { // 約 0.5 秒 (假設 30fps)
+                    if (a.stuckTicks > MOVEMENT_RULES.MAX_STUCK_TICKS) { // 約 0.5 秒 (假設 30fps)
                         // [FIX] 卡住太久，放棄當前路徑，讓 AI 重新思考 (可能觸發背水一戰或重新尋路)
                         stopMovement(a);
                         a.stuckTicks = 0;
@@ -186,7 +187,7 @@ export class MovementSystem {
             if (a.hp <= 0 || a.banished || a.outOfBounds) continue;
             
             const distSq = (a.px - targetPx.x) ** 2 + (a.py - targetPx.y) ** 2;
-            const arrivalThreshold = 15; // Within 15px is "landed"
+            const arrivalThreshold = MOVEMENT_RULES.LAST_STAND_ARRIVAL_RADIUS; // Within 15px is "landed"
 
             // If already on the target hex or extremely close
             if ((a.q === targetHex.q && a.r === targetHex.r) || distSq < arrivalThreshold ** 2) {
@@ -204,8 +205,8 @@ export class MovementSystem {
                  // Soft center pull to prevent units from hanging on the edges of the final hex
                  const dx = targetPx.x - a.px;
                  const dy = targetPx.y - a.py;
-                 a.physics.vx += dx * dt * 5;
-                 a.physics.vy += dy * dt * 5;
+                 a.physics.vx += dx * dt * MOVEMENT_RULES.LAST_STAND_NEAR_PULL_GAIN;
+                 a.physics.vy += dy * dt * MOVEMENT_RULES.LAST_STAND_NEAR_PULL_GAIN;
                  continue;
             }
 
@@ -215,7 +216,7 @@ export class MovementSystem {
             const dist = Math.sqrt(dx * dx + dy * dy);
             
             if (dist > 10) {
-                const force = 400; // Strong pull
+                const force = MOVEMENT_RULES.LAST_STAND_PULL_FORCE; // Strong pull
                 a.physics.vx += (dx / dist) * force * dt;
                 a.physics.vy += (dy / dist) * force * dt;
                 a.hasLandedLastStand = false; // Reset if somehow forced out (though map prevents it)

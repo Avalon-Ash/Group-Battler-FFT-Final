@@ -55,7 +55,7 @@ export function dashTo(agent: Agent, q: number, r: number, engine: GameEngine): 
     }
     const dx = agent.px - fromX;
     const dy = agent.py - fromY;
-    if (Math.abs(dx) > 1.5) {
+    if (Math.abs(dx) > PHYSICS.FACING_THRESHOLD) {
         agent.facing = dx > 0 ? 1 : -1;
     }
     agent.physics.vx += dx * PHYSICS.DASH_BURST_FACTOR;
@@ -80,9 +80,9 @@ export function lungeToward(agent: Agent, targetPos: { x: number; y: number }, s
     const dx = targetPos.x - agent.px;
     const dy = targetPos.y - agent.py;
     const dist = Math.hypot(dx, dy);
-    if (dist <= 1.5) return;
+    if (dist <= PHYSICS.LUNGE_MIN_DISTANCE) return;
 
-    if (Math.abs(dx) > 1.5) {
+    if (Math.abs(dx) > PHYSICS.FACING_THRESHOLD) {
         agent.facing = dx > 0 ? 1 : -1;
     }
 

@@ -157,8 +157,8 @@ export class AgentManager {
         }
         if (impactX === 0 && impactY === 0) {
             const angle = random() * Math.PI * 2;
-            impactX = Math.cos(angle) * IMPACT_STRENGTH * 0.6;
-            impactY = Math.sin(angle) * IMPACT_STRENGTH * 0.6;
+            impactX = Math.cos(angle) * IMPACT_STRENGTH * AGENT_CONSTANTS.RANDOM_DEATH_IMPACT_FACTOR;
+            impactY = Math.sin(angle) * IMPACT_STRENGTH * AGENT_CONSTANTS.RANDOM_DEATH_IMPACT_FACTOR;
         }
         
         // [ARCH] 建立 Ragdoll 初始骨骼快照，供 UnitDeathPainter 使用

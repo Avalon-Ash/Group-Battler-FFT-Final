@@ -35,9 +35,9 @@ export class PhysicsEngine {
         const dx = target.px - origin.x;
         const dy = target.py - origin.y;
         const len = Math.sqrt(dx * dx + dy * dy);
-        const effectiveForce = Math.min(PHYSICS.TERMINAL_VELOCITY_IMPULSE, Math.max(50, force));
+        const effectiveForce = Math.min(PHYSICS.TERMINAL_VELOCITY_IMPULSE, Math.max(PHYSICS.MIN_IMPULSE, force));
         let vx = 0, vy = 0;
-        if (len <= 0.1) {
+        if (len <= PHYSICS.IMPULSE_RANDOM_DIRECTION_DISTANCE) {
             const ang = random() * Math.PI * 2;
             vx = Math.cos(ang) * effectiveForce;
             vy = Math.sin(ang) * effectiveForce;
@@ -75,7 +75,7 @@ export class PhysicsEngine {
             a.physics.vz -= PHYSICS.GRAVITY * dt;
             a.physics.z += a.physics.vz * dt;
 
-            if (a.physics.z < -1000) {
+            if (a.physics.z < PHYSICS.VOID_DESPAWN_Z) {
                 a.outOfBounds = true; // agentManager.updateDeathState 會在同一 tick 回收（fullyDead 唯一寫入者）
             }
             return;
@@ -83,12 +83,12 @@ export class PhysicsEngine {
         
         const isDead = a.hp <= 0;
         
-        const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE * 1.2;
-        const damping = PHYSICS.DAMPING_ALIVE * 1.1; 
+        const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE * PHYSICS.STIFFNESS_FACTOR;
+        const damping = PHYSICS.DAMPING_ALIVE * PHYSICS.DAMPING_FACTOR; 
         
         const fx = -stiffness * a.physics.x;
         const fy = -stiffness * a.physics.y;
-        const fRot = -stiffness * a.physics.angle * 0.1; 
+        const fRot = -stiffness * a.physics.angle * PHYSICS.ROTATION_STIFFNESS_FACTOR; 
 
         // Analytical damping to prevent instability at high dt
         const dampFactor = Math.exp(-damping * dt);
@@ -110,15 +110,15 @@ export class PhysicsEngine {
 
         if (!isGroundValid) {
             // Free fall logic for everyone if ground is gone
-            a.effects.STUN.remaining = Math.max(a.effects.STUN.remaining, 0.1); // Force out of control
+            a.effects.STUN.remaining = Math.max(a.effects.STUN.remaining, PHYSICS.VOID_STUN_REFRESH); // Force out of control
             a.physics.vz -= PHYSICS.GRAVITY * dt;
         } else if (isFlying && !isDisabled) {
-            const hoverHeight = 55, hoverFreq = 2.5; 
-            const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 5;
+            const hoverHeight = PHYSICS.FLYING_HOVER_HEIGHT, hoverFreq = PHYSICS.FLYING_HOVER_FREQUENCY; 
+            const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * PHYSICS.FLYING_HOVER_AMPLITUDE;
             const dz = targetZ - a.physics.z;
-            a.physics.vz += dz * 5 * dt;
-            a.physics.vz *= 0.92;
-        } else if (isAirborne || a.physics.z > 0.1 || a.physics.vz > 0) {
+            a.physics.vz += dz * PHYSICS.FLYING_HOVER_GAIN * dt;
+            a.physics.vz *= PHYSICS.FLYING_VERTICAL_DRAG;
+        } else if (isAirborne || a.physics.z > PHYSICS.AIRBORNE_HEIGHT_THRESHOLD || a.physics.vz > 0) {
             a.physics.vz -= PHYSICS.GRAVITY * dt;
         }
 
@@ -147,7 +147,7 @@ export class PhysicsEngine {
 
         // Note: Trail Logic moved to PhysicsSystem.ts to centralize history management
 
-        if (a.physics.z < -1000) {
+        if (a.physics.z < PHYSICS.VOID_DESPAWN_Z) {
             // Out of bounds anyone (alive or dead) who falls into the abyss
             if (!a.outOfBounds) {
                 if (!isDead) {
@@ -176,17 +176,17 @@ export class PhysicsEngine {
                             engine.agentManager.handleDeadState(a, engine);
                         } else {
                             // SSOT: Set visual timer instead of imperative setAnim
-                            triggerHitFlash(a, 0.2);
+                            triggerHitFlash(a, PHYSICS.FALL_HIT_FLASH_DURATION);
                         }
                     }
-                    a.physics.vz = -a.physics.vz * 0.3;
+                    a.physics.vz = -a.physics.vz * PHYSICS.FALL_BOUNCE_FACTOR;
                     a.physics.vx *= 0.5; a.physics.vy *= 0.5; a.physics.vAngle *= 0.5;
                 } else {
                     a.physics.vz = 0;
                 }
             } else {
                 a.physics.z *= dampFactor;
-                if (a.physics.z > -0.5) a.physics.z = 0;
+                if (a.physics.z > PHYSICS.GROUND_SNAP_Z) a.physics.z = 0;
             }
         }
 
@@ -196,7 +196,7 @@ export class PhysicsEngine {
             const distSq = dx*dx + dy*dy;
             const speedSq = a.physics.vx * a.physics.vx + a.physics.vy * a.physics.vy;
             
-            if (speedSq < 5000) {
+            if (speedSq < PHYSICS.DRIFT_MAX_SPEED_SQ) {
                 if (distSq > 0.5) {
                     const driftSpeed = Math.min(1.0, PHYSICS.DRIFT_SPEED * dt); 
                     a.px += dx * driftSpeed; a.py += dy * driftSpeed;

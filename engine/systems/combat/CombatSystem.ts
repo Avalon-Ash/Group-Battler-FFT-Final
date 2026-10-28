@@ -1,3 +1,4 @@
+import { COMBAT_PARAM, CAST_RULES } from '../../../constants';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CombatSystem — 戰鬥系統 Orchestrator                   ║
 // ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
@@ -53,7 +54,7 @@ export class CombatSystem {
 
         // [SAFETY] Check CD even if AI/caller should have
         const cd = a.curCDs[skillIdx] || 0;
-        const tolerance = (skill.tag === 'BASIC') ? 0.15 : 0.05; 
+        const tolerance = (skill.tag === 'BASIC') ? COMBAT_PARAM.BASIC_CD_TOLERANCE : COMBAT_PARAM.SKILL_CD_TOLERANCE; 
         if (cd > tolerance && a.castingSkillIdx !== skillIdx) {
             return NodeState.FAILURE;
         }
@@ -64,8 +65,8 @@ export class CombatSystem {
         if (a.castingSkillIdx === -1) {
             a.castingSkillIdx = skillIdx;
             // [FIX] Ensure at least one frame of duration to prevent immediate completion loop
-            a.castTimer = Math.max(skill.cast, 0.016);
-            a.castingAnimationTimer = Math.max(skill.cast, 0.016);
+            a.castTimer = Math.max(skill.cast, CAST_RULES.MIN_CAST_DURATION);
+            a.castingAnimationTimer = Math.max(skill.cast, CAST_RULES.MIN_CAST_DURATION);
                         // 施法中的 AI 狀態由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b），這裡不寫 aiState
 
             let targetName = '地面';
@@ -142,7 +143,7 @@ export class CombatSystem {
         
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
         // BASIC attacks do not have a mandatory 0.3s floor CD
-        const minCd = (s.tag === 'BASIC') ? 0.1 : 0.3;
+        const minCd = (s.tag === 'BASIC') ? CAST_RULES.MIN_BASIC_RETRY_CD : CAST_RULES.MIN_SKILL_RETRY_CD;
         a.curCDs[a.castingSkillIdx] = Math.max(s.cd ?? 0, minCd); 
         
         if (s.tag !== 'BASIC') {

@@ -3,7 +3,7 @@ import { GameEngine } from "../../game";
 import { MapSystem } from "../map";
 import { SCENE_DB } from "../../../data/scenes";
 import { HexUtils } from "../../utils";
-import { HEX_SIZE, BLOCK_HEIGHT, MAX_TERRAIN_TIER } from "../../../constants";
+import { HEX_SIZE, BLOCK_HEIGHT, MAX_TERRAIN_TIER, MAP_GENERATION } from "../../../constants";
 import { random } from "../../math/rng";
 
 export class MapGenerator {
@@ -12,11 +12,11 @@ export class MapGenerator {
         let cols, rows;
         
         if (layout === 'FLAT') {
-            cols = 8 + Math.floor(random() * 2); 
+            cols = MAP_GENERATION.FLAT_MIN_COLS + Math.floor(random() * 2); 
             rows = 10 + Math.floor(random() * 2); 
         } else {
-            cols = 7 + Math.floor(random() * 2); 
-            rows = 12 + Math.floor(random() * 2); 
+            cols = MAP_GENERATION.POINTY_MIN_COLS + Math.floor(random() * 2); 
+            rows = MAP_GENERATION.POINTY_MIN_ROWS + Math.floor(random() * 2); 
         }
         
         engine.mapConfig.w = cols; 
@@ -55,19 +55,19 @@ export class MapGenerator {
                 const dist = HexUtils.dist({q, r}, centerHex);
                 
                 // 核心數學：階梯狀高度函數 (Stepped Height Field)
-                let rawVal = (Math.sin((q + noisePhaseA) * 0.45) + Math.cos((r + noisePhaseB) * 0.45)) * 3.5;
+                let rawVal = (Math.sin((q + noisePhaseA) * MAP_GENERATION.HEIGHT_NOISE_FREQUENCY) + Math.cos((r + noisePhaseB) * MAP_GENERATION.HEIGHT_NOISE_FREQUENCY)) * MAP_GENERATION.HEIGHT_NOISE_AMPLITUDE;
                 
                 // Steeper bowl edges
-                rawVal += (dist * 0.8); 
+                rawVal += (dist * MAP_GENERATION.RADIAL_HEIGHT_GAIN); 
 
                 // 視覺修正：前景壓低 (防止遮擋戰場視線)
                 // 以畫面實體 Y 軸像素差距來決定是否為前景 (Y 越大越靠畫面下方)
                 const pos = HexUtils.toPx(q, r, engine.mapConfig);
-                const visualDepth = (pos.y - centerPos.y) / (HEX_SIZE * 0.8);
+                const visualDepth = (pos.y - centerPos.y) / (HEX_SIZE * MAP_GENERATION.VISUAL_DEPTH_SCALE);
                 
                 if (visualDepth > 0) {
-                    rawVal -= (visualDepth * 0.8); 
-                    if (dist > 3) rawVal -= (dist * 0.3);
+                    rawVal -= (visualDepth * MAP_GENERATION.FOREGROUND_HEIGHT_REDUCTION); 
+                    if (dist > 3) rawVal -= (dist * MAP_GENERATION.OUTER_FOREGROUND_REDUCTION);
                 }
 
                 // 離散化為 Tier 層級
@@ -75,7 +75,7 @@ export class MapGenerator {
                 tier = Math.max(0, Math.min(MAX_TERRAIN_TIER, tier));
                 
                 // 確保中心區域平坦
-                if (dist < 1.5) tier = 0;
+                if (dist < MAP_GENERATION.FLAT_CENTER_RADIUS) tier = 0;
 
                 tiers.set(k, tier);
             }
@@ -108,15 +108,15 @@ export class MapGenerator {
         const keys = Array.from(system.getMapKeys());
         
         // Tuned Density per Biome
-        let density = 0.3;
-        let noiseThreshold = 0.4;
+        let density: number = MAP_GENERATION.DEFAULT_DECORATION_DENSITY;
+        let noiseThreshold: number = MAP_GENERATION.DEFAULT_DECORATION_NOISE_THRESHOLD;
         
         if (engine.currentScene.textureType === 'FOREST') {
-            density = 0.45; // Denser Forest
-            noiseThreshold = 0.2; // Clumpier
+            density = MAP_GENERATION.FOREST_DECORATION_DENSITY; // Denser Forest
+            noiseThreshold = MAP_GENERATION.FOREST_DECORATION_NOISE_THRESHOLD; // Clumpier
         } else if (engine.currentScene.textureType === 'DESERT') {
-            density = 0.4; // Scattered Rocks
-            noiseThreshold = 0.3;
+            density = MAP_GENERATION.DESERT_DECORATION_DENSITY; // Scattered Rocks
+            noiseThreshold = MAP_GENERATION.DESERT_DECORATION_NOISE_THRESHOLD;
         }
 
         keys.forEach((key) => {
@@ -124,11 +124,11 @@ export class MapGenerator {
             const dist = HexUtils.dist({q, r}, centerHex);
 
             // Leave center clear for fighting
-            if (dist < 2.5) return; 
+            if (dist < MAP_GENERATION.CLEAR_CENTER_RADIUS) return; 
             
             if (engine.getAgentAt(q, r)) return;
 
-            const noise = Math.sin(q * 0.8) * Math.cos(r * 0.8);
+            const noise = Math.sin(q * MAP_GENERATION.DECORATION_NOISE_FREQUENCY) * Math.cos(r * MAP_GENERATION.DECORATION_NOISE_FREQUENCY);
             if (noise > noiseThreshold && random() < density) {
                 system.setObstacle(q, r, obstacleType);
             }

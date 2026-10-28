@@ -1,3 +1,4 @@
+import { BT_NODE_RULES } from '../constants';
 import { NodeState } from "../types";
 import type { Agent } from "./core/Agent";
 export abstract class BTNode {
@@ -13,7 +14,7 @@ export abstract class BTNode {
         this.type = type;
         this.c = [];
         this.status = NodeState.PENDING;
-        this.id = Math.random().toString(36).substr(2, 6);
+        this.id = Math.random().toString(BT_NODE_RULES.ID_RADIX).substr(2, BT_NODE_RULES.ID_LENGTH);
     }
     add(child: BTNode): this {
         this.c.push(child);
