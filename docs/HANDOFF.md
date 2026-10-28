@@ -20,7 +20,7 @@
 
 **C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
 
-**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH；已 push，部署閘門 2026-10-29 run 40725463074 通過）。O4a 也已合併並 push（WORKLOG §2 AI）。O3b、O5a（雜湊統一＋Z5 詠唱預警對稱）、O5b（特效參數）、O6（UI 顏色）在 2026-10-29 合併。剩 O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
+**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH；已 push，部署閘門 2026-10-29 run 40725463074 通過）。O4a 也已合併並 push（WORKLOG §2 AI）。O3b、O5a（雜湊統一＋Z5 詠唱預警對稱）、O5b（特效參數）、O6（UI 顏色）、O5c（程序工廠／地形／HUD）在 2026-10-29 合併。剩 O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
 
 **多段傷害技能（等 OPT-01 後）**：使用者 10-28 提到黑洞這類持續多段傷害技能想修，看起來管線有問題。和 BAL02 §5.2 的 STORM 分段結算、`DUAL_STRIKE` 原本想做的兩段攻擊一起設計，現在專案沒有多段命中機制。
 
