@@ -45,3 +45,15 @@ export const FLOAT_BOB = {
     /** 投射物發射格的漂浮位移在飛行進度 t 到這個值時淡出為 0（發射點與漂浮的施法者對齊，之後走原軌跡） */
     LAUNCH_FADE_T: 0.5,
 } as const;
+
+/** 縮圈計時與塌陷格掉落參數。 */
+export const ZONE = {
+    /** 尚未初始化縮圈時的安全層數。 */
+    INITIAL_SAFE_RADIUS: 999,
+    /** 計時跨秒與塌陷判定的浮點容差（秒）。 */
+    TIME_EPSILON: 0.001,
+    /** 倒數每隔幾秒記錄一次；最後同樣秒數內每秒記錄。 */
+    WARNING_LOG_INTERVAL: 5,
+    /** 塌陷格低於此 Z 座標時移除（像素）。 */
+    COLLAPSE_DESPAWN_Z: -2000,
+} as const;
