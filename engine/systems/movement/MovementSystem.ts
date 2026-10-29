@@ -15,6 +15,7 @@ import { stopMovement } from "./MotionCommands";
 import { StackingResolver } from "./StackingResolver";
 import type { GameEngine } from "../../game";
 import { getHazardSpeedMult } from "../HazardSystem";
+import { slowSpeedMult } from "../../core/Effects";
 import { hexEventPos } from "../../events/EventPos";
 
 export class MovementSystem {
@@ -41,9 +42,9 @@ export class MovementSystem {
     }
 
     public updateMovement(a: Agent, dt: number, spatial: SpatialProvider & Pick<GameEngine, 'state'>) {
-        // 敵方危害的減速每 tick 重算（不寫進 Agent）；moveSpeedMult 只代表 AI 要求的速度，由本檔寫入
+        // 敵方危害與 SLOW 狀態的減速每 tick 重算（不寫進 Agent），取較慢的那個；moveSpeedMult 只代表 AI 要求的速度，由本檔寫入
         const hazardSpeedMult = getHazardSpeedMult(a, spatial.state.spatialHazards, spatial.getMapConfig());
-        MotionEngine.updateMovement(a, dt, spatial, hazardSpeedMult);
+        MotionEngine.updateMovement(a, dt, spatial, Math.min(hazardSpeedMult, slowSpeedMult(a)));
     }
 
     /** 格子上有「別人」的活單位（自己不算）。 */

@@ -33,7 +33,7 @@ export interface StatusPartSet {
 
 export const STATUS_PART_KEYS = [
     'STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'SHIELD', 'POISON', 'BURN', 'IMMUNE',
-    'KNOCKBACK', 'PULL', 'REGEN', 'POLYMORPH', 'FROZEN', 'STASIS', 'VULNERABLE', 'HASTE', 'REFLECT', 'LIFESTEAL',
+    'KNOCKBACK', 'PULL', 'REGEN', 'POLYMORPH', 'FROZEN', 'STASIS', 'VULNERABLE', 'HASTE', 'REFLECT', 'LIFESTEAL', 'SLOW',
     'CAST_ULT', 'CAST_ACTIVE', 'CC_INTERRUPT', 'EVADING', 'INVINCIBLE', 'DEFAULT',
 ] as const;
 export type StatusPartKey = typeof STATUS_PART_KEYS[number];
@@ -193,6 +193,12 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
         layers: [
             { spec: { kind: 'droplet', size: 4, ramp: 'ASH_BLOOD' }, anchor: 'BODY', count: 3, orbitRadius: 10, lift: -16, rise: { height: 36, period: 1.5 }, alpha: 0.8 },
         ],
+    },
+
+    /** 緩速：本輪只有狀態資料（STATUS_VISUALS.SLOW 浮字）；單位身上的標記由後續渲染輪補 */
+    SLOW: {
+        priority: 20, strong: false, layers: [],
+        handledBy: '尚無零件：目前只有 CC_APPLIED 浮字（STATUS_VISUALS.SLOW），單位標記由後續渲染輪補。',
     },
 
     // ── 施法／AI 狀態（極低調的地面提示） ─────────────────────────────────

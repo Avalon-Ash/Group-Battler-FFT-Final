@@ -79,8 +79,9 @@ export class ProjectileSystem {
     if (p.skill.type === "AOE") {
       const targetHex = { q: p.targetHexQ, r: p.targetHexR };
       const impactCells = HexUtils.range(targetHex, p.skill.aoeRadius || 1);
-      const preRollCrit = p.skill.power > 0 ? random() < COMBAT_PARAM.CRIT_CHANCE : false;
+      const preRollCrit = p.skill.hits ? undefined : (p.skill.power > 0 ? random() < COMBAT_PARAM.CRIT_CHANCE : false);
 
+      const victims: Agent[] = [];
       impactCells.forEach((cell) => {
         const t = engine.getAgentAt(cell.q, cell.r);
         if (t && t.hp > 0 && !t.banished) {
@@ -89,11 +90,10 @@ export class ProjectileSystem {
             (p.skill.power < 0 && t.team === p.team) ||
             p.skill.power === 0;
 
-          if (isValidTarget && source) {
-            skillExecutor.resolveHit(source, t, p.skill, hitPos, engine, preRollCrit);
-          }
+          if (isValidTarget) victims.push(t);
         }
       });
+      if (source) skillExecutor.deliverHits(source, p.skill, victims, hitPos, engine, preRollCrit, impactCells);
       
       if (source) {
           HazardManager.spawnHazards(source, impactCells, p.skill, engine, targetHex);
@@ -112,7 +112,7 @@ export class ProjectileSystem {
       const target = engine.agents.find((a) => a.id === p.targetId);
       if (target && target.hp > 0 && !target.banished) {
         if (source)
-          skillExecutor.resolveHit(source, target, p.skill, undefined, engine);
+          skillExecutor.deliverHits(source, p.skill, [target], undefined, engine, undefined);
       }
       if (source) {
         applySelfCC(source, p.skill, engine);

@@ -34,7 +34,7 @@ export const SKILL_ELEMENT_OPTIONS = ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'H
 export const SKILL_SPECIAL_VISUAL_STATUS_OPTIONS = ['POLYMORPH', 'STASIS', 'FROZEN', 'INVINCIBLE'] as const satisfies readonly NonNullable<Skill['specialVisualStatus']>[];
 export const SKILL_CC_TYPE_OPTIONS = [
     'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE', 'ROOT', 'FEAR',
-    'TAUNT', 'BLIND', 'SHIELD', 'POLYMORPH', 'INVINCIBLE', 'VULNERABLE', 'HASTE', 'REFLECT', 'LIFESTEAL'
+    'TAUNT', 'BLIND', 'SHIELD', 'POLYMORPH', 'INVINCIBLE', 'VULNERABLE', 'HASTE', 'REFLECT', 'LIFESTEAL', 'SLOW'
 ] as const satisfies readonly NonNullable<Skill['ccType']>[];
 export const SKILL_EFFECT_TYPE_OPTIONS = [
     'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE', 'DASH', 'SELF_DAMAGE'

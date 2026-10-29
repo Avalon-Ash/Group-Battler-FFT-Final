@@ -35,6 +35,7 @@ export class CombatSystem {
     public reset() {
         // Projectiles are cleared by the GameEngine root container
         this._deferredCasts = [];
+        this.skillExecutor.multiHit.reset();
     }
 
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
@@ -130,6 +131,9 @@ export class CombatSystem {
         }
 
         this.projectileSystem.update(dt, engine, this.skillExecutor);
+
+        // 多段命中：到時間的後續段在這裡打出（第 0 段在技能結算當下已打）
+        this.skillExecutor.multiHit.update(engine);
     }
 
     private completeCast(a: Agent, engine: GameEngine) {

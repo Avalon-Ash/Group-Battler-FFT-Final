@@ -127,6 +127,11 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         primaryColor: '#be123c', secondaryColor: '#881337',
         iconShape: 'NONE', overheadType: 'NONE'
     },
+    'SLOW': {
+        id: 'SLOW', label: '緩速',
+        primaryColor: '#7dd3fc', secondaryColor: '#0369a1',
+        iconShape: 'NONE', overheadType: 'NONE'
+    },
     'CAST_ULT': {
         id: 'CAST_ULT', label: '',
         primaryColor: '#fbbf24', secondaryColor: '#d97706',

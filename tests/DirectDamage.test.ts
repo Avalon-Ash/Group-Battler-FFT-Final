@@ -10,24 +10,24 @@ const make = () => { const a = new Agent('D', Team.BLUE, 0, 0, MAP); a.hp = a.ma
 describe('applyDirectDamage', () => {
     it('plain damage reduces hp', () => {
         const a = make();
-        expect(applyDirectDamage(a, 30)).toEqual({ absorbed: 0, dealt: 30 });
+        expect(applyDirectDamage(a, 30)).toEqual({ absorbed: 0, dealt: 30, channel: 'DIRECT' });
         expect(a.hp).toBe(70);
     });
     it('shield absorbs first, remainder hits hp', () => {
         const a = make(); a.shield = 20;
-        expect(applyDirectDamage(a, 50)).toEqual({ absorbed: 20, dealt: 30 });
+        expect(applyDirectDamage(a, 50)).toEqual({ absorbed: 20, dealt: 30, channel: 'DIRECT' });
         expect(a.shield).toBe(0);
         expect(a.hp).toBe(70);
     });
     it('shield fully absorbing leaves hp untouched', () => {
         const a = make(); a.shield = 80;
-        expect(applyDirectDamage(a, 50)).toEqual({ absorbed: 50, dealt: 0 });
+        expect(applyDirectDamage(a, 50)).toEqual({ absorbed: 50, dealt: 0, channel: 'DIRECT' });
         expect(a.shield).toBe(30);
         expect(a.hp).toBe(100);
     });
     it('bypassShield (true damage) ignores shield', () => {
         const a = make(); a.shield = 80;
-        expect(applyDirectDamage(a, 40, true)).toEqual({ absorbed: 0, dealt: 40 });
+        expect(applyDirectDamage(a, 40, true)).toEqual({ absorbed: 0, dealt: 40, channel: 'DIRECT' });
         expect(a.shield).toBe(80);
         expect(a.hp).toBe(60);
     });

@@ -64,6 +64,7 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 480, color: '#dc2626', 
         visual: 'SLASH', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.08 },
         effectType: 'VAMP', effectVal: 1.0, 
         visualHitEffect: 'FX_ULT_RED_BLOODSTORM', element: 'BLOOD'
     },
@@ -83,6 +84,7 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 520, color: '#000000', 
         visual: 'SMASH', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.08 },
         ccType: 'FEAR', ccDur: 1.8,
         visualHitEffect: 'FX_ULT_RED_UNLIMITED_BLADE', element: 'VOID'
     },
@@ -121,6 +123,7 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 8, power: 400, color: '#ea580c', 
         visual: 'ARROW', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.08 },
         ccType: 'DOT', ccForce: 70, ccDur: 5.0, element: 'FIRE',
         visualHitEffect: 'FX_ULT_RED_INFERNO'
     },
@@ -138,6 +141,7 @@ export const RED_ULT: Skill[] = [
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 450, color: '#581c87', 
         visual: 'BOMB', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.08 },
         ccType: 'FEAR', ccDur: 1.6,
         visualHitEffect: 'FX_ULT_RED_DOOM', element: 'VOID'
     },
@@ -184,6 +188,7 @@ export const RED_ULT: Skill[] = [
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 500, color: '#dc2626', 
         visual: 'FIREBALL', projectileSpeed: 0, element: 'FIRE',
+        hits: { count: 8, interval: 0.08 },
         visualHitEffect: 'FX_ULT_RED_SOUL_BURN'
     },
 

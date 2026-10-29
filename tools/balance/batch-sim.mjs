@@ -7,6 +7,8 @@
 // ║  機地圖、雙方各 5 職業一人、技能照 addAgent 隨機抽；包住   ║
 // ║  SkillExecutor.resolveHit 量命中扣血／回血／反傷，          ║
 // ║  CCManager.applyCC 與 EffectSystem.update 歸屬 DOT 傷害，  ║
+// ║  HazardManager.spawnHazards＋HazardSystem.applyHazardEffect ║
+// ║  歸屬危害區傷害（hazardDmg，危害區記住是哪個技能放的）     ║
 // ║  Agent.prototype.hp 攔截雙方總失血量，CombatSystem 施放入口║
 // ║  量施放次數。引擎程式碼除 sourceId 外不修改。              ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -29,6 +31,8 @@ try {
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
     const { CCManager } = await server.ssrLoadModule('/engine/systems/combat/CCManager.ts');
     const { EffectSystem } = await server.ssrLoadModule('/engine/systems/status/EffectSystem.ts');
+    const { HazardSystem } = await server.ssrLoadModule('/engine/systems/HazardSystem.ts');
+    const { HazardManager } = await server.ssrLoadModule('/engine/systems/combat/HazardManager.ts');
     const { Agent } = await server.ssrLoadModule('/engine/core/Agent.ts');
     const { Team, Role } = await server.ssrLoadModule('/types.ts');
     const { HexUtils } = await server.ssrLoadModule('/engine/utils.ts');
@@ -125,6 +129,30 @@ try {
         return out;
     };
 
+    // 5. 危害區（地面效果）傷害歸屬：spawnHazards 時記下 hazard→技能，跳傷時包住 applyHazardEffect 量扣血
+    const origSpawnHazards = HazardManager.spawnHazards;
+    HazardManager.spawnHazards = function (source, cells, skill, engine, center) {
+        const before = new Set(engine.state.spatialHazards);
+        const out = origSpawnHazards.call(this, source, cells, skill, engine, center);
+        if (cur) for (const h of engine.state.spatialHazards) if (!before.has(h)) cur.hazardSkill.set(h.id, skill.id);
+        return out;
+    };
+    const origHazardEffect = HazardSystem.prototype.applyHazardEffect;
+    HazardSystem.prototype.applyHazardEffect = function (agent, hazard, engine) {
+        if (!cur) return origHazardEffect.call(this, agent, hazard, engine);
+        const hp0 = agent.hp;
+        const out = origHazardEffect.call(this, agent, hazard, engine);
+        const dealt = Math.max(0, hp0 - agent.hp);
+        const skillId = cur.hazardSkill.get(hazard.id);
+        if (skillId && dealt > 0) {
+            const s = (cur.skills[skillId] ??= { dmg: 0, directDmg: 0, dotDmg: 0, hazardDmg: 0, heal: 0, absorbed: 0, hits: 0, kills: 0, reflected: 0 });
+            s.hazardDmg = (s.hazardDmg || 0) + dealt;
+            s.dmg += dealt;
+            if (hp0 > 0 && agent.hp <= 0) s.kills++;
+        }
+        return out;
+    };
+
     const countCast = (skill) => { if (cur && skill) (cur.casts[skill.id] = (cur.casts[skill.id] ?? 0) + 1); };
     const origInstant = SkillExecutor.prototype.executeInstantSkill;
     SkillExecutor.prototype.executeInstantSkill = function (a, s, e) { countCast(s); return origInstant.call(this, a, s, e); };
@@ -155,6 +183,7 @@ try {
             skills: {},
             casts: {},
             targetDotSkill: {},
+            hazardSkill: new Map(),
             hpLost: { [Team.BLUE]: 0, [Team.RED]: 0 },
             active: true
         };
@@ -225,7 +254,7 @@ try {
             const meta = skillMetaMap.get(id);
             const a = (skillAgg[id] ??= {
                 picks: 0, wins: 0, casts: 0, dmg: 0, directDmg: 0, dotDmg: 0,
-                heal: 0, absorbed: 0, hits: 0, kills: 0, reflected: 0,
+                heal: 0, absorbed: 0, hits: 0, kills: 0, reflected: 0, hazardDmg: 0,
                 name: meta?.name || id,
                 tag: meta?.tag || '',
                 role: meta?.role || u.role,
@@ -242,6 +271,7 @@ try {
             a.dmg += s.dmg;
             a.directDmg = (a.directDmg || 0) + (s.directDmg || 0);
             a.dotDmg = (a.dotDmg || 0) + (s.dotDmg || 0);
+            a.hazardDmg = (a.hazardDmg || 0) + (s.hazardDmg || 0);
             a.heal += s.heal;
             a.hits += s.hits;
             a.kills += s.kills;
