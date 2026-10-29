@@ -505,13 +505,3 @@ export const PROJECTILE_SAMPLING = {
     /** 投射物既有最上層排序高度偏移（px） */
     SORT_Z: 5000,
 } as const;
-
-/** 程序繪製參數：保留原始數值與運算次序。 */
-export const FROZEN_STREAK = {
-    /** 冰塊反光條底部高度（冰塊高度倍數） */
-    BOTTOM: 0.12,
-    /** 冰塊反光條上端水平偏移（側面寬度倍數） */
-    SLANT: 0.18,
-    /** 冰塊反光條頂部高度（冰塊高度倍數） */
-    TOP: 0.85,
-} as const;

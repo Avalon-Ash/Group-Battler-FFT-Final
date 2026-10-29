@@ -2293,10 +2293,5 @@
     "BREAK_LIFE": 0.4,
     "SHOUT_DAMPING": 0.95,
     "STREAK_DAMPING": 0.92
-  },
-  "FROZEN_STREAK": {
-    "BOTTOM": 0.12,
-    "SLANT": 0.18,
-    "TOP": 0.85
   }
 }

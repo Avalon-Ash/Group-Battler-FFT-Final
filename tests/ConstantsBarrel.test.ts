@@ -49,7 +49,6 @@ export const EXPECTED_EXPORTS = [
     'FLOATING_TEXT',
     'FLOAT_BOB',
     'FORCED_MOVE',
-    'FROZEN_STREAK',
     'GAME_APP_PARAM',
     'GRID_OVERLAY',
     'GRID_SPATIAL',
