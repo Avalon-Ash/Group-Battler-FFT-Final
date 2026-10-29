@@ -10,7 +10,7 @@
    - **Types**: `types.ts` is the master contract. VFX particle/decal schemas are in `types/VFXSchema.ts`. Check types here before implementing.
    - **Parameters**: `constants/*.ts` holds all physics, combat, color, and layout constants, one file per domain (`geometry`, `combat`, `palette`, `units`, `hud`, `terrain`, `vfx`, `ui`, `render`, `audio`). `constants.ts` only re-exports them: keep importing from `constants`, but add new constants to the matching domain file. Never hardcode numbers or colors in engine/renderer code.
    - **Unit appearance**: `data/units/appearance/` (`sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`) defines sprite atlas mappings, body types, and frame selection consumed by `SpriteUnitRenderer`. Renderers only consume these profiles; they never define visual config or colors.
-   - **Procedural VFX**: `data/vfx/materialConfig.ts` controls procedural material parameters (noise, ribbon, beam, grading).
+   - **Procedural VFX**: `data/vfx/materialConfig.ts` controls procedural material parameters (noise, ribbon, beam, grading); baked VFX part shapes live in `data/vfx/parts/partConfig.ts` (`VFX_PARTS`) with colours in `data/vfx/parts/vfxPalette.ts`.
    - **Agent entity**: `Agent` (`engine/core/Agent.ts`) is pure data. **Never add methods to `Agent`.** All logic lives in Systems.
    - **One writer per field**: each state field is written by exactly one system. Before writing a field, `git grep` for other writers. (A timer once had two writers — one adding, one subtracting — so it stayed at 0 and death animations never played.)
    - **Animation derivation**: visual/animation states are derived at the end of each tick in `AnimationSystem` (`engine/presentation/`).
@@ -27,7 +27,7 @@
 
 3. **Event-driven communication**:
    - Subsystems communicate only through `engine.bus` (`EventBus`). Systems never call another system's methods directly.
-   - Allocate events through `GameEventPool` (`engine/events/GameEventPool.ts`) to avoid GC pressure.
+   - Allocate events through `GameEventPool` (`engine/events/GameEventPool.ts`) to avoid GC pressure. Visual/game events pushed with `engine.pushEvent` are queued and dispatched at the end of the tick; `engine.bus` is the synchronous system-to-system channel.
 
 4. **No heavy graphics dependencies**:
    - Rendering is pure HTML5 Canvas 2D with procedural materials (`engine/graphics/materials/NoiseLib.ts`, `MaterialPainter.ts`).

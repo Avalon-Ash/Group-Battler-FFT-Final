@@ -27,10 +27,10 @@ description: 審查 Gemini（或子工作階段）跑完的分支 diff、決定�
 ## 2. 收尾（合併後）
 - 刪掉該輪提示詞與報告：報告的結論（數字表、回退方式）寫進 WORKLOG 那一節後刪除；只有 HANDOFF 還在引用的才保留（DECISIONS §4；`tests/DocDrift.test.ts` 擋斷鏈）。
 - 該輪留下、沒有長期用途的探針腳本一併刪除。
-- 這輪動到架構（Facade、系統邊界、SSOT 位置、事件流）→ 同步更新架構白皮書（目前是 `engine/presentation/DesignExporter.ts`；OPT-01 O7 之後改成 docs 下的白皮書 Markdown）。
+- 這輪動到架構（Facade、系統邊界、SSOT 位置、事件流）→ 同步更新 `docs/ARCHITECTURE_WHITEPAPER.md`（`tests/WhitepaperDrift.test.ts` 檢查佔位符）。
 - 程式碼、保真重錄（獨立 commit＋證據）、文件分開 commit。
 - `docs/WORKLOG.md` 加一節：日期＋一句話結論＋commit／報告位置。
-- `docs/HANDOFF.md` 刪掉做完的 TBD，加上新的「待使用者實機確認」。
+- `docs/HANDOFF.md` 刪掉做完的 TBD，加上新的「待使用者實機確認」。**逐行重讀 §1「目前狀態」**，把不再成立的句子改掉或刪掉；§1 不寫 commit SHA、分支清單這類每次合併都會過時的快照（以 `git log` 為準）。2026-10-29 發現 §1 停在 10-26 三天沒更新，原因是這條只要求更新 TBD、沒要求檢查 §1。
 
 ## 3. 合約效果紀錄（這輪有改到合約時才寫）
 合約＝`CLAUDE.md`、`AGENTS.md`、`.claude/**`、`tools/hooks/**`、提示詞範本。在 WORKLOG 那一節加一張小表（取自 Harness² 反思者規則）：

@@ -1,18 +1,18 @@
 # 交接：還沒做的事（TBD）
 
-> 更新：2026-10-26。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
+> 更新：2026-10-29。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
 
-- `main` 與 origin 同步到 7dd59d0 之後的文件提交；奧義重製、雷射改投射物、手機記憶體兩輪都已合併（WORKLOG §2 T、DECISIONS §5）。
-- **額度**：Claude（Pro）每週額度要省；GPT 額度寬鬆。主代理只做設計、寫提示詞、審查、驗收與合併，實作優先派 Codex（工作樹）或 Gemini（IDE `/goal`）。
-- **三條並行線**（第 2 節）：A 平衡（Gemini，非渲染）、B 渲染修正佇列（Codex，同一時間只開一條）、C 獅心 skin（GPT 自己跑完，主代理最後一次看）。
-- Codex 的 skin 工作樹：`C:\Users\xino_\.codex\worktrees\lionheart-warrior-skins\`（分支 `codex/lionheart-warrior-skins`），主代理不寫入。
+- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）。最近完成：OPT-01（WORKLOG §2 AH～AO）。
+- **額度**：Claude（Pro）每週要省。**Codex 週額度 2026-10-29 剩 4%：暫停派 Codex**，長線實作改走 Claude 子代理（Sonnet，見 CLAUDE.md 派工表的備援列）或 IDE Gemini（`/goal`）。
+- **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
+- 本機殘留：分支 `codex/lionheart-warrior-skins`（skin 試作，成果已由 S0～S4 匯入 `main`，14 個 commit 未合併，等使用者確認可刪）；`C:\Git\_wt_r1`、`C:\Git\_wt_opt-*`（已合併的暫存 clone，被鎖或權限擋下，使用者手動刪）。
 - 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 2026-10-29 起**凍結**（OPT-01 決定）：逐檔人工審計改由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、O5a 起的 `NoLocalHash`）。清冊只當歷史索引，不再逐列補標。
 - 座標 findings：COORD-SINK-01（受擊下坡下陷 1.89 px）使用者 2026-10-26 實機幾乎看不到，**不修**，有新證據（更大的下陷、玩家看得見）才重開；COORD-VOID-01 屬量測工具問題，同樣擱置。已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
 
-## 2. 下一步（三條線）
+## 2. 下一步
 
 **A. 平衡**：BAL-02 已合併（WORKLOG §2 W）。報告 `docs/BAL02_REPORT.md` §5.2 留了兩個要改機制的缺口，暫不排：STORM 類 10 招分段結算（要補總傷害）、`rb_u5` 投射物與 STORM 落點演出統一。之後平衡再跑時一起決定。
 
@@ -21,7 +21,7 @@
 **C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
 
 **D. OPT-01 優化：2026-10-29 全部完成並結案**（WORKLOG §2 AH～AO、DECISIONS §5）。後續待決定：
-- **合約與程式碼不一致**（O7 寫白皮書時 Codex 列出，主代理未逐條查證）：`AGENTS.md` 說 `Agent` 是純資料，實作仍有 `saveState`、`reset`；說每欄位單一寫入者，`AgentOwnership` 明列多模組共同擁有的欄位；縮圈例外描述為直接寫入，現在走 `applyLethal`／`clearBanishedFlag`；只寫了 bus，實際另有 tick 尾端派發的池化視覺事件佇列；材質設定職責描述過廣（VFX 零件外觀在 `data/vfx/parts/`）。要改合約還是改程式碼，下次動 AGENTS 時決定。
+- **合約與程式碼不一致**（O7 時 Codex 列 5 條，主代理 10-29 查證）：①`AGENTS.md` 說 `Agent` 是純資料、禁止加方法，但 `engine/core/Agent.ts:123`／`:135` 有 `saveState()`、`reset()`（`game.ts` 與 `UICommandSystem` 呼叫）——**待使用者決定**；②單一寫入者 vs `AgentOwnership` 的 `domain`：CLAUDE.md 已改寫成「單一擁有者或 domain 模組組」；③縮圈例外：AGENTS 沒有這段，Codex 誤報；④事件佇列、⑤VFX 零件參數位置：AGENTS 已補。
 - `PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試（`tests/UICommandSystem.test.ts`），要決定砍掉或加暫停鈕。
 - 剩下的 115 個未命名數字、49 個顏色字面值分散在 45 檔，由預算測試鎖住，碰到該檔時順手清。
 
@@ -54,6 +54,5 @@
     - **步驟**：P2-A 旗標 `?bake=1` 原型（只 FOREST／ICE／DESERT）→ 驗收 `coord-guard --order`（COORD-R1 參數）不增加、5 張地形保真、`perf-mobile-emu --cpu=4 --headed` 與 CPU profile 開關差異、重烘尖峰 → 值得才做 P2-B 預設開啟＋RenderSpec＋取證重錄。
     - **預期**：地塊相關約省 10～15%，只對 5 種地形中的 3 種有效；不足以單獨解決手機頓挫。
   - Phase 3「圖集整合／粒子合批」：收益不確定，等 Phase 2 有結論再評估。
-- **重新部署方式**：Cloud Run 相關檔案已刪，全部搞定後再重新評估。
 - **正式版素材**：交給 GPT 慢慢換；外觀軸 `Team×Role×BodyType` 支援直接擴充。成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。
 - **奧義視覺細修**：使用者 2026-10-26「先這樣，主要是把流程和視覺管線建出來」。之後要優化再從 `docs/ULT_VISUAL_CLAUDE_REPORT.md` §6 與矩陣開始。

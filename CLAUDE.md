@@ -24,7 +24,7 @@
 - SSOT：型別在 `types.ts`，參數與顏色在 `constants/*.ts`（依領域分檔，`constants.ts` 只轉發）或 `data/**`，不寫魔術數字。
 - 修改 Facade 底下的子目錄實作，不改 Facade（`engine/renderer.ts`、`engine/game.ts` 等），除非刻意改公開介面。
 - 不用 `as any`；tick 和渲染迴圈裡不放 `console.log`；不引入 Three／Pixi／WebGL。
-- 一個狀態欄位只能有一個寫入者；depth sort 的鍵要包含繪製時才套用的位移。
+- 一個狀態欄位只能有一個擁有者（單一模組，或 `engine/core/AgentOwnership.ts` 列為 `domain` 的同一 tick 階段模組組）；depth sort 的鍵要包含繪製時才套用的位移。
 - **座標協議以 `engine/renderers/RenderSpec.ts` 為準**（層序、sortBias、三種 Y、腳下高度 `getUnitGroundHeight`、發射點 `getCoreAnchor`、受擊點 `getUnitAnchor`）。各檔的方框檔頭（職責／上游／[ARCH]）是它的局部說明。寫任何動到位置、高度、排序、發射點的任務說明時，**必須要求代理先讀 RenderSpec 與檔頭，並在同一個 commit 同步更新兩者**；審查時對照 RenderSpec。`tests/CoordinateProtocol.test.ts` 用只減不增的基準擋住偏離。
 
 ## 子代理與模型分級
@@ -40,6 +40,7 @@
 | 定位、範圍明確的摘要 | Codex `task`（只讀） | `gpt-6-luna`／low |
 | 大量讀檔、逐檔清冊、機械性轉換 | Codex `task` | `gpt-6-luna`／medium；要跨系統判斷語意才升 Sol |
 | 主代理自己發起的長線實作（規格明確） | Codex `task --write`，在獨立工作樹 | `gpt-6.1-sol`／medium |
+| 同上，但 Codex 額度不足（HANDOFF §1 會註明） | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
 | 跨模型第二意見（渲染／座標等高風險 diff） | Codex `adversarial-review` | `gpt-6.1-sol`（強度跟 config，見下） |
 | 高風險根因（座標、生命週期）或 Sol 卡關 | Codex `task`（只讀） | `gpt-6.1-sol`／high 或 `gpt-6-astra`／low～medium，寫理由＋`[codex-cost-ok]` |
 
