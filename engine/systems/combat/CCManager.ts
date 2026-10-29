@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
-import { Vector } from "../../utils";
+import { Vector, HexUtils } from "../../utils";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, FORCED_MOVE, DAMAGE_TEXT_COLORS, CC_RULES } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { triggerHitFlash } from "../../core/ViewCommands";
@@ -24,7 +24,9 @@ export const CCManager = {
         dur: number | undefined, 
         force: number | undefined, 
         origin: {x: number, y: number} | undefined, 
-        engine: GameEngine
+        engine: GameEngine,
+        /** 多段命中的第 2 段起：位移照做，但撞擊傷害不重複計算（拉進人堆不是一次次的碰撞）。 */
+        repeatHit: boolean = false
     ) {
         if (!type || type === 'NONE') return;
 
@@ -49,7 +51,7 @@ export const CCManager = {
             engine.log(target, 'CC', '狀態清洗', null, '進入放逐狀態，禁錮與恐懼已清除');
         }
 
-        // DR only applies to duration-based Hard CCs
+        // DR only applies to Hard CCs (per category: stun / silence / disorient / root / banish / taunt)
         const isHardCC = def?.hardCC ?? false;
         let drMultiplier = 1.0;
         if (isHardCC) {
@@ -238,7 +240,7 @@ export const CCManager = {
 
             case 'KNOCKBACK':
             case 'PULL':
-                const result = this.calculateKnockback(target, force || 0, source, origin, type, engine);
+                const result = this.calculateKnockback(target, force || 0, source, origin, type, engine, repeatHit);
                 if (result.applied) {
                     const visual = type === 'PULL' ? STATUS_VISUALS.PULL : STATUS_VISUALS.KNOCKBACK;
                     statusText = visual.label;
@@ -250,6 +252,20 @@ export const CCManager = {
                     engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_KNOCKBACK });
                 }
                 break;
+
+            case 'SLOW': {
+                // 續約取較長時間與較大減速（不吃遞減、不算硬控）；已過期的舊值不留
+                const slow = target.effects.SLOW;
+                slow.value = Math.max(slow.remaining > 0 ? slow.value : 0, force || 0);
+                if (effectiveDuration > slow.remaining) {
+                    slow.remaining = effectiveDuration;
+                    slow.max = effectiveDuration;
+                }
+                slow.sourceId = source.id;
+                statusText = STATUS_VISUALS.SLOW.label;
+                statusColor = STATUS_VISUALS.SLOW.primaryColor;
+                break;
+            }
 
             case 'DOT':
                 target.effects.DOT.remaining = effectiveDuration;
@@ -300,35 +316,45 @@ export const CCManager = {
         }
     },
 
+    /**
+     * WoW 式遞減：同一遞減類別（EFFECT_DEFS.drCategory）內連續套用依序 100% → 50% → 25% → 免疫。
+     * 層數歸零的倒數從該類別的控制「結束」才開始（ControlSystem 在控制生效中把 drTimers 維持在 DR_RESET_TIME）。
+     * 位移與緩速沒有遞減類別，不經過這裡。
+     */
     checkDR(target: Agent, type: string, baseDuration: number) {
-        const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'].includes(type);
-        if (!isHardCC) return { effectiveDuration: baseDuration, isImmune: false };
+        const category = (type in EFFECT_DEFS) ? EFFECT_DEFS[type as EffectKind].drCategory : null;
+        if (!category) return { effectiveDuration: baseDuration, isImmune: false };
         
         // 1. Base Resilience (Future-proofing for items/buffs)
         const resilience = COMBAT_PARAM.BASE_CC_RESILIENCE; 
         
         // 2. Diminishing Returns Stacks
-        const stacks = target.drStacks[type] || 0;
+        const stacks = target.drStacks[category] || 0;
         
         // Formula: Duration * (0.5 ^ stacks) * (1 - resilience)
         let multiplier = Math.pow(0.5, stacks) * (1 - resilience);
         
-        // Minimum duration floor or immunity (<= 0.25 means the 3rd application is immune)
+        // Immunity once the multiplier falls to the threshold (the 4th application: 100% / 50% / 25% / immune)
         if (multiplier <= CC_RULES.DR_IMMUNITY_THRESHOLD) return { effectiveDuration: 0, isImmune: true };
         
-        target.drStacks[type] = stacks + 1;
-        target.drTimers[type] = COMBAT_PARAM.DR_RESET_TIME; 
+        target.drStacks[category] = stacks + 1;
+        target.drTimers[category] = COMBAT_PARAM.DR_RESET_TIME; 
         
         return { effectiveDuration: baseDuration * multiplier, isImmune: false };
     },
 
-    calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine) {
+    calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine, repeatHit: boolean = false) {
         const rawForce = Math.max(1, force);
         const resistance = target.weight || 1; 
         
         // [FIX] Normal weight is 1. If force is 1, it should push 1 tile.
         // So tilesToPush = rawForce - (resistance - 1)
-        const tilesToPush = Math.max(0, rawForce - (resistance - 1));
+        let tilesToPush = Math.max(0, rawForce - (resistance - 1));
+        // 拉向一個點（AOE 牽引的中心）最多拉到那一格，不會穿過去；已經在中心就不動（多段牽引每段都拉）
+        if (type === 'PULL' && origin) {
+            const centre = HexUtils.fromPx(origin.x, origin.y, engine.mapConfig);
+            tilesToPush = Math.min(tilesToPush, HexUtils.dist(target, centre));
+        }
         if (tilesToPush === 0) return { applied: false };
 
         const originPx = origin ? origin : {x: source.px, y: source.py};
@@ -346,7 +372,7 @@ export const CCManager = {
         }
 
         // 撞擊傷害（Tactics Ogre 式）：拉扯停在施法者身邊是目的，不算撞擊
-        if (isImpactBlock(blocked, kind) && !(kind === 'PULL' && blocked.otherAgentId === source.id)) {
+        if (!repeatHit && isImpactBlock(blocked, kind) && !(kind === 'PULL' && blocked.otherAgentId === source.id)) {
             this.applyImpact(target, source, blocked, engine);
         }
         return { applied: moved };

@@ -26,7 +26,7 @@ export const HazardManager = {
                 team: source.team,
                 color: skill.color,
                 power: (Math.abs(skill.power) * HAZARD_RULES.DAMAGE_FACTOR) || 10,
-                tickInterval: 0.5,
+                tickInterval: HAZARD_RULES.TICK_INTERVAL,
                 lastTickTime: engine.battleTime,
                 centerQ: center?.q,
                 centerR: center?.r,

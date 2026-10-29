@@ -118,7 +118,7 @@ export class HazardSystem {
     }
 
     private applyHazardEffect(agent: Agent, hazard: SpatialHazard, engine: GameEngine) {
-        const { absorbed, dealt: dmg } = applyDirectDamage(agent, hazard.power, false, hazard.sourceId || null);
+        const { absorbed, dealt: dmg } = applyDirectDamage(agent, hazard.power, false, hazard.sourceId || null, 'PERIODIC');
 
         if (absorbed > 0) {
             engine.events.push({ 

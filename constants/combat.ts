@@ -250,8 +250,8 @@ export const CC_RULES = {
     DR_LABEL_UPPER_BOUND: 0.95,
     /** 顯示控制遞減標籤的倍率下界。 */
     DR_LABEL_LOWER_BOUND: 0.05,
-    /** 控制遞減進入免疫的倍率門檻。 */
-    DR_IMMUNITY_THRESHOLD: 0.25,
+    /** 控制遞減進入免疫的倍率門檻（WoW 式：100% → 50% → 25% → 免疫，所以第 4 次的 0.125 倍率以下免疫）。 */
+    DR_IMMUNITY_THRESHOLD: 0.125,
 } as const;
 
 export const HIT_REACTION_RULES = {
@@ -264,6 +264,8 @@ export const HIT_REACTION_RULES = {
 export const HAZARD_RULES = {
     /** 危害預設持續時間（秒）。 */
     DEFAULT_DURATION: 5,
+    /** 危害區跳傷間隔（秒）。 */
+    TICK_INTERVAL: 0.5,
     /** 技能範圍換算牽引像素半徑的倍率。 */
     PULL_RADIUS_FACTOR: 1.5,
     /** 技能威力換算每跳危害威力的倍率。 */

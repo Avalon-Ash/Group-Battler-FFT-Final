@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  [CORE] 狀態效果純函式與槽位管理（ECS-lite S1）             ║
-// ║  職責：16 種持續／控制效果固定槽位建構、重設與查詢 API。    ║
+// ║  職責：17 種持續／控制效果固定槽位建構、重設與查詢 API。    ║
 // ║  無狀態純函式，零每幀記憶體配置。                           ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -21,6 +21,7 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
     'HASTE',
     'REFLECT',
     'LIFESTEAL',
+    'SLOW',
     'DOT',
     'HOT',
 ] as const;
@@ -51,6 +52,7 @@ export function createEffectSlots(): EffectSlots {
         HASTE: createEffectSlot(),
         REFLECT: createEffectSlot(),
         LIFESTEAL: createEffectSlot(),
+        SLOW: createEffectSlot(),
         DOT: createEffectSlot(),
         HOT: createEffectSlot(),
     };
@@ -73,6 +75,15 @@ export function isEffectActive(agent: { effects: EffectSlots }, kind: EffectKind
 
 export function effectRemaining(agent: { effects: EffectSlots }, kind: EffectKind): number {
     return agent.effects[kind].remaining;
+}
+
+/**
+ * 緩速造成的移動速度倍率（1 = 不減速）。SLOW.value 是減速比例（0.65＝慢 65%），
+ * 與敵方危害倍率、AI 要求的倍率取 min 由 MovementSystem／MotionEngine 負責（不寫進 Agent）。
+ */
+export function slowSpeedMult(agent: { effects: EffectSlots }): number {
+    const slow = agent.effects.SLOW;
+    return slow.remaining > 0 ? Math.max(0, 1 - slow.value) : 1;
 }
 
 export interface ApplyEffectOptions {

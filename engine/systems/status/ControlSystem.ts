@@ -1,10 +1,12 @@
-import { CONTROL_RULES } from '../../../constants';
+import { CONTROL_RULES, COMBAT_PARAM } from '../../../constants';
 
 import { Agent, GameEngine } from "../../game";
 import { HexUtils } from "../../utils";
 import { random } from "../../math/rng";
 import { stopMovement } from "../movement/MotionCommands";
 import { EFFECT_KINDS } from "../../core/Effects";
+import { DR_CATEGORY_KINDS } from "../../../data/status/effect_defs";
+import type { DRCategory } from "../../../data/status/effect_defs";
 
 /** 狀態域 API：`banished` 只由本檔寫入，其餘模組透過這兩個函式。 */
 export function syncBanished(agent: Agent): void {
@@ -19,13 +21,18 @@ export function clearBanishedFlag(agent: Agent): void {
 export class ControlSystem {
     
     public update(agent: Agent, dt: number, engine: GameEngine) {
-        // Diminishing Returns (DR) decay
-        for (const type in agent.drTimers) {
-            if (Object.prototype.hasOwnProperty.call(agent.drTimers, type)) {
-                agent.drTimers[type] -= dt;
-                if (agent.drTimers[type] <= 0) {
-                    agent.drStacks[type] = 0;
-                    delete agent.drTimers[type];
+        // Diminishing Returns (DR) decay：該類別的控制還在生效時倒數不動（維持滿值），控制結束後才開始倒數（WoW 式）
+        for (const category in agent.drTimers) {
+            if (Object.prototype.hasOwnProperty.call(agent.drTimers, category)) {
+                const kinds = DR_CATEGORY_KINDS[category as DRCategory];
+                if (kinds.some(k => agent.effects[k].remaining > 0)) {
+                    agent.drTimers[category] = COMBAT_PARAM.DR_RESET_TIME;
+                    continue;
+                }
+                agent.drTimers[category] -= dt;
+                if (agent.drTimers[category] <= 0) {
+                    agent.drStacks[category] = 0;
+                    delete agent.drTimers[category];
                 }
             }
         }

@@ -11,8 +11,8 @@ const STACKING_RESOLUTION_FORCE = 8;
 export class MotionEngine {
 
     /**
-     * @param hazardSpeedMult 敵方危害造成的減速倍率（HazardSystem.getHazardSpeedMult，由 MovementSystem 每 tick 算出）；
-     *        有效速度 = min(AI 要求的倍率, 危害倍率)。
+     * @param hazardSpeedMult 外部減速倍率（敵方危害 HazardSystem.getHazardSpeedMult 與 SLOW 狀態取較慢者，由 MovementSystem 每 tick 算出）；
+     *        有效速度 = min(AI 要求的倍率, 外部減速倍率)。
      */
     public static updateMovement(a: Agent, dt: number, spatial: SpatialProvider, hazardSpeedMult: number = 1) {
         if (a.path.length === 0) {

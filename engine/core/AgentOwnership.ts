@@ -72,7 +72,7 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         group: 'locomotion',
         kind: 'single',
         owners: ['engine/systems/movement/MovementSystem.ts'],
-        note: '只代表 AI 要求的速度倍率。敵方危害的減速由 MovementSystem 每 tick 呼叫 HazardSystem.getHazardSpeedMult 算出，交給 MotionEngine 取 min。',
+        note: '只代表 AI 要求的速度倍率。敵方危害（HazardSystem.getHazardSpeedMult）與 SLOW 狀態（Effects.slowSpeedMult）的減速由 MovementSystem 每 tick 算出、取較慢者，交給 MotionEngine 取 min。',
     },
     shield: {
         group: 'vitals',

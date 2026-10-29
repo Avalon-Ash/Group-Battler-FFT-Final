@@ -83,6 +83,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 700, color: '#60a5fa', 
         visual: 'SLASH', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.05 },
         visualHitEffect: 'FX_ULT_BLUE_BLADESTORM', element: 'PHYSICAL'
     },
     { 
@@ -112,6 +113,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 550, color: '#fcd34d', 
         visual: 'ARROW', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.1 },
         visualHitEffect: 'FX_ULT_BLUE_STARFALL', element: 'HOLY'
     },
     { 
@@ -137,6 +139,7 @@ export const BLUE_ULT: Skill[] = [
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1000, color: '#ffffff', 
         visual: 'BOLT', projectileSpeed: 2500, 
+        hits: { count: 8, interval: 0.05 },
         visualHitEffect: 'FX_ULT_BLUE_OVERLOAD', element: 'PHYSICAL'
     },
 
@@ -147,7 +150,8 @@ export const BLUE_ULT: Skill[] = [
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 430, color: '#0f172a', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'PULL', ccForce: 4, ccDur: 2.0, element: 'VOID',
+        hits: { count: 4, interval: 0.4 },
+        ccType: 'PULL', ccForce: 4, ccDur: 2.0, ccType2: 'SLOW', ccForce2: 0.65, ccDur2: 0.5, element: 'VOID',
         visualHitEffect: 'FX_ULT_BLUE_BLACKHOLE'
     },
     { 
@@ -174,6 +178,7 @@ export const BLUE_ULT: Skill[] = [
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: 650, color: '#a855f7', 
         visual: 'BOLT', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.1 },
         visualHitEffect: 'FX_ULT_BLUE_TORRENT', element: 'ARCANE'
     },
     { 
@@ -209,6 +214,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: -400, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.08 },
         ccType: 'SHIELD', ccForce: 450,
         visualHitEffect: 'FX_ULT_BLUE_HYMN', element: 'HOLY'
     },
@@ -227,6 +233,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: -550, color: '#86efac', 
         visual: 'SMASH', projectileSpeed: 0, 
+        hits: { count: 8, interval: 0.08 },
         ccType: 'HOT', ccForce: 135, ccDur: 6.0,
         visualHitEffect: 'FX_ULT_BLUE_RAIN', element: 'HOLY'
     }

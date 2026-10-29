@@ -31,7 +31,7 @@ export class EffectSystem {
             agent.effects.DOT.remaining = Math.max(0, agent.effects.DOT.remaining - dt);
             
             const damagePerSec = agent.effects.DOT.value;
-            const { absorbed, dealt: frameDamage } = applyDirectDamage(agent, damagePerSec * dt);
+            const { absorbed, dealt: frameDamage } = applyDirectDamage(agent, damagePerSec * dt, false, null, 'PERIODIC');
 
             // Periodic Visual Feedback
             if (dotTimer <= 0 && agent.effects.DOT.value > 0) { 

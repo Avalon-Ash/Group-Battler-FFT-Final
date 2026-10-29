@@ -64,11 +64,11 @@ export interface Skill {
     color: string;
     element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
     specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN' | 'INVINCIBLE'; 
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL';
+    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
     ccDur?: number;
     ccForce?: number;
     ccSelf?: boolean;
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL';
+    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
     ccDur2?: number;
     ccForce2?: number;
     ccSelf2?: boolean;
@@ -80,18 +80,26 @@ export interface Skill {
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
     visualHitEffect?: string;
     visualProjectileEffect?: string;
+    /**
+     * 多段命中（docs/MULTI_HIT_DESIGN.md）：施放結算時排 count 段，第 i 段在施放時刻＋i×interval（秒）觸發，
+     * 每段各走一次完整的單發流程、威力為 power÷count。沒有這個欄位＝單發。
+     */
+    hits?: { count: number; interval: number };
 }
+
+/** 傷害通道：直接傷害（技能命中，走 resolveHit）或週期傷害（DOT／危害區）。目前只記錄，公式尚未分流。 */
+export type DamageChannel = 'DIRECT' | 'PERIODIC';
 
 export type EffectKind =
     | 'STUN' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND'
     | 'BANISH' | 'STASIS' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE'
-    | 'HASTE' | 'REFLECT' | 'LIFESTEAL'
+    | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW'
     | 'DOT' | 'HOT';
 
 export interface EffectSlot {
     remaining: number;     // 原 xxxTimer
     max: number;           // 原 xxxMax（沒有 Max 欄位的效果也記，給 UI 用）
-    value: number;         // DOT＝每跳傷害、HOT＝每跳回復，其餘 0
+    value: number;         // DOT＝每跳傷害、HOT＝每跳回復、SLOW＝減速比例（0.65＝慢 65%），其餘 0
     tag: string | null;    // DOT＝'BURN'／'POISON'，其餘 null
     sourceId: string | null; // TAUNT＝嘲諷者 id、DOT＝施放者 id，其餘 null
 }

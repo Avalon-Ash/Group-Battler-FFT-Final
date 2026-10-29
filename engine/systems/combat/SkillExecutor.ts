@@ -1,5 +1,5 @@
 import { Agent, GameEngine } from "../../game";
-import { Skill } from "../../../types";
+import { Skill, Hex } from "../../../types";
 import { HexUtils } from "../../utils";
 import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
@@ -10,7 +10,8 @@ import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
 import { teleportTo, dashTo, lungeToward } from "../movement/MotionCommands";
 import { triggerHitFlash, triggerHitShake } from "../../core/ViewCommands";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
-import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS, HIT_REACTION_RULES } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS, HIT_REACTION_RULES, CC_RULES } from "../../../constants";
+import { MultiHitScheduler } from "./MultiHitScheduler";
 import { random } from "../../math/rng";
 import { unitEventPos, hexEventPos } from "../../events/EventPos";
 
@@ -20,7 +21,56 @@ export interface DeferredCastSnapshot {
     target: Agent | null;
 }
 
+/** resolveHit 的多段命中參數（單發＝全部省略）。 */
+export interface HitOptions {
+    /** 本段威力占整個技能的比例（1/N），傷害、治療、護盾量、法力與自傷都依此分攤 */
+    powerScale?: number;
+    hitIndex?: number;
+    hitCount?: number;
+    /** 這次施放對這個目標已經套過一次性狀態（硬控等）：本段不再套。位移與 SLOW 每段都套 */
+    statusesApplied?: boolean;
+}
+
+export interface HitOutcome {
+    /** 這一段有打中（目標有效、沒被閃避）；一次性狀態在第一次打中時套用 */
+    landed: boolean;
+}
+
+/** 每段重複套用的控制：位移（每段都拉／推）與緩速（每段刷新）。其餘狀態一次施放只套一次。 */
+function isRepeatableCC(type: string): boolean {
+    return type === 'KNOCKBACK' || type === 'PULL' || type === 'SLOW';
+}
+
 export class SkillExecutor {
+    /** 多段命中排程（狀態歸 CombatSystem 每 tick 推進）。 */
+    public readonly multiHit = new MultiHitScheduler(this);
+
+    /** AOE 範圍內符合條件的單位（傷害技能打敵人、治療打友軍、威力 0 全部）。第一段與多段命中的每一段共用。 */
+    public areaTargets(source: Agent, cells: readonly Hex[], skill: Skill, engine: GameEngine): Agent[] {
+        const targets: Agent[] = [];
+        cells.forEach(cell => {
+            const u = engine.getAgentAt(cell.q, cell.r);
+            if (u && u.hp > 0 && !u.banished && !u.outOfBounds) {
+                const isValidTarget = (skill.power > 0 && u.team !== source.team) ||
+                                      (skill.power < 0 && u.team === source.team) ||
+                                      (skill.power === 0);
+                if (isValidTarget) targets.push(u);
+            }
+        });
+        return targets;
+    }
+
+    /**
+     * 技能結算的出手點：單發技能對每個目標呼叫一次 resolveHit；有 hits 的技能交給排程器分段打。
+     * area 非 undefined＝AOE（多段命中每段重新判定範圍內的單位）。
+     */
+    public deliverHits(source: Agent, skill: Skill, targets: readonly Agent[], origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | undefined, area?: readonly Hex[]) {
+        if (skill.hits) {
+            this.multiHit.start(source, skill, targets, origin, area ?? null, engine);
+            return;
+        }
+        targets.forEach(target => this.resolveHit(source, target, skill, origin, engine, preRollCrit));
+    }
     /** 施法中心：range 0 是施法者所在格，其他是 targetHex（沒有就用目標格，再沒有就用自己） */
     public static castCenter(source: Agent, skill: Skill): { q: number; r: number } {
         if (skill.range === 0) return { q: source.q, r: source.r };
@@ -85,19 +135,8 @@ export class SkillExecutor {
         let isAOE = skill.type === 'AOE' || impactCells.length > 1;
         
         if (isAOE) {
-            impactCells.forEach(cell => {
-                const u = engine.getAgentAt(cell.q, cell.r);
-                if (u && u.hp > 0 && !u.banished && !u.outOfBounds) {
-                    const isValidTarget = (skill.power > 0 && u.team !== source.team) || 
-                                          (skill.power < 0 && u.team === source.team) || 
-                                          (skill.power === 0);
-                    
-                    if (isValidTarget) {
-                        targets.push(u);
-                    }
-                }
-            });
-            
+            targets = this.areaTargets(source, impactCells, skill, engine);
+
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color, sourceId: source.id });
         } else {
             const primary = deferred ? deferred.target : source.target;
@@ -135,19 +174,20 @@ export class SkillExecutor {
             targets.push(source);
         }
 
-        const preRollCrit = skill.power > 0 ? random() < COMBAT_PARAM.CRIT_CHANCE : false;
-        targets.forEach(target => {
-            this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine, preRollCrit);
-        });
+        // 單發：整次施放共用一次爆擊判定；多段命中每段各自判定（preRollCrit 不傳）
+        const preRollCrit = skill.hits ? undefined : (skill.power > 0 ? random() < COMBAT_PARAM.CRIT_CHANCE : false);
+        this.deliverHits(source, skill, targets, isAOE ? origin : undefined, engine, preRollCrit, isAOE ? impactCells : undefined);
 
         applySelfCC(source, skill, engine);
     }
 
-    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | undefined = undefined) {
-        if (!target || target.hp <= 0 || target.banished || target.outOfBounds) return;
+    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | undefined = undefined, opts: HitOptions = {}): HitOutcome {
+        if (!target || target.hp <= 0 || target.banished || target.outOfBounds) return { landed: false };
+        const powerScale = opts.powerScale ?? 1;
+        const isRepeatHit = (opts.hitIndex ?? 0) > 0;
 
         // A. Damage Calculation
-        const result = DamageCalculator.calculate(source, target, skill, engine.battleTime, preRollCrit, engine.isLastStand);
+        const result = DamageCalculator.calculate(source, target, skill, engine.battleTime, preRollCrit, engine.isLastStand, { channel: 'DIRECT', powerScale });
         
         if (result.isMiss) {
             target.lastHitDamage = 0;
@@ -160,7 +200,7 @@ export class SkillExecutor {
                 targetId: target.id
             });
             engine.log(source, 'HIT', '閃避', target.id, `攻擊未命中`);
-            return;
+            return { landed: false };
         }
 
         if (result.isBlock) {
@@ -265,14 +305,15 @@ export class SkillExecutor {
                         skill
                     });
                     
-                    if (origin && !skill.ccType) {
+                    // 受擊推力只在第一段給（多段命中不累積 N 倍的推擠）
+                    if (origin && !skill.ccType && !isRepeatHit) {
                         PhysicsEngine.applyImpulse(target, origin, COMBAT_PARAM.HIT_IMPULSE_MIN);
                     }
                 }
         }
 
         // B. Secondary Effects (Vamp, Mana, Self Damage)
-        if (result.vampAmount > 0) {
+        if (result.vampAmount > 0 && source.hp > 0) {
             applyHeal(source, result.vampAmount);
             engine.events.push({ 
                 type: 'HEAL', 
@@ -313,8 +354,8 @@ export class SkillExecutor {
         }
 
         // [NEW] SELF_DAMAGE implementation: bypassing shield/evade
-        if (skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE') {
-            const selfDmgValue = skill.effectType === 'SELF_DAMAGE' ? (skill.effectVal || 0) : (skill.effectVal2 || 0);
+        if (source.hp > 0 && (skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE')) {
+            const selfDmgValue = (skill.effectType === 'SELF_DAMAGE' ? (skill.effectVal || 0) : (skill.effectVal2 || 0)) * powerScale;
             if (selfDmgValue > 0) {
                 applyDirectDamage(source, selfDmgValue, true); // 反噬無視護盾；無歸屬來源，沿用先前的擊殺歸屬
                 engine.events.push({
@@ -336,12 +377,15 @@ export class SkillExecutor {
         
         // C. Crowd Control (CC) Application
         // Cast to string to allow 'NONE' check against strictly typed Union
-        if (skill.ccType && (skill.ccType as string) !== 'NONE' && !skill.ccSelf) {
-            CCManager.applyCC(source, target, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
-        }
-        if (skill.ccType2 && (skill.ccType2 as string) !== 'NONE' && !skill.ccSelf2) {
-            CCManager.applyCC(source, target, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
-        }
+        // 多段命中：硬控等狀態一次施放對每個目標只套一次（第一次打中時）；位移與 SLOW 每段都套；護盾量依段數分攤
+        const applyHitCC = (type: string, dur: number | undefined, force: number | undefined) => {
+            if (type === 'NONE') return;
+            if (opts.statusesApplied && !isRepeatableCC(type) && type !== 'SHIELD') return;
+            const scaledForce = type === 'SHIELD' ? (force || CC_RULES.DEFAULT_SHIELD_AMOUNT) * powerScale : force;
+            CCManager.applyCC(source, target, skill, type, dur, scaledForce, origin, engine, isRepeatHit);
+        };
+        if (skill.ccType && !skill.ccSelf) applyHitCC(skill.ccType, skill.ccDur, skill.ccForce);
+        if (skill.ccType2 && !skill.ccSelf2) applyHitCC(skill.ccType2, skill.ccDur2, skill.ccForce2);
 
         // D. Death Check & Absolute EXECUTE enforcement
         if (result.isExecute || target.hp <= 0) {
@@ -351,6 +395,7 @@ export class SkillExecutor {
             }
             engine.agentManager.handleDeadState(target, engine);
         }
+        return { landed: true };
     }
 }
 

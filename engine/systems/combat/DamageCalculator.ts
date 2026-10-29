@@ -1,6 +1,6 @@
 
 import { Agent } from "../../game";
-import { Skill, Role } from "../../../types";
+import { Skill, Role, DamageChannel } from "../../../types";
 import { COMBAT_PARAM, EFFECT_LIMITS, DAMAGE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
 import { absorbWithShield } from "./DirectDamage";
@@ -16,6 +16,14 @@ export interface DamageResult {
     manaBurn: number;       // MP burned
     manaRestore: number;    // MP restored
     overkill: number;       // Damage exceeding remaining HP
+    channel: DamageChannel; // 傷害通道（目前只記錄，公式尚未依通道分流）
+}
+
+export interface DamageOptions {
+    /** 傷害通道；resolveHit 是 DIRECT（預設） */
+    channel?: DamageChannel;
+    /** 本段威力占整個技能的比例（多段命中 1/N；預設 1）。平坦的法力、護盾量也依此比例分攤。 */
+    powerScale?: number;
 }
 
 export class DamageCalculator {
@@ -24,7 +32,9 @@ export class DamageCalculator {
      * The Core Damage Pipeline:
      * Hit Check (Blind) -> Base -> Multipliers -> Crit/Execute -> Mitigation (Shield/Def/Block) -> Final
      */
-    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | undefined = undefined, isLastStand: boolean = false): DamageResult {
+    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | undefined = undefined, isLastStand: boolean = false, options: DamageOptions = {}): DamageResult {
+        const channel = options.channel ?? 'DIRECT';
+        const powerScale = options.powerScale ?? 1;
         const isHeal = skill.power < 0;
         const isAlly = source.team === target.team;
         
@@ -42,7 +52,8 @@ export class DamageCalculator {
             vampAmount: 0,
             manaBurn: 0,
             manaRestore: 0,
-            overkill: 0
+            overkill: 0,
+            channel
         };
 
         // Banishment Immunity: Banished targets cannot take damage or be healed
@@ -124,6 +135,9 @@ export class DamageCalculator {
             }
         }
 
+        // 多段命中：每段只拿整個技能的 1/N（含斬殺加成），總量不變
+        base *= powerScale;
+
         // 3. Crit Logic
         const isCrit = preRollCrit !== undefined ? preRollCrit : random() < COMBAT_PARAM.CRIT_CHANCE;
         if (!isHeal && isCrit) {
@@ -163,13 +177,13 @@ export class DamageCalculator {
         let mb = 0;
         if (skill.effectType === 'MANA_BURN') mb += (skill.effectVal || COMBAT_PARAM.MANA_BURN_DEFAULT);
         if (skill.effectType2 === 'MANA_BURN') mb += (skill.effectVal2 || COMBAT_PARAM.MANA_BURN_DEFAULT);
-        result.manaBurn = mb;
+        result.manaBurn = mb * powerScale;
 
         // Mana Restore
         let mr = 0;
         if (skill.effectType === 'MANA_RESTORE') mr += (skill.effectVal || COMBAT_PARAM.MANA_RESTORE_DEFAULT);
         if (skill.effectType2 === 'MANA_RESTORE') mr += (skill.effectVal2 || COMBAT_PARAM.MANA_RESTORE_DEFAULT);
-        result.manaRestore = mr;
+        result.manaRestore = mr * powerScale;
 
         // 8. Apply Direction (Damage is negative)
         result.finalValue = isHeal ? final : -final;

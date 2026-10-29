@@ -9,13 +9,13 @@ import { Team } from '../engine/types/Enums';
 // CCManager 現行的硬編碼分類清單，用於回歸比對
 const CCMANAGER_BUFFS = ['HOT', 'INVINCIBLE']; // SHIELD 不是持續效果，不在 EFFECT_DEFS
 const CCMANAGER_DEBUFFS = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT', 'DOT', 'BLIND', 'POLYMORPH', 'VULNERABLE']; // KNOCKBACK, PULL 為即時位移
-const CCMANAGER_HARD_CC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'];
+const CCMANAGER_HARD_CC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'POLYMORPH', 'TAUNT', 'ROOT']; // 變形與恐懼同屬「迷惑」遞減類別（MULTI-HIT）
 
 describe('Effects core and definitions (ECS-lite S1 - SE1)', () => {
-    it('EFFECT_KINDS contains exactly 16 effect kinds', () => {
-        expect(EFFECT_KINDS.length).toBe(16);
+    it('EFFECT_KINDS contains exactly 17 effect kinds', () => {
+        expect(EFFECT_KINDS.length).toBe(17);
         const unique = new Set(EFFECT_KINDS);
-        expect(unique.size).toBe(16);
+        expect(unique.size).toBe(17);
     });
 
     it('every kind has a slot in createEffectSlots() initialized to zero/null', () => {

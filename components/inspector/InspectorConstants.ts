@@ -85,7 +85,8 @@ const CC_OPTIONS_MAP = [
     { value: 'VULNERABLE', label: '易傷 (VULNERABLE)' },
     { value: 'HASTE', label: '加速 (HASTE)' },
     { value: 'REFLECT', label: '反傷 (REFLECT)' },
-    { value: 'LIFESTEAL', label: '吸血 (LIFESTEAL)' }
+    { value: 'LIFESTEAL', label: '吸血 (LIFESTEAL)' },
+    { value: 'SLOW', label: '緩速 (SLOW)' }
 ];
 
 const EFFECT_OPTIONS_MAP = [

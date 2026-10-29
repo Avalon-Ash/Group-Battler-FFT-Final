@@ -1,10 +1,13 @@
 import type { Agent } from "../../core/Agent";
+import type { DamageChannel } from "../../../types";
 
 export interface DirectDamageResult {
     /** 被護盾吸收的量。 */
     absorbed: number;
     /** 實際扣到 HP 的量（護盾吸收後）。 */
     dealt: number;
+    /** 這次傷害走的通道（DOT／危害區傳 PERIODIC；目前只記錄）。 */
+    channel: DamageChannel;
 }
 
 /**
@@ -25,16 +28,16 @@ export function absorbWithShield(agent: Agent, amount: number): number {
  * 傷害（預設先扣護盾，再扣 HP；HP 下限為 0）。環境 / 狀態類傷害（墜落、地面危害、DoT）與技能傷害共用。
  * bypassShield = true 為真實傷害（例：墜落傷害；技能傷害的護盾已在 DamageCalculator 扣過）。
  */
-export function applyDirectDamage(agent: Agent, amount: number, bypassShield: boolean = false, sourceId: string | null = null): DirectDamageResult {
+export function applyDirectDamage(agent: Agent, amount: number, bypassShield: boolean = false, sourceId: string | null = null, channel: DamageChannel = 'DIRECT'): DirectDamageResult {
     const absorbed = bypassShield ? 0 : absorbWithShield(agent, amount);
     const remaining = amount - absorbed;
 
     if (remaining > 0) {
         agent.hp = Math.max(0, agent.hp - remaining);
         if (sourceId) agent.lastHitSourceId = sourceId;
-        return { absorbed, dealt: remaining };
+        return { absorbed, dealt: remaining, channel };
     }
-    return { absorbed, dealt: 0 };
+    return { absorbed, dealt: 0, channel };
 }
 
 /** 治療：HP 上限為 maxHp。回傳實際增加的量。 */
