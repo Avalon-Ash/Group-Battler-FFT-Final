@@ -356,6 +356,12 @@
 - **事故**：移除子代理工作樹時 `git worktree remove --force` 順著 `node_modules` junction 刪掉主資料夾部分套件；用版控 lockfile `npm ci` 還原。hook 已擋 `worktree remove --force`；之後子代理一律用獨立 clone＋robocopy 的真 `node_modules`。
 - 實機確認結案：skin 外觀、地面預警、縮放、平衡大致 OK（地形約影響 30% 勝負）、屍體閃爍、縮圈、白皮書、低品質結束畫面。推擠飄移結案。正式版素材 P1 已到位（`ASSET_NEEDS.md` 頂部狀態）。地形烘焙 P2-A 的 GPT 提示詞 `docs/BAKE_P2_AGENT_PROMPT.md`。
 
+### AQ. 2026-10-29 多段傷害引擎（Sonnet 子代理，`feat/multi-hit-engine`）
+- `Skill.hits { count, interval }`：STORM 類 11 招照 `ult_visuals` 的段數與節奏、黑洞 `mb_u1` 4 段×0.4 秒。`MultiHitScheduler`（`CombatSystem` 每 tick 推進）每段呼叫 `resolveHit`（威力 1/N），爆擊、格擋、護盾、吸血每段各自判定；AOE 每段重判範圍、單體鎖原目標、目標死亡跳過、施法者死亡照打、被放逐取消。
+- CC 照 WoW：硬控一次施放對每個目標只套一次（第一段打中時；DOT／HOT／增益也只套一次，護盾量依段數分攤）；遞減依類別（暈眩／沉默／迷惑＝恐懼＋變形／定身／放逐／嘲諷）100%→50%→25%→免疫（`DR_IMMUNITY_THRESHOLD` 0.25→0.125，單發控制也多吃一次）、計時從控制結束才倒數；變形改算硬控。位移與新 `SLOW` 狀態每段套、不吃遞減；移動取危害區與 `SLOW` 較慢者。牽引最多拉到中心格；第 2 段起不算撞擊傷害與受擊推力。
+- 傷害帶 `channel: 'DIRECT' | 'PERIODIC'`（只記錄，公式未分流）；危害跳傷間隔進 `HAZARD_RULES.TICK_INTERVAL`；batch-sim 統計危害區傷害。施法者死後不再吸血、不再自傷。
+- 驗證（主代理在 clone 重跑）：lint、951 測試、build、knip、smoke、保真全過，`battle_frozen` 0 差異。batch-sim 1500 場 seed 21 勝率 50.3%→50.0%、時間不變；超出 ±5% 的單招見 HANDOFF §2 A。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

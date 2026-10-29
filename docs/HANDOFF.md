@@ -8,13 +8,15 @@
 - 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）。最近完成：OPT-01（WORKLOG §2 AH～AO）。
 - **額度**：Claude（Pro）每週要省。**Codex 週額度 2026-10-29 剩 4%：暫停派 Codex**，長線實作改走 Claude 子代理（Sonnet，見 CLAUDE.md 派工表的備援列）或 IDE Gemini（`/goal`）。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
-- 本機殘留：分支 `codex/lionheart-warrior-skins`（skin 試作，成果已由 S0～S4 匯入 `main`，14 個 commit 未合併，等使用者確認可刪）；`C:\Git\_wt_r1`、`C:\Git\_wt_opt-*`（已合併的暫存 clone，被鎖或權限擋下，使用者手動刪）。
+- 本機殘留：分支 `codex/lionheart-warrior-skins`（skin 試作，成果已由 S0～S4 匯入 `main`，14 個 commit 未合併，等使用者確認可刪）；`C:\Git\_wt_r1`、`C:\Git\_wt_opt-*`、`_wt_melee`、`_wt_render`、`_wt_multihit`（已合併的暫存 clone，被鎖或權限擋下，使用者手動刪）。
 - 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 2026-10-29 起**凍結**（OPT-01 決定）：逐檔人工審計改由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、O5a 起的 `NoLocalHash`）。清冊只當歷史索引，不再逐列補標。
 - 座標 findings：COORD-SINK-01（受擊下坡下陷 1.89 px）使用者 2026-10-26 實機幾乎看不到，**不修**，有新證據（更大的下陷、玩家看得見）才重開；COORD-VOID-01 屬量測工具問題，同樣擱置。已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
 
 ## 2. 下一步
 
-**A. 多段傷害（實作中）**：設計 `docs/MULTI_HIT_DESIGN.md` 已定案（每段走完整單發流程、AOE 每段重判、硬控照 WoW 一次施放套一次、遞減從控制結束起算、位移與新 `SLOW` 每段套、直接／週期傷害分通道）。引擎部分由 Sonnet 子代理在 `C:\Git\_wt_multihit` 實作中；之後還有渲染一輪：`ult_visuals`／`SkillSequences` 改讀技能資料的段數與節奏，讓畫面落點等於真實命中。BAL02 §5.2 的 STORM 分段結算由這一輪處理。
+**A. 多段傷害（引擎已合併，剩渲染）**：引擎部分 10-29 合併（WORKLOG §2 AQ）。剩下：
+- **渲染一輪**：`ult_visuals`／`SkillSequences` 改讀 `skill.hits` 的段數與間隔，讓畫面落點等於真實命中（`rr_u3`、`rb_u5` 的 ACCEL／CLUSTER 節奏目前只是視覺，傷害段是等間隔）；黑洞改成 4 段、每 0.4 秒的演出；`SLOW` 加單位標記（`StatusActivity.ts`，目前只有飄字）。渲染線，同時間只開一條。設計稿 `docs/MULTI_HIT_DESIGN.md` 這輪做完再刪。
+- **平衡待決定**：AOE 每段重判造成 `mb_u4` +6.1%、`rr_u3` −5.9%、`rr_u5` −5.5%、`mr_u5` −6.9%（1500 場 seed 21），沒調數值；黑洞直接傷害 −9.1%，含地面傷害 −1.0%。勝率 50.3%→50.0%。
 
 **B. 近戰爬坡（部分改善）**：10-29 合併「先選同層攻擊格、沿用路徑、選目標算繞路成本」，卡高低差打不到的時間 9%→7%、尋路次數 −20%，勝率 55.0%→54.3%。剩下的多半是正在繞路；另外坦克擊殺數 104→81、輔助 52→73，原因沒查。實機看完再決定要不要繼續（選項：允許跳躍力範圍內打上下一層，會推翻 R6 規則 A）。
 
