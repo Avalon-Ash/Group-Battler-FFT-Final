@@ -11,6 +11,10 @@
 // ║    天降類＝序列有 HEAVEN_FALL 動作或 ultImpactDelay > 0           ║
 // ║    （ownFallObject 的天降招落下物畫在資產裡，序列沒有該動作）      ║
 // ║    CAST_START 一律標 castRun：CAST_BREAK 只清掉那次詠唱序列        ║
+// ║  [ARCH] 投射物多段奧義（序列有 impact）：命中動作不在施放序列裡，  ║
+// ║    PROJECTILE_HIT（＝傷害第 0 段）那一刻播 impact，目標錨點每幀跟隨 ║
+// ║    到最後一個落點（binding.lockAt＝抵達＋最後一個動作的 delay），   ║
+// ║    和 SkillExecutor.deliverHits 的鎖定原目標一致；不改任何座標規則 ║
 // ║                                                                  ║
 // ║  子系統分工 (SSOT 邊界)：                                        ║
 // ║    EventHUDMapper  → DAMAGE / HEAL / CC / CAST 事件 → HUDSystem  ║
@@ -20,6 +24,7 @@
 
 import { GameEngine } from "../game";
 import { GameEvent } from "../../types";
+import type { VFXSequence } from "../../types/VFXSchema";
 import { VFXSystem } from "./vfx";
 import { HUDSystem } from "./hud";
 import { GridSystem } from "../systems/grid";
@@ -52,20 +57,14 @@ export class VisualSystem {
         if (events.length === 0) return;
         events.forEach(event => {
             this.hudMapper.process(event, engine, hud, grid, camera);
+            if (event.type === 'PROJECTILE_HIT' && event.skill?.id) {
+                const impact = SKILL_SEQUENCES[event.skill.id]?.impact;
+                if (impact) this.runImpact(impact, event, engine, vfx, sequences);
+            }
             if (event.type === 'CAST_START' && event.skill) {
                 const sequence = event.skill.id ? SKILL_SEQUENCES[event.skill.id] : undefined;
                 if (sequence) {
-                    const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
-                    
-                    // SSOT FIX: If target is ground or if resolution failed (e.g. target died), ensure we fall back to the event position
-                    if (target3D.z === -9999 || !event.targetId || event.targetId.startsWith('ground-')) {
-                        target3D.x = event.pos.x;
-                        target3D.y = event.pos.y;
-                        
-                        // Fix: Use event position to find hex and get terrain height
-                        const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-                        target3D.z = engine.getTerrainHeight(hex.q, hex.r) + 5; // Add bias to prevent ground clipping
-                    }
+                    const target3D = this.resolveSequenceTarget(event, engine);
                     // 命中對齊傷害：傷害在 詠唱＋ultImpactDelay（天降類的落下時間，其他 0）結算，序列延後 (那一刻 − hitAt) 才開始；
                     // 詠唱被打斷時 CAST_BREAK 取消整串（VFXSequence.hitAt）
                     const impactAt = (event.skill.cast || 0) + ultImpactDelay(event.skill.id);
@@ -98,5 +97,29 @@ export class VisualSystem {
 
             this.vfxMapper.process(event, engine, vfx, grid, camera, sequences);
         });
+    }
+
+    /** 序列落點：目標單位的錨點；地面目標或解析失敗（目標已死）時退回事件位置所在格的地面。 */
+    private resolveSequenceTarget(event: GameEvent, engine: GameEngine) {
+        const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
+        // SSOT FIX: If target is ground or if resolution failed (e.g. target died), ensure we fall back to the event position
+        if (target3D.z === -9999 || !event.targetId || event.targetId.startsWith('ground-')) {
+            target3D.x = event.pos.x;
+            target3D.y = event.pos.y;
+
+            // Fix: Use event position to find hex and get terrain height
+            const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
+            target3D.z = engine.getTerrainHeight(hex.q, hex.r) + 5; // Add bias to prevent ground clipping
+        }
+        return target3D;
+    }
+
+    /** 投射物多段命中：抵達那一刻起排 impact 動作，落點跟著被打中的目標到最後一個動作。 */
+    private runImpact(impact: VFXSequence, event: GameEvent, engine: GameEngine, vfx: VFXSystem, sequences: SequenceSystem) {
+        let span = 0;
+        for (const action of impact.actions) span = Math.max(span, action.delay ?? 0);
+        const bound = Boolean(event.targetId && engine.agents.some(a => a.id === event.targetId));
+        sequences.run(impact, this.resolveSequenceTarget(event, engine), engine, vfx, event.sourceId, 0,
+            bound ? { targetId: event.targetId, lockAt: engine.battleTime + span } : undefined);
     }
 }

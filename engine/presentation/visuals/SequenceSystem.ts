@@ -15,7 +15,7 @@ import { VFXSystem } from "../vfx";
 import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
-import { ISO_SCALE_Y, PHYSICS, ULT_FEEL, VFX_SEQUENCE } from "../../../constants";
+import { COMBAT_PARAM, ISO_SCALE_Y, PHYSICS, ULT_FEEL, VFX_SEQUENCE } from "../../../constants";
 import { Agent, Team } from "../../../types";
 import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
@@ -243,7 +243,7 @@ export class SequenceSystem {
 
         for (let i = this.actionQueue.length - 1; i >= 0; i--) {
             const item = this.actionQueue[i];
-            if (now >= item.executeAt) {
+            if (now >= item.executeAt - COMBAT_PARAM.HIT_TIME_EPSILON_S) {
                 let liveSource = item.source;
                 if (item.sourceId) {
                     const agent = engine.agents.find(a => a.id === item.sourceId);

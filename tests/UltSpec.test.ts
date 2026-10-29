@@ -75,8 +75,14 @@ export function evaluateUlt(id: string): UltEvalResult {
     const hitAt = sequence.hitAt;
     const cast = skill.cast;
 
+    // 投射物多段奧義（rb_u5）的命中動作在 sequence.impact（時間軸從抵達起算）；換算回施放序列時間軸（抵達＝hitAt）一起評估
+    const allActions = [
+        ...sequence.actions,
+        ...(sequence.impact?.actions ?? []).map((a) => ({ ...a, delay: (a.delay ?? 0) + (hitAt ?? 0) })),
+    ];
+
     // Find the sequence action corresponding to the recipe
-    const recipeAction = sequence.actions.find((a) => a.type === 'PARTICLE' && a.id === recipeKey);
+    const recipeAction = allActions.find((a) => a.type === 'PARTICLE' && a.id === recipeKey);
     const actionStartTime = recipeAction?.delay ?? 0;
 
     // C1: 時序 hitAt <= 傷害結算時刻 + 0.02；結算時刻＝cast＋ultImpactDelay（天降類的落下時間，其他 0）
@@ -127,7 +133,7 @@ export function evaluateUlt(id: string): UltEvalResult {
 
     // C4: 時長 — 序列總長 1.0～2.0 s (序列內全部動作與配方發射器的最晚結束時刻)
     let seqTotalDuration = 0;
-    for (const act of sequence.actions) {
+    for (const act of allActions) {
         const actDelay = act.delay ?? 0;
         if (act.type === 'PARTICLE' && act.id) {
             const asset = VFX_REGISTRY[act.id];
@@ -190,7 +196,7 @@ export function evaluateUlt(id: string): UltEvalResult {
         targetDist = 1.5 * HEX_SIZE; // 72
         const radiusOk = maxGroundRadius <= targetDist + 1e-4;
         const isAoe = skill.type !== 'SINGLE';
-        const stormHits = sequence.actions.filter((a) => a.type === 'PARTICLE' && a.id === recipeKey);
+        const stormHits = allActions.filter((a) => a.type === 'PARTICLE' && a.id === recipeKey);
         const aoeRadius = skill.aoeRadius ?? 1;
         const scatterOk = !isAoe || (stormHits.length > 0 && stormHits.every((a) => a.scatterRings === aoeRadius));
         c6Pass = radiusOk && scatterOk;
@@ -236,7 +242,7 @@ export function evaluateUlt(id: string): UltEvalResult {
     }
     let totalParticles = 0;
     if (ultConfig.archetype === 'STORM') {
-        const stormCount = ultConfig.count ?? 10;
+        const stormCount = skill.hits?.count ?? 1; // 落點數讀技能資料（skill.hits），視覺表不再有 count
         let windupParticles = 0;
         if (ultConfig.windupFx && VFX_REGISTRY[ultConfig.windupFx]) {
             for (const em of VFX_REGISTRY[ultConfig.windupFx].emitters) {

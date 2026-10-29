@@ -83,8 +83,19 @@ export interface Skill {
     /**
      * 多段命中（docs/MULTI_HIT_DESIGN.md）：施放結算時排 count 段，第 i 段在施放時刻＋i×interval（秒）觸發，
      * 每段各走一次完整的單發流程、威力為 power÷count。沒有這個欄位＝單發。
+     * 各段的時間偏移只由 engine/math/HitCadence.ts 的 hitOffset 算出（排程器與畫面落點共用）。
      */
-    hits?: { count: number; interval: number };
+    hits?: SkillHits;
+}
+
+/** 多段命中的節奏：EVEN 等間隔；ACCEL 越打越密（總長不變）；CLUSTER 三連發一組（組間隔大、組內間隔小）。 */
+type HitCadence = 'EVEN' | 'ACCEL' | 'CLUSTER';
+
+/** 多段命中設定：count 段、interval 為基準間隔（秒）、cadence 缺省＝EVEN。 */
+export interface SkillHits {
+    count: number;
+    interval: number;
+    cadence?: HitCadence;
 }
 
 /** 傷害通道：直接傷害（技能命中，走 resolveHit）或週期傷害（DOT／危害區）。目前只記錄，公式尚未分流。 */

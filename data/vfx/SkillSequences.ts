@@ -12,6 +12,8 @@ const ULT_ARCHETYPE_PARAM = {
     DOMAIN_PULSE_MULT: 2,
     /** 領域鏡頭震動強度（比例） */
     DOMAIN_SHAKE: 0.3,
+    /** 多段領域：第 2 段起每段的鏡頭震動相對第 1 段的倍率（倍；第 1 段維持 DOMAIN_SHAKE，後續段降低以免累積成持續劇震） */
+    DOMAIN_HIT_SHAKE_FOLLOW: 0.5,
     /** 狙擊光束粒子尺寸上限（倍） */
     BEAM_FX_SCALE: 1.5,
     /** 狙擊光束長度（秒） */
@@ -22,16 +24,6 @@ const ULT_ARCHETYPE_PARAM = {
     BEAM_SHAKE: 0.5,
     /** 狙擊光束脈衝尺寸（倍） */
     BEAM_PULSE: 1.2,
-    /** 風暴預設落點數（次） */
-    STORM_COUNT: 10,
-    /** 風暴預設間隔（秒） */
-    STORM_INTERVAL_S: 0.1,
-    /** 風暴每群落點數（次） */
-    CLUSTER_COUNT: 3,
-    /** 風暴群間隔倍率（倍） */
-    CLUSTER_GAP_MULT: 2.5,
-    /** 風暴群內間隔倍率（倍） */
-    CLUSTER_INTRA_MULT: 0.5,
     /** 風暴落點最小尺寸倍率（倍） */
     STORM_SCALE_MIN: 0.8,
     /** 風暴落點尺寸交錯步幅（比例） */
@@ -50,6 +42,7 @@ import { VFXSequence, VFXAction } from "../../types/VFXSchema";
 import { Team } from "../../types";
 import { DEFAULT_SKILL_DB } from "../../skillDatabase";
 import { ULT_VISUALS, ultImpactDelay } from "./ult_visuals";
+import { hitOffsets } from "../../engine/math/HitCadence";
 import { ACTIVE_VISUALS } from "./active_visuals";
 import { BASIC_VISUALS } from "./basic_visuals";
 import { FACTION_VISUALS } from "./faction_visuals";
@@ -218,6 +211,15 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             const shake = (k: number) => Math.max(U.MIN_SHAKE, k);
             // hitAt＝序列開始後的命中時刻；CAST_START 延後 (詠唱 − hitAt) 才開始，命中與傷害同一刻（VFXSequence.hitAt）
             let hitAt = ultConfig.charged ? U.CHARGED_HIT_AT : U.HIT_LEAD;
+            // 多段命中（skill.hits）：落點數與節奏一律讀技能資料（hitOffsets，和 MultiHitScheduler 同一個純函式），畫面落點＝真實命中。
+            // 投射物多段（rb_u5）：傷害從投射物抵達才開始，命中動作改排在 VFXSequence.impact（時間軸從抵達那一刻起算，
+            // VisualSystem 在 PROJECTILE_HIT 播），施放序列只留起手
+            const skillHits = ultSkill?.hits;
+            const hitOffs = skillHits ? hitOffsets(skillHits) : [0];
+            const impactTimed = skillHits !== undefined && (ultSkill?.projectileSpeed ?? 0) > 0;
+            const impactActions: VFXAction[] = [];
+            const hitActions = impactTimed ? impactActions : actions;
+            const hitBase = impactTimed ? 0 : hitAt;
 
             switch (ultConfig.archetype) {
                 case 'HEAVEN_FALL': {
@@ -242,8 +244,13 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     break;
                 case 'DOMAIN':
                     actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, color: ultConfig.primaryColor });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * ULT_ARCHETYPE_PARAM.DOMAIN_PULSE_MULT), delay: hitAt });
-                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.DOMAIN_SHAKE), delay: hitAt });
+                    // 多段領域（mb_u1）：每一段命中那一刻各一次格子脈衝＋震動＋內爆脈衝（hitFx）；單發＝只有第 0 段
+                    for (let k = 0; k < hitOffs.length; k++) {
+                        const at = hitAt + hitOffs[k];
+                        actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * ULT_ARCHETYPE_PARAM.DOMAIN_PULSE_MULT), delay: at });
+                        actions.push({ type: 'SHAKE', shakeIntensity: k === 0 ? shake(ULT_ARCHETYPE_PARAM.DOMAIN_SHAKE) : ULT_ARCHETYPE_PARAM.DOMAIN_SHAKE * ULT_ARCHETYPE_PARAM.DOMAIN_HIT_SHAKE_FOLLOW, delay: at });
+                        if (skillHits && ultConfig.hitFx) actions.push({ type: 'PARTICLE', id: ultConfig.hitFx, scale: fxScale, color: ultConfig.primaryColor, delay: at });
+                    }
                     break;
                 case 'BEAM_SNIPE':
                     // 光束在命中那一刻打出；命中點資產提早 HIT_LEAD 開始（起手紋章在目標腳下浮現）
@@ -253,24 +260,14 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: pulse(ULT_ARCHETYPE_PARAM.BEAM_PULSE), delay: hitAt + ULT_ARCHETYPE_PARAM.PULSE_DELAY_S });
                     break;
                 case 'STORM': {
-                    const count = ultConfig.count || ULT_ARCHETYPE_PARAM.STORM_COUNT;
-                    const interval = ultConfig.timing || ULT_ARCHETYPE_PARAM.STORM_INTERVAL_S;
+                    // 落點數與節奏＝skill.hits（沒有 hits 的 STORM 只有一個落點）；落點時間＝hitBase＋hitOffsets[k]，與傷害同一刻
+                    const count = hitOffs.length;
                     if (ultConfig.windupFx) actions.push({ type: 'PARTICLE', id: ultConfig.windupFx });
                     const scatterRings = ultSkill?.type === 'SINGLE' ? 0 : (ultSkill?.aoeRadius ?? 1);
-                    const cadence = ultConfig.cadence ?? 'EVEN';
-                    const totalSpan = (count - 1) * interval;
                     // 落點大小確定性交錯（黃金比例），不在模組載入時抽亂數
                     for (let k = 0; k < count; k++) {
-                        let delay = hitAt + k * interval;
-                        if (cadence === 'ACCEL') {
-                            const u = count > 1 ? k / (count - 1) : 0;
-                            delay = hitAt + (1 - (1 - u) * (1 - u)) * totalSpan;
-                        } else if (cadence === 'CLUSTER') {
-                            const group = Math.floor(k / ULT_ARCHETYPE_PARAM.CLUSTER_COUNT);
-                            const intra = k % ULT_ARCHETYPE_PARAM.CLUSTER_COUNT;
-                            delay = hitAt + group * (interval * ULT_ARCHETYPE_PARAM.CLUSTER_GAP_MULT) + intra * (interval * ULT_ARCHETYPE_PARAM.CLUSTER_INTRA_MULT);
-                        }
-                        actions.push({
+                        const delay = hitBase + hitOffs[k];
+                        hitActions.push({
                             type: 'PARTICLE',
                             id: ultFx,
                             color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor,
@@ -281,7 +278,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                             scatterCount: count,
                         });
                     }
-                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.STORM_SHAKE), delay: hitAt });
+                    hitActions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.STORM_SHAKE), delay: hitBase });
                     break;
                 }
                 case 'INSTANT_IMPACT':
@@ -295,10 +292,12 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             // 單體技用單體版（只有一道小環），不畫出比實際更大的打擊範圍
             if ((ultSkill?.power ?? 0) > 0) {
                 const impactId = (isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE') + (ultSkill?.type === 'SINGLE' ? '_SINGLE' : '');
-                actions.push({ type: 'PARTICLE', id: impactId, scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
+                hitActions.push({ type: 'PARTICLE', id: impactId, scale: fxScale * U.IMPACT_SCALE, delay: hitBase });
             }
-            actions.push({ type: 'ULT_IMPACT', delay: hitAt });
-            sequences[ultId] = { id: ultId, actions, hitAt };
+            hitActions.push({ type: 'ULT_IMPACT', delay: hitBase });
+            sequences[ultId] = impactTimed
+                ? { id: ultId, actions, hitAt, impact: { id: ultId, actions: impactActions } }
+                : { id: ultId, actions, hitAt };
         }
     }
 }

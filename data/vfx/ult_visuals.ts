@@ -1,5 +1,7 @@
 import type { BeamStyleId } from "./beam_styles";
 import { COMBAT_PARAM, PHYSICS } from "../../constants";
+import { DEFAULT_SKILL_DB } from "../../skillDatabase";
+import { hitOffset } from "../../engine/math/HitCadence";
 
 /**
  * 奧義序列的時序與打擊感參數（data/vfx/SkillSequences.ts）。
@@ -45,13 +47,14 @@ export interface UltVisualDef {
     scale: number;          // Size multiplier (default 1.0)
     
     // Optional params specific to archetypes
-    timing?: number;        // Delay or Duration
-    count?: number;         // For Storm/Sanctuary (number of beams/drops)
+    timing?: number;        // HEAVEN_FALL：落下前的延遲（秒）。有 skill.hits 的奧義不得填（時間讀技能資料）
+    count?: number;         // SANCTUARY：光柱數。有 skill.hits 的奧義不得填（落點數讀技能資料）
     height?: number;        // Fall height
     vfxOverride?: string;   // 命中／落點特效（VFX_REGISTRY 的鍵）
     beamStyle?: BeamStyleId; // BEAM_SNIPE：光束樣式（BEAM_STYLES 的鍵）
     windupFx?: string;      // STORM：施放時只播一次的起手效果（陣營紋章），落點效果才重播 count 次
-    cadence?: 'EVEN' | 'ACCEL' | 'CLUSTER'; // STORM：落點節奏（預設 EVEN）
+    /** DOMAIN 且技能有 hits：每一段命中那一刻播一次的內爆脈衝特效（VFX_REGISTRY 的鍵）；主資產 vfxOverride 要涵蓋全部段數 */
+    hitFx?: string;
     /** 充能式（ULT-V01）：資產時間軸從詠唱開始排到 ULT_SEQUENCE.CHARGED_HIT_AT 命中，不再只播最後 HIT_LEAD 秒 */
     charged?: boolean;
     /** HEAVEN_FALL：落下物由資產自己畫（零件＋rise 高度關鍵影格，在命中那一刻落地），序列不另生共用隕石 */
@@ -81,7 +84,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // wb_u3: 誓約勝利 -> 光片聚成獅翼聖劍、在目標上空抬起，再重刃砸落插地（充能式，ULT-V01 代表作）
     'wb_u3': { archetype: 'INSTANT_IMPACT', primaryColor: '#facc15', secondaryColor: '#eab308', scale: 2.2, vfxOverride: 'FX_ULT_BLUE_EXCALIBUR', charged: true },
     // wb_u4: 劍刃風暴 -> 六邊形刀光風暴
-    'wb_u4': { charged: true, archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_BLADESTORM_WINDUP' },
+    'wb_u4': { charged: true, archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_BLADESTORM_WINDUP' },
     // wb_u5: 光速斬擊 -> 瞬移軌跡連線 (Beam)
     'wb_u5': { charged: true, archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, beamStyle: 'SLASH_CONNECT', vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
 
@@ -89,23 +92,23 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // rb_u1: 極地冰河 -> 天降巨大冰晶六邊體
     'rb_u1': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#bae6fd', secondaryColor: '#fff', scale: 1.6, height: 1200, vfxOverride: 'FX_ULT_BLUE_GLACIAL_BURST' },
     // rb_u2: 星辰墜落 -> 六邊形流星雨
-    'rb_u2': { charged: true, archetype: 'STORM', primaryColor: '#fcd34d', secondaryColor: '#fff', scale: 1.0, count: 8, timing: 0.1, vfxOverride: 'FX_ULT_BLUE_STARFALL', windupFx: 'FX_ULT_BLUE_STARFALL_WINDUP' },
+    'rb_u2': { charged: true, archetype: 'STORM', primaryColor: '#fcd34d', secondaryColor: '#fff', scale: 1.0, vfxOverride: 'FX_ULT_BLUE_STARFALL', windupFx: 'FX_ULT_BLUE_STARFALL_WINDUP' },
     // rb_u3: 穿日神矢 -> 衛星離子砲 (垂直巨型六邊柱)
     'rb_u3': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#06b6d4', secondaryColor: '#22d3ee', scale: 1.8, height: 1000, vfxOverride: 'FX_ULT_BLUE_ORBITAL_BEAM' },
     // rb_u4: 絕對封鎖 -> 六邊形牢籠
     'rb_u4': { charged: true, archetype: 'DOMAIN', primaryColor: '#7c3aed', secondaryColor: '#8b5cf6', scale: 1.4, vfxOverride: 'FX_ULT_BLUE_LOCKDOWN' },
     // rb_u5: 疾風百矢 -> 自身周圍的高頻六邊形火花
-    'rb_u5': { charged: true, archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_OVERLOAD', windupFx: 'FX_ULT_BLUE_VOLLEY_WINDUP', cadence: 'CLUSTER' },
+    'rb_u5': { charged: true, archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, vfxOverride: 'FX_ULT_BLUE_OVERLOAD', windupFx: 'FX_ULT_BLUE_VOLLEY_WINDUP' },
 
     // --- MAGE (Arcane/Gravity) ---
     // mb_u1: 奧術漩渦 -> 多面奇點＋螺旋吸積帶（充能式）
-    'mb_u1': { archetype: 'DOMAIN', primaryColor: '#000', secondaryColor: '#8b5cf6', scale: 2.0, vfxOverride: 'FX_ULT_BLUE_BLACKHOLE', charged: true },
+    'mb_u1': { archetype: 'DOMAIN', primaryColor: '#000', secondaryColor: '#8b5cf6', scale: 2.0, vfxOverride: 'FX_ULT_BLUE_BLACKHOLE', hitFx: 'FX_ULT_BLUE_BLACKHOLE_PULSE', charged: true },
     // mb_u2: 絕對零度 -> 擴散的凍結領域
     'mb_u2': { charged: true, archetype: 'DOMAIN', primaryColor: '#bfdbfe', secondaryColor: '#3b82f6', scale: 1.8, vfxOverride: 'FX_ULT_BLUE_ABSOLUTE_ZERO' },
     // mb_u3: 時間停止 -> 巨大的黃金時鐘 (魔法陣)
     'mb_u3': { charged: true, archetype: 'DOMAIN', primaryColor: '#fef08a', secondaryColor: '#fcd34d', scale: 2.5, vfxOverride: 'FX_ULT_BLUE_TIMESTOP' },
     // mb_u4: 奧術洪流 -> 導彈群
-    'mb_u4': { charged: true, archetype: 'STORM', primaryColor: '#a855f7', secondaryColor: '#d8b4fe', scale: 1.0, count: 8, vfxOverride: 'FX_ULT_BLUE_TORRENT', windupFx: 'FX_ULT_BLUE_TORRENT_WINDUP' },
+    'mb_u4': { charged: true, archetype: 'STORM', primaryColor: '#a855f7', secondaryColor: '#d8b4fe', scale: 1.0, vfxOverride: 'FX_ULT_BLUE_TORRENT', windupFx: 'FX_ULT_BLUE_TORRENT_WINDUP' },
     // mb_u5: 聚輝光柱 -> 粗大的六邊形雷射
     'mb_u5': { charged: true, archetype: 'BEAM_SNIPE', primaryColor: '#60a5fa', secondaryColor: '#3b82f6', scale: 3.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_BLUE_FOCUS_BEAM' },
 
@@ -115,11 +118,11 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // sb_u2: 復活之光 -> 天降重生光柱
     'sb_u2': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#86efac', secondaryColor: '#fff', scale: 1.4, height: 1000, vfxOverride: 'FX_ULT_BLUE_RESURRECTION' },
     // sb_u3: 英勇讚美 -> 上升的音波紋
-    'sb_u3': { charged: true, archetype: 'STORM', primaryColor: '#3b82f6', secondaryColor: '#fff', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_BLUE_HYMN', windupFx: 'FX_ULT_BLUE_HYMN_WINDUP' },
+    'sb_u3': { charged: true, archetype: 'STORM', primaryColor: '#3b82f6', secondaryColor: '#fff', scale: 1.0, vfxOverride: 'FX_ULT_BLUE_HYMN', windupFx: 'FX_ULT_BLUE_HYMN_WINDUP' },
     // sb_u4: 神之怒火 -> 天譴
     'sb_u4': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#fcd34d', secondaryColor: '#f59e0b', scale: 1.5, vfxOverride: 'FX_ULT_BLUE_WRATH' },
     // sb_u5: 寧靜之雨 -> 六邊形光雨
-    'sb_u5': { charged: true, archetype: 'STORM', primaryColor: '#86efac', secondaryColor: '#dcfce7', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_BLUE_RAIN', windupFx: 'FX_ULT_BLUE_RAIN_WINDUP' },
+    'sb_u5': { charged: true, archetype: 'STORM', primaryColor: '#86efac', secondaryColor: '#dcfce7', scale: 1.0, vfxOverride: 'FX_ULT_BLUE_RAIN', windupFx: 'FX_ULT_BLUE_RAIN_WINDUP' },
 
     // ================= COVENANT (RED - Chaos/Blood/Fire) =================
 
@@ -139,11 +142,11 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // wr_u1: 諸神黃昏 -> 地面爆發
     'wr_u1': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#ea580c', secondaryColor: '#7f1d1d', scale: 2.8, vfxOverride: 'FX_ULT_RED_RAGNAROK_ERUPTION' },
     // wr_u2: 血腥旋風 -> 旋轉的血刃
-    'wr_u2': { charged: true, archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#991b1b', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_BLOODSTORM', windupFx: 'FX_ULT_RED_BLOODSTORM_WINDUP' },
+    'wr_u2': { charged: true, archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#991b1b', scale: 1.0, vfxOverride: 'FX_ULT_RED_BLOODSTORM', windupFx: 'FX_ULT_RED_BLOODSTORM_WINDUP' },
     // wr_u3: 惡魔降臨 -> 變身爆發
     'wr_u3': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#000', secondaryColor: '#7f1d1d', scale: 1.6, vfxOverride: 'FX_ULT_RED_DEMON_FORM' },
     // wr_u4: 無限劍制 -> 劍塚 (大量 PILLAR)
-    'wr_u4': { charged: true, archetype: 'STORM', primaryColor: '#ef4444', secondaryColor: '#fca5a5', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_UNLIMITED_BLADE', windupFx: 'FX_ULT_RED_UNLIMITED_BLADE_WINDUP' },
+    'wr_u4': { charged: true, archetype: 'STORM', primaryColor: '#ef4444', secondaryColor: '#fca5a5', scale: 1.0, vfxOverride: 'FX_ULT_RED_UNLIMITED_BLADE', windupFx: 'FX_ULT_RED_UNLIMITED_BLADE_WINDUP' },
     // wr_u5: 毀滅重擊 -> 擊碎地面的六邊形裂痕
     'wr_u5': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#450a0a', secondaryColor: '#000', scale: 2.0, vfxOverride: 'FX_ULT_RED_DEVASTATE' },
 
@@ -153,7 +156,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // rr_u2: 焦土衝擊 -> 核彈 (完美的 Heaven Fall)
     'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_NUKE_FLASH', charged: true, ownFallObject: true },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
-    'rr_u3': { charged: true, archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_INFERNO_WINDUP', cadence: 'ACCEL' },
+    'rr_u3': { charged: true, archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_INFERNO_WINDUP' },
     // rr_u4: 血腥獵殺 -> 鎖定標記 (Beam Snap)
     'rr_u4': {
         charged: true,
@@ -164,7 +167,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
         beamStyle: 'GENERIC_BEAM', vfxOverride: 'FX_ULT_RED_HEADHUNTER' 
     },
     // rr_u5: 末日審判 -> 末日降臨 (STORM)
-    'rr_u5': { charged: true, archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#581c87', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_DOOM', windupFx: 'FX_ULT_RED_DOOM_WINDUP' },
+    'rr_u5': { charged: true, archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#581c87', scale: 1.0, vfxOverride: 'FX_ULT_RED_DOOM', windupFx: 'FX_ULT_RED_DOOM_WINDUP' },
 
     // --- MAGE (Fel/Void) ---
     // mr_u1: 毀滅隕石 -> 召喚巨大隕石 (Heaven Fall)
@@ -176,7 +179,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // mr_u4: 末世毒雨 -> 腐蝕酸雨
     'mr_u4': { charged: true, archetype: 'DOMAIN', primaryColor: '#a3e635', secondaryColor: '#15803d', scale: 1.8, vfxOverride: 'FX_ULT_RED_POISON_RAIN' },
     // mr_u5: 靈魂爆燃 -> 連鎖爆炸
-    'mr_u5': { charged: true, archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#fca5a5', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_SOUL_BURN', windupFx: 'FX_ULT_RED_SOUL_BURN_WINDUP', cadence: 'EVEN' },
+    'mr_u5': { charged: true, archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#fca5a5', scale: 1.0, vfxOverride: 'FX_ULT_RED_SOUL_BURN', windupFx: 'FX_ULT_RED_SOUL_BURN_WINDUP' },
 
     // --- SUPPORT (Blood/Curse) ---
     // sr_u1: 靈魂連結 -> 靈魂鎖鏈陣
@@ -203,6 +206,11 @@ function ultFallTime(def: UltVisualDef): number {
  */
 /** 充能式奧義的命中時刻（從資產開始＝詠唱開始起算）：CHARGED_HIT_AT＋ultImpactDelay（天降類的落下時間，其他 0）。配方用它排落地／生效。 */
 export function chargedImpactAt(skillId: string): number { return ULT_SEQUENCE.CHARGED_HIT_AT + ultImpactDelay(skillId); }
+/** 多段奧義第 0 段到最後一段的秒數（讀 skill.hits）；單發＝0。配方用它排「涵蓋全部段數」的持續段。 */
+export function ultHitSpan(skillId: string): number {
+    const hits = DEFAULT_SKILL_DB.find((s) => s.id === skillId)?.hits;
+    return hits ? hitOffset(hits, hits.count - 1) : 0;
+}
 export function ultImpactDelay(skillId: string | undefined): number {
     const def = skillId ? ULT_VISUALS[skillId] : undefined;
     return def?.archetype === 'HEAVEN_FALL' ? (def.timing || 0) + ultFallTime(def) : 0;

@@ -123,7 +123,7 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 8, power: 400, color: '#ea580c', 
         visual: 'ARROW', projectileSpeed: 0, 
-        hits: { count: 8, interval: 0.08 },
+        hits: { count: 8, interval: 0.08, cadence: 'ACCEL' },
         ccType: 'DOT', ccForce: 70, ccDur: 5.0, element: 'FIRE',
         visualHitEffect: 'FX_ULT_RED_INFERNO'
     },
