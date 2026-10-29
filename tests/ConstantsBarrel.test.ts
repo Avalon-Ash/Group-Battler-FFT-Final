@@ -61,6 +61,7 @@ export const EXPECTED_EXPORTS = [
     'HUD_COLORS',
     'HUD_GAUGE',
     'HUD_LAYOUT',
+    'HUD_STATUS_STRIP',
     'HUD_TEXT_MOTION',
     'IMPERIAL_TOKEN_BAKE',
     'ISO_SCALE_Y',

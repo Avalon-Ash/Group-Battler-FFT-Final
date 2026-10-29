@@ -12,7 +12,8 @@ import { ISO_SCALE_Y } from '../../../constants';
 import type { HexLayout } from '../../../types';
 
 export type SigilEmblem = 'sun' | 'lionShield' | 'hornSkull' | 'invTriangle';
-export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone';
+/** chevron＝向下的雙 V 形箭頭（緩速，貼身下壓）；其餘為碎片 */
+export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone' | 'chevron';
 /** 光束磚的邊緣樣式：乾淨光管、兩側虛線（死光）、鋸齒（閃電）、珠鏈（血鏈） */
 export type BeamEdge = 'clean' | 'dashed' | 'zigzag' | 'beads';
 /** 詠唱法陣：outer＝光暈圓盤＋雙環＋符文帶，inner＝星形＋內環；兩層分開烘焙以便反向旋轉 */

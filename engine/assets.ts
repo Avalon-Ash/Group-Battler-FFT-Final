@@ -12,9 +12,4 @@ export const AssetManager = {
         if (!cache.has(key)) cache.set(key, UIFactory.generateSkillIcon(visual, color));
         return cache.get(key)!;
     },
-    getStatusIcon(type: string): HTMLCanvasElement {
-        const key = `STATUS_${type}`;
-        if (!cache.has(key)) cache.set(key, UIFactory.generateStatusIcon(type));
-        return cache.get(key)!;
-    },
 };

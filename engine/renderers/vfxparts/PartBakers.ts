@@ -414,6 +414,22 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
         ctx.globalAlpha = 1;
         return;
     }
+    if (shape === 'chevron') {
+        // 下壓雙箭頭：兩枚向下的 V（上方一枚較淡），主色填、暗色描邊
+        const K = VFX_PARTS.SHARD.CHEVRON;
+        ctx.fillStyle = ramp.main;
+        for (let i = 0; i < K.COUNT; i++) {
+            const y0 = s * (K.TOP + i * K.STEP);
+            ctx.globalAlpha = i === 0 ? K.UPPER_ALPHA : 1;
+            ctx.beginPath();
+            ctx.moveTo(-s, y0); ctx.lineTo(0, y0 + s * K.DEPTH); ctx.lineTo(s, y0);
+            ctx.lineTo(s, y0 + s * K.THICK); ctx.lineTo(0, y0 + s * (K.DEPTH + K.THICK)); ctx.lineTo(-s, y0 + s * K.THICK);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        return;
+    }
     // bone：細長骨片，兩端圓節
     const w = s * C.BONE_ASPECT;
     ctx.fillStyle = ramp.core;
