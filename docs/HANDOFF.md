@@ -16,18 +16,18 @@
 
 **A. 平衡**：BAL-02 已合併（WORKLOG §2 W）。報告 `docs/BAL02_REPORT.md` §5.2 留了兩個要改機制的缺口，暫不排：STORM 類 10 招分段結算（要補總傷害）、`rb_u5` 投射物與 STORM 落點演出統一。之後平衡再跑時一起決定。
 
-**B. 渲染修正佇列**：R1～R6 都已結案。**R7 結果**：大逃殺格界的屍體閃爍已修（WORKLOG §2 AG）；**推擠飄移沒有重現**——隔離探針中被擠開的單位 0.5 秒內回到新格中心，屬正常過渡，沒改推擠程式。要再查需要使用者提供實機情境（哪種地圖、幾個單位擠在一起、是否在背水一戰或縮圈時、飄多久），報告 `docs/R7_DRIFT_CORPSE_REPORT.md` 與探針 `tools/ui-e2e/drift-corpse-probe.mjs` 可沿用。
+**B. 渲染修正佇列**：R1～R7 都已結案。推擠飄移：使用者 10-29 實機沒再看到，結案；再出現就重開，報告 `docs/R7_DRIFT_CORPSE_REPORT.md` 與探針 `tools/ui-e2e/drift-corpse-probe.mjs` 可沿用。
 
-**C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
+**C. skin 後續**：manifest 508 KB→142 KB（緊湊 JSON、內容逐項相同，分支 `chore/compact-unit-manifest`，待合併）；20 張圖集約 15.8 MB，使用者要求不再加有損壓縮，維持。
 
 **D. OPT-01 優化：2026-10-29 全部完成並結案**（WORKLOG §2 AH～AO、DECISIONS §5）。後續待決定：
-- **合約與程式碼不一致**（O7 時 Codex 列 5 條，主代理 10-29 查證）：①`AGENTS.md` 說 `Agent` 是純資料、禁止加方法，但 `engine/core/Agent.ts:123`／`:135` 有 `saveState()`、`reset()`（`game.ts` 與 `UICommandSystem` 呼叫）——**待使用者決定**；②單一寫入者 vs `AgentOwnership` 的 `domain`：CLAUDE.md 已改寫成「單一擁有者或 domain 模組組」；③縮圈例外：AGENTS 沒有這段，Codex 誤報；④事件佇列、⑤VFX 零件參數位置：AGENTS 已補。
-- `PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試（`tests/UICommandSystem.test.ts`），要決定砍掉或加暫停鈕。
+- **合約與程式碼不一致**（O7 時 Codex 列 5 條，主代理 10-29 查證）：①`Agent` 的 `saveState()`／`reset()` 使用者 10-29 決定**移出到 engine/core 的新模組 AgentLifecycle**（Sonnet 子代理執行中）；②單一寫入者 vs `AgentOwnership` 的 `domain`：CLAUDE.md 已改寫成「單一擁有者或 domain 模組組」；③縮圈例外：AGENTS 沒有這段，Codex 誤報；④事件佇列、⑤VFX 零件參數位置：AGENTS 已補。
+- `PAUSE_GAME`／`RESUME_GAME`：遊戲的暫停鈕走 `START_GAME`／`STOP_GAME`（`engine.play()`／`stop()`），這兩個是只改 `isRunning` 的重複舊指令，10-29 決定刪除（同一個子代理執行中）。
 - 剩下的 115 個未命名數字、49 個顏色字面值分散在 45 檔，由預算測試鎖住，碰到該檔時順手清。
 
-**多段傷害技能（OPT-01 已完成，可以排）**：使用者 10-28 提到黑洞這類持續多段傷害技能想修，看起來管線有問題。和 BAL02 §5.2 的 STORM 分段結算、`DUAL_STRIKE` 原本想做的兩段攻擊一起設計，現在專案沒有多段命中機制。
+**多段傷害技能（設計中）**：使用者 10-29 決定**每一段都走完整的單發傷害流程**（各自判爆擊、護盾、吸血、反傷、命中效果、特效、傷害數字），總傷害預設等於現在的單發值（平衡中性），之後再調。涵蓋黑洞類持續傷害、BAL02 §5.2 的 STORM 類 10 招、`DUAL_STRIKE` 原本想做的兩段攻擊。奧義視覺細修只剩黑洞改多段時一起改，其餘不做。
 
-**偶發測試**：`tests/TerrainBlockCacheBudget.test.ts`「on overflow evicts only sprites of other zoom scales」2026-10-28 在完整測試中失敗一次（expected 2025 to be 2048），單獨跑 3 次、完整再跑 2 次都通過，疑似依執行順序或共用狀態；再出現就查。`AgentRunner` 時序測試在高負載下也會偶發。
+**偶發測試**：`TerrainBlockCacheBudget` 根因已找到（第一個測試沒固定時鐘，卡頓 ≥4 ms 時超過烘焙預算、改借相鄰縮放的圖），修正在子代理那批。`AgentRunner` 時序測試在高負載下也會偶發。
 
 
 ## 3. 待使用者實機確認
@@ -46,7 +46,7 @@
 13. **架構白皮書下載**（OPT-01 O7，2026-10-29）：系統選單「下載架構白皮書」會下載兩個 Markdown（白皮書＋座標規格）；看內容是否符合你要的用途、還缺哪些章節。
 
 ## 4. 以後再說（暫緩項目）
-- **地形烘焙（`docs/BAKED_RENDERING_DESIGN.md`）**：已做的是地塊、零件、液面、障礙物、光暈文字的快取。剩下兩階段都暫緩：
+- **地形烘焙（`docs/BAKED_RENDERING_DESIGN.md`）**：P2-A 原型的 GPT 提示詞已寫好：`docs/BAKE_P2_AGENT_PROMPT.md`（使用者交給 GPT 跑；渲染線，同時間只開這一條）。已做的是地塊、零件、液面、障礙物、光暈文字的快取。剩下兩階段都暫緩：
   - Phase 2「地塊烘焙」（使用者 2026-10-28：先放）。觸發條件兩項都已成立（手機 1% low 13 FPS；地塊／網格 23～25% 是最大的 JS 類別，瓶頸是繪製呼叫數）。主代理擬好的做法：
     - **可烘格**：後方畫面重疊範圍內沒有更低的格子就可烘（地圖是 0～6 層起伏，「只烘高度 0」覆蓋太少）；高台前緣等留在動態排序。同高度平地上單位腳不再被前格切到一點，`battle_frozen` 會變。
     - **不烘**：VOID／MAGMA 整張（浮動、液面）、塌落中的格子、轉場期間；地表細節動畫、狀態底色、縮圈染色、貼地特效在烘焙圖後另開地面疊層 pass。
@@ -55,4 +55,3 @@
     - **預期**：地塊相關約省 10～15%，只對 5 種地形中的 3 種有效；不足以單獨解決手機頓挫。
   - Phase 3「圖集整合／粒子合批」：收益不確定，等 Phase 2 有結論再評估。
 - **正式版素材**：交給 GPT 慢慢換；外觀軸 `Team×Role×BodyType` 支援直接擴充。成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。
-- **奧義視覺細修**：使用者 2026-10-26「先這樣，主要是把流程和視覺管線建出來」。之後要優化再從 `docs/ULT_VISUAL_CLAUDE_REPORT.md` §6 與矩陣開始。
