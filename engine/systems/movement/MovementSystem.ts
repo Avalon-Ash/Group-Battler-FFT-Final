@@ -8,6 +8,7 @@ import { Agent } from "../../core/Agent";
 import { HexUtils } from "../../utils";
 import { Hex, NodeState, SpatialProvider, Skill, LogProvider } from "../../../types";
 import { Pathfinder } from "../../ai/Pathfinder";
+import { isGroundMeleeRange, isMeleeAttackCell } from "../../ai/MeleeAttack";
 import { TargetingSystem } from "../../ai/TargetingSystem";
 import { MotionEngine } from "./MotionEngine";
 import { stopMovement } from "./MotionCommands";
@@ -45,6 +46,23 @@ export class MovementSystem {
         MotionEngine.updateMovement(a, dt, spatial, hazardSpeedMult);
     }
 
+    /** 格子上有「別人」的活單位（自己不算）。 */
+    private isOccupiedByOther(a: Agent, hex: Hex, spatial: SpatialProvider): boolean {
+        const occ = spatial.getAgentHash(HexUtils.hash(hex.q, hex.r));
+        return !!occ && occ !== a && occ.hp > 0;
+    }
+
+    /**
+     * 目前路徑的終點是否仍是可用的攻擊格（近戰沿用快取路徑的判準）：
+     * 對目標現在的位置仍是同層合法攻擊格、沒被別人佔住，且路徑的下一格也沒被佔住。
+     * 目標沒動、或只動了一格但這格仍合法時不重算；失效才重新挑格。
+     */
+    private isAttackCellStillValid(a: Agent, goal: Hex, targetHex: Hex, range: number, spatial: SpatialProvider): boolean {
+        if (!isMeleeAttackCell(this.targeting, goal, targetHex.q, targetHex.r, range, spatial)) return false;
+        if (this.isOccupiedByOther(a, goal, spatial)) return false;
+        return !this.isOccupiedByOther(a, a.path[0], spatial);
+    }
+
     public moveAgentToHex(a: Agent, targetHex: Hex, r: number, spatial: SpatialProvider, speedMult: number = 1.0, isEscaping: boolean = false): NodeState {
         const effRange = this.targeting.getEffectiveRange(a, targetHex.q, targetHex.r, r, spatial);
         const distToTarget = HexUtils.dist(a, targetHex);
@@ -59,7 +77,11 @@ export class MovementSystem {
         if (a.isMoving && a.path.length > 0) {
             const currentGoal = a.path[a.path.length - 1];
             // 如果目標點沒變，繼續執行當前移動
-            if (currentGoal.q === targetHex.q && currentGoal.r === targetHex.r) {
+            // 地面近戰的路徑終點是「攻擊格」而非目標本人：改看該格是否仍是合法攻擊格
+            const goalUnchanged = isGroundMeleeRange(a, r)
+                ? this.isAttackCellStillValid(a, currentGoal, targetHex, r, spatial)
+                : (currentGoal.q === targetHex.q && currentGoal.r === targetHex.r);
+            if (goalUnchanged) {
                 // [FIX] 深度檢測：檢查快取的路徑是否因為網格消失或變成警告區域而斷裂
                 let pathValid = true;
                 for (const hex of a.path) {
