@@ -9,7 +9,7 @@ import type { AgentFieldOwnership } from '../engine/core/AgentOwnership';
 
 const ROOT = path.resolve(__dirname, '..');
 const SCAN_DIRS = ['engine', 'components', 'hooks', 'data'];
-const EXCLUDED = new Set(['engine/core/Agent.ts', 'engine/core/AgentOwnership.ts']);
+const EXCLUDED = new Set(['engine/core/Agent.ts', 'engine/core/AgentLifecycle.ts', 'engine/core/AgentOwnership.ts']);
 
 function listSources(dir: string): string[] {
     const abs = path.join(ROOT, dir);

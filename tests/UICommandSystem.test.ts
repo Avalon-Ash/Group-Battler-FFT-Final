@@ -155,7 +155,7 @@ describe('UICommandSystem', () => {
         });
     });
 
-    describe('RESET_GAME, PAUSE_GAME, RESUME_GAME, SET_TIME_SCALE', () => {
+    describe('RESET_GAME, SET_TIME_SCALE', () => {
         it('emits GAME_RESET event on RESET_GAME', () => {
             let resetTriggered = false;
             engine.bus.on('GAME_RESET', () => {
@@ -164,14 +164,6 @@ describe('UICommandSystem', () => {
 
             engine.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
             expect(resetTriggered).toBe(true);
-        });
-
-        it('controls engine running state', () => {
-            engine.bus.emit('UI_COMMAND', { type: 'PAUSE_GAME' });
-            expect(engine.isRunning).toBe(false);
-
-            engine.bus.emit('UI_COMMAND', { type: 'RESUME_GAME' });
-            expect(engine.isRunning).toBe(true);
         });
 
         it('clamps and updates timeScale', () => {

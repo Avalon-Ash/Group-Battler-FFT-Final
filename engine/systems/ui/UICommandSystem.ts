@@ -4,6 +4,7 @@ import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
 import { SCENE_DB } from '../../../data/scenes';
 import { AgentManager } from '../agentManager';
+import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 
 type NumericRange = { readonly min: number; readonly max: number };
@@ -141,16 +142,6 @@ export class UICommandSystem {
                 break;
             }
 
-            case 'PAUSE_GAME': {
-                this.engine.isRunning = false;
-                break;
-            }
-
-            case 'RESUME_GAME': {
-                this.engine.isRunning = true;
-                break;
-            }
-
             case 'SET_TIME_SCALE': {
                 // TimeSystem eases `timeScale` toward `targetTimeScale`; writing the target is the
                 // same contract the existing playback controls use.
@@ -197,7 +188,7 @@ export class UICommandSystem {
                     if (cmd.bodyType) {
                         agent.bodyType = cmd.bodyType;
                     }
-                    agent.saveState();
+                    saveAgentState(agent);
                 }
                 break;
             }

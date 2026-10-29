@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Agent } from '../engine/core/Agent';
+import { resetAgent, saveAgentState } from '../engine/core/AgentLifecycle';
 import { Team, Role } from '../types';
 import { MapConfig } from '../engine/utils';
 import {
@@ -206,16 +207,16 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
     });
 
     describe('5. Agent Entity Pure Data & State Preservation', () => {
-        it('Agent preserves bodyType in saveState and reset', () => {
+        it('Agent preserves bodyType in saveAgentState and resetAgent', () => {
             const agent = new Agent('agent_001', Team.BLUE, 0, 0, dummyConfig);
             expect(agent.bodyType).toBeUndefined();
 
             agent.bodyType = 'MALE';
-            agent.saveState();
+            saveAgentState(agent);
             expect(agent.initialState.bodyType).toBe('MALE');
 
             agent.bodyType = 'FEMALE';
-            agent.reset(dummyConfig);
+            resetAgent(agent, dummyConfig);
             expect(agent.bodyType).toBe('MALE');
         });
     });

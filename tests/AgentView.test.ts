@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Agent } from '../engine/core/Agent';
+import { resetAgent } from '../engine/core/AgentLifecycle';
 import { Team, Role } from '../types';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 
@@ -53,7 +54,7 @@ function stripComments(src: string): string {
 }
 
 describe('AgentView contract (PL4)', () => {
-    it('agent.reset() resets all view fields to defaults', () => {
+    it('resetAgent() resets all view fields to defaults', () => {
         const mapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
         const agent = new Agent('test', Team.BLUE, 0, 0, mapConfig);
         // Mutate view fields
@@ -61,7 +62,7 @@ describe('AgentView contract (PL4)', () => {
         agent.view.hitFlashTimer = 0.15;
         agent.view.visualOffset = { x: 3.5, y: -2.1 };
 
-        agent.reset(mapConfig);
+        resetAgent(agent, mapConfig);
 
         expect(agent.view.visualStatus).toBe('NONE');
         expect(agent.view.hitFlashTimer).toBe(0);
