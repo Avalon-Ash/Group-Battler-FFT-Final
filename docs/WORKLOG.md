@@ -348,6 +348,14 @@
 - **OPT-01 總結**（2026-10-28～29，O0～O7）：未命名數字 1,231→115、顏色字面值 135→49（`MagicNumberBudget`、`color-literal-budget` 只減不增）；8 份雜湊統一到 `engine/math/hash.ts`（`NoLocalHash`）；刪 49 支無入口腳本（`ToolsReferenced`）；knip 歸零並列入驗收；部署前跑 lint＋test（lockfile 進版控）；縮圈兩個行為 bug（Z1 每幀強制 AI、Z2 背水一戰在 minRadius≠1 時壞掉）與最終階段切斷地圖；詠唱預警紅藍對稱；白皮書重寫。所有「只搬不改值」的輪次都以 batch-sim 逐欄位相同、黃金值測試或同環境 A/B 逐像素相同證明。
 - 合約效果：「同環境 A/B」取代「和上次數字比容差」後，O5b～O5d 三輪一次過；`git -c safe.directory` 寫進提示詞後沒有再卡沙盒。`worker` 子代理的 3 檔上限正確擋下 12 檔任務。
 
+### AP. 2026-10-29 收尾、實機問答與修正（Codex 週額度剩 4%，改用 Sonnet 子代理）
+- 合約：派工表加「Codex 不足 → general-purpose Sonnet 子代理＋獨立 clone」；HANDOFF §1 不再記 commit 快照，`review-round` 收尾要逐行重讀 §1（§1 停在 10-26 三天的根因）；AGENTS 補 `pushEvent` 佇列與 VFX 零件參數位置；CLAUDE.md 單一寫入者改成「單一擁有者或 domain 模組組」。
+- `Agent` 回到純資料：`saveState`／`reset` 移到 `engine/core/AgentLifecycle.ts`；刪重複的 `PAUSE_GAME`／`RESUME_GAME`（遊戲暫停走 `START_GAME`／`STOP_GAME`）；`TerrainBlockCacheBudget` 偶發失敗根因是沒固定時鐘（卡頓 ≥4 ms 超過烘焙預算），已固定。
+- 單位 manifest 508 KB→142 KB（緊湊 JSON，內容逐項相同）。
+- 近戰攻擊格（見 HANDOFF §2 B）、轉場不閃＋圖集預載＋不借上一張地圖地塊、詠唱頭光 0.85→0.28、衝刺殘影加強；`battle_frozen` 因近戰走位改變重錄一次（取證 `tools/ui-e2e/out/battle_frozen_old_new_diff.png`，地形 5 張未動）。
+- **事故**：移除子代理工作樹時 `git worktree remove --force` 順著 `node_modules` junction 刪掉主資料夾部分套件；用版控 lockfile `npm ci` 還原。hook 已擋 `worktree remove --force`；之後子代理一律用獨立 clone＋robocopy 的真 `node_modules`。
+- 實機確認結案：skin 外觀、地面預警、縮放、平衡大致 OK（地形約影響 30% 勝負）、屍體閃爍、縮圈、白皮書、低品質結束畫面。推擠飄移結案。正式版素材 P1 已到位（`ASSET_NEEDS.md` 頂部狀態）。地形烘焙 P2-A 的 GPT 提示詞 `docs/BAKE_P2_AGENT_PROMPT.md`。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
