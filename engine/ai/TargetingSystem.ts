@@ -6,6 +6,7 @@ import { BLOCK_HEIGHT, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { canStepUp } from "../math/ClimbRule";
+import { isGroundMeleeRange } from "./MeleeAttack";
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
 
@@ -247,9 +248,15 @@ export class TargetingSystem {
                 if (score > maxScore) {
                     // 鄰格存在不代表爬得到：只對暫列第一的候選跑 A*（沿用 canStepUp，忽略暫時單位阻擋）。
                     if (meleeBasic && !noAttackTile &&
-                        HexUtils.dist(a, o) > this.getEffectiveRange(a, o.q, o.r, basic!.range, spatial) &&
-                        this.attackPathfinder.findPath(a, o.q, o.r, basic!.range, true, spatial, this).length === 0) {
-                        score -= COMBAT_PARAM.MELEE_UNREACHABLE_PENALTY;
+                        HexUtils.dist(a, o) > this.getEffectiveRange(a, o.q, o.r, basic!.range, spatial)) {
+                        const path = this.attackPathfinder.findPath(a, o.q, o.r, basic!.range, true, spatial, this);
+                        if (path.length === 0) {
+                            score -= COMBAT_PARAM.MELEE_UNREACHABLE_PENALTY;
+                        } else if (isGroundMeleeRange(a, basic!.range)) {
+                            // 走得到但要繞路／爬坡：依路徑成本比直線多出的部分扣分（有上限，飛行單位不扣）
+                            const detour = Math.max(0, this.attackPathfinder.lastCost - Math.max(0, HexUtils.dist(a, o) - 1));
+                            score -= Math.min(TARGET_RULES.MELEE_DETOUR_PENALTY_CAP, detour * TARGET_RULES.MELEE_DETOUR_PENALTY_PER_COST);
+                        }
                         if (score <= maxScore) continue;
                     }
                     maxScore = score;

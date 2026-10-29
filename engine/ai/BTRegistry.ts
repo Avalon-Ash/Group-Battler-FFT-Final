@@ -5,6 +5,7 @@ import { HexUtils } from "../utils";
 import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isHostileSkill } from "./TargetingSystem";
+import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 
@@ -609,11 +610,24 @@ export const BTActions: Record<string, BTActionFn> = {
         const curDist = HexUtils.dist(a, a.target);
         let best: Hex | null = null;
         let bestDist = curDist;
+        // 地面近戰高低差感知：站得到同層攻擊格就優先去那裡（鄰著目標但差一層時，單看格距永遠找不到「更近」的格）
+        const basicRange = a.skills.find(s => s?.tag === 'BASIC')?.range ?? 0;
+        const meleeAware = isGroundMeleeRange(a, basicRange) &&
+            !isMeleeAttackCell(engine.movement.targeting, a, a.target.q, a.target.r, basicRange, engine);
+        let bestIsAttack = false;
+        let bestStep = Infinity;
         for (const h of HexUtils.range(a, REPOSITION_RADIUS)) {
             if (h.q === a.q && h.r === a.r) continue;
             if (!engine.map.isValid(h.q, h.r) || engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
             if (engine.isWarningTile(HexUtils.key(h))) continue;
             if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => hz.team !== a.team)) continue;
+            if (meleeAware && isMeleeAttackCell(engine.movement.targeting, h, a.target.q, a.target.r, basicRange, engine)) {
+                // 攻擊格之間挑離自己最近的；有任何攻擊格就勝過「只是格距更近」的格
+                const step = HexUtils.dist(a, h);
+                if (!bestIsAttack || step < bestStep) { bestIsAttack = true; bestStep = step; best = h; }
+                continue;
+            }
+            if (bestIsAttack) continue;
             const d = HexUtils.dist(h, a.target);
             if (d < bestDist) { bestDist = d; best = h; }
         }

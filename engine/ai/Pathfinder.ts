@@ -6,6 +6,7 @@ import { BLOCK_HEIGHT, PATH_RULES } from "../../constants";
 import { canStepUp } from "../math/ClimbRule";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { TargetingSystem } from "./TargetingSystem";
+import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
 
 interface PQNode {
     hash: number;
@@ -16,8 +17,32 @@ export class Pathfinder {
     private _gScore = new Map<number, number>();
     private _cameFrom = new Map<number, number>();
     private _pq: PQNode[] = [];
+    /** 最近一次 findPath 的路徑總成本；找不到路徑為 -1（只讀，供選敵評分用）。 */
+    public lastCost = -1;
+
+    /**
+     * 近戰的具體攻擊格：目標鄰格（與目標腳下，若沒人佔）中，對目標在有效射程內、沒有障礙擋住、
+     * （不忽略單位時）沒被別人佔住的格子。尋路以這組格子為終點，路徑成本最低者勝。
+     */
+    private collectAttackCells(startAgent: Agent, goalHex: Hex, range: number, ignoreUnits: boolean, includeGoal: boolean, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
+        const cells: Hex[] = [];
+        const consider = (cell: Hex) => {
+            const h = HexUtils.hash(cell.q, cell.r);
+            if (!spatial.isValidHash(h)) return;
+            if (spatial.hasObstacleHash(h) && OBSTACLE_DB[spatial.getObstacleTypeHash(h) || 'WALL']?.blocksMovement) return;
+            if (!ignoreUnits) {
+                const occ = spatial.getAgentHash(h);
+                if (occ && occ.hp > 0 && occ !== startAgent) return;
+            }
+            if (isMeleeAttackCell(targeting, cell, goalHex.q, goalHex.r, range, spatial)) cells.push(cell);
+        };
+        if (includeGoal) consider(goalHex);
+        for (const n of HexUtils.neighbors(goalHex)) consider(n);
+        return cells;
+    }
 
     public findPath(startAgent: Agent, endQ: number, endR: number, range: number, ignoreUnits: boolean, spatial: SpatialProvider, targeting: TargetingSystem, isEscaping: boolean = false): Hex[] {
+        this.lastCost = -1;
         const startH = HexUtils.hash(startAgent.q, startAgent.r);
         const goalHex = { q: endQ, r: endR };
         const goalH = HexUtils.hash(endQ, endR);
@@ -27,6 +52,13 @@ export class Pathfinder {
         // 射程檢查：若已在動態射程內，則無需移動
         const effRange = targeting.getEffectiveRange(startAgent, endQ, endR, range, spatial);
         if (HexUtils.dist(startAgent, goalHex) <= effRange) return [];
+
+        // 地面近戰：終點是「具體的同層攻擊格」，啟發式也朝最近的攻擊格算（不是朝目標本人）
+        const attackCells = isGroundMeleeRange(startAgent, range)
+            ? this.collectAttackCells(startAgent, goalHex, range, ignoreUnits, !occupiedAttackGoal, spatial, targeting)
+            : null;
+        if (attackCells && attackCells.length === 0) return [];
+        const attackHashes = attackCells ? attackCells.map(c => HexUtils.hash(c.q, c.r)) : null;
 
         this._gScore.clear();
         this._cameFrom.clear();
@@ -45,8 +77,12 @@ export class Pathfinder {
             const currentHex = HexUtils.unhash(current.hash);
 
             // 成功判定：進入有效射程
-            if (HexUtils.dist(currentHex, goalHex) <= targeting.getEffectiveRange(currentHex, endQ, endR, range, spatial)) {
+            const reached = attackHashes
+                ? attackHashes.includes(current.hash)
+                : HexUtils.dist(currentHex, goalHex) <= targeting.getEffectiveRange(currentHex, endQ, endR, range, spatial);
+            if (reached) {
                 bestH = current.hash;
+                this.lastCost = this._gScore.get(current.hash) || 0;
                 break;
             }
 
@@ -125,7 +161,13 @@ export class Pathfinder {
                     this._gScore.set(neighborH, tentativeG);
                     
                     // 核心數學：六邊形 Cube 曼哈頓距離啟發函數
-                    const hCost = HexUtils.dist(nHex, goalHex);
+                    let hCost: number;
+                    if (attackCells) {
+                        hCost = Infinity;
+                        for (const c of attackCells) hCost = Math.min(hCost, HexUtils.dist(nHex, c));
+                    } else {
+                        hCost = HexUtils.dist(nHex, goalHex);
+                    }
                     this.pqPush(neighborH, tentativeG + hCost);
                 }
             }

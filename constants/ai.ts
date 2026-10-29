@@ -54,6 +54,10 @@ export const TARGET_RULES = {
     SELF_DAMAGE_HEAL_HP_THRESHOLD: 0.8,
     /** 範圍技能命中大招詠唱者的加分（分）。 */
     AOE_ULT_INTERRUPT_BONUS: 50,
+    /** 近戰選敵：路徑成本比直線多出的每一單位（繞路、爬坡）扣的分（分／成本）。 */
+    MELEE_DETOUR_PENALTY_PER_COST: 40,
+    /** 近戰選敵：繞路扣分的上限（分）。須遠小於「完全走不到」的 MELEE_UNREACHABLE_PENALTY。 */
+    MELEE_DETOUR_PENALTY_CAP: 400,
 } as const;
 
 export const PATH_RULES = {
