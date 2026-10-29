@@ -44,7 +44,7 @@ try {
         unit.file = file;
         console.log(key);
     }
-    writeFileSync(join(out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+    writeFileSync(join(out, 'manifest.json'), JSON.stringify(manifest) + '\n');
 } finally {
     await browser.close();
 }
