@@ -3,6 +3,7 @@ import { EFFECT_KINDS, createEffectSlots, resetEffectSlots, isEffectActive, effe
 import { EFFECT_DEFS } from '../data/status/effect_defs';
 import type { EffectKind } from '../types';
 import { Agent } from '../engine/core/Agent';
+import { resetAgent } from '../engine/core/AgentLifecycle';
 import { Team } from '../engine/types/Enums';
 
 // CCManager 現行的硬編碼分類清單，用於回歸比對
@@ -98,7 +99,7 @@ describe('Effects core and definitions (ECS-lite S1 - SE1)', () => {
         expect(isEffectActive(agent, 'STUN')).toBe(true);
         expect(effectRemaining(agent, 'STUN')).toBe(3.5);
 
-        agent.reset(dummyConfig);
+        resetAgent(agent, dummyConfig);
         expect(agent.effects.STUN.remaining).toBe(0);
         expect(isEffectActive(agent, 'STUN')).toBe(false);
         expect(effectRemaining(agent, 'STUN')).toBe(0);

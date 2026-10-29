@@ -31,19 +31,9 @@ export function useEngineCommands(engine: GameEngine | null | undefined) {
         [send]
     );
 
-    const pauseGame = useCallback(() => {
-        send({ type: 'PAUSE_GAME' });
-    }, [send]);
-
-    const resumeGame = useCallback(() => {
-        send({ type: 'RESUME_GAME' });
-    }, [send]);
-
     return {
         send,
         editAgent,
         rebuildAgentAI,
-        pauseGame,
-        resumeGame,
     };
 }

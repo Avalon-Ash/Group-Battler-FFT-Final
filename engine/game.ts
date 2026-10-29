@@ -21,6 +21,7 @@ import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEven
 import { HexUtils, MapConfig } from "./utils";
 import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
 import { Agent } from "./core/Agent";
+import { resetAgent, saveAgentState } from "./core/AgentLifecycle";
 import { MovementSystem } from "./systems/movement";
 import { PhysicsSystem } from "./systems/PhysicsSystem"; 
 import { CombatSystem } from "./systems/combat";
@@ -216,7 +217,7 @@ export class GameEngine implements SpatialProvider {
     public play() {
         if (!this.isRunning) {
             this.initialRoster = [...this.agents];
-            this.agents.forEach(a => a.saveState());
+            this.agents.forEach(a => saveAgentState(a));
             this.state.time.battleTime = 0;
             this.logger.clear();
             this.victorySystem.reset(this);
@@ -255,7 +256,7 @@ export class GameEngine implements SpatialProvider {
         this.sessionState.killStreaks.clear();
         this.sessionState.firstBloodTriggered = false;
         this.agents.forEach(a => {
-            a.reset(this.mapConfig);
+            resetAgent(a, this.mapConfig);
             AgentManager.applyRoleStats(a, undefined, true);
             AgentManager.prepareForBattle(a, this, false);
             this.map.registerAgent(a);
@@ -267,7 +268,7 @@ export class GameEngine implements SpatialProvider {
     }
 
     public resetAgent(a: Agent) {
-        a.reset(this.mapConfig);
+        resetAgent(a, this.mapConfig);
         AgentManager.applyRoleStats(a, undefined, true);
     }
 

@@ -1,6 +1,6 @@
 
-// [ENTITY] 純資料容器。saveState/reset 為例外保留（生命週期管理）。
-// 禁止在此新增業務邏輯，任何計算請移至對應 System。
+// [ENTITY] 純資料容器，不放任何方法。
+// 生命週期（存檔／重置）在 AgentLifecycle.ts；其他邏輯請移至對應 System。
 
 import { Skill, Hex, BodyTypeId, EffectSlots, SpecialVisualStatus, AgentView } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
@@ -8,8 +8,8 @@ import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
 import { BTNode } from "../behaviorTree";
 import { AGENT_CONSTANTS } from "../../constants";
-import { createEffectSlots, resetEffectSlots } from "./Effects";
-import { createAgentView, resetAgentView } from "./ViewCommands";
+import { createEffectSlots } from "./Effects";
+import { createAgentView } from "./ViewCommands";
 
 export type { SpecialVisualStatus, AgentView };
 
@@ -118,88 +118,5 @@ export class Agent {
         this.aiUpdateTimer = 0;
 
         this.initialState = { q, r, maxHp: 100, skillIds: [], role: Role.WARRIOR, bodyType: this.bodyType };
-    }
-
-    saveState() {
-        this.initialState = {
-            q: this.q,
-            r: this.r,
-            maxHp: this.maxHp,
-            skillIds: [...this.skillIds],
-            role: this.role,
-            bodyType: this.bodyType
-        };
-        this.ragdoll = null;
-    }
-
-    reset(config: MapConfig) {
-        this.q = this.initialState.q;
-        this.r = this.initialState.r;
-        const p = HexUtils.toPx(this.q, this.r, config);
-        this.px = p.x;
-        this.py = p.y;
-
-        this.maxHp = this.initialState.maxHp;
-        this.hp = this.maxHp;
-        this.shield = 0;
-        this.maxShield = 0;
-        this.mp = 0;
-
-        this.skillIds = [...this.initialState.skillIds];
-        this.role = this.initialState.role;
-        this.bodyType = this.initialState.bodyType;
-
-        this.castingSkillIdx = -1;
-        this.castTimer = 0;
-        this.castingAnimationTimer = 0;
-        this.curCDs = [0, 0, 0];
-        this.currentTelegraph = null;
-
-        this.isMoving = false;
-        this.moveSpeedMult = 1.0;
-        this.path = [];
-        this.moveProgress = 0;
-        this.stuckTicks = 0;
-
-        resetEffectSlots(this.effects);
-
-
-
-        this.banished = false;
-        this.outOfBounds = false;
-        resetAgentView(this.view);
-        this.ccVisual = 'NONE';
-
-        this.drStacks = {};
-        this.drTimers = {};
-        this.lastHitSourceId = null;
-        this.lastHitDamage = 0;
-        this.actionState = ActionState.IDLE;
-        this.fearMoveTimer = 0;
-        this.deathTimer = 0;
-        this.deadLogged = false;
-        this.fullyDead = false;
-        this.ragdoll = null;
-        this.animState = AnimState.IDLE;
-        this.spawnTimer = 0.5;
-        this._interruptCooldown = 0;
-        this._castCompleteCooldown = 0;
-
-        this.target = null;
-        this.targetHex = null;
-        // §1.12（STATE_OWNERSHIP_DESIGN）漏清的欄位：宣告預設值與這裡一致
-        this.trajectory = [];
-        this.facing = 1;
-        this._savedCombatTarget = null;
-        this.aiState = AIState.IDLE;
-        this.aiUpdateTimer = 0;
-        this.forceAiUpdate = false;
-        this.escapeCooldown = 0;
-        this.hasLandedLastStand = false;
-        this.dragOverQ = null;
-        this.dragOverR = null;
-        
-        this.physics = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, angle: 0, vAngle: 0 };
-        this.trailHistory = [];
     }
 }

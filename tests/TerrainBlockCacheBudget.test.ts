@@ -30,6 +30,8 @@ describe('TerrainBlockCache eviction and bake budget', () => {
     });
 
     it('on overflow evicts only sprites of other zoom scales instead of flushing everything', () => {
+        // 凍結時鐘：真實時鐘遇到 >= BAKE_BUDGET_MS 的停頓，後續未命中會借用鄰近縮放的精靈而使容量斷言失準
+        vi.spyOn(performance, 'now').mockReturnValue(0);
         const store = createTerrainSpriteStore(mockFactory);
         const half = RENDER_CACHE.MAX_TERRAIN_SPRITES / 2;
         const scaleA = RENDER_CACHE.SCALE_STEPS[0];

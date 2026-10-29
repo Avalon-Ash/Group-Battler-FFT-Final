@@ -247,8 +247,6 @@ export type UICommand =
     /** 技能資料庫編輯（SkillDbTab）：field 限 data/ui/skillEditor.ts SKILL_EDITABLE_FIELDS；value undefined＝清除選填欄位 */
     | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | boolean | Team | undefined }
     | { type: 'RESET_GAME' }
-    | { type: 'PAUSE_GAME' }
-    | { type: 'RESUME_GAME' }
     | { type: 'SET_TIME_SCALE'; timeScale: number }
     | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId }
     | { type: 'REMOVE_AGENT_AT'; q: number; r: number }

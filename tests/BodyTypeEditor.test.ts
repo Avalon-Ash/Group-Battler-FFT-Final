@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { Team, Role, BodyTypeId } from '../types';
 import { AgentManager } from '../engine/systems/agentManager';
+import { resetAgent } from '../engine/core/AgentLifecycle';
 import { pickBodyType, resolveBodyType, BODY_TYPE_PROFILE } from '../data/units/appearance/bodyTypes';
 
 describe('Task A2e: BodyType Generation & Editor Integration', () => {
@@ -113,7 +114,7 @@ describe('Task A2e: BodyType Generation & Editor Integration', () => {
 
             // Verify persistence in reset
             agent!.bodyType = 'MALE';
-            agent!.reset(engine.mapConfig);
+            resetAgent(agent!, engine.mapConfig);
             expect(agent!.bodyType).toBe('FEMALE');
         });
 
