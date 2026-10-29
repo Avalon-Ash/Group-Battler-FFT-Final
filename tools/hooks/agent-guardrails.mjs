@@ -209,6 +209,10 @@ function main() {
         if (npmMutating && inWorktree) {
             deny('不可在 .claude/worktrees 內執行 npm install/ci/uninstall：node_modules 是指向主資料夾的 junction，會改寫共用的套件。需要套件時停下並回報主代理。');
         }
+        // 2026-10-29：--force 跟著工作樹裡的 node_modules junction 刪掉了主資料夾的套件
+        if (new RegExp(`${AT_CMD}git(\\s+-c\\s+\\S+)*\\s+worktree\\s+remove\\b[^;&|\\n]*(\\s--force\\b|\\s-f\\b)`, 'i').test(cmd)) {
+            deny('不可 git worktree remove --force：工作樹的 node_modules 是指向主資料夾的 junction，--force 會順著刪掉共用套件。先 cmd /c rmdir <工作樹>\\node_modules 拆掉 junction，再不加 --force 移除。');
+        }
         const codex = codexCommandReason(cmd);
         if (codex) deny(codex);
         const push = destructivePushReason(cmd);

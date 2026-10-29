@@ -211,5 +211,12 @@ describe('HarnessContract', () => {
             expect(bash('npm install', 'C:/Git/Group-Battler-FFT-Final').permissionDecision).toBeUndefined();
             expect(bash('npm run test', 'C:/Git/_wt_codex2').permissionDecision).toBeUndefined();
         });
+
+        it('不准 git worktree remove --force（會順著 node_modules junction 刪主資料夾套件）', () => {
+            expect(bash('git worktree remove --force .claude/worktrees/agent-x').permissionDecision).toBe('deny');
+            expect(bash('git worktree remove -f C:/Git/_wt_x').permissionDecision).toBe('deny');
+            expect(bash('git worktree remove .claude/worktrees/agent-x').permissionDecision).toBeUndefined();
+            expect(bash('git commit -m "deny git worktree remove --force"').permissionDecision).toBeUndefined();
+        });
     });
 });
