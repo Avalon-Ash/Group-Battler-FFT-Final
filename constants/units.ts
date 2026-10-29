@@ -56,8 +56,12 @@ export const CORE_VISUAL = {
     /** 投影成形後：待機光暈強度與脈動（附加在 idleGlow 的語意上，但更淡） */
     projectedGlow: 0.12,
     projectedGlowPulse: 0.05,
-    /** 投影成形後：施法中的光暈強度（比待機亮得多，讓「誰在詠唱」仍然看得出來） */
-    projectedCastGlow: 0.85,
+    /**
+     * 投影成形後：施法中的光暈強度與脈動。只比待機（projectedGlow）亮一點：誰在詠唱已經有施法光環（AURA 層）提示，
+     * 頭後的光太亮反而成了雜訊（使用者 2026-10-29，原 0.85 ± castGlowPulse 0.2）。
+     */
+    projectedCastGlow: 0.28,
+    projectedCastGlowPulse: 0.07,
     /** 受擊閃光期間額外加的光暈強度（乘上 hitFlashTimer／UNIT_SPRITE.hitFlashDuration） */
     hitGlow: 0.6,
     /** 投影成形後核心畫在角色後面（不蓋住臉），光暈放大這個倍率，才能從角色輪廓邊緣透出來 */
@@ -93,25 +97,25 @@ export const UNIT_FRAME = {
  */
 export const AFTERIMAGE = {
     /** trailHistory 保留的最大點數（每個物理 tick 一點） */
-    HISTORY_LENGTH: 15,
+    HISTORY_LENGTH: 20,
     /** 物理端開始記錄軌跡的速度平方（px/s）² */
     RECORD_SPEED_SQ: 10000,
     /** 殘影最多幾個（再依品質階層取較少者） */
-    MAX_GHOSTS: 4,
+    MAX_GHOSTS: 6,
     /** 各品質階層 [Tier 0, 1, 2, 3] 的殘影數上限 */
-    GHOSTS_BY_TIER: [4, 3, 2, 1] as const,
+    GHOSTS_BY_TIER: [6, 4, 3, 1] as const,
     /** 相鄰殘影在 trailHistory 中相隔幾個點 */
-    STRIDE: 2,
+    STRIDE: 3,
     /** 殘影與本體腳點的最小水平距離（px）；更近的殘影整個疊在本體後面，省略 */
     MIN_SEPARATION_PX: 6,
     /** 最近一個殘影的不透明度；其後依序線性遞減 */
-    ALPHA_NEAREST: 0.5,
+    ALPHA_NEAREST: 0.8,
     /** 陣營軌跡色疊在殘影上的強度（0～1，source-atop） */
-    TINT_STRENGTH: 0.6,
+    TINT_STRENGTH: 0.85,
     /** 染色影格快取上限（超過時淘汰最舊） */
     MAX_TINTED_FRAMES: 96,
     /** 高速結束後，最後一組世界座標殘影的線性淡出秒數（戰鬥時間） */
-    LINGER_SEC: 0.3,
+    LINGER_SEC: 0.55,
     /** 只有軌跡峰值達此速度才停留；高於近戰前衝的 540 px/s */
     LINGER_MIN_PEAK_SPEED: 600,
 } as const;

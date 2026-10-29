@@ -7,6 +7,8 @@
 // ║  奧義命中光爆畫在後製之後、overlay 與 HUD 之前（世界座標）。║
 // ║  模擬端永遠不讀繪製用高度。每幀 begin 貼地鋪設層（§9），    ║
 // ║  VFXRenderer 登記、RenderDispatcher 逐格繪製。             ║
+// ║  轉場進度 T：進場在 TRANSITION_IN_MS − SETTLE 走到 1，IDLE  ║
+// ║  邊界不跳變；進入 IN 時 TerrainRenderer.forgetTileHistory。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -32,7 +34,7 @@ import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { UltWorldRenderer } from "./ult/UltWorldRenderer";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
-import { VFX_BIOME_GAIN, RENDER_QUALITY } from "../../constants";
+import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM } from "../../constants";
 
 let allAssetsReady = typeof Image === 'undefined';
 
@@ -95,6 +97,8 @@ export class RenderPipeline {
             if (phase !== 'IDLE') {
                 this.transitionT = 0;
             }
+            // 退場→進場就是換地圖：舊地圖同座標的 sprite 不能當新地圖的借用品
+            if (phase === 'IN') TerrainRenderer.forgetTileHistory();
         }
     }
 
@@ -104,8 +108,11 @@ export class RenderPipeline {
 
         // Animation Logic moved from GameCanvas to here
         if (this.transitionPhase !== 'IDLE') {
-            // Slower, weightier transition speed
-            const speed = 0.5; 
+            // 進場：T 在「進場時間 − 定格時間」走到 1，之後 IDLE 邊界的暗角／色差／落地位移早已是 0，沒有跳變；
+            // 退場維持較慢的節奏（它在 T 走完前就被計時器切成進場）。
+            const speed = this.transitionPhase === 'IN'
+                ? 1000 / (GAME_APP_PARAM.TRANSITION_IN_MS - GAME_APP_PARAM.TRANSITION_IN_SETTLE_MS)
+                : GAME_APP_PARAM.TRANSITION_OUT_SPEED;
             this.transitionT = Math.min(1.0, this.transitionT + dt * speed);
         } else {
             this.transitionT = 0;
