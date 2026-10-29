@@ -76,7 +76,11 @@
     "SHOWCASE_MIN_H": 8,
     "SHOWCASE_SIZE_RANGE": 4,
     "TRANSITION_IN_MS": 1500,
+    "TRANSITION_IN_SETTLE_MS": 150,
     "TRANSITION_OUT_MS": 1200,
+    "TRANSITION_OUT_SPEED": 0.5,
+    "SPAWN_AFTER_IDLE_FRAMES": 3,
+    "SPAWN_ATLAS_WAIT_MAX_MS": 2500,
     "RESULT_HOLD_MS": 2000,
     "UNIT_POLL_MS": 500,
     "WARNING_MS": 2500
@@ -296,21 +300,21 @@
     "SUPPORT_APPROACH_SPEED": 1.5
   },
   "AFTERIMAGE": {
-    "HISTORY_LENGTH": 15,
+    "HISTORY_LENGTH": 20,
     "RECORD_SPEED_SQ": 10000,
-    "MAX_GHOSTS": 4,
+    "MAX_GHOSTS": 6,
     "GHOSTS_BY_TIER": [
+      6,
       4,
       3,
-      2,
       1
     ],
-    "STRIDE": 2,
+    "STRIDE": 3,
     "MIN_SEPARATION_PX": 6,
-    "ALPHA_NEAREST": 0.5,
-    "TINT_STRENGTH": 0.6,
+    "ALPHA_NEAREST": 0.8,
+    "TINT_STRENGTH": 0.85,
     "MAX_TINTED_FRAMES": 96,
-    "LINGER_SEC": 0.3,
+    "LINGER_SEC": 0.55,
     "LINGER_MIN_PEAK_SPEED": 600
   },
   "AGENT_CONSTANTS": {
@@ -665,7 +669,8 @@
     "projectedAlpha": 0.25,
     "projectedGlow": 0.12,
     "projectedGlowPulse": 0.05,
-    "projectedCastGlow": 0.85,
+    "projectedCastGlow": 0.28,
+    "projectedCastGlowPulse": 0.07,
     "hitGlow": 0.6,
     "behindGlowScale": 1.6,
     "ghostAlpha": 0.65,

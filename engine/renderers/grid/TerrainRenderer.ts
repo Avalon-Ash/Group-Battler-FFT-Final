@@ -186,6 +186,13 @@ export const TerrainRenderer = {
     },
     /** 每格上一次畫的 sprite（tileKey → entry），當作超預算時的借用來源；快取清空／換主題時一併清 */
     lastSpriteByTile: new Map<number, TerrainSpriteEntry>(),
+    /**
+     * 換地圖時忘掉每格的上一張 sprite：同一個 (q, r) 在新地圖上可能是別的形狀，借用它會短暫畫出錯的地塊再被換掉。
+     * 進場期間超預算的格子改走相鄰縮放級距，沒有就延後（RenderPipeline.setTransitionPhase('IN') 呼叫）。
+     */
+    forgetTileHistory() {
+        this.lastSpriteByTile.clear();
+    },
 
     drawBlock(
         ctx: CanvasRenderingContext2D,

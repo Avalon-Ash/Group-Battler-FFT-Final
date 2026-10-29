@@ -101,8 +101,19 @@ export const GAME_APP_PARAM = {
     SHOWCASE_SIZE_RANGE: 4,
     /** 展示進場時間（毫秒） */
     TRANSITION_IN_MS: 1500,
+    /**
+     * 進場提前定格的毫秒數：轉場進度 T 在 TRANSITION_IN_MS − 此值就走到 1（暗角、色差、落地位移同時歸零），
+     * 之後到 React 計時器切 IDLE 之間畫面不再變動，所以邊界那一幀沒有色階跳變（RenderPipeline.update）。
+     */
+    TRANSITION_IN_SETTLE_MS: 150,
     /** 展示退場時間（毫秒） */
     TRANSITION_OUT_MS: 1200,
+    /** 退場時轉場進度 T 每秒前進量（退場在 T 走完前就被計時器切走，這是退場畫面的節奏） */
+    TRANSITION_OUT_SPEED: 0.5,
+    /** 進場後換隊：切 IDLE 之後至少再等幾個畫面才生成單位（避開邊界幀） */
+    SPAWN_AFTER_IDLE_FRAMES: 3,
+    /** 進場後換隊：等新陣容圖集載好的最長毫秒數，逾時照樣生成（圖集會邊載邊出現） */
+    SPAWN_ATLAS_WAIT_MAX_MS: 2500,
     /** 展示結算停留時間（毫秒） */
     RESULT_HOLD_MS: 2000,
     /** 單位數更新間隔（毫秒） */

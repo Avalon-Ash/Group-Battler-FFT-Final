@@ -7,6 +7,12 @@ import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
 import { random } from '../engine/math/rng';
 import { queryMapKeys, queryHasObstacle } from '../engine/systems/ui/editorQueries';
+import { pickBodyType } from '../data/units/appearance/bodyTypes';
+import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
+
+/** 展示陣容的一個位置：角色與體型在生成前就決定，圖集才能在轉場期間預載 */
+interface ShowcaseSlot { team: Team; role: Role; bodyType: BodyTypeId }
+const SHOWCASE_ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
 
 type DevWindow = Window & {
     __TACTICAL_ENGINE__?: GameEngine;
@@ -80,6 +86,27 @@ export const useGameApp = () => {
         showDirectorMonitor: false 
     });
 
+    // 下一批展示單位的陣容（planShowcaseRoster 決定，internalSpawnTeams 依它生成）與換場時的生成等待 rAF
+    const rosterRef = useRef<ShowcaseSlot[]>([]);
+    const rosterRoundRef = useRef(0);
+    const spawnWaitRef = useRef<number | null>(null);
+
+    /**
+     * 決定下一批展示單位的角色與體型。體型用確定性雜湊（pickBodyType，不消耗 random()），
+     * 生成指令帶上它，所以 SpriteAtlasStore 能在單位出現之前就預載對應圖集。
+     */
+    const planShowcaseRoster = useCallback((): ShowcaseSlot[] => {
+        const round = ++rosterRoundRef.current;
+        const plan: ShowcaseSlot[] = [];
+        for (const team of [Team.BLUE, Team.RED]) {
+            for (let i = 0; i < GAME_APP_PARAM.TEAM_SIZE; i++) {
+                plan.push({ team, role: SHOWCASE_ROLES[i % SHOWCASE_ROLES.length], bodyType: pickBodyType(`SHOWCASE-${team}-${i}`, round) });
+            }
+        }
+        rosterRef.current = plan;
+        return plan;
+    }, []);
+
     const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
         const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
@@ -111,9 +138,10 @@ export const useGameApp = () => {
         shuffle(leftHexes);
         shuffle(rightHexes);
 
-        const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
+        if (rosterRef.current.length === 0) planShowcaseRoster();
         
         const spawn = (team: Team, hexes: {q: number, r: number}[]) => {
+            const slots = rosterRef.current.filter(s => s.team === team);
             let spawnIdx = 0;
             for(let i=0; i<GAME_APP_PARAM.TEAM_SIZE; i++) {
                 if (spawnIdx >= hexes.length) break;
@@ -124,7 +152,8 @@ export const useGameApp = () => {
                     q: hex.q,
                     r: hex.r,
                     hp: GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE,
-                    role: roles[i % roles.length],
+                    role: slots[i].role,
+                    bodyType: slots[i].bodyType,
                 });
             }
         };
@@ -132,7 +161,7 @@ export const useGameApp = () => {
         spawn(Team.BLUE, leftHexes); 
         spawn(Team.RED, rightHexes);
         setSession(prev => ({ ...prev, unitCount: engine.agents.length }));
-    }, []);
+    }, [planShowcaseRoster]);
 
     const setupShowcaseMap = useCallback(() => {
         const engine = engineRef.current;
@@ -165,6 +194,8 @@ export const useGameApp = () => {
 
     const spawnShowcaseUnits = useCallback(() => {
         internalSpawnTeams();
+        rosterRef.current = [];
+        spriteAtlasStore.prefetchRoster([]);
         engineRef.current.bus.emit('UI_COMMAND', { type: 'START_GAME' });
         setSession(prev => ({ ...prev, isPlaying: true, winner: null }));
     }, [internalSpawnTeams]);
@@ -175,19 +206,38 @@ export const useGameApp = () => {
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
+                // 舊陣容已清空：此刻起預載下一批圖集（退場＋進場約 2.7 秒內載完，單位生成時不用再解碼）
+                spriteAtlasStore.prefetchRoster(planShowcaseRoster());
                 setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
                 setTimeout(() => {
                     setupShowcaseMap(); 
                     setSession(prev => ({ ...prev, transitionPhase: 'IN' })); 
                     setTimeout(() => {
                         setSession(prev => ({ ...prev, transitionPhase: 'IDLE' }));
-                        spawnShowcaseUnits(); 
+                        // 不在 IDLE 邊界那一幀生成：等圖集載好、且已過幾個畫面（逾時照樣生成）
+                        const waitStart = performance.now();
+                        let frames = 0;
+                        const waitThenSpawn = () => {
+                            frames++;
+                            const ready = spriteAtlasStore.isPrefetchReady();
+                            if ((frames >= GAME_APP_PARAM.SPAWN_AFTER_IDLE_FRAMES && ready)
+                                || performance.now() - waitStart > GAME_APP_PARAM.SPAWN_ATLAS_WAIT_MAX_MS) {
+                                spawnWaitRef.current = null;
+                                spawnShowcaseUnits();
+                            } else {
+                                spawnWaitRef.current = requestAnimationFrame(waitThenSpawn);
+                            }
+                        };
+                        spawnWaitRef.current = requestAnimationFrame(waitThenSpawn);
                     }, GAME_APP_PARAM.TRANSITION_IN_MS);
                 }, GAME_APP_PARAM.TRANSITION_OUT_MS);
             }, GAME_APP_PARAM.RESULT_HOLD_MS);
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(timer);
+                if (spawnWaitRef.current !== null) { cancelAnimationFrame(spawnWaitRef.current); spawnWaitRef.current = null; }
+            };
         }
-    }, [session.winner, session.isShowcaseMode, setupShowcaseMap, spawnShowcaseUnits]);
+    }, [session.winner, session.isShowcaseMode, setupShowcaseMap, spawnShowcaseUnits, planShowcaseRoster]);
 
     useEffect(() => { 
         if (session.isShowcaseMode) {

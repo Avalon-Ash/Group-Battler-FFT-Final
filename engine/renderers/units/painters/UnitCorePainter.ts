@@ -106,7 +106,7 @@ export const UnitCorePainter = {
             ? CORE_VISUAL.castGlow + pulse * CORE_VISUAL.castGlowPulse
             : CORE_VISUAL.idleGlow + pulse * CORE_VISUAL.idleGlowPulse;
         const projectedGlow = opts.casting
-            ? CORE_VISUAL.projectedCastGlow + pulse * CORE_VISUAL.castGlowPulse
+            ? CORE_VISUAL.projectedCastGlow + pulse * CORE_VISUAL.projectedCastGlowPulse
             : CORE_VISUAL.projectedGlow + pulse * CORE_VISUAL.projectedGlowPulse;
         const glow = lerp(solidGlow, projectedGlow, k) + (opts.flash ?? 0) * CORE_VISUAL.hitGlow;
         const scale = UNIT_SCALE * (opts.casting ? CORE_VISUAL.castScale : 1);

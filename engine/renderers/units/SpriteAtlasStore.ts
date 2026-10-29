@@ -3,7 +3,8 @@
  * -----------------------------------------------------------------------------
  * 說明：
  *  - 載入 public/assets/units/manifest.json 與各單位圖集。
- *  - 依目前陣容載入，最多兩張同時解碼；換隊釋放不用的圖集。
+ *  - 依目前陣容載入，最多兩張同時解碼；換隊釋放不用的圖集。展示換場時 prefetchRoster 先載下一批（單位還沒生成），
+ *    isPrefetchReady 讓生成端等圖集載好。
  *  - 解碼走 fetch → createImageBitmap，烘完 close()；不用 <img>，瀏覽器不會依網址留著解碼點陣（換隊不累積）。
  *  - 預烘焙「受擊白閃」剪影版本（source-in 填白，執行期零消耗直接 blit）。
  *  - 預烘焙 UNIT_SPRITE.mipLevels 列出的縮小層級（目前只有 0.5：選層級的縮放 screenScale 約 0.37，
@@ -129,6 +130,8 @@ export class SpriteAtlasStore {
     private wantedKeys = new Set<string>();
     private nextKeys = new Set<string>();
     private rosterKnown = false;
+    /** 預載中的下一個陣容（展示換場時單位還沒生成，syncRoster 不能把它們當成多餘的釋放掉） */
+    private prefetchKeys = new Set<string>();
     private failedKeys = new Set<string>();
     private activeLoads = 0;
     private queue: { key: string; finish: () => void }[] = [];
@@ -173,6 +176,7 @@ export class SpriteAtlasStore {
             const appearance = lookupSpriteAppearance(agent.team, agent.role, resolveBodyType(agent));
             if (appearance) this.nextKeys.add(appearance.manifestKey);
         }
+        for (const key of this.prefetchKeys) this.nextKeys.add(key);
         this.rosterKnown = true;
         for (const key of this.wantedKeys) {
             if (!this.nextKeys.has(key)) {
@@ -187,6 +191,34 @@ export class SpriteAtlasStore {
             if (!this.atlases.has(key) && !this.loadingPromises.has(key) && !this.failedKeys.has(key)) void this.loadAtlas(key);
         }
         this.markReady();
+    }
+
+    /**
+     * 預載下一個陣容的圖集（展示換場：退場／進場期間先載，單位在 IDLE 之後才生成，生成當幀不再解碼與烘焙）。
+     * 傳空陣列＝解除預載（單位生成後由 syncRoster 依實際陣容接手）。同一時間只有一組預載，舊的不在新陣容裡就釋放。
+     */
+    public prefetchRoster(entries: readonly { team: Team; role: Role; bodyType: BodyTypeId }[]): void {
+        this.prefetchKeys.clear();
+        for (const e of entries) {
+            const appearance = lookupSpriteAppearance(e.team, e.role, resolveBodyType(e));
+            if (appearance) this.prefetchKeys.add(appearance.manifestKey);
+        }
+        if (this.prefetchKeys.size === 0) return;
+        // 立刻納入 wantedKeys（下一次 syncRoster 之前 pumpQueue 就可能開始處理）
+        for (const key of this.prefetchKeys) {
+            this.wantedKeys.add(key);
+            this.failedKeys.delete(key);
+            if (!this.atlases.has(key) && !this.loadingPromises.has(key)) void this.loadAtlas(key);
+        }
+        this.markReady();
+    }
+
+    /** 預載的圖集都已載好（或載入失敗放棄）；沒有預載時為 true */
+    public isPrefetchReady(): boolean {
+        for (const key of this.prefetchKeys) {
+            if (!this.atlases.has(key) && !this.failedKeys.has(key)) return false;
+        }
+        return true;
     }
 
     public onRelease(listener: (key: string) => void): () => void {

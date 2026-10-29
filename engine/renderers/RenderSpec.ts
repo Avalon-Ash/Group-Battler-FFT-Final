@@ -87,6 +87,8 @@ export class RenderSpec {
         s += "  （2026-10-18 依 docs/DEPTH_ORDER_FINDINGS.md 拿掉 h*0.7：它讓高台上的障礙／危害蓋住同一座高台上前方的單位）\n";
         s += "OBSTACLE 精靈錨點＝格子中心地面點，對齊 (op.tx, op.ty)：預渲染圖集讀 public/assets/obstacles/manifest.json 的 ax／ay\n";
         s += "  （ObstacleSpriteStore，依 q,r 雜湊選變體）；未載入時退回程序化 ENV_SPRITE.ANCHOR_X／Y。精靈高度不影響排序。\n";
+        s += "transitionOffset 的進度 T：進場（IN）在 GAME_APP_PARAM.TRANSITION_IN_MS − TRANSITION_IN_SETTLE_MS 走到 1（RenderPipeline.update），\n";
+        s += "  落地位移、暗角、色差在 IN 結束前就歸零，IDLE 邊界沒有跳變；換地圖（進入 IN）時 TerrainRenderer 忘掉上一張地圖的逐格 sprite，不當借用品。\n";
         s += "AURA 的 op.y = 施法者腳點 Y（sortY）：同樣不含高度（§2）。TERRAIN_SORT_SCALE 與 terrainSortY 已不存在，沒有任何 op 的排序 Y 含高度。\n\n";
         s += "單位（UnitFrame 計算，UnitSystem 提交；見 §4）：\n";
         s += "  op.tx = px + physics.x（屍體再加擊飛滑行 x）\n";
