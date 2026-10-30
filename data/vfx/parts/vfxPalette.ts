@@ -26,6 +26,28 @@ export const VFX_RAMPS = {
     STATUS_SLATE: { core: '#f1f5f9', main: '#94a3b8', dark: '#334155' },
     STATUS_PINK: { core: '#fff1f2', main: '#f9a8d4', dark: '#9d174d' },
     STATUS_GREEN: { core: '#f0fdf4', main: '#4ade80', dark: '#166534' },
+    /**
+     * 狀態色帶（依 MMO／FFT 的控制種類慣例配色，不借陣營色；兩隊看到同一個顏色＝同一個狀態）。
+     * 硬控各有不同色相：暈眩金黃、沉默藍紫、禁錮綠棕、恐懼暗紫黑、嘲諷紅、變羊粉、放逐蒼白青灰、凝滯琥珀、凍結冰青；
+     * 弱減益：致盲灰、緩速霜藍（比凍結暗、飽和度低）、易傷橘紅；週期：燃燒橘、中毒綠；
+     * 增益：再生草綠、加速青白、反傷銀白、吸血深紅、無敵金白、護盾藍。
+     */
+    STATUS_GOLD: { core: '#fffbeb', main: '#facc15', dark: '#a16207' },
+    STATUS_VIOLET: { core: '#ede9fe', main: '#818cf8', dark: '#3730a3' },
+    STATUS_VINE: { core: '#ecfccb', main: '#65a30d', dark: '#713f12' },
+    STATUS_DREAD: { core: '#c4b5fd', main: '#4c1d95', dark: '#0f0720' },
+    STATUS_RED: { core: '#fecaca', main: '#ef4444', dark: '#7f1d1d' },
+    STATUS_GHOST: { core: '#f8fafc', main: '#a5c3cf', dark: '#475b66' },
+    STATUS_AMBER: { core: '#fffbeb', main: '#f59e0b', dark: '#92400e' },
+    STATUS_ICE: { core: '#ffffff', main: '#67e8f9', dark: '#0e7490' },
+    STATUS_FROST: { core: '#e2e8f0', main: '#7a9cc0', dark: '#334155' },
+    STATUS_CRACK: { core: '#ffedd5', main: '#ea580c', dark: '#7c2d12' },
+    STATUS_BURN: { core: '#fde68a', main: '#f97316', dark: '#dc2626' },
+    STATUS_POISON: { core: '#d9f99d', main: '#84cc16', dark: '#365314' },
+    STATUS_WIND: { core: '#ffffff', main: '#a5f3fc', dark: '#0891b2' },
+    STATUS_SILVER: { core: '#ffffff', main: '#e2e8f0', dark: '#64748b' },
+    STATUS_CRIMSON: { core: '#fecdd3', main: '#be123c', dark: '#4c0519' },
+    STATUS_RADIANT: { core: '#ffffff', main: '#fde68a', dark: '#d97706' },
     /** 護盾稜柱（兩隊同色；陣營只出現在掃描環，factionSkin.shield.accentRamp） */
     STATUS_SKY: { core: '#f0f9ff', main: '#bae6fd', dark: '#0369a1' },
     /** 天氣（地圖氛圍，data/vfx/terrainAmbience.ts WEATHER_AMBIENCE）：不屬於任何陣營 */
@@ -46,7 +68,7 @@ export type VFXRampId = keyof typeof VFX_RAMPS;
  * 實體物質色階（血、瘴氣、深淵黑）：一律用一般混合（ART_SPEC §10-4）。
  * 加法混合下暗色等於透明，深淵與血的主形狀會消失。
  */
-export const VFX_SOLID_RAMPS: readonly VFXRampId[] = ['ASH_BLOOD', 'ASH_POISON', 'ASH_VOID'];
+export const VFX_SOLID_RAMPS: readonly VFXRampId[] = ['ASH_BLOOD', 'ASH_POISON', 'ASH_VOID', 'STATUS_DREAD'];
 
 /** 中性色：只用於碎屑與煙（ART_SPEC §3.2 規則）。 */
 export const VFX_NEUTRALS = {

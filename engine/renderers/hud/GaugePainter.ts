@@ -1,49 +1,29 @@
 // ╔══════════════════════════════════════════════════════════╗
-// ║  GaugePainter — 單位頭頂的圓形量表（控制剩餘時間／詠唱進度） ║
-// ║  [ARCH] 光暈用一道較寬的半透明描邊代替 shadowBlur。           ║
+// ║  GaugePainter — 單位頭頂的圓形詠唱量表                      ║
+// ║  職責：詠唱中的技能圖示＋進度弧（控制與增益的剩餘時間改由    ║
+// ║        StatusStripPainter 的圖示列顯示）                      ║
+// ║  [ARCH] 光暈用一道較寬的半透明描邊代替 shadowBlur；有圖示列時  ║
+// ║  呼叫端把 y 往上抬，量表不蓋住圖示列。                        ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
 import { AssetManager } from "../../assets";
 import { HUD_GAUGE } from "../../../constants";
-import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 const TAU = Math.PI * 2;
 
 export const GaugePainter = {
 
-    drawUnitStatusGauges(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number) {
-        let activeTimer = 0;
-        let maxTimer = 0;
-        let iconType: 'POLYMORPH' | 'STASIS' | 'BANISH' | 'STUN' | 'SILENCE' | '' = '';
-
-        if (agent.banished) {
-            activeTimer = agent.effects.BANISH.remaining;
-            maxTimer = agent.effects.BANISH.max || activeTimer;
-            iconType = agent.view.visualStatus === 'POLYMORPH' ? 'POLYMORPH' : agent.view.visualStatus === 'STASIS' ? 'STASIS' : 'BANISH';
-        } else if (agent.effects.STUN.remaining > 0) {
-            activeTimer = agent.effects.STUN.remaining;
-            maxTimer = agent.effects.STUN.max || activeTimer;
-            iconType = 'STUN';
-        } else if (agent.effects.SILENCE.remaining > 0) {
-            activeTimer = agent.effects.SILENCE.remaining;
-            maxTimer = agent.effects.SILENCE.max || activeTimer;
-            iconType = 'SILENCE';
-        } else if (agent.castingSkillIdx !== -1) {
-            const skill = agent.skills[agent.castingSkillIdx];
-            if (skill) {
-                const progress = 1 - (agent.castTimer / skill.cast);
-                this.drawCircularGauge(ctx, x, y, progress, skill.visual || HUD_GAUGE.DEFAULT_SKILL_VISUAL, skill.color, true);
-                return;
-            }
-        }
-
-        if (iconType && maxTimer > 0) {
-            this.drawCircularGauge(ctx, x, y, activeTimer / maxTimer, iconType, STATUS_VISUALS[iconType].primaryColor, false);
-        }
+    /** 詠唱進度量表。lift＝圖示列佔用的高度（沒有圖示列為 0），量表整個往上抬這麼多。 */
+    drawCastGauge(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, lift: number) {
+        if (agent.castingSkillIdx === -1) return;
+        const skill = agent.skills[agent.castingSkillIdx];
+        if (!skill) return;
+        const progress = 1 - (agent.castTimer / skill.cast);
+        this.drawCircularGauge(ctx, x, y - lift, progress, skill.visual || HUD_GAUGE.DEFAULT_SKILL_VISUAL, skill.color);
     },
 
-    drawCircularGauge(ctx: CanvasRenderingContext2D, x: number, y: number, pct: number, visualKey: string, color: string, isSkill: boolean) {
+    drawCircularGauge(ctx: CanvasRenderingContext2D, x: number, y: number, pct: number, visualKey: string, color: string) {
         const G = HUD_GAUGE;
         const radius = G.RADIUS;
         const iconY = y - G.LIFT;
@@ -55,7 +35,7 @@ export const GaugePainter = {
         ctx.fill();
         ctx.save();
         ctx.clip();
-        const icon = isSkill ? AssetManager.getSkillIcon(visualKey, color) : AssetManager.getStatusIcon(visualKey);
+        const icon = AssetManager.getSkillIcon(visualKey, color);
         ctx.globalAlpha = G.ICON_ALPHA;
         if (icon) ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
         ctx.restore();

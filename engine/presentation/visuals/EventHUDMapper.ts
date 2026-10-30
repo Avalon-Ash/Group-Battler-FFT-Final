@@ -128,7 +128,7 @@ export class EventHUDMapper {
             xOffset = HUD_LAYOUT.STATUS_TEXT_OFFSET_X;
         }
 
-        if (text) hud.addFloatingText(event.pos.x + xOffset, baseY, text, color, size, type);
+        if (text) hud.addFloatingText(event.pos.x + xOffset, baseY, text, color, size, type, false, type === 'CC' ? undefined : event.targetId);
     }
 
     // [SSOT] 技能名稱與顏色來自 event.skill（Skill 定義層）

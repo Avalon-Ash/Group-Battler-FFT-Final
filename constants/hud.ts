@@ -111,7 +111,7 @@ export const HUD_BAR = {
     CC: { OFFSET: 12, HEIGHT: 6, LABEL_GAP: 2, FONT: 'bold 9px Arial', DEFAULT_MAX: 5 },
 } as const;
 
-/** 單位頭頂圓形量表（GaugePainter）：控制剩餘時間（顏色＝STATUS_VISUALS）或詠唱進度 */
+/** 單位頭頂圓形量表（GaugePainter）：詠唱進度（控制與增益的剩餘時間改由 HUD_STATUS_STRIP 圖示列顯示） */
 export const HUD_GAUGE = {
     RADIUS: 14,
     /** 圓心相對錨點往上的距離 */
@@ -125,6 +125,37 @@ export const HUD_GAUGE = {
     GLOW_WIDTH: 4,
     GLOW_ALPHA: 0.35,
     DEFAULT_SKILL_VISUAL: 'BOLT',
+} as const;
+
+/**
+ * 狀態圖示列（StatusStripPainter）：血條上方一排小圖示，列出全部增減益（減益在左、增益在右），
+ * 每個圖示有剩餘時間的扇形遮罩。尺寸 px（canvas 單位，隨相機縮放）；縮小到 MIN_SCREEN_PX 以下時依縮放放大（上限 MAX_SCALE），
+ * 手機寬度的縮放下才看得出中了什麼。位置掛在 UnitFrame.hudAnchorY（HUD_ANCHOR）：圖示底緣在血條外框頂端之上 ABOVE_BAR。
+ */
+export const HUD_STATUS_STRIP = {
+    ICON: 20,
+    GAP: 2,
+    /** 減益組與增益組之間的間距 */
+    GROUP_GAP: 5,
+    /** 圖示底緣離血條外框頂端的距離 */
+    ABOVE_BAR: 3,
+    /** 圖示在螢幕上至少要有這麼大（CSS px），不夠時放大 */
+    MIN_SCREEN_PX: 20,
+    MAX_SCALE: 2.2,
+    /** 每個單位最多列出幾個圖示，依品質階層 [0..3]（階層 3 減到最少） */
+    MAX_BY_TIER: [8, 6, 4, 2] as const,
+    /** 品質階層高於此值時不畫剩餘時間的扇形遮罩 */
+    SWEEP_MAX_TIER: 2,
+    /** 圖示烘焙解析度倍率（畫布像素 / canvas 單位） */
+    BAKE_SCALE: 3,
+    /** 零件字形佔圖示直徑的比例（烘焙時把零件縮放到這個大小內） */
+    GLYPH_FIT: 0.86,
+    BG: 'rgba(2, 6, 23, 0.88)',
+    BORDER_WIDTH: 1.5,
+    BORDER_DEBUFF: '#f87171',
+    BORDER_BUFF: '#4ade80',
+    /** 剩餘時間扇形遮罩（已過的部分，從 12 點鐘順時針掃） */
+    SWEEP: 'rgba(0, 0, 0, 0.6)',
 } as const;
 
 /** 背水一戰橫幅（HUDRenderer）：螢幕座標（CSS px） */
@@ -395,6 +426,11 @@ export const HUD_TEXT_MOTION = {
     STREAK_SIZE: 32,
     /** 傷害浮字初始上升速度（px/s） */
     DAMAGE_RISE: 100,
+    /**
+     * 多段傷害／治療浮字錯位（HUDSystem.addFloatingText）：同一個單位在 WINDOW 秒內已有 n 個傷害／治療字時，
+     * 新字依 n 排進格子：先往上疊滿一欄 ROWS 列（每列往上 STEP_Y），再換到右欄、左欄（各偏 STEP_X），一次多段（最多 8 段、約 0.6 秒）也每個數字都讀得出來。
+     */
+    STAGGER: { WINDOW: 0.45, ROWS: 5, STEP_Y: 15, STEP_X: 40 },
     /** 施法成功文字上升速度（px/s） */
     SUCCESS_RISE: 400,
     /** 施法成功文字壽命（s） */

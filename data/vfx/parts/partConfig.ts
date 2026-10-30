@@ -115,6 +115,8 @@ export const VFX_PARTS = {
         BONE_JOINT_Y: 0.6,
         /** 骨節半徑相對半寬（比例） */
         BONE_JOINT_RADIUS: 0.6,
+        /** 下壓雙箭頭（chevron）：COUNT 枚 V 形，第一枚頂端在 TOP×尺寸、之後每枚下移 STEP×尺寸；DEPTH＝V 的深度、THICK＝臂厚；第一枚較淡 */
+        CHEVRON: { COUNT: 2, TOP: -0.9, STEP: 0.9, DEPTH: 0.55, THICK: 0.3, UPPER_ALPHA: 0.55 },
     },
     /**
      * 詠唱法陣（2026-10-19 重新設計）：線條一律「模糊光暈＋細亮芯」，不畫實線；外層＝光暈圓盤＋雙同心圓＋符文帶＋刻度，

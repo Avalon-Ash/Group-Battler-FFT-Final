@@ -9,8 +9,9 @@
 // ║  [ARCH] 衝刺殘影：本體之前呼叫 UnitAfterimagePainter，偏移讀 ║
 // ║  UnitFrame.ghosts（局部座標原點＝腳底繪製點，RenderSpec §10）║
 // ║  [ARCH] 本體替換：變羊 → PolymorphPainter（取代精靈）、凍結 → ║
-// ║  FrozenPainter（疊在精靈上）；兩者都畫在同一個局部座標，腳底  ║
-// ║  貼 UNIT_SPRITE.footOffsetLocal，不新增座標／排序規則        ║
+// ║  FrozenPainter（疊在精靈上）；Blender 烘焙四向圖集（CcBodyStore），║
+// ║  畫在同一個局部座標，腳底貼 UNIT_SPRITE.footOffsetLocal，不新增  ║
+// ║  座標／排序規則                                              ║
 // ║  [ARCH] 純繪製動態（浮動、傾斜、奧義脈動、出生下落）參數在  ║
 // ║  UNIT_BODY_MOTION；只動局部座標，不進 UnitFrame／排序鍵，   ║
 // ║  發射點不跟著浮動（RenderSpec §4）                          ║
@@ -101,9 +102,8 @@ export const UnitBodyPainter = {
 
         ctx.translate(0, bodyFloat);
 
-        if (agent.view.visualStatus === 'POLYMORPH') {
-            PolymorphPainter.draw(ctx, agent, t, isSilhouette);
-        } else {
+        // 變羊：圖集已載入就換成羊；未載入時（回傳 false）畫原本的單位
+        if (!(agent.view.visualStatus === 'POLYMORPH' && PolymorphPainter.draw(ctx, agent, t, isSilhouette))) {
             // Layer 2: Main Body (Sprite Atlas with 5-line team circle fallback on load failure)
             if (SpriteUnitRenderer.canRender(agent)) {
                 SpriteUnitRenderer.draw(ctx, agent, t, isSilhouette);
@@ -116,7 +116,7 @@ export const UnitBodyPainter = {
 
             // Layer 3: Overlay Status (Ice Block：六角稜柱，烘焙一次)
             if (agent.view.visualStatus === 'FROZEN' && !isSilhouette) {
-                FrozenPainter.draw(ctx);
+                FrozenPainter.draw(ctx, agent, t);
             }
         }
         

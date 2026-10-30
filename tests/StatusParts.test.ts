@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { STATUS_PARTS, STATUS_PART_KEYS, STATUS_PART_ORDER, STATUS_PART_RENDER } from '../data/vfx/status_parts';
+import { STATUS_PARTS, STATUS_PART_KEYS, STATUS_PART_ORDER, STATUS_PART_RENDER, STATUS_STRIP_ORDER } from '../data/vfx/status_parts';
 import { STATUS_VISUALS } from '../data/vfx/status_visuals';
 import { VFX_RAMPS } from '../data/vfx/parts/vfxPalette';
 import { createVFXPartStore } from '../engine/renderers/vfxparts/VFXPartStore';
-import { isStatusActive } from '../engine/renderers/status/StatusActivity';
+import { isStatusActive, statusFraction } from '../engine/renderers/status/StatusActivity';
 import { Agent } from '../engine/core/Agent';
 import { Team, AIState } from '../types';
 import type { MapConfig } from '../engine/utils';
@@ -47,15 +47,15 @@ describe('STATUS_PARTS table', () => {
         }
     });
 
-    it('strong CCs have layers and pairwise-distinct silhouettes', () => {
+    it('hard CCs have layers and pairwise-distinct silhouettes', () => {
         const sig = (key: (typeof STATUS_PART_KEYS)[number]) => JSON.stringify(STATUS_PARTS[key].layers.map((l) => {
             const s = l.spec as { kind: string; ramp?: string; emblem?: string; shape?: string };
             return [l.anchor, l.flat ?? false, s.kind, s.emblem ?? s.shape ?? '', s.ramp ?? ''];
         }));
-        const strong = STATUS_PART_KEYS.filter((k) => STATUS_PARTS[k].strong);
-        expect(strong.length).toBeGreaterThanOrEqual(10);
+        const hard = STATUS_PART_KEYS.filter((k) => STATUS_PARTS[k].category === 'HARD_CC');
+        expect(hard.length).toBeGreaterThanOrEqual(9);
         const seen = new Map<string, string>();
-        for (const key of strong) {
+        for (const key of hard) {
             expect(STATUS_PARTS[key].layers.length, key).toBeGreaterThan(0);
             const s = sig(key);
             expect(seen.get(s), `${key} duplicates ${seen.get(s)}`).toBeUndefined();
@@ -63,13 +63,45 @@ describe('STATUS_PARTS table', () => {
         }
     });
 
-    it('strong CCs outrank weak effects so truncation drops weak ones first', () => {
-        const strongMin = Math.min(...STATUS_PART_KEYS.filter((k) => STATUS_PARTS[k].strong).map((k) => STATUS_PARTS[k].priority));
-        const weakMax = Math.max(...STATUS_PART_KEYS.filter((k) => !STATUS_PARTS[k].strong && STATUS_PARTS[k].layers.length > 0).map((k) => STATUS_PARTS[k].priority));
-        expect(strongMin).toBeGreaterThan(weakMax - 1);
+    it('hard CCs outrank every other status that draws parts, so truncation and the head/ground winner favour them', () => {
+        const hardMin = Math.min(...STATUS_PART_KEYS.filter((k) => STATUS_PARTS[k].category === 'HARD_CC' && k !== 'ROOT').map((k) => STATUS_PARTS[k].priority));
+        const others = STATUS_PART_KEYS.filter((k) => STATUS_PARTS[k].category !== 'HARD_CC' && STATUS_PARTS[k].layers.length > 0 && STATUS_PARTS[k].category !== 'STATE');
+        expect(hardMin).toBeGreaterThan(Math.max(...others.map((k) => STATUS_PARTS[k].priority)));
+        // 禁錮（最低優先序的硬控）仍高於所有非硬控的狀態
+        expect(STATUS_PARTS.ROOT.priority).toBeGreaterThan(Math.max(...others.map((k) => STATUS_PARTS[k].priority)));
         // 優先序由高到低排序
         for (let i = 1; i < STATUS_PART_ORDER.length; i++) {
             expect(STATUS_PARTS[STATUS_PART_ORDER[i - 1]].priority).toBeGreaterThanOrEqual(STATUS_PARTS[STATUS_PART_ORDER[i]].priority);
+        }
+    });
+
+    it('statuses use the status ramps (STATUS_*), never a faction ramp (LION_*, ASH_*), and no red-team override', () => {
+        for (const key of STATUS_PART_KEYS) {
+            const parts = [...STATUS_PARTS[key].layers.map((l) => ({ spec: l.spec, rampRed: l.rampRed })), ...(STATUS_PARTS[key].icon ?? []).map((i) => ({ spec: i.spec, rampRed: undefined }))];
+            for (const p of parts) {
+                const ramp = (p.spec as { ramp?: string }).ramp;
+                if (ramp) expect(ramp, key).toMatch(/^STATUS_/);
+                expect(p.rampRed, key).toBeUndefined();
+            }
+        }
+    });
+
+    it('the strip lists every persistent status (hard CC, debuff, buff) exactly once, debuffs left and buffs right', () => {
+        const strip = [...STATUS_STRIP_ORDER.debuffs, ...STATUS_STRIP_ORDER.buffs];
+        expect(new Set(strip).size).toBe(strip.length);
+        for (const key of STATUS_PART_KEYS) {
+            const set = STATUS_PARTS[key];
+            const persistent = set.category === 'HARD_CC' || set.category === 'DEBUFF' || set.category === 'BUFF';
+            expect(!!set.icon, `${key} icon`).toBe(persistent);
+            expect(strip.includes(key), `${key} in strip`).toBe(persistent);
+        }
+        for (const k of STATUS_STRIP_ORDER.debuffs) expect(['HARD_CC', 'DEBUFF']).toContain(STATUS_PARTS[k].category);
+        for (const k of STATUS_STRIP_ORDER.buffs) expect(STATUS_PARTS[k].category).toBe('BUFF');
+    });
+
+    it('every strip icon bakes (all ramps exist)', () => {
+        for (const key of [...STATUS_STRIP_ORDER.debuffs, ...STATUS_STRIP_ORDER.buffs]) {
+            for (const part of STATUS_PARTS[key].icon ?? []) expect(() => store.get(part.spec), key).not.toThrow();
         }
     });
 });
@@ -104,7 +136,10 @@ describe('isStatusActive', () => {
         expect(isStatusActive('POISON', a)).toBe(false);
         a.effects.HOT.remaining = 1;
         expect(isStatusActive('REGEN', a)).toBe(true);
+        // 易傷＝真正的易傷效果（不再用低血量推測）
         a.hp = a.maxHp * 0.1;
+        expect(isStatusActive('VULNERABLE', a)).toBe(false);
+        a.effects.VULNERABLE.remaining = 2;
         expect(isStatusActive('VULNERABLE', a)).toBe(true);
         // 施法狀態由 castingSkillIdx＋技能 tag 推導（P7b）；aiState 寫什麼都不影響
         a.skills = [{ ...a.skills[0], tag: 'ULT' }];
@@ -114,6 +149,24 @@ describe('isStatusActive', () => {
         expect(isStatusActive('CAST_ACTIVE', a)).toBe(false);
         a.castingSkillIdx = -1;
         expect(isStatusActive('CAST_ULT', a)).toBe(false);
+    });
+
+    it('SLOW, SHIELD and stasis-over-banish follow their sources; fractions read remaining / max', () => {
+        const a = fresh();
+        expect(isStatusActive('SLOW', a)).toBe(false);
+        a.effects.SLOW.remaining = 1; a.effects.SLOW.max = 4;
+        expect(isStatusActive('SLOW', a)).toBe(true);
+        expect(statusFraction('SLOW', a)).toBeCloseTo(0.25);
+        expect(statusFraction('STUN', a)).toBe(1);
+        expect(isStatusActive('SHIELD', a)).toBe(false);
+        a.shield = 20; a.maxShield = 40;
+        expect(isStatusActive('SHIELD', a)).toBe(true);
+        expect(statusFraction('SHIELD', a)).toBeCloseTo(0.5);
+        a.banished = true; a.effects.BANISH.remaining = 3; a.effects.BANISH.max = 3;
+        expect(isStatusActive('BANISH', a)).toBe(true);
+        a.effects.STASIS.remaining = 3;
+        expect(isStatusActive('BANISH', a)).toBe(false);
+        expect(isStatusActive('STASIS', a)).toBe(true);
     });
 
     it('HASTE, REFLECT, LIFESTEAL follow their timers', () => {

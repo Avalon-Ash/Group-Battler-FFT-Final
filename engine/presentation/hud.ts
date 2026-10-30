@@ -93,6 +93,22 @@ export class HUDSystem {
             }
         }
 
+        // 多段傷害／治療：同一單位剛出現的傷害字已佔了幾格，新字排到下一格（列往上、左右交錯），數字才不會疊成一團
+        if ((type === 'DAMAGE' || type === 'HEAL') && ownerId) {
+            const S = HUD_TEXT_MOTION.STAGGER;
+            let recent = 0;
+            for (let i = 0; i < this.damageNumbers.length; i++) {
+                const t = this.damageNumbers[i];
+                if ((t.type === 'DAMAGE' || t.type === 'HEAL') && t.ownerId === ownerId && t.time < S.WINDOW) recent++;
+            }
+            if (recent > 0) {
+                // 先往上疊滿一欄（ROWS 列），再換到右欄、左欄（欄偏移 0、+1、−1 個 STEP_X）
+                const col = Math.floor(recent / S.ROWS) % 3;
+                y -= (recent % S.ROWS) * S.STEP_Y;
+                x += (((col + 1) % 3) - 1) * S.STEP_X;
+            }
+        }
+
         let vx = 0, vy = 0, life = TEXT_LIFESPAN;
         if (type === 'SHOUT') {
             // SHOUT 的生命週期現在由詠唱時間決定

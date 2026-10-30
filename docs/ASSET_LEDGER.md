@@ -157,6 +157,15 @@ Rendered by `tools/assets/blender/render_obstacle.py`, packed by `pack_obstacles
 | `assets/obstacles/ice_crystal.webp` | ICE_CRYSTAL | Scripted hex prisms (no external model) | project | own work | 2026-10-19 |
 | `assets/obstacles/obsidian_pillar.webp` | OBSIDIAN_PILLAR | Scripted hex prisms (no external model) | project | own work | 2026-10-19 |
 
+### 6.2 Rendered CC body atlases (2026-10-30, status visual normalisation)
+
+Rendered by `tools/assets/blender/render_cc_body.py` (shared camera/toon setup in `bake_common.py`), packed by `pack_cc_body.py` (manifest: `public/assets/cc_bodies/manifest.json`). Four native directions (SE/SW/NE/NW). Models are scripted low-poly meshes built in Blender (no external model, no download).
+
+| Asset Path | Used for | Source models | Author | License | Added Date |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `assets/cc_bodies/sheep.webp`, `sheep_mask.webp` | POLYMORPH body (sheep; the mask is the collar, tinted per faction at load) | Scripted low-poly meshes (no external model) | project | own work | 2026-10-30 |
+| `assets/cc_bodies/ice_block.webp` | FROZEN body (translucent hex ice cage around the unit) | Scripted low-poly meshes (no external model) | project | own work | 2026-10-30 |
+
 ## 7. Local-only audio (NOT in repo, NOT deployed)
 
 `public/assets/audio/local/` is gitignored (`tests/AudioAssets.test.ts` checks it). It holds copyrighted files the user supplies for private local play only; they have no redistribution licence, so they must never be committed, pushed, or included in a deployed build. Cues that point here are marked `localOnly` in `data/audio/cues.ts`, are left out of `manifest.json`, and stay silent when the file is missing (no synth fallback).

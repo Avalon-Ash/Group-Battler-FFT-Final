@@ -2,7 +2,10 @@
 // ║  StatusPartPainter — 狀態／控制效果的六角零件繪製           ║
 // ║  職責：依 STATUS_PARTS 把預烘焙零件（PartSprite）畫在單位    ║
 // ║        腳下／投影中心／頭頂；執行期只有 drawImage 與變換     ║
-// ║  [ARCH] 錨點：GROUND＝floorY − physics.z；BODY＝投影中心；    ║
+// ║  [ARCH] 疊加規則：頭頂標記（HEAD 層）與腳下圈（flat 的 GROUND   ║
+// ║  層）每個單位各只畫優先序最高的那個狀態，其餘狀態只留身上      ║
+// ║  （BODY／立體 GROUND）的零件（全部狀態另列在 HUD 圖示列）。    ║
+// ║  錨點：GROUND＝floorY − physics.z；BODY＝投影中心；           ║
 // ║  HEAD＝頭頂 + HEAD_MARGIN（RenderSpec §4）。總覽層繪製（單位  ║
 // ║  之後），所以貼地層限制在腳下那格（GROUND_MAX_RADIUS），不做   ║
 // ║  鋪設。解析後的 sprite 依（隊伍、版面、狀態）快取，品質階層   ║
@@ -35,7 +38,6 @@ let resolvedTier = -1;
 
 /** 每幀暫存（重用，不配置） */
 const activeIdx = new Int16Array(ORDER_LEN);
-const headBlocked = new Uint8Array(ORDER_LEN);
 
 function layersOf(key: StatusPartKey): readonly StatusPartLayer[] {
     return STATUS_PARTS[STATUS_PARTS[key].alias ?? key].layers;
@@ -59,7 +61,9 @@ export const StatusPartPainter = {
         // 1. 依優先序挑出成立的狀態（截斷；頭頂標記由優先序最高者獨占）
         const maxSets = STATUS_PART_RENDER.MAX_SETS_BY_TIER[Math.min(tier, STATUS_PART_RENDER.MAX_SETS_BY_TIER.length - 1)];
         let nActive = 0;
-        let headTaken = false;
+        // 頭頂標記與腳下圈的唯一贏家：activeIdx 依優先序排列，所以第一個擁有該類層的狀態就是贏家（-1＝沒有）
+        let headWinner = -1;
+        let groundWinner = -1;
         for (let i = 0; i < ORDER_LEN && nActive < maxSets; i++) {
             const key = STATUS_PART_ORDER[i];
             if (!isStatusActive(key, agent)) continue;
@@ -67,10 +71,11 @@ export const StatusPartPainter = {
             const alias = STATUS_PARTS[key].alias;
             if (alias && isStatusActive(alias, agent)) continue;
             const layers = layersOf(key);
-            let hasHead = false;
-            for (let j = 0; j < layers.length; j++) if (layers[j].anchor === 'HEAD') { hasHead = true; break; }
-            headBlocked[nActive] = hasHead && headTaken ? 1 : 0;
-            if (hasHead) headTaken = true;
+            for (let j = 0; j < layers.length; j++) {
+                const L = layers[j];
+                if (headWinner < 0 && L.anchor === 'HEAD') headWinner = nActive;
+                else if (groundWinner < 0 && L.anchor === 'GROUND' && L.flat) groundWinner = nActive;
+            }
             activeIdx[nActive++] = i;
         }
         if (nActive === 0) return;
@@ -97,12 +102,13 @@ export const StatusPartPainter = {
                 const oi = activeIdx[k];
                 const key = STATUS_PART_ORDER[oi];
                 if (banished && pass !== 0 && key !== 'BANISH' && key !== 'STASIS') continue;
-                if (anchor === 'HEAD' && headBlocked[k] === 1) continue;
+                if (anchor === 'HEAD' && k !== headWinner) continue;
                 let set = resolved[teamIdx][layoutIdx][oi];
                 if (!set) { set = resolveSet(oi, teamIdx, layoutIdx); resolved[teamIdx][layoutIdx][oi] = set; }
                 for (let j = 0; j < set.length; j++) {
                     const r = set[j];
                     if (r.layer.anchor !== anchor) continue;
+                    if (r.layer.flat && anchor === 'GROUND' && k !== groundWinner) continue;
                     if (cutDecor && r.layer.decor) continue;
                     drawPartLayer(ctx, r, x, ay, t, align);
                 }

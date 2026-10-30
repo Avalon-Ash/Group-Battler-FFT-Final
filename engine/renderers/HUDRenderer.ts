@@ -1,6 +1,6 @@
 
 // ╔══════════════════════════════════════════════════════════╗
-// ║  HUDRenderer — 血條、狀態量表、浮動文字、背水一戰橫幅      ║
+// ║  HUDRenderer — 血條、狀態圖示列、詠唱量表、浮動文字、橫幅   ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §3、§4。   ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -9,6 +9,7 @@ import { HUDSystem } from "../presentation/hud";
 import { UnitFrameStore } from "./frame/UnitFrame";
 import { BarPainter } from "./hud/BarPainter";
 import { GaugePainter } from "./hud/GaugePainter";
+import { StatusStripPainter } from "./hud/StatusStripPainter";
 import { TextPainter } from "./hud/TextPainter";
 import { getRenderDpr } from "./RenderQuality";
 import { GlowTextCache, quantizeDeviceScale } from "./hud/GlowTextCache";
@@ -20,6 +21,8 @@ export class HUDRenderer {
         const list = frames.list;
         // 血條 sprite 的烘焙縮放（相機縮放 × DPR，量化），每幀算一次
         const devScale = quantizeDeviceScale(ctx);
+        // 狀態圖示列的放大倍率（相機縮放很小時放大，手機寬度才看得出中了什麼），每幀算一次
+        const stripScale = StatusStripPainter.stripScale(ctx);
         for (let i = 0; i < list.length; i++) {
             const f = list[i];
             const a = f.agent;
@@ -29,7 +32,8 @@ export class HUDRenderer {
             // SSOT：與身體共用同一份腳下高度（UnitFrame：邏輯座標＋移動過渡；拖曳預覽跟著游標格）
             const isSelected = (a === highlight);
             BarPainter.drawUnitBars(ctx, a, f.footX, f.hudAnchorY, isSelected, devScale);
-            GaugePainter.drawUnitStatusGauges(ctx, a, f.footX, f.hudAnchorY);
+            const stripH = StatusStripPainter.draw(ctx, a, f.footX, f.hudAnchorY, stripScale);
+            GaugePainter.drawCastGauge(ctx, a, f.footX, f.hudAnchorY, stripH);
         }
         TextPainter.drawFloatingText(ctx, hud);
         if (isLastStand) this.drawLastStandBanner(ctx, time);

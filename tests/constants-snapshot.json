@@ -979,6 +979,28 @@
     "DAMAGE_TEXT_SCATTER": 10,
     "STATUS_TEXT_OFFSET_X": -45
   },
+  "HUD_STATUS_STRIP": {
+    "ICON": 20,
+    "GAP": 2,
+    "GROUP_GAP": 5,
+    "ABOVE_BAR": 3,
+    "MIN_SCREEN_PX": 20,
+    "MAX_SCALE": 2.2,
+    "MAX_BY_TIER": [
+      8,
+      6,
+      4,
+      2
+    ],
+    "SWEEP_MAX_TIER": 2,
+    "BAKE_SCALE": 3,
+    "GLYPH_FIT": 0.86,
+    "BG": "rgba(2, 6, 23, 0.88)",
+    "BORDER_WIDTH": 1.5,
+    "BORDER_DEBUFF": "#f87171",
+    "BORDER_BUFF": "#4ade80",
+    "SWEEP": "rgba(0, 0, 0, 0.6)"
+  },
   "ISO_SCALE_Y": 0.5,
   "KILL_SPREE_MAX_TIER": 7,
   "KILL_SPREE_MIN_KILLS": 2,
@@ -2285,6 +2307,12 @@
     "STREAK_LIFE": 3.5,
     "STREAK_SIZE": 32,
     "DAMAGE_RISE": 100,
+    "STAGGER": {
+      "WINDOW": 0.45,
+      "ROWS": 5,
+      "STEP_Y": 15,
+      "STEP_X": 40
+    },
     "SUCCESS_RISE": 400,
     "SUCCESS_LIFE": 0.3,
     "BREAK_RISE": 250,
@@ -2293,10 +2321,5 @@
     "BREAK_LIFE": 0.4,
     "SHOUT_DAMPING": 0.95,
     "STREAK_DAMPING": 0.92
-  },
-  "FROZEN_STREAK": {
-    "BOTTOM": 0.12,
-    "SLANT": 0.18,
-    "TOP": 0.85
   }
 }
