@@ -362,6 +362,12 @@
 - 傷害帶 `channel: 'DIRECT' | 'PERIODIC'`（只記錄，公式未分流）；危害跳傷間隔進 `HAZARD_RULES.TICK_INTERVAL`；batch-sim 統計危害區傷害。施法者死後不再吸血、不再自傷。
 - 驗證（主代理在 clone 重跑）：lint、951 測試、build、knip、smoke、保真全過，`battle_frozen` 0 差異。batch-sim 1500 場 seed 21 勝率 50.3%→50.0%、時間不變；超出 ±5% 的單招見 HANDOFF §2 A。
 
+### AR. 2026-10-30 多段命中視覺對齊、增減益視覺正規化（Sonnet 子代理，`feat/multi-hit-visuals`、`feat/cc-visual`）
+- 落點時間唯一來源 `engine/math/HitCadence.ts`（`skill.hits.cadence`：EVEN／ACCEL／CLUSTER），排程器與 `SkillSequences` 共用；`rr_u3`、`rb_u5` 的節奏改成傷害也照打。`rb_u5` 落點掛在 `VFXSequence.impact`，投射物抵達才播。黑洞每段 `FX_ULT_BLUE_BLACKHOLE_PULSE`。實跑探針 12 招落點與傷害同一 tick；1500 場勝率 50.0%→49.9%。
+- 羊、冰塊改 Blender 程式建模烘焙（`tools/assets/blender/render_cc_body.py`，共用 `bake_common.py`；`public/assets/cc_bodies/` 約 310 KB），羊項圈用遮罩依陣營上色，執行期只 `drawImage`。
+- 狀態視覺：16 組 `STATUS_*` 色帶（測試禁止狀態借陣營色帶）；`status_parts` 改用 `category`（HARD_CC／DEBUFF／BUFF…）；頭頂與腳下各只畫最高優先；新增 `StatusStripPainter` 圖示列（品質階層上限 8/6/4/2），`GaugePainter` 只剩詠唱；`SLOW` 腳踝箭頭；多段傷害數字錯開（`HUD_TEXT_MOTION.STAGGER`）。刪 `UIFactory.generateStatusIcon`、`AssetManager.getStatusIcon`。
+- `battle_frozen` 取證重錄一次（圖示列、數字錯開、狀態色；地形 5 張 0 差異，證據 `cc_fidelity_cmp.png`）。主代理在 clone 重跑：lint、991 測試、build、knip、smoke、`perf:guard`、保真全過。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
