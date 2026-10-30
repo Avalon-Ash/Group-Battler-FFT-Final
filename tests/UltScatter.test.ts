@@ -211,11 +211,14 @@ describe('UltScatter (UA6: Deterministic Sunflower Scatter for STORM)', () => {
     });
 
     describe('STORM Cadence (UF4: Timing Differentiation)', () => {
-        it('rr_u3 設定為 ACCEL 且時序前慢後快、總長不變', async () => {
-            const { ULT_VISUALS } = await import('../data/vfx/ult_visuals');
+        // 節奏現在是技能資料（skill.hits.cadence），傷害排程與畫面落點共用 engine/math/HitCadence；
+        // 這裡只驗畫面落點呈現的節奏形狀，逐段時間與偏移函式的一致性在 tests/MultiHitVisuals.test.ts
+        it('rr_u3 技能資料是 ACCEL，落點時序前慢後快、總長不變', async () => {
+            const { DEFAULT_SKILL_DB } = await import('../skillDatabase');
             const { SKILL_SEQUENCES } = await import('../data/vfx/SkillSequences');
 
-            expect(ULT_VISUALS['rr_u3'].cadence).toBe('ACCEL');
+            const hits = DEFAULT_SKILL_DB.find(s => s.id === 'rr_u3')!.hits!;
+            expect(hits.cadence).toBe('ACCEL');
             const seq = SKILL_SEQUENCES['rr_u3'];
             const stormActions = seq.actions.filter(a => a.type === 'PARTICLE' && a.scatterCount);
             expect(stormActions.length).toBe(8);
@@ -233,45 +236,49 @@ describe('UltScatter (UA6: Deterministic Sunflower Scatter for STORM)', () => {
             expect(intervals[intervals.length - 1]).toBeLessThan(intervals[0]);
 
             // 第一擊在 hitAt，最後一擊總時長與原本 (count - 1) * interval 相同
-            const nominalSpan = 7 * (ULT_VISUALS['rr_u3'].timing ?? 0.08);
-            expect(delays[0]).toBeCloseTo(seq.hitAt);
+            const nominalSpan = (hits.count - 1) * hits.interval;
+            expect(delays[0]).toBeCloseTo(seq.hitAt!);
             expect(delays[delays.length - 1] - delays[0]).toBeCloseTo(nominalSpan);
         });
 
-        it('rb_u5 設定為 CLUSTER 且呈現三擊一組的節奏', async () => {
-            const { ULT_VISUALS } = await import('../data/vfx/ult_visuals');
+        it('rb_u5 技能資料是 CLUSTER，落點在投射物抵達後呈現三擊一組的節奏', async () => {
+            const { DEFAULT_SKILL_DB } = await import('../skillDatabase');
             const { SKILL_SEQUENCES } = await import('../data/vfx/SkillSequences');
 
-            expect(ULT_VISUALS['rb_u5'].cadence).toBe('CLUSTER');
+            const hits = DEFAULT_SKILL_DB.find(s => s.id === 'rb_u5')!.hits!;
+            expect(hits.cadence).toBe('CLUSTER');
             const seq = SKILL_SEQUENCES['rb_u5'];
-            const stormActions = seq.actions.filter(a => a.type === 'PARTICLE' && a.scatterCount);
+            // 投射物多段：施放序列沒有落點，落點在 impact（時間軸從抵達起算）
+            expect(seq.actions.filter(a => a.type === 'PARTICLE' && a.scatterCount)).toHaveLength(0);
+            const stormActions = seq.impact!.actions.filter(a => a.type === 'PARTICLE' && a.scatterCount);
             expect(stormActions.length).toBe(8);
 
             const delays = stormActions.map(a => a.delay ?? 0);
+            expect(delays[0]).toBe(0);
             // 第 0, 1, 2 擊（組 0）內部間隔極短
             const intra1 = delays[1] - delays[0];
             const intra2 = delays[2] - delays[1];
-            expect(intra1).toBeCloseTo(0.05 * 0.5);
-            expect(intra2).toBeCloseTo(0.05 * 0.5);
+            expect(intra1).toBeCloseTo(hits.interval * 0.5);
+            expect(intra2).toBeCloseTo(hits.interval * 0.5);
 
             // 第 2 到第 3 擊（跨組）有明顯停頓
             const interGroup = delays[3] - delays[2];
             expect(interGroup).toBeGreaterThan(intra1 * 2);
         });
 
-        it('mr_u5 設定為 EVEN 且每擊等間隔', async () => {
-            const { ULT_VISUALS } = await import('../data/vfx/ult_visuals');
+        it('mr_u5 沒寫 cadence（EVEN），每擊等間隔', async () => {
+            const { DEFAULT_SKILL_DB } = await import('../skillDatabase');
             const { SKILL_SEQUENCES } = await import('../data/vfx/SkillSequences');
 
-            expect(ULT_VISUALS['mr_u5'].cadence).toBe('EVEN');
+            const hits = DEFAULT_SKILL_DB.find(s => s.id === 'mr_u5')!.hits!;
+            expect(hits.cadence ?? 'EVEN').toBe('EVEN');
             const seq = SKILL_SEQUENCES['mr_u5'];
             const stormActions = seq.actions.filter(a => a.type === 'PARTICLE' && a.scatterCount);
             expect(stormActions.length).toBe(8);
 
             const delays = stormActions.map(a => a.delay ?? 0);
-            const expectedInterval = ULT_VISUALS['mr_u5'].timing ?? 0.08;
             for (let i = 1; i < delays.length; i++) {
-                expect(delays[i] - delays[i - 1]).toBeCloseTo(expectedInterval);
+                expect(delays[i] - delays[i - 1]).toBeCloseTo(hits.interval);
             }
         });
     });

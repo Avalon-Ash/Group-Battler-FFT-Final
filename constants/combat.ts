@@ -178,7 +178,18 @@ export const COMBAT_PARAM = {
     MOVE_SPEED_NORMAL: 1.0,
     CHASE_SPEED_ULT: 1.4,
     CHASE_SPEED_NORMAL: 1.1,
-    HIT_FX_OFFSET: 8
+    HIT_FX_OFFSET: 8,
+    /** 多段命中 CLUSTER 節奏：每組段數（段）。 */
+    HIT_CLUSTER_SIZE: 3,
+    /** 多段命中 CLUSTER 節奏：組與組的間隔（倍 interval）。 */
+    HIT_CLUSTER_GAP_MULT: 2.5,
+    /** 多段命中 CLUSTER 節奏：組內相鄰兩段的間隔（倍 interval）。 */
+    HIT_CLUSTER_INTRA_MULT: 0.5,
+    /**
+     * 多段命中「到期」判定的浮點容差（s）。排程器與畫面序列（SequenceSystem）都拿「起點＋偏移」的浮點和去比逐 tick 累加的引擎時間，
+     * 剛好落在整數 tick 的邊界會差 1e-16 而慢一個 tick；兩邊用同一個容差，傷害與落點才會同一個 tick。
+     */
+    HIT_TIME_EPSILON_S: 1e-6
 };
 
 export const AGENT_CONSTANTS = {

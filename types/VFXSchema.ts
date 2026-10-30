@@ -44,6 +44,12 @@ export interface VFXSequence {
      * 延後 max(0, 詠唱時間 − hitAt) 才開始，讓命中落在傷害結算（詠唱結束）那一刻；未設＝0。
      */
     hitAt?: number;
+    /**
+     * 投射物多段命中（rb_u5）：傷害從投射物抵達才開始，所以命中動作不能排在施放序列裡。
+     * 這裡的時間軸從 PROJECTILE_HIT（抵達）那一刻起算、delay 就是 skill.hits 的各段時間偏移；
+     * VisualSystem 在 PROJECTILE_HIT 事件播它，落點綁在被打中的目標身上。施放序列（actions）只留起手。
+     */
+    impact?: VFXSequence;
 }
 
 /**

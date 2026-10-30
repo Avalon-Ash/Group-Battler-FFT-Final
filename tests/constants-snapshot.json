@@ -654,7 +654,11 @@
     "MOVE_SPEED_NORMAL": 1,
     "CHASE_SPEED_ULT": 1.4,
     "CHASE_SPEED_NORMAL": 1.1,
-    "HIT_FX_OFFSET": 8
+    "HIT_FX_OFFSET": 8,
+    "HIT_CLUSTER_SIZE": 3,
+    "HIT_CLUSTER_GAP_MULT": 2.5,
+    "HIT_CLUSTER_INTRA_MULT": 0.5,
+    "HIT_TIME_EPSILON_S": 0.000001
   },
   "CORE_VISUAL": {
     "hoverHeight": 26,

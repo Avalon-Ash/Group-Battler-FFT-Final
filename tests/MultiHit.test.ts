@@ -354,16 +354,15 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
             expect(periodic.channel).toBe('PERIODIC');
         });
 
-        it('STORM 類奧義與黑洞都有 hits，段數與間隔對得上奧義視覺表（STORM：count／timing）', () => {
+        it('STORM 類奧義與黑洞都有 hits；視覺表不再重複寫段數與節奏（落點讀技能資料，見 MultiHitVisuals.test.ts）', () => {
             const storms = ['wb_u4', 'rb_u2', 'rb_u5', 'mb_u4', 'sb_u3', 'sb_u5', 'wr_u2', 'wr_u4', 'rr_u3', 'rr_u5', 'mr_u5'];
             for (const id of storms) {
                 const skill = DEFAULT_SKILL_DB.find(s => s.id === id);
                 const visual = ULT_VISUALS[id];
                 expect(skill?.hits, id).toBeDefined();
                 expect(visual.archetype, id).toBe('STORM');
-                expect(skill!.hits!.count, id).toBe(visual.count);
-                // 視覺表沒寫 timing 時，SkillSequences 用 STORM_INTERVAL_S 0.1
-                expect(skill!.hits!.interval, id).toBe(visual.timing ?? 0.1);
+                expect(visual.count, id).toBeUndefined();
+                expect(visual.timing, id).toBeUndefined();
             }
             const hole = DEFAULT_SKILL_DB.find(s => s.id === 'mb_u1')!;
             expect(hole.hits).toBeDefined();

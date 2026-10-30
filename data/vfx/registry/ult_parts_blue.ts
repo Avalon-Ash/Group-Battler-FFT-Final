@@ -1,6 +1,6 @@
 import { VFXAsset } from "../../../types/VFXSchema";
 import { part } from "./ult_parts";
-import { ULT_SEQUENCE, chargedImpactAt } from "../ult_visuals";
+import { ULT_SEQUENCE, chargedImpactAt, ultHitSpan } from "../ult_visuals";
 
 /** 充能式命中時刻（從詠唱開始起算） */
 const HIT = ULT_SEQUENCE.CHARGED_HIT_AT;
@@ -21,6 +21,10 @@ const RB_U3_ARROW = { APPEAR: 0.3, Z_START: 300, Z_CAST_END: 280, HOLD: 0.2 } as
 const RB_U3_ARROW_LIFE = RB_U3_IMPACT + RB_U3_ARROW.HOLD - RB_U3_ARROW.APPEAR;
 /** sb_u2 生效＝詠唱結束＋落下時間（天降時序；這招沒有落下物，生命光瓣在等待期間綻開） */
 const SB_U2_IMPACT = chargedImpactAt('sb_u2');
+/** mb_u1 黑洞：最後一段命中＝詠唱結束＋skill.hits 的總長；奇點在最後一次內爆脈衝後 COLLAPSE_LAG 坍縮（持續段涵蓋全部段數） */
+const MB_U1_LAST_HIT = HIT + ultHitSpan('mb_u1');
+const MB_U1 = { DISC_START: 0.1, SINGULARITY_START: 0.2, COLLAPSE_LAG: 0.1, COLLAPSE_LIFE: 0.3 } as const;
+const MB_U1_COLLAPSE = MB_U1_LAST_HIT + MB_U1.COLLAPSE_LAG;
 /** tb_u4 巨拳：顯形、抬起高度、命中後停留 */
 const TB_U4_FIST = { APPEAR: 0.3, Z_START: 150, Z_TOP: 200, TOP_AT: 1.2, HOLD: 0.4 } as const;
 const TB_U4_FIST_LIFE = HIT + TB_U4_FIST.HOLD - TB_U4_FIST.APPEAR;
@@ -245,32 +249,46 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // mb_u1 奧術漩渦（範圍 3 牽引，充能式，hit＝ULT_SEQUENCE.CHARGED_HIT_AT 1.5 s）：
+    // mb_u1 奧術漩渦（範圍 3 牽引，充能式，4 段命中，第 0 段＝ULT_SEQUENCE.CHARGED_HIT_AT 1.5 s，之後依 skill.hits）：
     // 詠唱期間螺旋吸積帶在目標地面成形、一邊旋轉一邊往內收，碎晶被吸進去，上空多面奇點從小長大 →
-    // 1.5 s 命中（傷害＋牽引）：大亮環向內壓縮、內圈快轉吸積帶收進奇點 → 約 2.6 s 奇點坍縮放出衝擊環。
+    // 1.5 s 第一段命中：奇點放出初爆柔光 → 每一段命中（含第一段）由 FX_ULT_BLUE_BLACKHOLE_PULSE 各播一次內爆脈衝 →
+    // 最後一段命中後 COLLAPSE_LAG 奇點坍縮放出衝擊環。持續段（吸積盤、奇點、碎晶）涵蓋全部段數，時間讀 skill.hits（ultHitSpan）。
     // 魔法能量體（ULT-V01 美術方向）：奇點是半透明多面能量核＋亮邊，不是黑煙球；吸積帶是彎曲光帶，不是直線放射。
     // 吸積帶與壓縮環只畫牽引的實際作用（向心），範圍不超過 3 格（C6）。
     'FX_ULT_BLUE_BLACKHOLE': {
         id: 'FX_ULT_BLUE_BLACKHOLE',
         emitters: [
-            // 吸積盤（0.1–2.7 s）：三條彎曲光帶，負 vRotation＝往內流，整盤由 1.25 收到 0.45（120 * 1.25 * 1.4 = 210px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 120, arms: 3, turns: 0.75, thickness: 22, ramp: 'LION_VOID' }, count: 1, lifetime: 2.6, delay: 0.1, size: 120, vRotation: -2.2,
+            // 吸積盤（涵蓋全部段數）：三條彎曲光帶，負 vRotation＝往內流，整盤由 1.25 收到 0.45（120 * 1.25 * 1.4 = 210px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 120, arms: 3, turns: 0.75, thickness: 22, ramp: 'LION_VOID' }, count: 1, lifetime: MB_U1_COLLAPSE - MB_U1.DISC_START, delay: MB_U1.DISC_START, size: 120, vRotation: -2.2,
                 partAnim: { scaleFrom: 1.25, scaleTo: 0.45, ease: 'linear', fadeIn: 0.3, fadeOut: 0.2 } }),
-            // 向心碎晶：整段詠唱往中心掉
-            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_VOID' }, count: [14, 18], lifetime: [0.45, 0.6], delay: [0.05, 1.6], size: 8,
+            // 向心碎晶：從詠唱到最後一段命中前持續往中心掉
+            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_VOID' }, count: [20, 26], lifetime: [0.45, 0.6], delay: [0.05, MB_U1_LAST_HIT - 0.3], size: 8,
                 shape: 'CIRCLE', shapeRadius: 150, speed: [-320, -240], vRotation: [-6, 6], partAnim: { fadeIn: 0.25, fadeOut: 0.25 } }),
-            // 多面奇點（0.2–2.75 s）：懸在目標上空，從 0.25 長到全尺寸，坍縮時快速淡出
-            part({ particleType: 'PART', part: { kind: 'construct', shape: 'singularity', size: 64, ramp: 'ASH_VOID' }, count: 1, lifetime: 2.55, delay: 0.2, size: 64, vRotation: 0.6, groundAnchored: true,
+            // 多面奇點（涵蓋全部段數）：懸在目標上空，從 0.25 長到全尺寸，坍縮時快速淡出
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'singularity', size: 64, ramp: 'ASH_VOID' }, count: 1, lifetime: MB_U1_COLLAPSE - MB_U1.SINGULARITY_START, delay: MB_U1.SINGULARITY_START, size: 64, vRotation: 0.6, groundAnchored: true,
                 partAnim: { scaleFrom: 0.25, scaleTo: 1, fadeIn: 0.2, fadeOut: 0.12, rise: [{ at: 0, z: 100 }] } }),
-            // 命中主爆發（1.5 s）：亮環向內壓縮（半徑最大的 ring，C2；120 * 1.2 * 1.4 = 201.6px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 120, thickness: 10, ramp: 'LION_VOID' }, count: 1, lifetime: 0.35, delay: 1.5, size: 120,
-                partAnim: { scaleFrom: 1.2, scaleTo: 0.25, ease: 'in', fadeOut: 0.3 } }),
-            // 內圈快轉吸積帶（1.4–2.6 s）：命中後更緊更快地收進奇點
-            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 80, arms: 4, turns: 1, thickness: 12, ramp: 'LION_VOID' }, count: 1, lifetime: 1.2, delay: 1.4, size: 80, vRotation: -5,
-                partAnim: { scaleFrom: 1.1, scaleTo: 0.3, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
-            // 坍縮（2.6 s）：奇點消失時放出擴張衝擊環（C7；64 * 1.3 * 1.4 = 116.5px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.3, delay: 2.6, size: 64,
+            // 第一段命中的初爆（1.5 s）：奇點上空的柔光，比各段脈衝的核心閃大（96），讓第一段是最重的一下
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.4, delay: HIT, size: 96, groundAnchored: true,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7, alpha: 0.5, rise: [{ at: 0, z: 100 }] } }),
+            // 坍縮（最後一段命中後）：奇點消失時放出擴張衝擊環（C7；64 * 1.3 * 1.4 = 116.5px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_ARCANE' }, count: 1, lifetime: MB_U1.COLLAPSE_LIFE, delay: MB_U1_COLLAPSE, size: 64,
                 partAnim: { scaleFrom: 0.2, scaleTo: 1.3, fadeOut: 0.6 } }),
+        ],
+    },
+    // mb_u1 每一段命中的內爆脈衝（ult_visuals.hitFx；SkillSequences 在每段命中時刻各播一次，4 段互相疊也不洗白）：
+    // 亮環向內壓縮（120 * 1.2 * 1.4 = 201.6px）＋內圈吸積帶快轉收進奇點＋核心閃一下＋少量向心碎晶。
+    // 主形狀（環、吸積帶、核心閃）各 1 顆，低品質階層也留得住；碎晶是裝飾，階層降級時先減。
+    'FX_ULT_BLUE_BLACKHOLE_PULSE': {
+        id: 'FX_ULT_BLUE_BLACKHOLE_PULSE',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 120, thickness: 10, ramp: 'LION_VOID' }, count: 1, lifetime: 0.35, delay: 0, size: 120,
+                partAnim: { scaleFrom: 1.2, scaleTo: 0.25, ease: 'in', fadeOut: 0.3 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 80, arms: 4, turns: 1, thickness: 12, ramp: 'LION_VOID' }, count: 1, lifetime: 0.4, delay: 0, size: 80, vRotation: -5,
+                partAnim: { scaleFrom: 1.1, scaleTo: 0.3, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 40, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.25, delay: 0, size: 40, groundAnchored: true,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.3, fadeOut: 0.7, rise: [{ at: 0, z: 100 }] } }),
+            part({ particleType: 'PART', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_VOID' }, count: [4, 6], lifetime: [0.25, 0.35], delay: 0, size: 6,
+                shape: 'CIRCLE', shapeRadius: 120, speed: [-420, -300], vRotation: [-6, 6], partAnim: { fadeIn: 0.1, fadeOut: 0.3 } }),
         ],
     },
 

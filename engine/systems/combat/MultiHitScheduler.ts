@@ -1,7 +1,8 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  MultiHitScheduler — 多段命中排程（docs/MULTI_HIT_DESIGN.md）║
-// ║  職責：skill.hits 的技能結算後，第 i 段在施放時刻＋i×interval   ║
-// ║        呼叫一次 resolveHit（威力 1/N）；AOE 每段重新判定範圍內   ║
+// ║  職責：skill.hits 的技能結算後，第 i 段在施放時刻＋hitOffset(i)  ║
+// ║        （節奏見 engine/math/HitCadence.ts）呼叫一次 resolveHit  ║
+// ║        （威力 1/N）；AOE 每段重新判定範圍內                     ║
 // ║        的單位，單體鎖定原目標；硬控等一次性狀態每個目標只套一次 ║
 // ║  上游：SkillExecutor.deliverHits（技能結算、投射物抵達）；      ║
 // ║        CombatSystem.update 每 tick 呼叫 update                  ║
@@ -13,14 +14,15 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Agent, GameEngine } from "../../game";
-import type { Hex, Skill } from "../../../types";
+import type { Hex, Skill, SkillHits } from "../../../types";
+import { hitOffset } from "../../math/HitCadence";
+import { COMBAT_PARAM } from "../../../constants";
 import type { SkillExecutor } from "./SkillExecutor";
 
 interface PendingCast {
     source: Agent;
     skill: Skill;
-    count: number;
-    interval: number;
+    hits: SkillHits;
     /** 施放（第 0 段）的引擎時間 */
     startTime: number;
     /** 下一個要打的段序號 */
@@ -60,8 +62,7 @@ export class MultiHitScheduler {
         const cast: PendingCast = {
             source,
             skill,
-            count: hits.count,
-            interval: hits.interval,
+            hits,
             startTime: engine.battleTime,
             nextIndex: 0,
             origin,
@@ -70,7 +71,7 @@ export class MultiHitScheduler {
             statusApplied: new Set<string>(),
         };
         this.strike(cast, targets, engine);
-        if (cast.nextIndex < cast.count) this.pending.push(cast);
+        if (cast.nextIndex < cast.hits.count) this.pending.push(cast);
     }
 
     public update(engine: GameEngine) {
@@ -80,11 +81,11 @@ export class MultiHitScheduler {
             const cast = list[i];
             // 重開戰鬥後 battleTime 倒退：舊排程作廢
             let alive = engine.battleTime >= cast.startTime;
-            while (alive && cast.nextIndex < cast.count && engine.battleTime >= cast.startTime + cast.nextIndex * cast.interval) {
+            while (alive && cast.nextIndex < cast.hits.count && engine.battleTime >= cast.startTime + hitOffset(cast.hits, cast.nextIndex) - COMBAT_PARAM.HIT_TIME_EPSILON_S) {
                 if (cast.source.banished) { alive = false; break; }
                 this.strike(cast, this.targetsFor(cast, engine), engine);
             }
-            if (alive && cast.nextIndex < cast.count) list[keep++] = cast;
+            if (alive && cast.nextIndex < cast.hits.count) list[keep++] = cast;
         }
         list.length = keep;
     }
@@ -100,9 +101,9 @@ export class MultiHitScheduler {
         cast.nextIndex++;
         for (const target of targets) {
             const outcome = this.executor.resolveHit(cast.source, target, cast.skill, cast.origin, engine, undefined, {
-                powerScale: 1 / cast.count,
+                powerScale: 1 / cast.hits.count,
                 hitIndex: index,
-                hitCount: cast.count,
+                hitCount: cast.hits.count,
                 statusesApplied: cast.statusApplied.has(target.id),
             });
             if (outcome?.landed) cast.statusApplied.add(target.id);

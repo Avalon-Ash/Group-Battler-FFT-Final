@@ -139,7 +139,7 @@ export const BLUE_ULT: Skill[] = [
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1000, color: '#ffffff', 
         visual: 'BOLT', projectileSpeed: 2500, 
-        hits: { count: 8, interval: 0.05 },
+        hits: { count: 8, interval: 0.05, cadence: 'CLUSTER' },
         visualHitEffect: 'FX_ULT_BLUE_OVERLOAD', element: 'PHYSICAL'
     },
 

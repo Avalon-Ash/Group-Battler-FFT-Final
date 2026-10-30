@@ -151,6 +151,7 @@ export class RenderSpec {
         s += "  - 已生成的粒子：鎖定前由綁定序列派發出的粒子（充能式奧義在詠唱開始就生成全部粒子，命中發射器靠粒子 delay 倒數）每幀隨錨點平移（x、y 跟錨點，高度只補目標腳下地面的高低差；光束不動），鎖定後留在鎖定位置。\n";
         s += "  - 目標邊界：目標該幀被命中致死但在 `engine.agents` 中時仍可取錨點；目標移出集合則沿用最後有效快照。\n";
         s += "  - 排除對象：AOE 地面目標模式、正速度投射物、天降類（HEAVEN_FALL 動作或 ultImpactDelay > 0）與無有效目標者維持靜態快照。\n";
+        s += "- **多段命中的落點時點**：畫面落點的時間與傷害同一刻——第 i 段＝第 0 段時刻＋`hitOffset(skill.hits, i)`（`engine/math/HitCadence.ts`，MultiHitScheduler 與 SkillSequences 共用的唯一偏移來源）。一般多段奧義排在施放序列（第 0 段＝hitAt）；投射物多段奧義（`VFXSequence.impact`，目前 rb_u5）排在 impact 時間軸，由 VisualSystem 在 PROJECTILE_HIT 事件起算（第 0 段＝抵達那一刻），綁定被打中的目標（`targetId`、`lockAt＝抵達＋最後一個動作的 delay`）：落點取樣與鎖定規則同上，已生成的落點粒子跟隨目標平移到最後一段，之後定在原地。\n";
         s += "- **詠唱取消**：每次 `SequenceSystem.run` 有編號，派發出的粒子記 `seqRun`。CAST_START 的序列（`castRun`）被 CAST_BREAK 取消時，清掉該施法者的待派發動作與該次序列已生成的粒子；同一施法者更早的序列餘波不受影響。\n\n";
 
         s += "--- \n\n";
