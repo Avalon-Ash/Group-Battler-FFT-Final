@@ -30,6 +30,7 @@ description: 審查 Gemini（或子工作階段）跑完的分支 diff、決定�
 - 這輪動到架構（Facade、系統邊界、SSOT 位置、事件流）→ 同步更新 `docs/ARCHITECTURE_WHITEPAPER.md`（`tests/WhitepaperDrift.test.ts` 檢查佔位符）。
 - 程式碼、保真重錄（獨立 commit＋證據）、文件分開 commit。
 - 這一輪有重複踩到的環境錯誤（指令寫法、編碼、路徑、工具行為，2 次以上或一次造成損失）→ 在 `docs/METHODOLOGY.md` §6 環境事實補一條；被推翻的舊事實同時刪掉（規則見該節）。
+- 約每 5 輪跑一次 `node tools/agent/tool-usage-audit.mjs`（工具修剪證據）；有建議時問使用者要不要加進 `.claude/settings.json` 的 `permissions.deny`，在工作階段結尾才改。
 - `docs/WORKLOG.md` 加一節：日期＋一句話結論＋commit／報告位置。
 - `docs/HANDOFF.md` 刪掉做完的 TBD，加上新的「待使用者實機確認」。**逐行重讀 §1「目前狀態」**，把不再成立的句子改掉或刪掉；§1 不寫 commit SHA、分支清單這類每次合併都會過時的快照（以 `git log` 為準）。2026-10-29 發現 §1 停在 10-26 三天沒更新，原因是這條只要求更新 TBD、沒要求檢查 §1。
 
