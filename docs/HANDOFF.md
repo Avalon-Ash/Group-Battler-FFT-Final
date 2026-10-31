@@ -8,7 +8,7 @@
 - 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）。最近完成：OPT-01（WORKLOG §2 AH～AO）。
 - **額度**：Claude（Pro）每週要省。**Codex 週額度 2026-10-29 剩 4%：暫停派 Codex**（Codex 現在只派美術視覺與邏輯根因）。長線實作走 agy 的 Gemini 3.8 Flash，要判斷的收回 Claude（`agent-prompt` skill）。Antigravity 額度由使用者回報、記在 `~/.claude/QUOTA.md`。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
-- 本機殘留：分支 `codex/lionheart-warrior-skins`（skin 試作，成果已由 S0～S4 匯入 `main`，14 個 commit 未合併，等使用者確認可刪）；`C:\Git\_wt_r1`、`C:\Git\_wt_opt-*`、`_wt_melee`、`_wt_render`、`_wt_multihit`、`_wt_mhvis`（已合併的暫存 clone，被鎖或權限擋下，使用者手動刪）。
+- 本機殘留：skin 試作分支已刪（11-01，使用者同意），本機標籤 `archive/lionheart-skin-trials` 保留 S0 沒收的預覽圖與 OPUS 交接；`C:\Git\_wt_r1`、`C:\Git\_wt_opt-*`、`_wt_melee`、`_wt_render`、`_wt_multihit`、`_wt_mhvis`（已合併的暫存 clone，被鎖或權限擋下，使用者手動刪）。
 - 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 2026-10-29 起**凍結**（OPT-01 決定）：逐檔人工審計改由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、O5a 起的 `NoLocalHash`）。清冊只當歷史索引，不再逐列補標。
 - 座標 findings：COORD-SINK-01（受擊下坡下陷 1.89 px）使用者 2026-10-26 實機幾乎看不到，**不修**，有新證據（更大的下陷、玩家看得見）才重開；COORD-VOID-01 屬量測工具問題，同樣擱置。已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
 
