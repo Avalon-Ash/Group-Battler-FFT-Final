@@ -13,6 +13,11 @@
 import { RENDER_PERF } from '../../constants';
 import { RenderStats } from './RenderStats';
 
+/** 效能診斷文字顏色 */
+const DEBUG_TEXT_COLOR = '#f59e0b';
+/** 效能診斷文字 Y 軸位置（px） */
+const DEBUG_TEXT_Y = 44;
+
 export interface OpCounts {
     shadowBlur: number;
     save: number;
@@ -278,10 +283,10 @@ export class CtxOpCounterCollector {
         if (!this.enabled) return;
         const text = this.formatSummary();
         if (!text) return;
-        ctx.fillStyle = '#f59e0b';
+        ctx.fillStyle = DEBUG_TEXT_COLOR;
         ctx.font = '10px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(text, 10, 44);
+        ctx.fillText(text, 10, DEBUG_TEXT_Y);
     }
 }
 

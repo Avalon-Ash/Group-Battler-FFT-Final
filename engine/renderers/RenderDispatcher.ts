@@ -19,6 +19,7 @@ import { ParticleRenderer } from "../presentation/vfx/renderers/ParticleRenderer
 import { ProjectilePartPainter } from "../presentation/vfx/renderers/painters/ProjectilePartPainter";
 import { HexLayout } from "../../types";
 import { UnitRenderSystem } from "../presentation/unit";
+import { RENDER_DISPATCH_PARAM } from "../../constants";
 
 export class RenderDispatcher {
     /**
@@ -63,7 +64,7 @@ export class RenderDispatcher {
                 let finalAlpha = op.alpha;
                 if (op.z < 0) {
                     // 掉落深度越深，透明度越低 (從 0 到 -1000 掉落)
-                    finalAlpha = Math.max(0, 1.0 - (Math.abs(op.z) / 800));
+                    finalAlpha = Math.max(0, 1.0 - (Math.abs(op.z) / RENDER_DISPATCH_PARAM.Z_FADE_DIST_PX));
                 }
                 TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout, finalAlpha, op.tq, op.tr, op.tEdge, op.tBase);
                 TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr, globalTime, layout, op.ttheme, finalAlpha);

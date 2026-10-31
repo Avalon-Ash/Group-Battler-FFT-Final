@@ -20,6 +20,11 @@ import { terrainTextureStore } from "./TerrainTextureStore";
 import { obstacleSpriteStore } from "./ObstacleSpriteStore";
 import { getEdgeTable } from "./GridCache";
 
+/** 六角形邊數（邊） */
+const HEX_SIDES = 6;
+/** 邊緣滴流光暈淡出底色 */
+const GLOW_FADE_COLOR = 'rgba(0,0,0,0)';
+
 /** lastSpriteByTile 的格子鍵：(q+OFFSET)*SPAN+(r+OFFSET)，地圖座標遠小於 ±OFFSET */
 const TILE_KEY_OFFSET = 1024;
 const TILE_KEY_SPAN = 2048;
@@ -92,9 +97,9 @@ function paintEdgeDecor(sCtx: CanvasRenderingContext2D, type: string, vertices: 
     if (!cfg) return;
     sCtx.save();
     sCtx.lineCap = 'round';
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < HEX_SIDES; i++) {
         if (((edgeMask >> i) & 1) === 0 || !isFront[i]) continue;
-        const a = vertices[i], b = vertices[(i + 1) % 6];
+        const a = vertices[i], b = vertices[(i + 1) % HEX_SIDES];
         const len = Math.hypot(b.x - a.x, b.y - a.y);
         const at = (t: number) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
         if (cfg.kind === 'FRINGE') {
@@ -147,7 +152,7 @@ function paintEdgeDecor(sCtx: CanvasRenderingContext2D, type: string, vertices: 
                     const L = cfg.dripMin + (cfg.dripMax - cfg.dripMin) * edgeHash(variant, i, j + TERRAIN_DRAW.GLOW_LENGTH_SEED);
                     const g = sCtx.createLinearGradient(p.x, p.y, p.x, p.y + L);
                     g.addColorStop(0, cfg.color);
-                    g.addColorStop(1, 'rgba(0,0,0,0)');
+                    g.addColorStop(1, GLOW_FADE_COLOR);
                     sCtx.strokeStyle = g;
                     sCtx.lineWidth = cfg.width * TERRAIN_DRAW.GLOW_WIDTH;
                     sCtx.beginPath(); sCtx.moveTo(p.x, p.y); sCtx.lineTo(p.x, p.y + L); sCtx.stroke();
@@ -316,7 +321,7 @@ export const TerrainRenderer = {
         }
 
         let minVx = Infinity, maxVx = -Infinity, minVy = Infinity, maxVy = -Infinity;
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < HEX_SIDES; i++) {
             const v = vertices[i];
             if (v.x < minVx) minVx = v.x;
             if (v.x > maxVx) maxVx = v.x;
@@ -442,7 +447,7 @@ export const TerrainRenderer = {
             sCtx.save();
             sCtx.beginPath();
             sCtx.moveTo(vertices[0].x, vertices[0].y);
-            for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
+            for (let i = 1; i < HEX_SIDES; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
             sCtx.closePath();
             sCtx.clip();
 
@@ -484,9 +489,9 @@ export const TerrainRenderer = {
             // 鄰格高度遮罩（只在烘焙時處理）：前側有落差邊 → 崖邊亮邊；背側鄰格較高 → 接觸陰影
             const edgeCfg = TERRAIN_SKIN.edge;
             const edgeTable = getEdgeTable(layout);
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < HEX_SIDES; i++) {
                 if (((edgeMask >> i) & 1) === 0) continue;
-                const a = vertices[i], b = vertices[(i + 1) % 6];
+                const a = vertices[i], b = vertices[(i + 1) % HEX_SIDES];
                 if (edgeTable.edgeIsFront[i]) {
                     // 線寬取兩倍，外半被頂面 clip 切掉，內半即為亮邊
                     sCtx.beginPath();
@@ -519,8 +524,8 @@ export const TerrainRenderer = {
             // 頂面輪廓線：平接邊淡化、有落差邊維持較強 alpha
             sCtx.strokeStyle = theme.rim;
             sCtx.lineWidth = TERRAIN_DRAW.TEXTURED_RIM_WIDTH;
-            for (let i = 0; i < 6; i++) {
-                const a = vertices[i], b = vertices[(i + 1) % 6];
+            for (let i = 0; i < HEX_SIDES; i++) {
+                const a = vertices[i], b = vertices[(i + 1) % HEX_SIDES];
                 sCtx.beginPath();
                 sCtx.moveTo(a.x, a.y);
                 sCtx.lineTo(b.x, b.y);
@@ -534,7 +539,7 @@ export const TerrainRenderer = {
             sCtx.fillStyle = theme.top;
             sCtx.beginPath();
             sCtx.moveTo(vertices[0].x, vertices[0].y);
-            for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
+            for (let i = 1; i < HEX_SIDES; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
             sCtx.closePath();
             sCtx.fill();
             paintStaticDetail(sCtx, size, theme, type, variant);

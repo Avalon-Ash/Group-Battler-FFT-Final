@@ -6,6 +6,9 @@ import { DEFAULT_FRAME_COUNTS } from "../../../../data/units/appearance/selectSp
 import { VisualMath } from "../../../math/VisualMath";
 import { computeDeathOffset, DeathOffset } from "../../../../data/units/appearance/deathMotion";
 
+/** 死亡淡出時間差下限（秒，避免除以零） */
+const MIN_FADE_SPAN_S = 0.01;
+
 export class UnitDeathPainter {
 
     /**
@@ -49,7 +52,7 @@ export class UnitDeathPainter {
         let fadeAlpha = 1.0;
         let sinkY = 0;
         if (agent.deathTimer > fadeStart) {
-            const fadeProg = Math.min(1.0, (agent.deathTimer - fadeStart) / Math.max(0.01, duration - fadeStart));
+            const fadeProg = Math.min(1.0, (agent.deathTimer - fadeStart) / Math.max(MIN_FADE_SPAN_S, duration - fadeStart));
             fadeAlpha = 1.0 - fadeProg;
             sinkY = fadeProg * UNIT_SPRITE.deathSinkDistance;
         }

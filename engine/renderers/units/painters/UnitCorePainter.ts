@@ -23,6 +23,12 @@ import { resolveBodyType } from "../../../../data/units/appearance/bodyTypes";
 import { VisualMath } from "../../../math/VisualMath";
 
 const TWO_PI = Math.PI * 2;
+/** 核心相位 Q 軸散列倍率 */
+const PHASE_Q_MUL = 1.7;
+/** 核心相位 R 軸散列倍率 */
+const PHASE_R_MUL = 2.9;
+/** 核心呼吸光暈頻率（弧度／秒） */
+const PULSE_FREQ = 5;
 
 export interface CoreDrawOptions {
     /** 施法中：光暈拉滿並略微放大 */
@@ -82,7 +88,7 @@ export const UnitCorePainter = {
         UnitCorePainter.drawCore(ctx, agent.team, agent.role, body, layout, t, {
             casting: agent.castingSkillIdx !== -1,
             alpha: weight,
-            phase: agent.q * 1.7 + agent.r * 2.9,
+            phase: agent.q * PHASE_Q_MUL + agent.r * PHASE_R_MUL,
             lift,
             projected,
             flash: Math.min(1, Math.max(0, agent.view.hitFlashTimer / UNIT_SPRITE.hitFlashDuration)),
@@ -101,7 +107,7 @@ export const UnitCorePainter = {
         const lift = opts.lift ?? CORE_VISUAL.hoverHeight;
         // 投影成形後寶石不再上下浮動（它藏在角色裡，浮動由角色本身的待機起伏負責）
         const bob = Math.sin((t / CORE_VISUAL.bobPeriod + opts.phase) * TWO_PI) * CORE_VISUAL.bobAmplitude * (1 - k);
-        const pulse = Math.sin(t * 5 + opts.phase);
+        const pulse = Math.sin(t * PULSE_FREQ + opts.phase);
         const solidGlow = opts.casting
             ? CORE_VISUAL.castGlow + pulse * CORE_VISUAL.castGlowPulse
             : CORE_VISUAL.idleGlow + pulse * CORE_VISUAL.idleGlowPulse;

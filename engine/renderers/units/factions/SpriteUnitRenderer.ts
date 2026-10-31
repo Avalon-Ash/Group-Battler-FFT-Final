@@ -17,6 +17,11 @@ import { resolveBodyType, BODY_TYPE_PROFILE } from '../../../../data/units/appea
 import { lookupSpriteAppearance } from '../../../../data/units/appearance/sprite';
 import { selectSpriteFrame } from '../../../../data/units/appearance/selectSpriteFrame';
 
+/** 受擊抖動頻率（弧度／秒） */
+const HIT_SHAKE_FREQ = 80;
+/** 受擊閃白時間後備值（秒） */
+const HIT_FLASH_FALLBACK_S = 0.15;
+
 export interface SpriteDrawRect {
     dx: number;
     dy: number;
@@ -184,7 +189,7 @@ export const SpriteUnitRenderer = {
 
         // 受擊輕微抖動
         if (agent.view.hitFlashTimer > 0) {
-            const hitShake = Math.sin(t * 80) * 2;
+            const hitShake = Math.sin(t * HIT_SHAKE_FREQ) * 2;
             dx += hitShake;
         }
 
@@ -203,7 +208,7 @@ export const SpriteUnitRenderer = {
         if (agent.view.hitFlashTimer > 0) {
             const silhouetteAtlas = spriteAtlasStore.getSilhouette(manifestKey, mipLevel);
             if (silhouetteAtlas) {
-                const flashAlpha = Math.min(1.0, agent.view.hitFlashTimer / (UNIT_SPRITE.hitFlashDuration || 0.15));
+                const flashAlpha = Math.min(1.0, agent.view.hitFlashTimer / (UNIT_SPRITE.hitFlashDuration || HIT_FLASH_FALLBACK_S));
                 ctx.save();
                 ctx.globalAlpha = flashAlpha * r.flashStrength;
                 ctx.drawImage(silhouetteAtlas, sx, sy, sw, sh, dx, dy, dw, dh);

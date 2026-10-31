@@ -13,6 +13,11 @@ import { ULT_FEEL, HEX_SIZE } from "../../../constants";
 import { createCanvas } from "../../graphics/CanvasUtils";
 import { Team } from "../../../types";
 
+/** 命中光爆中段漸層位置（比例） */
+const MID_STOP = 0.25;
+/** 命中光爆邊緣漸層位置（比例） */
+const EDGE_STOP = 0.65;
+
 export class UltWorldRenderer {
     /** 預烘焙命中光爆 sprite（藍方：聖光藍白） */
     private readonly impactSpriteBlue: HTMLCanvasElement;
@@ -36,8 +41,8 @@ export class UltWorldRenderer {
 
         const grad = ctx.createRadialGradient(r, r, 0, r, r, r);
         grad.addColorStop(0, coreColor);
-        grad.addColorStop(0.25, midColor);
-        grad.addColorStop(0.65, edgeColor);
+        grad.addColorStop(MID_STOP, midColor);
+        grad.addColorStop(EDGE_STOP, edgeColor);
         grad.addColorStop(1, 'transparent');
 
         ctx.fillStyle = grad;

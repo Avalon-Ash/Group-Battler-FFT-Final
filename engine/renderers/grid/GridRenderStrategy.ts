@@ -11,7 +11,7 @@ import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
-import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, ZONE_RENDER } from "../../../constants";
+import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, ZONE_RENDER, GRID_TRANSITION_PARAM } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 
@@ -35,7 +35,7 @@ export class GridRenderStrategy {
         transitionPhase: 'IN' | 'OUT' | 'IDLE',
         globalTime: number
     ) {
-        if (transitionPhase === 'OUT' && transitionT > 0.95) return;
+        if (transitionPhase === 'OUT' && transitionT > GRID_TRANSITION_PARAM.OUT_SKIP_T) return;
 
         cache.ensure(engine);
         const scene = engine.currentScene;
@@ -76,7 +76,7 @@ export class GridRenderStrategy {
             const visualSurfaceY = VisualMath.getIsoVisualY(visualBaseY, h);
             const bob = floating ? VisualMath.floatBobAt(px, py, globalTime) : 0;
 
-            if (Math.abs(offset) > 800) continue;
+            if (Math.abs(offset) > GRID_TRANSITION_PARAM.CULL_OFFSET_PX) continue;
 
             const obstacleType = engine.obstacles.get(key);
             if (obstacleType) {
@@ -164,7 +164,7 @@ export class GridRenderStrategy {
             const fallVisualOffset = -z * ISO_SCALE_Y;
             const visualBaseY = pos.y + offset + fallVisualOffset;
 
-            if (Math.abs(offset) > 800) continue;
+            if (Math.abs(offset) > GRID_TRANSITION_PARAM.CULL_OFFSET_PX) continue;
 
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;

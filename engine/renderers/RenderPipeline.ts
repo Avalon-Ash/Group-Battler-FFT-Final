@@ -34,7 +34,7 @@ import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { UltWorldRenderer } from "./ult/UltWorldRenderer";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
-import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM } from "../../constants";
+import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM, RENDER_PIPELINE_PARAM } from "../../constants";
 
 let allAssetsReady = typeof Image === 'undefined';
 
@@ -83,7 +83,7 @@ export class RenderPipeline {
     // Transition State managed internally (SSOT)
     private transitionT: number = 0;
     private transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE';
-    private lastDt: number = 0.016;
+    private lastDt: number = RENDER_PIPELINE_PARAM.INITIAL_DT_S;
 
     constructor(renderer: GameRenderer) { 
         this.renderer = renderer; 
@@ -127,7 +127,7 @@ export class RenderPipeline {
         // 資產載入閘門：載入完成前不進戰場主渲染（維持乾淨黑底），避免前幾幀閃過未載入殘影
         if (!allAssetsReady && !spriteAtlasStore.isReady()) {
             rawCtx.resetTransform();
-            rawCtx.fillStyle = '#020617';
+            rawCtx.fillStyle = RENDER_PIPELINE_PARAM.CLEAR_COLOR;
             rawCtx.fillRect(0, 0, pW, pH);
             return;
         }
@@ -146,7 +146,7 @@ export class RenderPipeline {
         // 畫布改尺寸會重設 context 狀態，所以每幀設定（縮小取樣品質，RENDER_QUALITY.IMAGE_SMOOTHING）
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = RENDER_QUALITY.IMAGE_SMOOTHING;
-        ctx.fillStyle = '#020617'; 
+        ctx.fillStyle = RENDER_PIPELINE_PARAM.CLEAR_COLOR; 
         ctx.fillRect(0, 0, pW, pH);
         ctx.scale(dpr, dpr);
         // Background uses RealTime for ambient effects (stars, fog) even when game paused

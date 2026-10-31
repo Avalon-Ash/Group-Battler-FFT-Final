@@ -2392,5 +2392,16 @@
     "TARGET_Z_BIAS_PX": 5,
     "FALLBACK_WHITE": "#fff",
     "PALETTE_FALLBACK_COLOR": "#ffffff"
+  },
+  "GRID_TRANSITION_PARAM": {
+    "OUT_SKIP_T": 0.95,
+    "CULL_OFFSET_PX": 800
+  },
+  "RENDER_DISPATCH_PARAM": {
+    "Z_FADE_DIST_PX": 800
+  },
+  "RENDER_PIPELINE_PARAM": {
+    "INITIAL_DT_S": 0.016,
+    "CLEAR_COLOR": "#020617"
   }
 }
