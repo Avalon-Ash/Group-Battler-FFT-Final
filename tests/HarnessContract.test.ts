@@ -6,6 +6,7 @@
 // ║    ③ settings.json 掛的 hook 腳本存在                            ║
 // ║    ④ agent-guardrails.mjs 以實際 payload 執行的判定              ║
 // ║    ⑤ METHODOLOGY §6 環境事實的條數、日期與禁用詞                 ║
+// ║    ⑥ Gemini 允許清單只放確切指令，不含 commit／push／刪除        ║
 // ║  [ARCH] 能寫成測試的合約規則就寫成測試（DECISIONS §4）。         ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
@@ -39,6 +40,15 @@ function runHook(payload: object, args: string[] = []): { permissionDecision?: s
 }
 
 describe('HarnessContract', () => {
+    it('Gemini 允許清單（tools/agent/gemini-allow.json）：只有確切的 command(...)，沒有萬用字元、commit、push、合併、刪除', () => {
+        // agy 無頭模式只放行字串完全相同的指令；主代理審查 diff 後才代為 commit（agent-prompt skill）
+        const allow: string[] = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/agent/gemini-allow.json'), 'utf8')).permissions.allow;
+        expect(allow.length).toBeGreaterThan(0);
+        const bad = allow.filter(r => !/^command\([^*?]+\)$/.test(r)
+            || /\bgit\s+(commit|push|merge|rebase|reset|checkout|switch|branch|tag|clean|stash)\b|\brm\b|Remove-Item|\bdel\b|npm\s+(i|install|ci|uninstall)\b/i.test(r));
+        expect(bad).toEqual([]);
+    });
+
     it('每個 skill 的 name 與目錄一致、有 description，並在 CLAUDE.md 有觸發句', () => {
         const skillsDir = path.join(ROOT, '.claude/skills');
         const claudeMd = fs.readFileSync(path.join(ROOT, 'CLAUDE.md'), 'utf8');
@@ -58,7 +68,8 @@ describe('HarnessContract', () => {
         const doc = fs.readFileSync(path.join(ROOT, 'docs/METHODOLOGY.md'), 'utf8');
         const block = doc.match(/<!-- env-facts:start -->([\s\S]*?)<!-- env-facts:end -->/);
         expect(block, '缺 env-facts 區塊標記').not.toBeNull();
-        const facts = block![1].split('\n').filter(l => l.startsWith('- '));
+        // Windows checkout（autocrlf）是 CRLF：只切 '\n' 會留下 '\r'，日期檢查的 $ 就對不上
+        const facts = block![1].split(/\r?\n/).filter(l => l.startsWith('- '));
         expect(facts.length).toBeGreaterThan(0);
         expect(facts.length).toBeLessThanOrEqual(12);
         // 借自 TokenEconomizer 的 fact lint：事實一旦帶上結論，就成了跳過驗證的藉口

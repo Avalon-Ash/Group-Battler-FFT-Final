@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "command(git status)",
+      "command(git diff)",
+      "command(git diff --stat)",
+      "command(git rev-parse HEAD)",
+      "command(git log --oneline -10)",
+      "command(npm run lint)",
+      "command(npm test)",
+      "command(npm run build)",
+      "command(npm run knip)",
+      "command(npm run perf:guard)",
+      "command(node tools/ui-e2e/runtime-smoke.mjs)"
+    ]
+  }
+}

@@ -19,7 +19,10 @@ import path from 'node:path';
 const MIN_PROMPTS = 10;
 const MIN_PROMPT_SESSIONS = 2;
 const MIN_SESSIONS = 5;
-const PROTECTED = new Set(['Bash', 'PowerShell', 'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Skill', 'ToolSearch', 'Agent', 'AskUserQuestion']);
+// TE 保護使用者自己會用到的工具（提問、計畫模式、子代理、網路），只靠證據不足以拿掉；
+// ReportFindings 只在 /code-review 時由子代理呼叫，主對話紀錄裡永遠看不到。
+const PROTECTED = new Set(['Bash', 'PowerShell', 'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Skill', 'ToolSearch', 'Agent', 'AskUserQuestion',
+    'EnterPlanMode', 'ExitPlanMode', 'WebFetch', 'WebSearch', 'ReportFindings']);
 const DEFAULT_CANDIDATES = ['NotebookEdit', 'WebFetch', 'WebSearch', 'TodoWrite', 'EnterPlanMode', 'ExitPlanMode', 'Monitor', 'SendUserFile', 'ScheduleWakeup', 'ListAgents', 'ReportFindings'];
 
 function arg(name) {
@@ -37,15 +40,16 @@ if (!fs.existsSync(dir)) {
 const uses = new Map();      // tool -> 次數
 const usedIn = new Map();    // tool -> Set<session>
 const sessions = new Map();  // session -> 提示數
-for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.jsonl'))) {
-    const session = path.basename(file, '.jsonl');
+
+/** 讀一份紀錄：記工具用量；countPrompts 時回傳使用者提示數（子代理紀錄的 user 訊息是主代理的交辦，不算提示） */
+function scan(file, session, countPrompts) {
     let prompts = 0;
-    for (const line of fs.readFileSync(path.join(dir, file), 'utf8').split('\n')) {
+    for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
         if (!line) continue;
         let rec;
         try { rec = JSON.parse(line); } catch { continue; }
         const content = rec.message?.content;
-        if (rec.type === 'user' && (typeof content === 'string' || (Array.isArray(content) && !content.some(b => b?.type === 'tool_result')))) prompts += 1;
+        if (countPrompts && rec.type === 'user' && (typeof content === 'string' || (Array.isArray(content) && !content.some(b => b?.type === 'tool_result')))) prompts += 1;
         if (rec.type !== 'assistant' || !Array.isArray(content)) continue;
         for (const b of content) {
             if (b?.type !== 'tool_use' || !b.name) continue;
@@ -54,7 +58,17 @@ for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.jsonl'))) {
             usedIn.get(b.name).add(session);
         }
     }
-    sessions.set(session, prompts);
+    return prompts;
+}
+
+for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.jsonl'))) {
+    const session = path.basename(file, '.jsonl');
+    sessions.set(session, scan(path.join(dir, file), session, true));
+    // deny 也會套到子代理：子代理用過的工具同樣算「用過」（2026-10-31 覆核：ReportFindings 只出現在子代理紀錄）
+    const subDir = path.join(dir, session, 'subagents');
+    if (fs.existsSync(subDir)) {
+        for (const sub of fs.readdirSync(subDir).filter(f => f.endsWith('.jsonl'))) scan(path.join(subDir, sub), session, false);
+    }
 }
 
 const totalPrompts = [...sessions.values()].reduce((a, b) => a + b, 0);

@@ -4,7 +4,7 @@
 
 ## 1. 省點數守則（使用者額度有限，最重要）
 - 使用者之前在 Antigravity 花了很多點數（含一次在 AI Studio 燒掉 400 元卻交出壞掉的畫面）。**Claude Code 的主代理請把工作壓到最小**。
-- **分工**：長時間、機械性、無人值守的實作交給低階代理（IDE 端 Gemini：`/goal docs/<PROMPT>.md`；額度多）；主代理只做 ① 設計／寫提示詞 ② 審查 diff ③ 小修 ④ 本機驗證 ⑤ 合併。
+- **分工**：長時間、機械性、無人值守的實作交給低階代理（Gemini 4：主代理用 agy 直接派，見 `agent-prompt` skill；不順利才改 IDE `/goal`）；主代理只做 ① 設計／寫提示詞 ② 審查 diff ③ 小修 ④ 本機驗證 ⑤ 合併。
 - **審查要便宜**：先 `git diff main...<branch> --stat`，只讀**程式碼**變更（`engine/`、`components/`、`data/`、`constants/`）；**不要整份讀 `docs/*REPORT*`**（代理報告常誇大，只看數字表與回退指南）；用 `grep`／`Select-String` 抓關鍵字；每次只讀一小段。
 - **不要重複量測**；少截圖；回覆精簡；一次對話做完一輪就收。
 - Claude Code 內用 `/compact` 壓縮上下文；`HANDOFF.md`（待辦）＋本檔＋`AGENTS.md` 足以在新對話重建上下文，需要歷史時才搜 `WORKLOG.md`、`DECISIONS.md`。
@@ -42,14 +42,10 @@
 - **退場**：被推翻（工具升級後不再發生、做法失效）就刪，不留「舊說法」。
 - **只收事實，不收結論**：不得寫「可略過／不必跑某檢查」「某事已完成」這類話，那會變成跳過驗證的藉口。`tests/HarnessContract.test.ts` 會檢查條數、日期與禁用詞。
 - 收尾時（`review-round`）看這一輪有沒有重複踩到的環境錯誤，有就補一條。
+- **歸屬**：跟這台 Windows 機器有關、與專案無關的事實（PowerShell 寫法、編碼、`git push` 輸出、CLI 路徑）寫在全域憲法 `~/.claude/CLAUDE.md` 的環境事實，這裡只收本專案的。雲端工作階段是 Linux，用不到機器事實。
 
 <!-- env-facts:start -->
-- PowerShell 終端機顯示中文是亂碼，但檔案本身是 UTF-8；以檔案內容為準。（確認 2026-10-19）
-- 新檔寫 LF；多數既有原始檔是 CRLF，編輯時保持原行尾。（確認 2026-10-19）
-- PowerShell 巢狀引號容易 ParserError：複雜字串先寫進檔案再讀。（確認 2026-10-19）
-- PowerShell 雙引號字串裡的 `\r\n` 不會展開，要用反引號 `` `r`n ``。（確認 2026-10-19）
-- 寫檔或輸出時直接用 `<`、`>`，絕不輸出 `&gt;`／`&lt;` 之類 HTML 實體。（確認 2026-10-19）
-- `git push` 的進度輸出走 stderr，PowerShell 回報退出碼 1 時看有沒有 `main -> main` 那行。（確認 2026-10-19）
+- 多數既有原始檔是 CRLF，編輯時保持原行尾；新檔寫 LF。（確認 2026-10-19）
 - 工作樹的 `node_modules` 是指向主資料夾的 junction：工作樹內不跑 npm 安裝；移除工作樹先 `cmd /c rmdir <工作樹>\node_modules` 再不加 `--force` 移除（hook 會擋）。（確認 2026-10-29）
 - `AgentRunner` 時序測試是 Windows 專用，高負載下會偶發失敗；CI 在 Linux 上排除它。（確認 2026-10-29）
 <!-- env-facts:end -->

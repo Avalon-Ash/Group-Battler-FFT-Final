@@ -20,7 +20,7 @@
  * 7. Codex (GPT) calls — codex-companion task/review, `codex exec`, the codex:codex-rescue
  *    sub-agent and the codex:rescue skill — must name --model (task also --effort): the user is
  *    on ChatGPT Plus and the Codex default is the costliest model. Astra, xhigh, or high on a
- *    non-Luna model needs "[codex-cost-ok]" in the command or prompt (codex-dispatch skill).
+ *    non-Luna model needs "[codex-cost-ok]" in the command or prompt (global codex-call skill).
  *    Each call in a chained command is checked on its own segment, so one call's flags or
  *    marker cannot cover another. Entry check only: Codex's own actions are not seen here.
  *
@@ -64,9 +64,9 @@ function destructivePushReason(cmd) {
     return null;
 }
 
-// Codex（GPT）額度：使用者是 ChatGPT Plus，Astra 每 5 小時只有 5～45 則（codex-dispatch skill）
+// Codex（GPT）額度：使用者是 ChatGPT Plus，Astra 每 5 小時只有 5～45 則（全域 codex-call skill）
 const CODEX_COST_OK = '[codex-cost-ok]';
-const CODEX_TIERS = '檔位表（codex-dispatch skill）：大量讀檔／摘要 gpt-6-luna＋medium、長線實作 gpt-6.1-sol＋medium、跨模型審查 gpt-6.1-sol。';
+const CODEX_TIERS = '檔位表（全域 codex-call skill）：大量讀檔／摘要 gpt-6-luna＋medium、長線實作 gpt-6.1-sol＋medium、跨模型審查 gpt-6.1-sol。';
 // 一段指令的開頭可帶環境變數、env、完整路徑（含引號包住的路徑，如 PowerShell 的 & "C:\…\node.exe"）
 const CMD_HEAD = String.raw`^\s*(?:env\s+)?(?:\w+=\S*\s+)*(?:"[^"]*[\\/]|'[^']*[\\/]|[^\s"']*[\\/])?`;
 const CODEX_TASK = new RegExp(`${CMD_HEAD}(?:node(?:\\.exe)?["']?\\s.*codex-companion\\.mjs["']?\\s+task\\b|codex(?:\\.exe)?["']?\\s+exec\\b)`, 'i');
@@ -193,7 +193,7 @@ function loopGuard(payload, cmd) {
     const what = `指令 \`${head}\`，錯誤「${errorExcerpt(failure)}」`;
     if (n === LOOP_REDIRECT_AT) {
         return `流程檢查（自動）：同一個失敗已出現 ${n} 次（${what}）。這看起來是重複迴圈。不要用同一個做法再試：`
-            + '換一個實質不同的假設（重讀錯誤訊息與預期、考慮別的檔案或根因、環境寫法問題先查 METHODOLOGY §6），'
+            + '換一個實質不同的假設（重讀錯誤訊息與預期、考慮別的檔案或根因、環境寫法問題先查憲法與 METHODOLOGY §6 的環境事實），'
             + '先用最小的指令直接驗證新假設，再動手改。';
     }
     if (n === LOOP_STOP_AT) {
