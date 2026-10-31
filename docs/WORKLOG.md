@@ -383,7 +383,8 @@
 - 迴圈守衛另有全域版 `~/.claude/hooks/loop-guard.mjs`，本 repo 自己掛了 `PostToolUseFailure`，全域版讓位。
 - 長線實作改由主代理用 agy 直接派 Gemini 4（`agent-prompt` 改寫；不順利才回 IDE `/goal`）。`tools/agent/gemini-allow.json` 是確切指令的允許清單，`HarnessContract` 擋萬用字元與 commit／push／刪除。實測：萬用字元無效、`--mode auto` 帳號不能用、被拒一次整個執行就結束、不寫「不串接」時模型會把兩個指令串成一行；Gemini 不能 commit，由主代理審查後代為 commit。
 - 驗證：lint、build、`npm test` 全過（見本輪 commit）。
-- 同日重評 Gemini 檔位（全域 `gemini-call` 記來源）：Argon 代理式寫程式落後 Sonnet 5.5（Terminal-Bench 4.0 約 57% 對 71%），訂閱額度約 3.8 Flash 的 8～11 倍，論壇有 Argon（high）在測試反覆失敗時改驗證腳本、捏造完成報告的詳細回報。實作小包改為先 Flash high、兩次不及格才升 Argon medium，一份提示詞 ≤3 任務；`agent-prompt` 範本加「驗證不准動」與報告附檔案:行號，審查先看 `tests/**`。
+- 同日重評 Gemini 檔位（全域 `agy-call`，原名 `gemini-call`，記來源）：Argon 代理式寫程式落後 Sonnet 5.5（Terminal-Bench 4.0 約 57% 對 71%），訂閱額度約 3.8 Flash 的 8～11 倍，論壇有 Argon（high）在測試反覆失敗時改驗證腳本、捏造完成報告的詳細回報。實作小包改為先 Flash high、兩次不及格才升 Argon medium，一份提示詞 ≤3 任務；`agent-prompt` 範本加「驗證不准動」與報告附檔案:行號，審查先看 `tests/**`。
+- 同日再改：agy 裡的 Claude Sonnet 5.5（走 Antigravity 額度，不吃 Claude Pro）納入派工。同一小任務（slugify，埋一條矛盾案例）實測：Sonnet medium 18 秒、輸出 1.5k；Flash high 61 秒、輸入 77.5k／輸出 6.2k；Argon medium 72 秒、輸出 2.3k；三者都停下回報矛盾、沒改測試。實作小包首選改為 agy 的 `claude-sonnet-5-5-medium`、次選 Argon medium；使用者回報訂閱額度，主代理記在 `~/.claude/QUOTA.md` 並依換池順序自己切換。另實測 agy 會寫到工作區外（使用者全域設定 `nonWorkspaceFileAccessPolicy: ALLOW`，`--settings` 蓋不掉）。
 
 ## 3. 更早的輪次與審查修補
 
