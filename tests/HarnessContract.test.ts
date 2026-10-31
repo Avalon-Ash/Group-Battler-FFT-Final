@@ -53,6 +53,19 @@ describe('HarnessContract', () => {
         expect(bad).toEqual([]);
     });
 
+    it('METHODOLOGY §6 環境事實：≤12 條、每條有確認日期、只寫事實不寫「可略過／已完成」', () => {
+        const doc = fs.readFileSync(path.join(ROOT, 'docs/METHODOLOGY.md'), 'utf8');
+        const block = doc.match(/<!-- env-facts:start -->([\s\S]*?)<!-- env-facts:end -->/);
+        expect(block, '缺 env-facts 區塊標記').not.toBeNull();
+        const facts = block![1].split('\n').filter(l => l.startsWith('- '));
+        expect(facts.length).toBeGreaterThan(0);
+        expect(facts.length).toBeLessThanOrEqual(12);
+        // 借自 TokenEconomizer 的 fact lint：事實一旦帶上結論，就成了跳過驗證的藉口
+        const verdict = /略過|跳過|不必|不用(?:跑|測|驗)|免(?:驗|測|跑)|已完成|已修好|\bskip\b|\bno need\b|\bdone\b/i;
+        const bad = facts.filter(l => !/（確認 \d{4}-\d{2}-\d{2}）$/.test(l) || verdict.test(l));
+        expect(bad).toEqual([]);
+    });
+
     it('Codex 版合約副本（.agents/skills、.codex/agents）與 .claude 來源同步', () => {
         const res = spawnSync(process.execPath, [path.join(ROOT, 'tools/agent/sync-codex-contracts.mjs'), '--check'], { encoding: 'utf8' });
         expect(res.stderr).toBe('');
