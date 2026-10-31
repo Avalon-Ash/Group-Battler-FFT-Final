@@ -8,7 +8,8 @@ import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
 import { AIState } from "../../types";
 import { CameraTargetGroup } from "./CameraTargetGroup";
-import { DIRECTOR_PARAM, HEX_SIZE, UI_SETTINGS } from "../../constants";
+import { DIRECTOR_PARAM, HEX_SIZE, UI_SETTINGS, SHAKE_DIRECTOR_PARAM } from "../../constants";
+import { ShakeDirector } from "./ShakeDirector";
 import { VisualMath } from "../math/VisualMath";
 
 export class DirectorSystem {
@@ -20,6 +21,7 @@ export class DirectorSystem {
     
     // Controls
     public enabled: boolean = true;
+    public shakeDirector = new ShakeDirector();
 
     // State
     private targetGroup = new CameraTargetGroup();
@@ -30,10 +32,14 @@ export class DirectorSystem {
         ds.targetId = null;
         ds.focusTimer = 0;
         ds.priorityTimer = 0;
+        this.shakeDirector.reset();
         // Keep enabled state as is
     }
 
     public bind(engine: GameEngine) {
+        engine.bus.on('CAMERA_IMPACT', (data) => {
+            this.shakeDirector.report(data, engine.state.director.targetId);
+        });
         engine.bus.on('KILL', (data) => {
             if (data.killerId) {
                 this.forceFocus(engine, data.killerId, DIRECTOR_PARAM.KILL_FOCUS_S);
@@ -54,6 +60,10 @@ export class DirectorSystem {
     }
 
     public update(engine: GameEngine, dt: number) {
+        const shake = this.shakeDirector.consume();
+        if (shake >= SHAKE_DIRECTOR_PARAM.MIN_OUTPUT) {
+            engine.bus.emit('CAMERA_SHAKE', { intensity: shake });
+        }
         if (!this.enabled) return;
 
         // 0. Update Zoom Logic based on Canvas Aspect Ratio

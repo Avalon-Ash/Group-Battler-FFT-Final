@@ -1,4 +1,3 @@
-
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  EventHUDMapper — 戰鬥事件 → HUD 浮字映射器                     ║
 // ║                                                                  ║
@@ -14,7 +13,7 @@ import { GameEvent } from "../../../types";
 import { GameEngine } from "../../game";
 import { HUDSystem } from "../hud";
 import { GridSystem } from "../../systems/grid";
-import { CameraSystem } from "../CameraSystem";
+import type { CameraImpactSink } from "../ShakeDirector";
 import { HexUtils } from "../../utils";
 import { HUD_LAYOUT, DAMAGE_TEXT_COLORS, FLOATING_TEXT, HUD_TEXT_DEFAULTS } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
@@ -32,7 +31,7 @@ export class EventHUDMapper {
         engine: GameEngine, 
         hud: HUDSystem, 
         grid: GridSystem,
-        camera: CameraSystem
+        impacts: CameraImpactSink
     ) {
         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const terrainHeight = grid.getTerrainHeight(hex.q, hex.r, engine);
@@ -67,7 +66,7 @@ export class EventHUDMapper {
                     const textY = visualGroundY - textOffset - FLOATING_TEXT.KILL_STREAK_LIFT;
                     const size = FLOATING_TEXT.SIZE.KILL_STREAK_BASE + ((event.value || 1) * FLOATING_TEXT.SIZE.KILL_STREAK_PER);
                     hud.addFloatingText(event.pos.x, textY, event.text, event.color, size, 'KILL_STREAK');
-                    camera.addTrauma(FLOATING_TEXT.KILL_STREAK_TRAUMA.BASE + (event.value || 0) * FLOATING_TEXT.KILL_STREAK_TRAUMA.PER);
+                    impacts.reportImpact('KILL_STREAK', FLOATING_TEXT.KILL_STREAK_TRAUMA.BASE + (event.value || 0) * FLOATING_TEXT.KILL_STREAK_TRAUMA.PER);
                 }
                 break;
         }

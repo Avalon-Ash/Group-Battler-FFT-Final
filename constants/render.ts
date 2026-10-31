@@ -324,3 +324,26 @@ export const RENDER_PIPELINE_PARAM = {
     /** 每幀清除畫布的底色 */
     CLEAR_COLOR: '#020617',
 } as const;
+
+/**
+ * 震動導演（engine/presentation/ShakeDirector.ts）：同一個 tick 的衝擊取最大值、不累加；
+ * MINOR 種類打在「不是導演焦點」的單位上乘 OFF_FOCUS_SCALE；輸出不超過 MAX_TRAUMA。
+ */
+export const SHAKE_DIRECTOR_PARAM = {
+    /** 單次輸出的 trauma 上限（舊版累加可到 1.0） */
+    MAX_TRAUMA: 0.7,
+    /** MINOR 衝擊打在非焦點單位時的倍率 */
+    OFF_FOCUS_SCALE: 0.4,
+    /** 會被打折的種類；其餘（MASSIVE、ULT、CAST_BREAK_ULT、KILL_STREAK、FALL）不打折 */
+    MINOR_KINDS: ['HIT', 'CRIT', 'PROJECTILE', 'AOE', 'SACRIFICE', 'DEATH', 'KNOCKBACK', 'CAST_BREAK', 'DASH'] as const,
+    /** 低於此值的輸出不發 CAMERA_SHAKE */
+    MIN_OUTPUT: 0.01,
+} as const;
+
+/** 鏡頭抖動波形：兩軸各一條正弦（rad/s），取代每幀 Math.random() 的亂跳 */
+export const CAMERA_SHAKE_PARAM = {
+    FREQ_X: 41,
+    FREQ_Y: 53,
+    /** Y 軸相位偏移（rad），讓兩軸不同步 */
+    PHASE_Y: 1.3,
+} as const;

@@ -5,7 +5,7 @@
 // ║  [TODO: CINEMACHINE] 未來支援多目標混合 / 自動構圖        ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { UI_SETTINGS, CAMERA_PARAM } from '../../constants';
+import { UI_SETTINGS, CAMERA_PARAM, CAMERA_SHAKE_PARAM } from '../../constants';
 import type { Camera } from '../../types';
 
 export type { Camera };
@@ -45,6 +45,7 @@ export class CameraSystem {
     private isManualControlling: boolean = false;
 
     private trauma: number = 0;
+    private shakeTime: number = 0;
     private readonly DECAY_RATE = CAMERA_PARAM.SHAKE_DECAY_RATE;
 
     constructor() {}
@@ -57,7 +58,8 @@ export class CameraSystem {
     }
 
     public reset() { 
-        this.trauma = 0; 
+        this.trauma = 0;
+        this.shakeTime = 0;
         this.manualOverrideTimer = 0;
         this.isManualControlling = false;
         this.resetZoomControl();
@@ -109,7 +111,7 @@ export class CameraSystem {
     }
 
     public addTrauma(amount: number) {
-        this.trauma = Math.min(1.0, this.trauma + amount);
+        this.trauma = Math.min(1.0, Math.max(this.trauma, amount));
     }
 
     public getTrauma(): number {
@@ -117,6 +119,7 @@ export class CameraSystem {
     }
 
     public update(dt: number) {
+        this.shakeTime += dt;
         // 1. Trauma Decay
         if (this.trauma > 0) {
             this.trauma = Math.max(0, this.trauma - dt * this.DECAY_RATE);
@@ -154,9 +157,9 @@ export class CameraSystem {
         if (this.trauma > 0) {
             const p = this.trauma * this.trauma;
             const maxShake = CAMERA_PARAM.MAX_SHAKE_PX * this.zoom; 
-            const angle = Math.random() * Math.PI * 2;
-            shakeX = Math.cos(angle) * maxShake * p;
-            shakeY = Math.sin(angle) * maxShake * p;
+
+            shakeX = Math.sin(this.shakeTime * CAMERA_SHAKE_PARAM.FREQ_X) * maxShake * p;
+            shakeY = Math.sin(this.shakeTime * CAMERA_SHAKE_PARAM.FREQ_Y + CAMERA_SHAKE_PARAM.PHASE_Y) * maxShake * p;
         }
 
         const targetTx = cx - (this.x + shakeX) * this.zoom;

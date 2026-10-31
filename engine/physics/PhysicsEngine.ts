@@ -170,7 +170,7 @@ export class PhysicsEngine {
                         engine.events.push({ type: 'DAMAGE', pos: unitEventPos(a, engine), value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
                         engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
                         
-                        engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
+                        engine.bus.emit('CAMERA_IMPACT', { kind: 'FALL', intensity: pct * 0.5, targetId: a.id });
 
                         if (a.hp <= 0) {
                             engine.agentManager.handleDeadState(a, engine);

@@ -249,7 +249,7 @@ export const CCManager = {
                     if (target.hp > 0) triggerHitFlash(target, CC_RULES.KNOCKBACK_HIT_FLASH_DURATION);
                     target.physics.vz += PHYSICS.VISUAL_JUMP_KNOCKBACK; 
                     noDurationLog = true;
-                    engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_KNOCKBACK });
+                    engine.bus.emit('CAMERA_IMPACT', { kind: 'KNOCKBACK', intensity: VFX_PARAM.SHAKE_INTENSITY_KNOCKBACK, targetId: target.id });
                 }
                 break;
 
@@ -411,6 +411,6 @@ export const CCManager = {
                 triggerHitFlash(agent, COMBAT_PARAM.HIT_FLASH_DURATION);
             }
         }
-        engine.bus.emit('CAMERA_SHAKE', { intensity: FORCED_MOVE.IMPACT_SHAKE });
+        engine.bus.emit('CAMERA_IMPACT', { kind: 'KNOCKBACK', intensity: FORCED_MOVE.IMPACT_SHAKE });
     }
 };
