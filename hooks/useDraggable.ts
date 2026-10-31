@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
-import { UI_PIN } from '../constants';
+import { UI_PIN, UI_PANEL_PARAM } from '../constants';
 
 export interface DraggableOptions {
     initialX?: number;
@@ -74,7 +74,7 @@ export function clampToolbarPosition(
 }
 
 export const useDraggable = (ref: React.RefObject<HTMLElement | null>, options: DraggableOptions = {}) => {
-    const { anchor = 'top-left', margin = 20, storageKey } = options;
+    const { anchor = 'top-left', margin = UI_PANEL_PARAM.DRAGGABLE_MARGIN, storageKey } = options;
     const [position, setPosition] = useState({ x: options.initialX || 0, y: options.initialY || 0 });
     const [isDragging, setIsDragging] = useState(false);
     const dragStartMouseRef = useRef({ x: 0, y: 0 });

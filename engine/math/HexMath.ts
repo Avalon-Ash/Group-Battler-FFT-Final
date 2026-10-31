@@ -2,6 +2,9 @@
 import { Hex, Point, HexLayout } from "../../types";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 
+const HEX_SPACING = 1.5;
+const LINE_NUDGE_SUM = 2e-6;
+
 export interface Cube {
     x: number;
     y: number;
@@ -52,11 +55,11 @@ export const HexMath = {
     hexToPixel(q: number, r: number, offsetX: number, offsetY: number, layout: HexLayout): Point {
         let x = 0, y = 0;
         if (layout === 'FLAT') {
-            x = HEX_SIZE * 1.5 * q;
+            x = HEX_SIZE * HEX_SPACING * q;
             y = HEX_SIZE * Math.sqrt(3) * (r + q / 2);
         } else {
             x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
-            y = HEX_SIZE * 1.5 * r;
+            y = HEX_SIZE * HEX_SPACING * r;
         }
         
         // Apply isometric scaling
@@ -106,8 +109,8 @@ export const HexMath = {
     line(a: Hex, b: Hex): Hex[] {
         const N = this.distance(a, b);
         const results: Hex[] = [];
-        const ac = { x: a.q + 1e-6, z: a.r + 1e-6, y: -a.q - a.r - 2e-6 };
-        const bc = { x: b.q - 1e-6, z: b.r - 1e-6, y: -b.q - b.r + 2e-6 };
+        const ac = { x: a.q + 1e-6, z: a.r + 1e-6, y: -a.q - a.r - LINE_NUDGE_SUM };
+        const bc = { x: b.q - 1e-6, z: b.r - 1e-6, y: -b.q - b.r + LINE_NUDGE_SUM };
         for (let i = 0; i <= N; i++) {
             const t = N === 0 ? 0.0 : i / N;
             const cubeLerp = {

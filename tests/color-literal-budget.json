@@ -18,6 +18,6 @@
   "engine/renderers/ult/UltWorldRenderer.ts": 9,
   "engine/renderers/units/SpriteAtlasStore.ts": 1,
   "engine/renderers/vfxparts/PartBakers.ts": 5,
-  "engine/systems/movement/MovementSystem.ts": 1,
-  "engine/systems/status/EffectSystem.ts": 1
+  "engine/systems/movement/MovementSystem.ts": 0,
+  "engine/systems/status/EffectSystem.ts": 0
 }

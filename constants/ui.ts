@@ -162,6 +162,14 @@ export const BT_VIEW_PARAM = {
     POPUP_W: 680,
     /** 彈出視窗高度（px） */
     POPUP_H: 520,
+    /** 中期淡出時間（毫秒） */
+    FADE_MID_MS: 200,
+    /** 中期淡出不透明度（比例） */
+    FADE_MID_OPACITY: 0.7,
+    /** 後期淡出時間（毫秒） */
+    FADE_OLD_MS: 500,
+    /** 後期淡出不透明度（比例） */
+    FADE_OLD_OPACITY: 0.4,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */
@@ -176,4 +184,64 @@ export const DIRECTOR_HUD_PARAM = {
     BAR_HEIGHT_RANGE: 80,
     /** 裝飾音量條動畫延遲步幅（秒） */
     BAR_DELAY_S: 0.1,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const GAME_CANVAS_PARAM = {
+    /** 拖曳物件懸浮高度（px） */
+    DRAG_LIFT_PX: 40,
+    /** 拖曳物件陰影模糊（px） */
+    DRAG_SHADOW_BLUR: 30,
+    /** 拖曳物件陰影垂直偏移（px） */
+    DRAG_SHADOW_OFFSET_Y: 30,
+    /** 拖曳物件不透明度（比例） */
+    DRAG_ALPHA: 0.9,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const INSPECTOR_PARAM = {
+    /** 滾動摩擦係數（比例） */
+    SCROLL_FRICTION: 0.95,
+    /** 日誌自動滾動距離門檻（px） */
+    LOG_AUTO_SCROLL_PX: 200,
+    /** 特效地圖邊界留白（px） */
+    VFX_MAP_PAD: 6,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const UI_PANEL_PARAM = {
+    /** 播放控制列邊距（px） */
+    PLAYBACK_HUD_MARGIN: 30,
+    /** 可拖曳面板預設邊距（px） */
+    DRAGGABLE_MARGIN: 20,
+    /** 展示背景最低不透明度（比例） */
+    SHOWCASE_BG_MIN_OPACITY: 0.1,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const GAME_INPUT_PARAM = {
+    /** 觸控拖曳判定漂移門檻（px） */
+    DRAG_DRIFT_TOUCH_PX: 18,
+    /** 滑鼠拖曳判定漂移門檻（px） */
+    DRAG_DRIFT_MOUSE_PX: 8,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const GAME_LOOP_PARAM = {
+    /** 視窗縮放防抖延遲（毫秒） */
+    RESIZE_DEBOUNCE_MS: 50,
+    /** 遊戲迴圈最大累加器時間（毫秒） */
+    MAX_ACCUMULATOR_MS: 250,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const GAME_CAMERA_FIT = {
+    /** 平頂六角對齊地塊偏移（格高） */
+    FLAT_OFFSET_BLOCKS: 1.5,
+    /** 尖頂六角對齊地塊偏移（格高） */
+    POINTY_OFFSET_BLOCKS: 0.5,
+    /** 鏡頭適配縮放下限（倍） */
+    MIN_ZOOM: 0.7,
+    /** 鏡頭適配縮放上限（倍） */
+    MAX_ZOOM: 1.3,
 } as const;

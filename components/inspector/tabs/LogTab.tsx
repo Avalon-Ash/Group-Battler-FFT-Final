@@ -5,6 +5,7 @@ import { Icons } from '../../ui/icons';
 import type { GameEngine } from '../../../engine/game';
 import { selectLogView } from '../../../engine/systems/ui/selectors';
 import { useEngineView } from '../../../hooks/useEngineView';
+import { INSPECTOR_PARAM } from '../../../constants';
 
 interface LogTabProps {
     engine: GameEngine;
@@ -130,7 +131,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         stopMomentum();
         const step = () => {
             if (!scrollRef.current) return;
-            dragState.current.velocity *= 0.95; // Friction
+            dragState.current.velocity *= INSPECTOR_PARAM.SCROLL_FRICTION; // Friction
             if (Math.abs(dragState.current.velocity) > 0.5) {
                 scrollRef.current.scrollTop -= dragState.current.velocity;
                 rafRef.current = requestAnimationFrame(step);
@@ -174,7 +175,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         if (dragState.current.isDown || !scrollRef.current) return;
         const div = scrollRef.current;
         // Tolerance of 100px
-        if (div.scrollHeight - div.scrollTop - div.clientHeight < 200) {
+        if (div.scrollHeight - div.scrollTop - div.clientHeight < INSPECTOR_PARAM.LOG_AUTO_SCROLL_PX) {
             div.scrollTop = div.scrollHeight;
         }
     }, [logs.length]); // Trigger on count change, not filtered change

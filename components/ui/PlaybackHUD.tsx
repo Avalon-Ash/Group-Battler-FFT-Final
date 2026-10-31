@@ -3,7 +3,7 @@ import { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
 import { Icons } from './icons';
-import { UI_Z, UI_PIN } from '../../constants';
+import { UI_Z, UI_PIN, UI_PANEL_PARAM } from '../../constants';
 interface PlaybackHUDProps {
     hidden: boolean;
     isPlaying: boolean;
@@ -22,7 +22,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     const isCompact = useCompactViewport();
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'bottom-center',
-        margin: 30,
+        margin: UI_PANEL_PARAM.PLAYBACK_HUD_MARGIN,
         storageKey: UI_PIN.STORAGE_KEYS.playback,
     });
     const glowClass = winner !== null 

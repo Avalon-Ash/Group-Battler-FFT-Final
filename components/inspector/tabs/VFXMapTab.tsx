@@ -3,6 +3,7 @@ import { VFX_REGISTRY } from '../../../data/vfx/VFXRegistry';
 import { STATUS_PARTS } from '../../../data/vfx/status_parts';
 import { PART_GALLERY, type PartGalleryEntry } from '../../../data/vfx/parts/partGallery';
 import { vfxPartStore, drawPart } from '../../../engine/renderers/vfxparts/VFXPartStore';
+import { INSPECTOR_PARAM } from '../../../constants';
 
 /**
  * 特效展示庫（2026-10-19 重寫）：內容全部讀現行資料，不再是手寫目錄。
@@ -27,7 +28,7 @@ const PartThumb: React.FC<{ entry: PartGalleryEntry }> = ({ entry }) => {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, THUMB_PX, THUMB_PX);
         const sprite = vfxPartStore.get(entry.spec);
-        const pad = 6;
+        const pad = INSPECTOR_PARAM.VFX_MAP_PAD;
         const scale = Math.min((THUMB_PX - pad * 2) / sprite.width, (THUMB_PX - pad * 2) / sprite.height);
         // 把整張 sprite 置中（錨點不一定在中心：光柱、火焰在底部）
         const x = THUMB_PX / 2 - (sprite.width / 2 - sprite.anchorX) * scale;

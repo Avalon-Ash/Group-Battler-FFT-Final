@@ -2,7 +2,7 @@
 import { useRef, useCallback } from 'react';
 import { GameEngine } from '../engine/game';
 import { HexUtils } from '../engine/utils';
-import { BLOCK_HEIGHT, HEX_SIZE } from '../constants';
+import { BLOCK_HEIGHT, HEX_SIZE, GAME_CAMERA_FIT } from '../constants';
 import { queryMapKeys, queryTerrainHeight, queryCameraTargetZoom } from '../engine/systems/ui/editorQueries';
 
 /**
@@ -41,14 +41,14 @@ export const useGameCamera = (engine: GameEngine) => {
         const visualCenterX = (minX + maxX) / 2;
         const visualCenterY = (minY + maxY) / 2;
 
-        let offsetY = mapConfig.layout === 'FLAT' ? BLOCK_HEIGHT * 1.5 : BLOCK_HEIGHT * 0.5;
+        let offsetY = mapConfig.layout === 'FLAT' ? BLOCK_HEIGHT * GAME_CAMERA_FIT.FLAT_OFFSET_BLOCKS : BLOCK_HEIGHT * GAME_CAMERA_FIT.POINTY_OFFSET_BLOCKS;
 
         const mapWidth = maxX - minX;
         const mapHeight = maxY - minY;
         const paddedW = mapWidth + HEX_SIZE * 3;
         const paddedH = mapHeight + HEX_SIZE * 3;
 
-        let targetZoom = Math.max(0.7, Math.min(1.3, Math.min(width / paddedW, height / paddedH)));
+        let targetZoom = Math.max(GAME_CAMERA_FIT.MIN_ZOOM, Math.min(GAME_CAMERA_FIT.MAX_ZOOM, Math.min(width / paddedW, height / paddedH)));
 
         camera.current.x = visualCenterX;
         camera.current.y = visualCenterY + offsetY;

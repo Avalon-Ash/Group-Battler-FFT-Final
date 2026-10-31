@@ -1,6 +1,8 @@
 import { ISO_SCALE_Y } from "../../../constants";
 import { HexLayout } from "../../../types";
 
+const HEX_SIDES = 6;
+
 /**
  * 核心六邊形幾何真理 (Single Source of Truth) - V3.6 TA Corrected
  */
@@ -10,7 +12,7 @@ export const HexGeometry = {
      * 所有「要和地圖格同向」的六角（地形、覆蓋層、地面特效、預烘焙零件）都以此為唯一來源。
      */
     layoutAngle(layout: HexLayout): number {
-        return layout === 'FLAT' ? 0 : Math.PI / 6;
+        return layout === 'FLAT' ? 0 : Math.PI / HEX_SIDES;
     },
 
     /**
@@ -25,7 +27,7 @@ export const HexGeometry = {
         const vertices = [];
         const baseStartAngle = HexGeometry.layoutAngle(layout);
         const scaleY = applyIso ? ISO_SCALE_Y : 1.0;
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < HEX_SIDES; i++) {
             const angle = baseStartAngle + i * Math.PI / 3;
             vertices.push({ 
                 x: Math.cos(angle) * radius, 
@@ -54,7 +56,7 @@ export const HexGeometry = {
         const verts = this.getVertices(radius, applyIso, layout);
         ctx.beginPath();
         ctx.moveTo(x + verts[0].x, y + verts[0].y);
-        for (let i = 1; i < 6; i++) {
+        for (let i = 1; i < HEX_SIDES; i++) {
             ctx.lineTo(x + verts[i].x, y + verts[i].y);
         }
         ctx.closePath();
@@ -71,7 +73,7 @@ export const HexGeometry = {
         const scaleY = applyIso ? ISO_SCALE_Y : 1.0;
 
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < HEX_SIDES; i++) {
             const vx = baseVerts[i].x;
             const vy = baseVerts[i].y;
             

@@ -246,6 +246,20 @@ export const DIRECTOR_PARAM = {
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */
+export const CAMERA_PARAM = {
+    /** 震動衰減速率（每秒） */
+    SHAKE_DECAY_RATE: 8.0,
+    /** 導演縮放變化死區（目標縮放的比例） */
+    ZOOM_DEAD_ZONE: 0.05,
+    /** 最大震動幅度（px，乘上目前縮放） */
+    MAX_SHAKE_PX: 30,
+    /** 目標群組取景留白係數（倍） */
+    GROUP_PADDING_FACTOR: 1.25,
+    /** 無目標或半徑為 0 時的群組縮放（倍） */
+    GROUP_DEFAULT_ZOOM: 0.9,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
 export const RENDER_LIST_PARAM = {
     /** 預配置繪製操作數（個） */
     INITIAL_CAPACITY: 8000,
