@@ -16,7 +16,7 @@ import { HUDSystem } from "../hud";
 import { GridSystem } from "../../systems/grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { HUD_LAYOUT, DAMAGE_TEXT_COLORS, FLOATING_TEXT } from "../../../constants";
+import { HUD_LAYOUT, DAMAGE_TEXT_COLORS, FLOATING_TEXT, HUD_TEXT_DEFAULTS } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
 import { hudTextHeight } from "../../../data/units/appearance/projection";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
@@ -145,7 +145,7 @@ export class EventHUDMapper {
                 baseY, 
                 event.skill.name, 
                 event.skill.color, 
-                14, 
+                HUD_TEXT_DEFAULTS.SHOUT_SIZE, 
                 'SHOUT', 
                 isUlt,
                 event.sourceId,

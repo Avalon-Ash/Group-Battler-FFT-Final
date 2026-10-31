@@ -505,3 +505,33 @@ export const PROJECTILE_SAMPLING = {
     /** 投射物既有最上層排序高度偏移（px） */
     SORT_Z: 5000,
 } as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const VFX_PRESENTATION_PARAM = {
+    /** 塵煙生成間隔（s） */
+    DUST_SPAWN_INTERVAL_S: 0.15,
+    /** 判定貼地的 Z 軸門檻（px） */
+    GROUNDED_Z_PX: 5,
+    /** 塵煙生成 Z 軸偏移（px） */
+    DUST_Z_OFFSET_PX: 5,
+    /** 閒置特效生成基準間隔（s） */
+    IDLE_INTERVAL_BASE_S: 1.5,
+    /** 轉場特效剔除邊界偏移（px） */
+    TRANSITION_CULL_OFFSET_PX: 1500,
+    /** 虛線光束寬度倍率（倍） */
+    BEAM_DASHED_WIDTH_MUL: 1.5,
+    /** 通用光束持續時間（s） */
+    GENERIC_BEAM_DURATION_S: 0.4,
+    /** 死亡相機創傷量（比例） */
+    DEATH_TRAUMA: 0.1,
+    /** 詠唱中斷預設進度（比例） */
+    CAST_BREAK_DEFAULT_PROGRESS: 0.1,
+    /** 詠唱中斷相機創傷量（比例） */
+    CAST_BREAK_TRAUMA: 0.2,
+    /** 目標 Z 軸偏置（px） */
+    TARGET_Z_BIAS_PX: 5,
+    /** 後備白色（顏色） */
+    FALLBACK_WHITE: '#fff',
+    /** 色盤後備顏色（顏色） */
+    PALETTE_FALLBACK_COLOR: '#ffffff',
+} as const;

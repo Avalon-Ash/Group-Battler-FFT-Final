@@ -5,6 +5,7 @@ import { VFXSystem } from "../../vfx";
 import { Point3D } from "../../../math/VisualMath";
 import { SequenceSystem } from "../SequenceSystem";
 import { SKILL_SEQUENCES } from "../../../../data/vfx/SkillSequences";
+import { VFX_PRESENTATION_PARAM } from "../../../../constants";
 
 export class CinematicVFXHandler {
 
@@ -28,6 +29,6 @@ export class CinematicVFXHandler {
         }
 
         // 2. MINIMAL FALLBACK (Prevents breaking if data entry is missing)
-        vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
+        vfx.playBeam('GENERIC_BEAM', origin, target, event.color || VFX_PRESENTATION_PARAM.FALLBACK_WHITE, VFX_PRESENTATION_PARAM.GENERIC_BEAM_DURATION_S);
     }
 }

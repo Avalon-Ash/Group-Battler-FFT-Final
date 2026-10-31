@@ -17,6 +17,11 @@ import { MATERIAL_CONFIG } from '../../../data/vfx/materialConfig';
 import { HexGeometry } from '../utils/HexGeometry';
 import type { HexLayout } from '../../../types';
 
+const GRAIN_CONTRAST = 0.28;
+const HIGHLIGHT_OFFSET_X = 0.35;
+const HIGHLIGHT_OFFSET_Y = 0.4;
+const HIGHLIGHT_INNER_R = 0.05;
+
 
 export const MaterialPainter = {
 
@@ -110,7 +115,7 @@ export const MaterialPainter = {
                 persistence: 0.5,
                 lacunarity: 2.0,
                 strength: cfg.grainStrength,
-                contrast: 0.28,
+                contrast: GRAIN_CONTRAST,
                 variants: 1,
                 tintSpread: 0,
                 edgeAO: 0,
@@ -141,7 +146,7 @@ export const MaterialPainter = {
             const cy = h / 2;
             const r = Math.min(cx, cy);
             const grad = ctx.createRadialGradient(
-                cx - r * 0.35, cy - r * 0.4, r * 0.05,
+                cx - r * HIGHLIGHT_OFFSET_X, cy - r * HIGHLIGHT_OFFSET_Y, r * HIGHLIGHT_INNER_R,
                 cx, cy, r
             );
             grad.addColorStop(0, highlightColor);

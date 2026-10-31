@@ -1,4 +1,4 @@
-import { VFX_PARAM } from '../../../constants';
+import { VFX_PARAM, VFX_RENDER } from '../../../constants';
 import type { ParticleType, PartAnim } from '../../../types/VFXSchema';
 import type { PartSprite } from '../../renderers/vfxparts/VFXPartStore';
 
@@ -76,7 +76,7 @@ export class VFXStateManager {
             p.vx = 0; p.vy = 0; p.vz = 0;
             p.rotation = 0; p.vRotation = 0;
             p.life = 0; p.maxLife = 0;
-            p.color = '#ff00ff'; p.size = 0;
+            p.color = VFX_RENDER.DEBUG_DOT_COLOR; p.size = 0;
             p.height = undefined;
             p.type = 'GENERIC_DEBUG'; 
             p.sx = undefined; p.sy = undefined; p.sz = undefined;
@@ -115,7 +115,7 @@ export class VFXStateManager {
             active: true,
             x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, 
             rotation: 0, vRotation: 0,
-            life: 0, maxLife: 0, color: '#ff00ff', size: 0, height: undefined, type: 'GENERIC_DEBUG',
+            life: 0, maxLife: 0, color: VFX_RENDER.DEBUG_DOT_COLOR, size: 0, height: undefined, type: 'GENERIC_DEBUG',
             delay: 0,
             locked: false,
             lockReason: undefined,

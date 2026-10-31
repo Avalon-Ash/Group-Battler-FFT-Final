@@ -1,4 +1,4 @@
-import { ENV_DRAW } from "../../constants";
+import { ENV_DRAW, ENV_COLORS } from "../../constants";
 
 import { OBSTACLE_STYLES, ObstacleStyle, HEX_SIZE, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
@@ -45,7 +45,7 @@ export const EnvironmentFactory = {
 
     drawHexShadow(ctx: CanvasRenderingContext2D, layout: HexLayout) {
         ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = ENV_COLORS.HEX_SHADOW_FILL;
         ctx.filter = 'blur(4px)';
         const r = HEX_SIZE * ENV_SPRITE.HEX_RADIUS_FULL;
         HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
@@ -87,7 +87,7 @@ export const EnvironmentFactory = {
             ctx.beginPath();
             ctx.moveTo(verts[1].x, verts[1].y);
             ctx.lineTo(verts[1].x, verts[1].y + topY);
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.strokeStyle = ENV_COLORS.SEAM_STROKE;
             ctx.stroke();
         }
 
@@ -242,7 +242,7 @@ export const EnvironmentFactory = {
         // Top Cap
         ctx.save();
         ctx.translate(0, topY);
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = ENV_COLORS.CAP_FILL;
         HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
         ctx.fill();
         ctx.restore();
@@ -252,7 +252,7 @@ export const EnvironmentFactory = {
         const trunkW = ENV_DRAW.TRUNK_WIDTH;
         const trunkH = BLOCK_HEIGHT * 1.0;
         
-        ctx.fillStyle = '#3f2e1e';
+        ctx.fillStyle = ENV_COLORS.TRUNK_FILL;
         ctx.beginPath();
         // Simple trunk
         ctx.fillRect(-trunkW/2, -trunkH, trunkW, trunkH + ENV_DRAW.TRUNK_BASE_EXTENSION); 
@@ -364,7 +364,7 @@ export const EnvironmentFactory = {
     },
 
     drawEdge(ctx: CanvasRenderingContext2D, vBottom: {x:number, y:number}, vNextBottom: {x:number, y:number}, topY: number, color: string) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; // Subtle edge
+        ctx.strokeStyle = ENV_COLORS.EDGE_STROKE; // Subtle edge
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(vBottom.x, vBottom.y);

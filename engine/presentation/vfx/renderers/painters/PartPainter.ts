@@ -1,5 +1,5 @@
 import { Particle } from "../../state";
-import { ISO_SCALE_Y } from "../../../../../constants";
+import { ISO_SCALE_Y, VFX_PRESENTATION_PARAM } from "../../../../../constants";
 import { drawPart, partFrameAt } from "../../../../renderers/vfxparts/VFXPartStore";
 import type { HexLayout } from "../../../../../types";
 import { VFX_PARTS } from "../../../../../data/vfx/parts/partConfig";
@@ -58,7 +58,7 @@ export const PartPainter = {
         const dist = Math.sqrt(relX * relX + relY * relY);
         if (dist < 1) return;
         const t = Math.max(0, Math.min(1, progress));
-        const widthMul = BEAM_STYLES[p.style as BeamStyleId]?.dashedEdges ? 1.5 - t : 1 - t;
+        const widthMul = BEAM_STYLES[p.style as BeamStyleId]?.dashedEdges ? VFX_PRESENTATION_PARAM.BEAM_DASHED_WIDTH_MUL - t : 1 - t;
         if (widthMul <= 0) return;
         // 磚以量化後的寬度烘焙；縱向縮放回實際寬度再乘收窄係數
         const sy = (p.size / quantizeSize(p.size)) * widthMul;

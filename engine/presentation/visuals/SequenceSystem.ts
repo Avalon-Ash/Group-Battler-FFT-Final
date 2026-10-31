@@ -15,7 +15,7 @@ import { VFXSystem } from "../vfx";
 import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
-import { COMBAT_PARAM, ISO_SCALE_Y, PHYSICS, ULT_FEEL, VFX_SEQUENCE } from "../../../constants";
+import { COMBAT_PARAM, ISO_SCALE_Y, PHYSICS, ULT_FEEL, VFX_SEQUENCE, VFX_PRESENTATION_PARAM } from "../../../constants";
 import { Agent, Team } from "../../../types";
 import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
@@ -331,7 +331,7 @@ export class SequenceSystem {
                     p.x = target.x; p.y = target.y; p.z = target.z + h;
                     p.vz = 0;
                     p.life = life; p.maxLife = life;
-                    p.color = action.color || '#fff';
+                    p.color = action.color || VFX_PRESENTATION_PARAM.FALLBACK_WHITE;
                     p.size = size;
                     p.locked = false;
                     p.pIsUlt = true;

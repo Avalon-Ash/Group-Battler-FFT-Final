@@ -2362,5 +2362,35 @@
     "MAX_SHAKE_PX": 30,
     "GROUP_PADDING_FACTOR": 1.25,
     "GROUP_DEFAULT_ZOOM": 0.9
+  },
+  "ENV_COLORS": {
+    "HEX_SHADOW_FILL": "rgba(0,0,0,0.3)",
+    "SEAM_STROKE": "rgba(0,0,0,0.2)",
+    "CAP_FILL": "#000",
+    "TRUNK_FILL": "#3f2e1e",
+    "EDGE_STROKE": "rgba(255,255,255,0.1)"
+  },
+  "HUD_TEXT_DEFAULTS": {
+    "POOL_INIT_COLOR": "#fff",
+    "SHOUT_SIZE": 14
+  },
+  "SKILL_ICON_FRAME": {
+    "BG": "#1e293b",
+    "STROKE": "#334155"
+  },
+  "VFX_PRESENTATION_PARAM": {
+    "DUST_SPAWN_INTERVAL_S": 0.15,
+    "GROUNDED_Z_PX": 5,
+    "DUST_Z_OFFSET_PX": 5,
+    "IDLE_INTERVAL_BASE_S": 1.5,
+    "TRANSITION_CULL_OFFSET_PX": 1500,
+    "BEAM_DASHED_WIDTH_MUL": 1.5,
+    "GENERIC_BEAM_DURATION_S": 0.4,
+    "DEATH_TRAUMA": 0.1,
+    "CAST_BREAK_DEFAULT_PROGRESS": 0.1,
+    "CAST_BREAK_TRAUMA": 0.2,
+    "TARGET_Z_BIAS_PX": 5,
+    "FALLBACK_WHITE": "#fff",
+    "PALETTE_FALLBACK_COLOR": "#ffffff"
   }
 }

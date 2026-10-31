@@ -448,3 +448,19 @@ export const HUD_TEXT_MOTION = {
     /** 連殺浮字每幀速度保留率（比例） */
     STREAK_DAMPING: 0.92,
 } as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const HUD_TEXT_DEFAULTS = {
+    /** 物件池初始化顏色（顏色） */
+    POOL_INIT_COLOR: '#fff',
+    /** 呼喊文字預設字級（px） */
+    SHOUT_SIZE: 14,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const SKILL_ICON_FRAME = {
+    /** 技能圖示外框背景色（顏色） */
+    BG: '#1e293b',
+    /** 技能圖示外框邊線色（顏色） */
+    STROKE: '#334155',
+} as const;

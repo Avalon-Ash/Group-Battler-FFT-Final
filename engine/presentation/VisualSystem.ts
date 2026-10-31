@@ -36,6 +36,7 @@ import { VisualMath } from "../math/VisualMath";
 import { SKILL_SEQUENCES } from "../../data/vfx/SkillSequences";
 import { ultImpactDelay } from "../../data/vfx/ult_visuals";
 import { HexUtils } from "../utils";
+import { VISUAL_MATH_PARAM, VFX_PRESENTATION_PARAM } from "../../constants";
 
 export class VisualSystem {
     private hudMapper: EventHUDMapper;
@@ -103,13 +104,13 @@ export class VisualSystem {
     private resolveSequenceTarget(event: GameEvent, engine: GameEngine) {
         const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
         // SSOT FIX: If target is ground or if resolution failed (e.g. target died), ensure we fall back to the event position
-        if (target3D.z === -9999 || !event.targetId || event.targetId.startsWith('ground-')) {
+        if (target3D.z === -VISUAL_MATH_PARAM.MISSING_TARGET_DEPTH || !event.targetId || event.targetId.startsWith('ground-')) {
             target3D.x = event.pos.x;
             target3D.y = event.pos.y;
 
             // Fix: Use event position to find hex and get terrain height
             const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-            target3D.z = engine.getTerrainHeight(hex.q, hex.r) + 5; // Add bias to prevent ground clipping
+            target3D.z = engine.getTerrainHeight(hex.q, hex.r) + VFX_PRESENTATION_PARAM.TARGET_Z_BIAS_PX; // Add bias to prevent ground clipping
         }
         return target3D;
     }

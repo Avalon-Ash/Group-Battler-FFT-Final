@@ -7,7 +7,7 @@ import { CameraSystem } from "../CameraSystem";
 import { SequenceSystem } from "./SequenceSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath, Point3D } from "../../math/VisualMath";
-import { VISUAL_ANCHORS, VFX_BUDGET } from "../../../constants";
+import { VISUAL_ANCHORS, VFX_BUDGET, GRID_OVERLAY } from "../../../constants";
 
 import { HAZARD_VISUALS } from "../../../data/vfx/hazard_visuals";
 
@@ -81,7 +81,7 @@ export class EventVFXMapper {
 
             case 'GROUND_IMPACT':
                 if (event.text === 'LOCKED') {
-                    vfx.playEffect('FX_LAST_STAND_LOCKED', event.pos.x, event.pos.y, 0, event.color || '#c084fc', groundZ);
+                    vfx.playEffect('FX_LAST_STAND_LOCKED', event.pos.x, event.pos.y, 0, event.color || GRID_OVERLAY.LAST_STAND.FILL, groundZ);
                 }
                 break;
         }

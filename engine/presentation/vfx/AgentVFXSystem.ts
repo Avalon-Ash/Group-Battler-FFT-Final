@@ -2,7 +2,7 @@
 import { GameEngine, Agent } from "../../game";
 import { VFXSystem } from "./VFXSystem";
 import { MovementType } from "../../../types";
-import { AGENT_MODEL_CENTER_Z, VFX_PARAM } from "../../../constants";
+import { AGENT_MODEL_CENTER_Z, VFX_PARAM, VFX_PRESENTATION_PARAM } from "../../../constants";
 import { VisualMath } from "../../math/VisualMath";
 
 /**
@@ -32,21 +32,21 @@ export class AgentVFXSystem {
 
         // 1. Friction Dust / Sparks Logic
         this.dustTimer += dt;
-        const canSpawnDust = this.dustTimer > 0.15; // Limit rate (approx 6fps) to prevent excessive stacking
+        const canSpawnDust = this.dustTimer > VFX_PRESENTATION_PARAM.DUST_SPAWN_INTERVAL_S; // Limit rate (approx 6fps) to prevent excessive stacking
 
         if (canSpawnDust) {
             for (const a of engine.agents) {
                 if (a.hp <= 0) continue;
                 
                 const speedSq = a.physics.vx*a.physics.vx + a.physics.vy*a.physics.vy;
-                const isGrounded = a.physics.z < 5;
+                const isGrounded = a.physics.z < VFX_PRESENTATION_PARAM.GROUNDED_Z_PX;
                 const isFlyingUnit = a.movementType === MovementType.FLYING;
 
                 // Threshold: Only trigger on massive impulses (knockbacks / dashes)
                 if (speedSq > VFX_PARAM.FX_KNOCKBACK_DUST_THRESHOLD_SQ && isGrounded && !isFlyingUnit) {
                     const terrainH = this.groundHeight(a, engine);
                     // 擊退／突進的地面塵（零件；曾借用 FX_STATUS_ROOT_LOOP）
-                    vfx.playEffect('FX_KNOCKBACK_DUST', a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);
+                    vfx.playEffect('FX_KNOCKBACK_DUST', a.px + a.physics.x, a.py + a.physics.y, terrainH + VFX_PRESENTATION_PARAM.DUST_Z_OFFSET_PX);
                 }
             }
             this.dustTimer = 0;
@@ -74,7 +74,7 @@ export class AgentVFXSystem {
         t -= dt;
         
         if (t <= 0) {
-            t = 1.5 + Math.random() * 1.0; // Random interval for idle feel
+            t = VFX_PRESENTATION_PARAM.IDLE_INTERVAL_BASE_S + Math.random() * 1.0; // Random interval for idle feel
             const terrainZ = this.groundHeight(agent, engine);
             const modelCenterZ = terrainZ + agent.physics.z + AGENT_MODEL_CENTER_Z * 0.5; // Idle 置於腰部
             const fxId = agent.team === 1 ? 'FX_IDLE_RED' : 'FX_IDLE_BLUE';

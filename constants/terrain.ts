@@ -688,3 +688,17 @@ export const ENV_DRAW = {
     /** 尖頂右晶傾角（rad） */
     POINTY_RIGHT_SHARD_TILT: 0.15,
 } as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const ENV_COLORS = {
+    /** 六角陰影填色（顏色） */
+    HEX_SHADOW_FILL: 'rgba(0,0,0,0.3)',
+    /** 接縫描邊顏色（顏色） */
+    SEAM_STROKE: 'rgba(0,0,0,0.2)',
+    /** 頂蓋填色（顏色） */
+    CAP_FILL: '#000',
+    /** 樹幹填色（顏色） */
+    TRUNK_FILL: '#3f2e1e',
+    /** 邊緣描邊顏色（顏色） */
+    EDGE_STROKE: 'rgba(255,255,255,0.1)',
+} as const;
