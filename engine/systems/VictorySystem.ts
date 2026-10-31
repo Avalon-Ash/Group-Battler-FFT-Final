@@ -1,6 +1,7 @@
 import { BATTLE_RULES } from '../../constants';
 import { GameEngine } from "../game";
-import { Team } from "../../types";
+import type { Agent } from "../core/Agent";
+import { sameSide } from "../core/Allegiance";
 import { VICTORY_PHASE_DURATION } from "../game";
 
 export class VictorySystem {
@@ -15,12 +16,16 @@ export class VictorySystem {
         const vs = engine.state.victory;
         if (vs.isFinishing) return true;
 
-        let blue = 0, red = 0;
+        // 勝負看陣營（Allegiance）：一般模式 side＝team；大逃殺每人一個 side，最後剩一個 side 就結束
+        let survivor: Agent | null = null;
+        let contested = false;
         for (const a of engine.agents) {
-            if (a.hp > 0) a.team === Team.BLUE ? blue++ : red++;
+            if (a.hp <= 0) continue;
+            if (!survivor) survivor = a;
+            else if (!sameSide(a, survivor)) { contested = true; break; }
         }
 
-        if (blue === 0 && red === 0) {
+        if (!survivor) {
             vs.isFinishing = true;
             vs.winningTeam = null; 
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
@@ -28,9 +33,9 @@ export class VictorySystem {
             return true;
         }
 
-        if ((blue === 0 && red > 0) || (red === 0 && blue > 0)) { 
+        if (!contested) {
             vs.isFinishing = true;
-            vs.winningTeam = blue === 0 ? Team.RED : Team.BLUE;
+            vs.winningTeam = survivor.team;
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
             engine.state.time.targetTimeScale = BATTLE_RULES.FINISH_TIME_SCALE; 
             return true;

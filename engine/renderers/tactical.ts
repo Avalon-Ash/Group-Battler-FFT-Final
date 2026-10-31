@@ -15,6 +15,7 @@ import { Hex, Skill, Projectile } from "../../types";
 import { RenderList } from "./RenderList";
 import { GridRenderStrategy } from "./grid/GridRenderStrategy";
 import { GridCache } from "./grid/GridCache";
+import { sameSide } from '../core/Allegiance';
 
 export interface RenderCamera {
     x: number;
@@ -100,7 +101,7 @@ export class TacticalRenderer {
                 
                 if (Number.isFinite(startPx) && Number.isFinite(startPy) && Number.isFinite(endPx) && Number.isFinite(endPy)) {
                     const grad = ctx.createLinearGradient(startPx, startPy, endPx, endPy);
-                    const isEnemy = highlight.team !== t.team;
+                    const isEnemy = !sameSide(highlight, t);
                     const color = isEnemy ? TACTICAL_COLORS.TARGET_ENEMY : TACTICAL_COLORS.TARGET_ALLY;
                     grad.addColorStop(0, TACTICAL_COLORS.TARGET_FADE); 
                     grad.addColorStop(TACTICAL_DRAW.TARGET_COLOR_STOP, color);

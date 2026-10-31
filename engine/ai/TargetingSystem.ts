@@ -7,6 +7,7 @@ import { Pathfinder } from "./Pathfinder";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { canStepUp } from "../math/ClimbRule";
 import { isGroundMeleeRange } from "./MeleeAttack";
+import { sameSide } from '../core/Allegiance';
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
 
@@ -86,7 +87,7 @@ export class TargetingSystem {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
         const hazardsOnTile = spatial.getSpatialHazardsAt(a.q, a.r);
-        const inDanger = spatial.isWarningTile(myKey) || hazardsOnTile.some(h => h.team !== a.team);
+        const inDanger = spatial.isWarningTile(myKey) || hazardsOnTile.some(h => !sameSide(h, a));
 
         // 如果不在危險中，且正在詠唱非普攻技能，則鎖定目標不更新
         if (!inDanger && a.castingSkillIdx !== -1) {
@@ -190,7 +191,7 @@ export class TargetingSystem {
             (a.curCDs[i] || 0) <= COMBAT_PARAM.READY_CD_TOLERANCE && a.mp >= s.cost);
 
         for (const o of spatial.getAgents()) {
-            if (o.team !== a.team && this.isValidTarget(o, spatial)) {
+            if (!sameSide(o, a) && this.isValidTarget(o, spatial)) {
                 // 近戰（規則 A）普攻打不到的目標只扣分、不排除：追擊尋路會找同層攻擊格，
                 // 突進／拉取技能可用時完全不扣分，留給行為樹的 ACTIVE／ULT 槽先出手（使用者 2026-10-28）。
                 const basic = a.skills.find(s => s?.tag === 'BASIC');
@@ -272,8 +273,8 @@ export class TargetingSystem {
      */
     public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider): { targetAgent: Agent | null, targetHex: Hex | null } {
         const allAgents = spatial.getAgents();
-        const enemies = allAgents.filter(e => e.team !== source.team && this.isValidTarget(e, spatial));
-        const allies = allAgents.filter(a => a.team === source.team && this.isValidTarget(a, spatial));
+        const enemies = allAgents.filter(e => !sameSide(e, source) && this.isValidTarget(e, spatial));
+        const allies = allAgents.filter(a => sameSide(a, source) && this.isValidTarget(a, spatial));
 
         // 1. PBAOE 或自身技能 (Range 0)
         if (skill.range === 0) {
@@ -353,7 +354,7 @@ export class TargetingSystem {
         let validStickyTarget = false;
         if (source.target && source.target.hp > 0 && !source.target.banished) {
             if (targetIsAlly) {
-                if (source.target.team === source.team) {
+                if (sameSide(source.target, source)) {
                     validStickyTarget = true;
                     // 純治療不可黏著滿血友軍
                     if (isPureHeal && source.target.hp >= source.target.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD) {
@@ -365,7 +366,7 @@ export class TargetingSystem {
                     }
                 }
             } else {
-                validStickyTarget = source.target.team !== source.team;
+                validStickyTarget = !sameSide(source.target, source);
             }
         }
 
@@ -433,7 +434,7 @@ export class TargetingSystem {
         const radius = skill.aoeRadius || 1;
         
         // 取得所有有效敵軍
-        const enemies = spatial.getAgents().filter(e => e.team !== source.team && this.isValidTarget(e));
+        const enemies = spatial.getAgents().filter(e => !sameSide(e, source) && this.isValidTarget(e));
         if (enemies.length === 0) return { targetAgent: null, targetHex: null };
 
         let bestHex: Hex | null = null;

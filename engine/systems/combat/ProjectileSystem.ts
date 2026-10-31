@@ -12,6 +12,7 @@ import { HazardManager } from "./HazardManager";
 import { ISO_SCALE_Y, COMBAT_PARAM, PROJECTILE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
 import { unitEventPos, pointEventPos } from "../../events/EventPos";
+import { sameSide } from '../../core/Allegiance';
 
 export class ProjectileSystem {
   private pool: Projectile[] = [];
@@ -86,8 +87,8 @@ export class ProjectileSystem {
         const t = engine.getAgentAt(cell.q, cell.r);
         if (t && t.hp > 0 && !t.banished) {
           const isValidTarget =
-            (p.skill.power > 0 && t.team !== p.team) ||
-            (p.skill.power < 0 && t.team === p.team) ||
+            (p.skill.power > 0 && !sameSide(t, p)) ||
+            (p.skill.power < 0 && sameSide(t, p)) ||
             p.skill.power === 0;
 
           if (isValidTarget) victims.push(t);
@@ -175,6 +176,7 @@ export class ProjectileSystem {
     p.id = engine.nextId("PRJ");
     p.sourceId = source.id;
     p.team = source.team;
+    p.side = source.side;
     p.skill = skill;
     p.t = 0;
     p.totalDuration = Math.max(PROJECTILE_RULES.MIN_DURATION, totalDist / speed);
@@ -244,6 +246,7 @@ export class ProjectileSystem {
       skill: {} as Skill,
       sourceId: "",
       team: Team.BLUE,
+      side: Team.BLUE,
       trajectoryInfo: { type: "LINEAR", lookKey: DEFAULT_PROJECTILE_KEY },
     };
   }

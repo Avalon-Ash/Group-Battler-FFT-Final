@@ -10,6 +10,7 @@ import { Agent, GameEngine } from "../../game";
 import { CAST_LOCKOUT, CAST_RULES } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
 import { EventPool } from "../../events/GameEventPool";
+import { sameSide } from '../../core/Allegiance';
 
 export type BreakCastContext = Pick<GameEngine, 'log' | 'events' | 'getTerrainHeight' | 'mapConfig'>;
 
@@ -107,7 +108,7 @@ export class CastingEngine {
         a.castTimer = 0;
         a.castingAnimationTimer = 0;
         a.currentTelegraph = null;
-        if (a.target && a.target.team === a.team) {
+        if (a.target && sameSide(a.target, a)) {
             a.forceAiUpdate = true;
         }
         if (fromCompletion) {

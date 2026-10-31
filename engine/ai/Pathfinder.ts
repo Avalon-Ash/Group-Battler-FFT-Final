@@ -7,6 +7,7 @@ import { canStepUp } from "../math/ClimbRule";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { TargetingSystem } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
+import { sameSide } from '../core/Allegiance';
 
 interface PQNode {
     hash: number;
@@ -120,7 +121,7 @@ export class Pathfinder {
                     }
                 }
                 
-                const enemyHazards = spatial.getSpatialHazardsAt(nHex.q, nHex.r).filter(h => h.team !== startAgent.team);
+                const enemyHazards = spatial.getSpatialHazardsAt(nHex.q, nHex.r).filter(h => !sameSide(h, startAgent));
                 if (enemyHazards.length > 0) {
                     if (!isEscaping) {
                         // 嘗試完全避開危險塗層
@@ -181,7 +182,7 @@ export class Pathfinder {
         
         // [FIX] If starting position is already safe, return it as a 1-step path
         const startKey = HexUtils.key(start);
-        const hazardAtStart = spatial.getSpatialHazardsAt(start.q, start.r).find(h => h.team !== agent.team);
+        const hazardAtStart = spatial.getSpatialHazardsAt(start.q, start.r).find(h => !sameSide(h, agent));
         if (!targeting.isWarningTile(startKey, spatial) && !hazardAtStart) {
             return [{ q: start.q, r: start.r }];
         }
@@ -205,7 +206,7 @@ export class Pathfinder {
             const currentHex = HexUtils.unhash(current.hash);
             const currentKey = HexUtils.key(currentHex);
 
-            const hazardAtNode = spatial.getSpatialHazardsAt(currentHex.q, currentHex.r).find(h => h.team !== agent.team);
+            const hazardAtNode = spatial.getSpatialHazardsAt(currentHex.q, currentHex.r).find(h => !sameSide(h, agent));
             const isSafe = !spatial.isWarningTile(currentKey) && !hazardAtNode;
             
             if (isSafe && spatial.isValidHash(current.hash)) {
@@ -406,7 +407,7 @@ export class Pathfinder {
             const nKey = HexUtils.key(nHex);
 
             // 安全格定義：非警告格 + 無敵方 Hazard
-            const hazard = spatial.getSpatialHazardsAt(nHex.q, nHex.r).find(h => h.team !== agent.team);
+            const hazard = spatial.getSpatialHazardsAt(nHex.q, nHex.r).find(h => !sameSide(h, agent));
             if (!spatial.isWarningTile(nKey) && !hazard) return true;
         }
         return false;

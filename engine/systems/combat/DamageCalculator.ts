@@ -4,6 +4,7 @@ import { Skill, Role, DamageChannel } from "../../../types";
 import { COMBAT_PARAM, EFFECT_LIMITS, DAMAGE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
 import { absorbWithShield } from "./DirectDamage";
+import { sameSide } from '../../core/Allegiance';
 
 export interface DamageResult {
     finalValue: number;     // Final HP delta (negative for damage, positive for heal)
@@ -36,7 +37,7 @@ export class DamageCalculator {
         const channel = options.channel ?? 'DIRECT';
         const powerScale = options.powerScale ?? 1;
         const isHeal = skill.power < 0;
-        const isAlly = source.team === target.team;
+        const isAlly = sameSide(source, target);
         
         // Support skills (Heals or Buffs cast on allies) should bypass evasion and shields
         const isBuffCC = (skill.ccType === 'SHIELD' || skill.ccType === 'HOT' || skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT');

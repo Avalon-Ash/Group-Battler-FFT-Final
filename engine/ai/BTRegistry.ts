@@ -8,20 +8,21 @@ import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
+import { sameSide } from '../core/Allegiance';
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => NodeState;
 
 function restoreCombatTarget(a: Agent, engine: GameEngine): void {
-    if (a.target && a.target.team === a.team) {
-        if (a._savedCombatTarget && a._savedCombatTarget.hp > 0 && a._savedCombatTarget.team !== a.team) {
+    if (a.target && sameSide(a.target, a)) {
+        if (a._savedCombatTarget && a._savedCombatTarget.hp > 0 && !sameSide(a._savedCombatTarget, a)) {
             a.target = a._savedCombatTarget;
             a._savedCombatTarget = null;
         } else {
             a.target = null;
             engine.updateTarget(a);
         }
-    } else if (!a.target && a._savedCombatTarget && a._savedCombatTarget.hp > 0 && a._savedCombatTarget.team !== a.team) {
+    } else if (!a.target && a._savedCombatTarget && a._savedCombatTarget.hp > 0 && !sameSide(a._savedCombatTarget, a)) {
         a.target = a._savedCombatTarget;
         a._savedCombatTarget = null;
     }
@@ -45,13 +46,13 @@ export const BTConditions: Record<string, BTConditionFn> = {
 
         // 嘲諷中且目標不是嘲諷者：交給 TargetingSystem 的嘲諷強制鎖定重選（CCManager 不再直接寫 target）
         const tauntLocked = a.effects.TAUNT.remaining > 0 && a.effects.TAUNT.sourceId !== null && a.target?.id !== a.effects.TAUNT.sourceId;
-        if (!tauntLocked && a.target && a.target.hp > 0 && a.target.team !== a.team && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
+        if (!tauntLocked && a.target && a.target.hp > 0 && !sameSide(a.target, a) && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
             return true;
         }
         // target 死亡、出界、同隊或地塊消失：立刻重新選目標
         a.target = null;
         engine.updateTarget(a);
-        return a.target !== null && a.target.team !== a.team;
+        return a.target !== null && !sameSide(a.target, a);
     },
     
     "HpBelow": (a, _, args) => (a.hp / a.maxHp) < args.threshold,
@@ -64,7 +65,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (engine.isWarningTile(myKey)) return true;
         
         // [NEW] Check for enemy spatial hazards
-        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => h.team !== a.team);
+        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => !sameSide(h, a));
         if (enemyHazards.length > 0) return true;
 
         // Project based on physics velocity (knockback)
@@ -79,7 +80,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
             const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
             if (engine.isWarningTile(HexUtils.key(predHex))) return true;
 
-            const enemyHazardsAtPred = engine.getSpatialHazardsAt(predHex.q, predHex.r).filter(h => h.team !== a.team);
+            const enemyHazardsAtPred = engine.getSpatialHazardsAt(predHex.q, predHex.r).filter(h => !sameSide(h, a));
             if (enemyHazardsAtPred.length > 0) return true;
         }
 
@@ -92,7 +93,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (engine.isWarningTile(myKey)) return true;
         
         // [NEW] Check for enemy hazards
-        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => h.team !== a.team);
+        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => !sameSide(h, a));
         if (enemyHazards.length > 0) return true;
 
         // [FIX] Danger is objective. Cooldown should not hide it.
@@ -108,7 +109,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const pixelKey = HexUtils.key(pixelHex);
         if (engine.isWarningTile(pixelKey)) return true;
         
-        const enemyHazardsAtPixel = engine.getSpatialHazardsAt(pixelHex.q, pixelHex.r).filter(h => h.team !== a.team);
+        const enemyHazardsAtPixel = engine.getSpatialHazardsAt(pixelHex.q, pixelHex.r).filter(h => !sameSide(h, a));
         if (enemyHazardsAtPixel.length > 0) return true;
 
         return false;
@@ -170,8 +171,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const result = engine.calculateOptimalTarget(a, skill);
         
         if (result.targetAgent) {
-            if (result.targetAgent.team === a.team) {
-                if (a.target && a.target.team !== a.team) {
+            if (sameSide(result.targetAgent, a)) {
+                if (a.target && !sameSide(a.target, a)) {
                     a._savedCombatTarget = a.target;
                 }
                 const effRange = engine.getEffectiveRange(a, result.targetAgent.q, result.targetAgent.r, skill.range);
@@ -270,7 +271,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
  */
 function approachEndsOnCollapse(a: Agent, engine: GameEngine, dest: Hex, range: number): boolean {
     if (!engine.isWarningTile(HexUtils.key(dest)) &&
-        engine.getSpatialHazardsAt(dest.q, dest.r).every(h => h.team === a.team)) {
+        engine.getSpatialHazardsAt(dest.q, dest.r).every(h => sameSide(h, a))) {
         return false; // 目標腳下無任何危險，不必試算
     }
     const pf = engine.movement.pathfinder;
@@ -346,7 +347,7 @@ export const BTActions: Record<string, BTActionFn> = {
             if (!engine.map.isValid(a.targetHex!.q, a.targetHex!.r)) return true;
             const tk = HexUtils.key(a.targetHex!);
             const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex!.q, a.targetHex!.r)
-                .find(h => h.team !== a.team);
+                .find(h => !sameSide(h, a));
             return engine.isWarningTile(tk) || (!!hazardAtTarget);
         })();
 
@@ -357,7 +358,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 const castSkill = a.skills[a.castingSkillIdx];
                 if (castSkill) {
                     const myKey = HexUtils.key(a);
-                    const hazard = engine.getSpatialHazardsAt(a.q, a.r).find(h => h.team !== a.team);
+                    const hazard = engine.getSpatialHazardsAt(a.q, a.r).find(h => !sameSide(h, a));
                     const isWarning = engine.isWarningTile(myKey);
                     let isFatal = false;
 
@@ -374,7 +375,7 @@ export const BTActions: Record<string, BTActionFn> = {
                         }
                     }
                     
-                    if (!isFatal && hazard && hazard.team !== a.team && hazard.duration < a.castTimer) isFatal = true;
+                    if (!isFatal && hazard && !sameSide(hazard, a) && hazard.duration < a.castTimer) isFatal = true;
                     
                     if (isFatal) {
                         engine.log(a, 'DECISION', '中斷詠唱', '', `地面即將塌陷 (${timeToCollapse.toFixed(1)}s)，放棄詠唱 ${castSkill.name}`);
@@ -411,10 +412,10 @@ export const BTActions: Record<string, BTActionFn> = {
                         // Pass 0: Only non-warning tiles
                         if (pass === 0 && isWarn) continue;
 
-                        const hazardAtN = engine.getSpatialHazardsAt(n.q, n.r).find(h => h.team !== a.team);
+                        const hazardAtN = engine.getSpatialHazardsAt(n.q, n.r).find(h => !sameSide(h, a));
                         const dangerScore = hazardAtN ? 100 : (isWarn ? 10 : 0);
                         const occ = engine.getAgentAt(n.q, n.r);
-                        const occPenalty = occ ? (occ.team === a.team ? 2 : BT_RULES.ENEMY_OCCUPANCY_PENALTY) : 0;
+                        const occPenalty = occ ? (sameSide(occ, a) ? 2 : BT_RULES.ENEMY_OCCUPANCY_PENALTY) : 0;
                         const totalScore = dangerScore + occPenalty;
                         if (totalScore < lowestDanger) {
                             lowestDanger = totalScore;
@@ -554,7 +555,7 @@ export const BTActions: Record<string, BTActionFn> = {
         if (!skill) return NodeState.FAILURE;
 
         restoreCombatTarget(a, engine);
-        if (!a.target || a.target.team === a.team) return NodeState.FAILURE;
+        if (!a.target || sameSide(a.target, a)) return NodeState.FAILURE;
 
         // 非對敵技能（治療／友軍增益／自身增益）在 Smart Cast 未命中條件時：
         // 若是 Ult (0) 或 Active (1)，不可攔截並追擊敵軍，必須回傳 FAILURE 讓 BT 繼續嘗試下一槽位技能（如普攻），
@@ -620,7 +621,7 @@ export const BTActions: Record<string, BTActionFn> = {
             if (h.q === a.q && h.r === a.r) continue;
             if (!engine.map.isValid(h.q, h.r) || engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
             if (engine.isWarningTile(HexUtils.key(h))) continue;
-            if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => hz.team !== a.team)) continue;
+            if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => !sameSide(hz, a))) continue;
             if (meleeAware && isMeleeAttackCell(engine.movement.targeting, h, a.target.q, a.target.r, basicRange, engine)) {
                 // 攻擊格之間挑離自己最近的；有任何攻擊格就勝過「只是格距更近」的格
                 const step = HexUtils.dist(a, h);
@@ -661,7 +662,7 @@ export const BTActions: Record<string, BTActionFn> = {
             let isTargetSafe = false;
             if (a.targetHex) {
                 const targetKey = HexUtils.key(a.targetHex);
-                const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex.q, a.targetHex.r).find(h => h.team !== a.team);
+                const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex.q, a.targetHex.r).find(h => !sameSide(h, a));
                 isTargetSafe = !engine.isWarningTile(targetKey) && !hazardAtTarget;
             }
             if (isTargetSafe) {
@@ -670,7 +671,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 for (const h of line) {
                     if (h.q === a.q && h.r === a.r) continue;
                     const occupant = engine.getAgentAt(h.q, h.r);
-                    if (occupant && occupant.team !== a.team) {
+                    if (occupant && !sameSide(occupant, a)) {
                         a.target = occupant;
                         a.targetHex = null;
                         break;

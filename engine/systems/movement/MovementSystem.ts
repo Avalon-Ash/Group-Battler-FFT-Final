@@ -17,6 +17,7 @@ import type { GameEngine } from "../../game";
 import { getHazardSpeedMult } from "../HazardSystem";
 import { slowSpeedMult } from "../../core/Effects";
 import { hexEventPos } from "../../events/EventPos";
+import { sameSide } from '../../core/Allegiance';
 
 export class MovementSystem {
     public pathfinder: Pathfinder;
@@ -87,7 +88,7 @@ export class MovementSystem {
                 let pathValid = true;
                 for (const hex of a.path) {
                     const hexKey = HexUtils.key(hex);
-                    const enemyHazards = spatial.getSpatialHazardsAt(hex.q, hex.r).filter(h => h.team !== a.team);
+                    const enemyHazards = spatial.getSpatialHazardsAt(hex.q, hex.r).filter(h => !sameSide(h, a));
                     const hasEnemyHazard = enemyHazards.length > 0;
                     if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isWarningTile(hexKey) || hasEnemyHazard))) {
                         pathValid = false;
@@ -123,7 +124,7 @@ export class MovementSystem {
                 
                 // 1. 檢查是否被友軍實體擋住
                 const occupant = spatial.getAgentHash(HexUtils.hash(next.q, next.r));
-                if (occupant && occupant.hp > 0 && !occupant.banished && !occupant.outOfBounds && occupant.team === a.team) {
+                if (occupant && occupant.hp > 0 && !occupant.banished && !occupant.outOfBounds && sameSide(occupant, a)) {
                     isBlockedByAlly = true;
                 }
                 
@@ -133,7 +134,7 @@ export class MovementSystem {
                     for (const other of agents) {
                         if (other.id !== a.id && other.hp > 0 && other.isMoving && other.path.length > 0) {
                             const dest = other.path[0];
-                            if (dest.q === next.q && dest.r === next.r && other.team === a.team) {
+                            if (dest.q === next.q && dest.r === next.r && sameSide(other, a)) {
                                 isBlockedByAlly = true;
                                 break;
                             }

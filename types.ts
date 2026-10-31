@@ -184,6 +184,8 @@ export interface Projectile {
     skill: Skill;
     sourceId: string;
     team: Team;
+    /** 施法者的陣營（Allegiance）；team 只管外觀 */
+    side: number;
 
     /** 生成時鎖定的軌跡參數（TrajectoryMath）與外觀鍵（PROJECTILE_VISUALS 的鍵，繪製端查 look） */
     trajectoryInfo: {
@@ -204,6 +206,8 @@ export interface SpatialHazard {
     duration: number;
     sourceId: string;
     team: Team;
+    /** 施法者的陣營（Allegiance）；team 只管外觀 */
+    side: number;
     color: string;
     power: number;
     tickInterval: number;

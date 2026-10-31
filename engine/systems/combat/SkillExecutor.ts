@@ -14,6 +14,7 @@ import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS, HI
 import { MultiHitScheduler } from "./MultiHitScheduler";
 import { random } from "../../math/rng";
 import { unitEventPos, hexEventPos } from "../../events/EventPos";
+import { sameSide } from '../../core/Allegiance';
 
 /** 天降類延遲結算：詠唱結束當下記下的落點與目標（落下期間施法者被暈、陣亡、換目標都不影響） */
 export interface DeferredCastSnapshot {
@@ -51,8 +52,8 @@ export class SkillExecutor {
         cells.forEach(cell => {
             const u = engine.getAgentAt(cell.q, cell.r);
             if (u && u.hp > 0 && !u.banished && !u.outOfBounds) {
-                const isValidTarget = (skill.power > 0 && u.team !== source.team) ||
-                                      (skill.power < 0 && u.team === source.team) ||
+                const isValidTarget = (skill.power > 0 && !sameSide(u, source)) ||
+                                      (skill.power < 0 && sameSide(u, source)) ||
                                       (skill.power === 0);
                 if (isValidTarget) targets.push(u);
             }
@@ -141,8 +142,8 @@ export class SkillExecutor {
         } else {
             const primary = deferred ? deferred.target : source.target;
             if (primary && primary.hp > 0 && !primary.banished && !primary.outOfBounds) {
-                const isValidTarget = (skill.power > 0 && primary.team !== source.team) || 
-                                      (skill.power < 0 && primary.team === source.team) || 
+                const isValidTarget = (skill.power > 0 && !sameSide(primary, source)) || 
+                                      (skill.power < 0 && sameSide(primary, source)) || 
                                       (skill.power === 0);
                 
                 // For power === 0 buffs, AI might have targeted an enemy. In this case, CCManager would block it.
@@ -151,7 +152,7 @@ export class SkillExecutor {
                
                 let shouldPush = false;
                 if (isValidTarget) {
-                    if (skill.power === 0 && isBuffCC && primary.team !== source.team) {
+                    if (skill.power === 0 && isBuffCC && !sameSide(primary, source)) {
                         // AI targeted an enemy for a Buff. Don't push, so it falls back to self.
                         shouldPush = false;
                     } else {
@@ -236,7 +237,7 @@ export class SkillExecutor {
                 target.lastHitDamage = finalDamage;
 
                 // [NEW] REFLECT: 反傷判定（受到敵方技能直接傷害後，對攻擊者造成 實際扣血量×v/100 的真實傷害）
-                if (target.effects.REFLECT.remaining > 0 && target.team !== source.team && source.hp > 0 && !source.banished && !source.outOfBounds) {
+                if (target.effects.REFLECT.remaining > 0 && !sameSide(target, source) && source.hp > 0 && !source.banished && !source.outOfBounds) {
                     const reflectPct = Math.min(target.effects.REFLECT.value, EFFECT_LIMITS.REFLECT_MAX_PCT) / 100;
                     const reflectDmg = Math.floor(finalDamage * reflectPct);
                     if (reflectDmg > 0) {

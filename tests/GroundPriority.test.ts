@@ -62,7 +62,7 @@ describe('ground fill priority', () => {
         a.view.visualStatus = 'FROZEN';
         engine.agents = [a];
         engine.map.warningTiles.add(tile.key);
-        engine.state.spatialHazards = [{ id: 'fire', type: 'FIRE', cells: [tile], duration: 10, sourceId: a.id, team: a.team, color: skill.color, power: 0, tickInterval: 1, lastTickTime: 0 }];
+        engine.state.spatialHazards = [{ id: 'fire', type: 'FIRE', cells: [tile], duration: 10, sourceId: a.id, team: a.team, side: a.side, color: skill.color, power: 0, tickInterval: 1, lastTickTime: 0 }];
         const strategy = new GridRenderStrategy();
         const list = new RenderList();
         strategy.submit(cache, list, engine, null, null, null, [], 0, 'IDLE', 0);

@@ -16,6 +16,7 @@ import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS, HAZARD_RULES } from "../../
 import { applyDirectDamage } from "./combat/DirectDamage";
 import { triggerHitFlash } from "../core/ViewCommands";
 import { unitEventPos, hexEventPos } from "../events/EventPos";
+import { sameSide } from '../core/Allegiance';
 
 export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;
 
@@ -36,7 +37,7 @@ function gravityOffset(agent: Agent, h: SpatialHazard, mapConfig: MapConfig): { 
 export function getHazardSpeedMult(agent: Agent, hazards: readonly SpatialHazard[], mapConfig: MapConfig): number {
     let mult = 1;
     for (const h of hazards) {
-        if (h.team === agent.team) continue;
+        if (sameSide(h, agent)) continue;
         if (h.cells.some(c => c.q === agent.q && c.r === agent.r)) {
             if (h.type === 'GRAVITY') mult = Math.min(mult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION);
             else if (h.type === 'ICE') mult = Math.min(mult, COMBAT_PARAM.ICE_SPEED_REDUCTION);
@@ -54,7 +55,7 @@ export class HazardSystem {
         // [PROACTIVE PUSH] If an agent is standing in any of the new tiles, force immediate AI tick
         hazard.cells.forEach(tile => {
             const victim = engine.getAgentAt(tile.q, tile.r);
-            if (victim && victim.hp > 0 && victim.team !== hazard.team) {
+            if (victim && victim.hp > 0 && !sameSide(victim, hazard)) {
                 victim.forceAiUpdate = true;
             }
         });
@@ -90,7 +91,7 @@ export class HazardSystem {
             
             spatialHazards.forEach(h => {
                 // Ignore friendly hazards
-                if (h.team === agent.team) return;
+                if (sameSide(h, agent)) return;
 
                 // Check if agent is inside this spatial hazard
                 const isInside = h.cells.some(c => c.q === agent.q && c.r === agent.r);
@@ -161,7 +162,7 @@ export class HazardSystem {
             if (h.type !== 'GRAVITY') return;
 
             engine.agents.forEach(agent => {
-                if (agent.hp <= 0 || agent.banished || agent.outOfBounds || agent.team === h.team) return;
+                if (agent.hp <= 0 || agent.banished || agent.outOfBounds || sameSide(agent, h)) return;
 
                 const pull = gravityOffset(agent, h, engine.mapConfig);
                 if (pull) {
