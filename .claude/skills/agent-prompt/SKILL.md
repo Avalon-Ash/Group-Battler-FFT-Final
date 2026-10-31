@@ -10,10 +10,10 @@ description: 撰寫給 Gemini（主代理用 agy 直接派；備援是使用者�
 ## 開一輪的流程（預設：主代理用 agy 派 Gemini）
 1. 寫 `docs/<NAME>_AGENT_PROMPT.md`（本 skill 的範本）。還沒提交就放 scratchpad，派工時用絕對路徑。
 2. **工作資料夾**：在 repo 外開**獨立 clone**（`git clone --no-hardlinks <主資料夾> C:\Git\_wt_<topic>`），切好分支 `feat/<topic>`，`node_modules` 用 `robocopy` 複製真目錄，不跑 npm 安裝。不可放在主資料夾或 `.claude/worktrees` 底下。
-3. **派工**（檔位見全域 `gemini-call` skill；長線實作 `gemini-4-argon-medium`）：背景 Bash 執行
+3. **派工**（檔位與韁繩見全域 `gemini-call` skill；實作小包先用 `gemini-3.8-flash-high`，同一包兩次不及格才升 `gemini-4-argon-medium`；一份提示詞 ≤3 個任務，長線工作拆成多份逐份派）：背景 Bash 執行
    `cd C:/Git/_wt_<topic> && "$LOCALAPPDATA/agy/bin/agy.exe" --model <模型> --mode accept-edits --settings C:/Git/Group-Battler-FFT-Final/tools/agent/gemini-allow.json --output-format json -p "讀 <提示詞絕對路徑> 並照做"`
    等 harness 通知，不輪詢。代理跑的期間主代理對該資料夾只讀不寫，也不跑 e2e／perf／Blender。
-4. 跑完 → `review-round` skill。Gemini 不能 commit（允許清單只放確切指令），主代理審查後依任務分批代為 commit（訊息加 `Co-Authored-By: Gemini`）。
+4. 跑完 → `review-round` skill。Gemini 不能 commit（允許清單只放確切指令），主代理審查後依任務分批代為 commit（訊息加 `Co-Authored-By: Gemini`）。審查先看 `tests/**` 與驗收腳本的 diff（Gemini 4 在測試一直失敗時會改驗證來過關），再 grep 報告提到的每個函式與行號確認存在。
 5. **改回 IDE 的條件**：權限擋住必要的指令、反覆卡住、或品質兩次不及格 → 改請使用者在 IDE 執行 `/goal <提示詞>`（資料夾同上），並說明原因；在 INV 補上下方「IDE 備援」的長指令規則。
 
 ## 允許清單（`tools/agent/gemini-allow.json`）
@@ -83,6 +83,8 @@ description: 撰寫給 Gemini（主代理用 agy 直接派；備援是使用者�
 ### 4. 守則與停下條件（INV）
 - <超過幅度上限／試了 N 批仍不達標／發現看似 bug 的現象 → 只記錄、停下回報>
 - 不新增依賴、不用 `as any`、tick 與渲染迴圈不放 `console.log`、不加安全網。
+- **驗證不准動**：現有測試、驗收腳本、斷言強度一律不改；新測試不准用 `x || 0`、`?? 預設值` 這類缺欄位也會通過的斷言；被驗證的對象不准 mock、stub 或攔截請求；不准用空的 `catch` 吞錯誤。同一個驗收失敗兩次就停下回報，不要再想辦法讓它通過。
+- 報告的每個完成項附檔案:行號；做不到的寫「未完成」，不寫「CLOSED」。
 
 ---
 
