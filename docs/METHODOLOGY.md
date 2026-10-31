@@ -11,7 +11,7 @@
 - **常駐文字與快取**：`CLAUDE.md`＋本檔＋`HANDOFF.md` 每一輪都重新計費（多半是快取重讀），只放每次都適用的規則；有觸發情境的寫成 skill，偶爾才查的放 `docs/PROJECT_MAP.md`。快取比對請求開頭（工具→系統提示→對話），所以合約、`.claude/settings*.json`、deny 清單在工作階段中途改，**下一個工作階段才生效**；改完別緊接 `--continue` 舊對話（會整段重寫快取），留到收尾再改。
 
 ## 2. 專案與紀律
-- **專案**：TACTICAL.OS（Vite + React 19 + TS + HTML5 Canvas 2.5D 等距六角戰棋）。遠端 `https://github.com/Avalon-Ash/Group-Battler-FFT-Final.git`（目前只有 `main`）。
+- **專案**：TACTICAL.OS（Vite + React 19 + TS + HTML5 Canvas 2.5D 等距六角戰棋）。遠端 `https://github.com/Avalon-Ash/Group-Battler-FFT-Final.git`（分支以 `git branch -r` 為準）。
 - **治理規則全在 `AGENTS.md`**：`Agent` 純資料（不加方法）、SSOT 在 `types.ts`／`constants/*.ts`／`data/**`、禁 `as any`、禁魔術數字／硬編碼顏色、tick／渲染迴圈禁 `console.log`、單次改動 ≤3 檔（超過先說明策略）、改完 `npm run lint`／`npm test`／`npm run build`，渲染變更再加 `npm run perf:guard`、禁 Three/Pixi/WebGL、素材 URL 用 `import.meta.env.BASE_URL`、子系統只透過 `engine.bus`、UI 只經 `UICommand` 寫入引擎。
 - **使用者機器**：Windows、RTX 4070、Ryzen 7800X3D；量測細節見 `docs/PROJECT_MAP.md` §2。
 - **環境陷阱**：見 §6 環境事實。
