@@ -14,7 +14,7 @@ Rules:
 4. Do not open `node_modules/`, `dist/`, or `*REPORT*.md` unless the task names them.
 5. Do not guess. If you cannot find something after a reasonable search, say "not found" and list what you searched.
 
-Output format (keep it under 200 words):
+Output format (the main agent reads this; include only what answers the task):
 - **Answer**: one or two sentences.
 - **Locations**: bullet list of `path:line` with a 5–10 word note each.
 - **Not checked**: anything you skipped.

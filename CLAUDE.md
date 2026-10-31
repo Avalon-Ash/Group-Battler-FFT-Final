@@ -48,7 +48,7 @@
 
 **Codex（GPT）**：用使用者的 ChatGPT Plus 額度（很緊）。呼叫方式、檔位、額度在全域 `codex-call` skill；本專案的 hook、合約副本同步在 `codex-dispatch` skill；hook 會擋下不合規的呼叫。
 
-**開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
+**在桌面版 App 開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
 
 ## 程序放在 skill（按需載入）
 常駐文字每一輪都佔上下文，只放每次都適用的規則；有明確觸發情境的程序寫成 `.claude/skills/<name>/SKILL.md`，強制規則寫進 hook（`tools/hooks/agent-guardrails.mjs`）。新增 skill 要在下表加一行觸發句，`tests/HarnessContract.test.ts` 會檢查。

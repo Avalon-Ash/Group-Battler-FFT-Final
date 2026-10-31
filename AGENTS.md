@@ -117,6 +117,8 @@ For VFX part changes, preview with `node tools/vfx/fx-shot.mjs` (single-effect s
 
 ### Long commands: detach, then wait in short chunks (`tools/agent/run.mjs`)
 
+**Scope: this section applies when you run inside the IDE (`/goal`) or as Codex.** If you were started headless by the Antigravity CLI (`agy -p`), skip this section: the CLI waits for every command to finish (up to 30 minutes), and only the exact commands listed in your task prompt are allowed — a `run.mjs` wrapper is not on that list and would be refused, which ends your whole run. In that case run each listed command directly, one call per command, exactly as written.
+
 Your IDE turns any tool call that runs longer than a few seconds into a background task, ends your turn, and waits for a "task finished" notification. That notification often never arrives, so you sit idle until the user writes to you: agents have idled 70 minutes, 2 hours, and 6.5 hours (2026-10-21, after a 10-second smoke test) on commands that had already finished. The fix is to **never let a tool call run long, and never end your turn while your own command is still running.**
 
 - **Any command that can take more than ~5 s** (test, build, fidelity, guard, e2e, smoke, soak, batch sims, fx/ult sheets) is started detached and then polled:

@@ -170,6 +170,9 @@ describe('HarnessContract', () => {
             expect(post('node tools/ui-e2e/render-fidelity.mjs --record').additionalContext).toMatch(/差異圖/);
             expect(post('E2E_UPDATE_STYLE=1 npm run e2e:ui').additionalContext).toMatch(/獨立一個 commit/);
             expect(post('npm run perf:fidelity').additionalContext).toBeUndefined();
+            // 只提到腳本名稱、沒有執行，不算重錄
+            expect(post(`node -e "console.log(require('./package.json').scripts['perf:fidelity:record'])"`).additionalContext).toBeUndefined();
+            expect(post('grep -n "perf:fidelity:record" package.json').additionalContext).toBeUndefined();
         });
 
         it('會寫程式的子代理動到渲染卻沒提 RenderSpec 時拒絕；唯讀子代理放行', () => {

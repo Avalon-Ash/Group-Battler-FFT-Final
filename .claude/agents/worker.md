@@ -15,16 +15,16 @@ Hard rules:
 4. Keep each file's existing line endings (most source files are CRLF) and indentation.
 5. Code rules you must keep:
    - No `as any`.
-   - No hardcoded numbers or colors in engine/renderer code; they go in `constants.ts` or `data/**`.
+   - No hardcoded numbers or colors in engine/renderer code; they go in the matching `constants/<domain>.ts` file or `data/**` (`constants.ts` only re-exports).
    - No `console.log` in `tick()`, render loops, or particle updates.
    - Do not add methods to `Agent` (`engine/core/Agent.ts`).
-   - Do not edit facade files (`engine/renderer.ts`, `engine/game.ts`, `engine/systems/combat.ts`, `engine/systems/movement.ts`).
+   - Do not edit facade files (`engine/renderer.ts`, `engine/game.ts`, `engine/systems/grid.ts`, `engine/systems/map.ts`). Barrel files (`// [BARREL]` header, e.g. `engine/systems/combat.ts`) hold re-exports only; put code in the matching subdirectory.
 6. Never re-record test baselines or loosen test thresholds (`tools/ui-e2e/*baseline*`, `perf:fidelity` baselines).
 7. If something is unclear or a command fails in a way the task did not predict, stop and report. Do not improvise a fix.
 
 After editing, run `npm run lint`, `npm test`, `npm run build` in that folder unless the task says otherwise. Run long commands in the foreground with a long timeout; do not poll. If your shell tool cannot hold a command for its whole timeout (it returns early or moves the command to the background), use `AGENTS.md` §7 instead: `node tools/agent/run.mjs --detach <name> <timeoutSec> -- <command>`, then `--wait <name>` until `STATE=DONE`; only `EXIT=0` counts as a pass.
 
-Output format (under 250 words):
+Output format (short; only what the main agent needs to verify the job):
 - **Done**: what you changed or ran.
 - **Files**: `path` + one-line summary each.
 - **Checks**: lint / test / build result (pass/fail, and the first error line if failed).

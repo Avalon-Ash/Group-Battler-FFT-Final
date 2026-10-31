@@ -106,7 +106,9 @@ function codexCommandReason(cmd) {
     return null;
 }
 
-const BASELINE_RECORD = /perf:fidelity:record|render-fidelity\.mjs[^;&|\n]*--record|E2E_UPDATE_STYLE\s*=\s*1|\$env:E2E_UPDATE_STYLE\s*=\s*['"]?1/;
+// 只認真的執行：`npm run perf:fidelity:record` 才算，指令字串裡提到這個名字（grep、讀 package.json）不算
+// （2026-11-01 prompt-audit：`node -e` 讀 package.json 被誤判成重錄）
+const BASELINE_RECORD = /\bnpm\s+run\s+perf:fidelity:record\b|render-fidelity\.mjs[^;&|\n]*--record|E2E_UPDATE_STYLE\s*=\s*1|\$env:E2E_UPDATE_STYLE\s*=\s*['"]?1/;
 const BASELINE_REMINDER = '你剛重錄了保真／樣式基準（rebaseline-fidelity skill）。確認：① 重錄前已產生新舊差異圖，'
     + '只有本輪預期的元素變動；② 重錄獨立一個 commit，訊息寫明哪些元素變了、哪些基準 0 差異、證據圖路徑；'
     + '③ 重錄後再跑一次 npm run perf:fidelity 全部通過。合併衝突時不得「取一邊再重錄」。';

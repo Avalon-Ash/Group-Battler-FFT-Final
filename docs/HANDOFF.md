@@ -35,7 +35,7 @@
 7. **Codex hook 重新信任**：`agent-guardrails.mjs` 加了迴圈守衛（10-31），在 Codex 用 `/hooks` 重新信任一次才會生效；之後若 Codex 連續失敗沒看到「流程檢查（自動）」提醒，回報給主代理（Codex 失敗 payload 形狀未實測）。
 
 ## 4. 以後再說（暫緩項目）
-- **地形烘焙（`docs/BAKED_RENDERING_DESIGN.md`）**：P2-A 原型的 GPT 提示詞已寫好：`docs/BAKE_P2_AGENT_PROMPT.md`（使用者交給 GPT 跑；渲染線，同時間只開這一條）。已做的是地塊、零件、液面、障礙物、光暈文字的快取。剩下兩階段都暫緩：
+- **地形烘焙（`docs/BAKED_RENDERING_DESIGN.md`）**：P2-A 原型的提示詞草稿在 `docs/BAKE_P2_AGENT_PROMPT.md`（原為 GPT 撰寫；這是渲染程式實作，重啟時照派工表改寫給 agy Flash high／Claude，不派 Codex；渲染線，同時間只開這一條）。已做的是地塊、零件、液面、障礙物、光暈文字的快取。剩下兩階段都暫緩：
   - Phase 2「地塊烘焙」（使用者 2026-10-28：先放）。觸發條件兩項都已成立（手機 1% low 13 FPS；地塊／網格 23～25% 是最大的 JS 類別，瓶頸是繪製呼叫數）。做法（可烘格、不烘範圍、鏡頭重烘、驗收步驟）全在 `docs/BAKE_P2_AGENT_PROMPT.md`。預期地塊相關約省 10～15%，只對 5 種地形中的 3 種有效，不足以單獨解決手機頓挫。
   - Phase 3「圖集整合／粒子合批」：收益不確定，等 Phase 2 有結論再評估。
 - **正式版素材**：交給 GPT 慢慢換；外觀軸 `Team×Role×BodyType` 支援直接擴充。成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。
