@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId } from '../types';
+import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleMode } from '../types';
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
@@ -57,9 +57,12 @@ export const useGameApp = () => {
         };
     }, []);
     
+    const battleModeRef = useRef<BattleMode>('TEAMS');
     const [session, setSession] = useState({
         isPlaying: false,
         winner: null as Team | null,
+        winnerId: null as string | null,
+        battleMode: 'TEAMS' as BattleMode,
         timeScale: 1.0,
         isShowcaseMode: true, 
         transitionPhase: 'IDLE' as 'IDLE' | 'IN' | 'OUT',
@@ -98,16 +101,26 @@ export const useGameApp = () => {
     const planShowcaseRoster = useCallback((): ShowcaseSlot[] => {
         const round = ++rosterRoundRef.current;
         const plan: ShowcaseSlot[] = [];
-        for (const team of [Team.BLUE, Team.RED]) {
+        if (battleModeRef.current === 'ROYALE') {
+            for (let i = 0; i < GAME_APP_PARAM.ROYALE_UNIT_COUNT; i++) {
+                const role = SHOWCASE_ROLES[i % SHOWCASE_ROLES.length];
+                const bodyType = pickBodyType(`ROYALE-${i}`, round);
+                plan.push({ team: Team.BLUE, role, bodyType });
+                plan.push({ team: Team.RED, role, bodyType });
+            }
+        } else {
+            for (const team of [Team.BLUE, Team.RED]) {
             for (let i = 0; i < GAME_APP_PARAM.TEAM_SIZE; i++) {
                 plan.push({ team, role: SHOWCASE_ROLES[i % SHOWCASE_ROLES.length], bodyType: pickBodyType(`SHOWCASE-${team}-${i}`, round) });
             }
+        }
         }
         rosterRef.current = plan;
         return plan;
     }, []);
 
-    const internalSpawnTeams = useCallback(() => {
+    const internalSpawnTeams = useCallback((modeOverride?: BattleMode) => {
+        const currentMode = modeOverride ?? battleModeRef.current; let shuffle: <T>(array: T[]) => void;
         const engine = engineRef.current;
         const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
         
@@ -122,14 +135,68 @@ export const useGameApp = () => {
             return dist < radius;
         });
         
+        shuffle = <T,>(array: T[]) => {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        };
+
+        if (currentMode === 'ROYALE') {
+            shuffle(validHexes);
+            const chosenHexes: { q: number; r: number }[] = [];
+            const remainingHexes: { q: number; r: number }[] = [];
+
+            for (const hex of validHexes) {
+                if (chosenHexes.length >= GAME_APP_PARAM.ROYALE_UNIT_COUNT) break;
+                const ok = chosenHexes.every(chosen => HexUtils.dist(chosen, hex) >= GAME_APP_PARAM.ROYALE_MIN_SPACING);
+                if (ok) {
+                    chosenHexes.push(hex);
+                } else {
+                    remainingHexes.push(hex);
+                }
+            }
+
+            if (chosenHexes.length < GAME_APP_PARAM.ROYALE_UNIT_COUNT) {
+                for (const hex of remainingHexes) {
+                    if (chosenHexes.length >= GAME_APP_PARAM.ROYALE_UNIT_COUNT) break;
+                    chosenHexes.push(hex);
+                }
+            }
+
+            if (rosterRef.current.length === 0) planShowcaseRoster();
+            const round = rosterRoundRef.current;
+
+            for (let i = 0; i < chosenHexes.length; i++) {
+                const hex = chosenHexes[i];
+                const team = random() < 0.5 ? Team.BLUE : Team.RED;
+                const role = SHOWCASE_ROLES[i % SHOWCASE_ROLES.length];
+                const bodyType = pickBodyType(`ROYALE-${i}`, round);
+                const hp = GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE;
+                engine.bus.emit('UI_COMMAND', {
+                    type: 'PLACE_AGENT',
+                    team,
+                    q: hex.q,
+                    r: hex.r,
+                    hp,
+                    role,
+                    bodyType,
+                    side: i,
+                });
+            }
+
+            setSession(prev => ({ ...prev, unitCount: engine.agents.length }));
+            return;
+        }
+
         // Since it's a giant hexagon centered at (0,0), it's symmetric.
         // We can split the teams perfectly by `q` (left/right) or another dividing plane.
         // For axial (q, r), q < 0 is roughly left, q > 0 is roughly right.
         let leftHexes = validHexes.filter(hex => hex.q < -1);
-        let rightHexes = validHexes.filter(hex => hex.q > 1);
+        const rightHexes = validHexes.filter(hex => hex.q > 1);
 
-        // Shuffle arrays
-        const shuffle = <T,>(array: T[]) => {
+
+        shuffle = <T,>(array: T[]) => {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
@@ -182,8 +249,8 @@ export const useGameApp = () => {
 
     useEffect(() => {
         const engine = engineRef.current;
-        const handleGameOver = (data: { winner: Team }) => {
-            setSession(prev => ({ ...prev, winner: data.winner, isPlaying: false }));
+        const handleGameOver = (data: { winner: Team | null; winnerId?: string }) => {
+            setSession(prev => ({ ...prev, winner: data.winner, winnerId: data.winnerId ?? null, isPlaying: false }));
             if (engine.isRunning) {
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
             }
@@ -197,7 +264,7 @@ export const useGameApp = () => {
         rosterRef.current = [];
         spriteAtlasStore.prefetchRoster([]);
         engineRef.current.bus.emit('UI_COMMAND', { type: 'START_GAME' });
-        setSession(prev => ({ ...prev, isPlaying: true, winner: null }));
+        setSession(prev => ({ ...prev, isPlaying: true, winner: null, winnerId: null }));
     }, [internalSpawnTeams]);
 
     useEffect(() => {
@@ -276,7 +343,7 @@ export const useGameApp = () => {
     return {
         engineRef,
         state: { 
-            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
+            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, battleMode: session.battleMode, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: editor.hexLayout,
             selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
@@ -324,17 +391,41 @@ export const useGameApp = () => {
                 });
                 setEditor(p => ({...p, currentSceneId: id}));
             },
+            toggleBattleMode: () => {
+                const nextMode: BattleMode = battleModeRef.current === 'TEAMS' ? 'ROYALE' : 'TEAMS';
+                battleModeRef.current = nextMode;
+                rosterRef.current = [];
+                const engine = engineRef.current;
+                engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+                engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
+                internalSpawnTeams(nextMode);
+                setSession(p => ({
+                    ...p,
+                    battleMode: nextMode,
+                    winner: null,
+                    winnerId: null,
+                    isPlaying: false,
+                    timeScale: 1.0,
+                }));
+                setEditor(p => ({
+                    ...p,
+                    mapW: engine.mapConfig.w,
+                    mapH: engine.mapConfig.h,
+                    currentSceneId: engine.currentScene.id,
+                }));
+            },
             handleRandomBattlefield: () => { 
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
+                rosterRef.current = [];
                 internalSpawnTeams();
-                setSession(p => ({...p, winner: null, isPlaying: false, timeScale: 1.0})); 
+                setSession(p => ({...p, winner: null, winnerId: null, isPlaying: false, timeScale: 1.0})); 
                 setEditor(p => ({...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id})); 
             },
             handleReset: () => {
                 engineRef.current.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
-                setSession(p => ({...p, isPlaying: false, winner: null, timeScale: 1.0}));
+                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null, timeScale: 1.0}));
             },
             togglePlay: () => { 
                 if(session.winner) return;
@@ -356,14 +447,15 @@ export const useGameApp = () => {
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
+                rosterRef.current = [];
                 internalSpawnTeams(); 
-                setSession(p => ({...p, isPlaying: false, winner: null, timeScale: 1.0})); 
+                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null, timeScale: 1.0})); 
             },
             rematch: () => {
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
-                setSession(p => ({...p, isPlaying: true, winner: null, timeScale: 1.0}));
+                setSession(p => ({...p, isPlaying: true, winner: null, winnerId: null, timeScale: 1.0}));
             },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadAll,

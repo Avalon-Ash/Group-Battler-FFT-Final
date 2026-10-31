@@ -120,6 +120,10 @@ export const GAME_APP_PARAM = {
     UNIT_POLL_MS: 500,
     /** 陣營警告顯示時間（毫秒） */
     WARNING_MS: 2500,
+    /** 大逃殺生成的單位數（人） */
+    ROYALE_UNIT_COUNT: 10,
+    /** 大逃殺生成點彼此的最小格距（格）；湊不滿時放寬到能放下為止 */
+    ROYALE_MIN_SPACING: 2,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

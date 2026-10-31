@@ -59,11 +59,14 @@ function App() {
       {state.isShowcaseMode && (
         <ShowcaseOverlay 
             onEnter={handleEnterManualMode} 
-            timeScale={state.timeScale} 
+            timeScale={state.timeScale}
+
             setTimeScale={setters.setTimeScale} 
             engine={engineRef.current} 
             showDirectorMonitor={isMonitorOpen}
             setShowDirectorMonitor={(v: boolean) => (v ? windowActions.open('monitor') : windowActions.close('monitor'))}
+            battleMode={state.battleMode}
+            onToggleBattleMode={actions.toggleBattleMode}
         />
       )}
 
@@ -72,6 +75,8 @@ function App() {
           isPlaying={state.isPlaying}
           winner={state.winner}
           timeScale={state.timeScale}
+          battleMode={state.battleMode}
+          onToggleBattleMode={actions.toggleBattleMode}
           onTogglePlay={actions.togglePlay}
           onRestart={actions.handleReset}
           onRandom={actions.handleRandomBattlefield} 
@@ -110,6 +115,8 @@ function App() {
                 draftBodyType={state.draftBodyType}
                 onSelect={actions.handleSelectAgent} 
                 winner={state.winner}
+                winnerId={state.winnerId}
+                battleMode={state.battleMode}
                 rematch={actions.rematch}
                 nextLevel={actions.handleNextLevel} 
                 transitionPhase={state.transitionPhase}

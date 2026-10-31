@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Team } from '../../types';
+import { Team, BattleMode } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
 import { Icons } from './icons';
@@ -14,9 +14,11 @@ interface PlaybackHUDProps {
     onRandom: () => void;
     onSetTimeScale: (v: number) => void;
     onShowcase: () => void;
+    battleMode?: BattleMode;
+    onToggleBattleMode?: () => void;
 }
 export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
-    hidden, isPlaying, winner, timeScale, onTogglePlay, onRestart, onRandom, onSetTimeScale, onShowcase
+    hidden, isPlaying, winner, timeScale, onTogglePlay, onRestart, onRandom, onSetTimeScale, onShowcase, battleMode = 'TEAMS', onToggleBattleMode
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const isCompact = useCompactViewport();
@@ -69,6 +71,15 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         className="touch-target-icon w-8 h-8 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-200 border border-purple-500/20 hover:border-purple-500/40 flex items-center justify-center transition-all active:scale-95"
                     >
                         <Icons.Dice className="w-4 h-4" />
+                    </button>
+                    <button 
+                        data-testid="playback-mode-btn"
+                        onClick={(e) => { e.stopPropagation(); onToggleBattleMode?.(); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title="切換模式：雙陣營／大逃殺"
+                        className={`touch-target-icon w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 border ${battleMode === 'ROYALE' ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-200 border-amber-500/30 hover:border-amber-500/50' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5 hover:border-white/20'}`}
+                    >
+                        <Icons.RoleWarrior className="w-4 h-4" />
                     </button>
                 </div>
                 <div className={`h-8 w-px bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>

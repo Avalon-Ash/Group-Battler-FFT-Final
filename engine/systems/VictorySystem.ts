@@ -10,6 +10,7 @@ export class VictorySystem {
         vs.isFinishing = false;
         vs.victoryTimer = 0;
         vs.winningTeam = null;
+        vs.winnerId = null;
     }
 
     public check(engine: GameEngine): boolean {
@@ -27,7 +28,8 @@ export class VictorySystem {
 
         if (!survivor) {
             vs.isFinishing = true;
-            vs.winningTeam = null; 
+            vs.winningTeam = null;
+            vs.winnerId = null; 
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
             engine.state.time.targetTimeScale = BATTLE_RULES.FINISH_TIME_SCALE; 
             return true;
@@ -36,6 +38,7 @@ export class VictorySystem {
         if (!contested) {
             vs.isFinishing = true;
             vs.winningTeam = survivor.team;
+            vs.winnerId = survivor.id;
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
             engine.state.time.targetTimeScale = BATTLE_RULES.FINISH_TIME_SCALE; 
             return true;
@@ -52,7 +55,7 @@ export class VictorySystem {
                 engine.stop();
                 engine.state.time.targetTimeScale = 1.0;
                 engine.state.time.timeScale = 1.0;
-                engine.bus.emit('GAME_OVER', { winner: vs.winningTeam });
+                engine.bus.emit('GAME_OVER', { winner: vs.winningTeam, winnerId: vs.winnerId ?? undefined });
             }
         }
     }

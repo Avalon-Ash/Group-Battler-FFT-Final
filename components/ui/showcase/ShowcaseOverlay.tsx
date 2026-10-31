@@ -8,6 +8,7 @@ import { useWindowStore } from '../../../hooks/useWindowStore';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
 import { formatRgba } from '../../../data/ui/tokens';
+import { BattleMode } from '../../../types';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
@@ -16,9 +17,11 @@ interface ShowcaseOverlayProps {
     engine?: GameEngine; 
     showDirectorMonitor?: boolean;
     setShowDirectorMonitor?: (v: boolean) => void;
+    battleMode?: BattleMode;
+    onToggleBattleMode?: () => void;
 }
 
-export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => {
+export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battleMode = 'TEAMS', onToggleBattleMode }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const config = useShowcaseConfig();
     const layout = useShowcaseLayout();
@@ -105,7 +108,18 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
                         </div>
                     </div>
 
-                    <div className={`relative shrink-0 pointer-events-auto ${isCompact && !isWideBar ? 'w-full' : ''}`}>
+                    <div className={`relative shrink-0 pointer-events-auto flex items-center gap-3 ${isCompact && !isWideBar ? 'w-full' : ''}`}>
+                        {onToggleBattleMode && (
+                            <button
+                                data-testid="showcase-mode-btn"
+                                onClick={(e) => { e.stopPropagation(); onToggleBattleMode(); }}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                title="切換模式：雙陣營／大逃殺"
+                                className={`touch-target-icon ${isWideBar ? 'w-16 h-16' : 'w-14 h-14'} rounded-2xl flex items-center justify-center transition-all active:scale-95 border ${battleMode === 'ROYALE' ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-200 border-amber-500/30 hover:border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/10 hover:border-white/20'}`}
+                            >
+                                <Icons.RoleWarrior className="w-6 h-6" />
+                            </button>
+                        )}
                         <button 
                             data-testid="showcase-enter-btn"
                             onClick={onEnter}
