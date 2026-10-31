@@ -3,6 +3,11 @@
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-5-5"
   },
+  "permissions": {
+    "deny": [
+      "NotebookEdit"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -18,6 +23,17 @@
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/tools/hooks/agent-guardrails.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",

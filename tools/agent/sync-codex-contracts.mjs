@@ -2,7 +2,7 @@
 /**
  * Codex 版合約副本的唯一產生器：
  *   .claude/skills/<name>/SKILL.md  →  .agents/skills/<name>/SKILL.md（原樣，LF）
- *   .claude/agents/<name>.md        →  .codex/agents/<name>.toml（模型檔位依 CLAUDE.md 的 Codex 派工表）
+ *   .claude/agents/<name>.md        →  .codex/agents/<name>.toml（模型檔位依 codex-dispatch skill 的檔位表）
  * 用法：node tools/agent/sync-codex-contracts.mjs          寫入
  *       node tools/agent/sync-codex-contracts.mjs --check  只比對，不一致就以退出碼 1 結束（tests/HarnessContract.test.ts 會跑）
  */
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const CHECK = process.argv.includes('--check');
 
-// Codex 子代理檔位（CLAUDE.md 派工表）
+// Codex 子代理檔位（codex-dispatch skill 檔位表）
 const TIERS = {
     explorer: { model: 'gpt-6-luna', effort: 'low' },
     worker: { model: 'gpt-6-luna', effort: 'medium' },

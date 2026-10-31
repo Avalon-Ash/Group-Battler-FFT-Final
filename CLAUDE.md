@@ -37,18 +37,14 @@
 | 第二意見審查 diff、追 bug 根因 | `reviewer` | Sonnet／high |
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
 | 超長、無人值守的實作 | 不開子代理，寫提示詞給 IDE 的 Gemini（使用者 `/goal` 啟動） | — |
-| 定位、範圍明確的摘要 | Codex `task`（只讀） | `gpt-6-luna`／low |
-| 大量讀檔、逐檔清冊、機械性轉換 | Codex `task` | `gpt-6-luna`／medium；要跨系統判斷語意才升 Sol |
-| 主代理自己發起的長線實作（規格明確） | Codex `task --write`，在獨立工作樹 | `gpt-6.1-sol`／medium |
-| 同上，但 Codex 額度不足（HANDOFF §1 會註明） | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
-| 跨模型第二意見（渲染／座標等高風險 diff） | Codex `adversarial-review` | `gpt-6.1-sol`（強度跟 config，見下） |
-| 高風險根因（座標、生命週期）或 Sol 卡關 | Codex `task`（只讀） | `gpt-6.1-sol`／high 或 `gpt-6-astra`／low～medium，寫理由＋`[codex-cost-ok]` |
+| Codex 各檔位：範圍明確的摘要、大量讀檔、長線實作、跨模型第二意見、高風險根因 | Codex，檔位表在 `codex-dispatch` skill | 依 skill |
+| 主代理自己發起的長線實作（規格明確），Codex 額度不足時（HANDOFF §1 會註明） | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
 
 升級看問題難度和手上證據，不是固定「失敗兩次」；重試必須帶新的假設或新的證據，同一種探索跑兩次比直接升一級還貴。
 
 能幾個工具呼叫就解決的事直接做，不必開子代理。
 
-**Codex（GPT）**：用使用者的 ChatGPT Plus 額度，不吃 Claude 額度，但 Plus 很緊（每 5 小時估計 Astra 5～45 則、Sol 15～160、Luna 350～3,000；生圖約 3～5 倍）。呼叫方式：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --model … --effort … [--write] --cwd <工作樹> --prompt-file <檔>`，**不加 `--background`**，讓 harness 在結束時通知，不輪詢 `status`。Codex 會自己讀 `AGENTS.md`；可寫任務的提示詞照 `agent-prompt` skill 的 Codex 版。hook 擋下沒寫 `--model`（task 還要 `--effort`）的呼叫，以及沒加 `[codex-cost-ok]` 的 Astra、xhigh、非 Luna 的 high；同一串指令裡每個呼叫各自檢查。`review` 不收 `--effort`，強度跟 Codex 實際載入的 config 走：專案 `.codex/config.toml` 的信任只涵蓋主資料夾，外部工作樹可能讀到全域的 high，成本照 high 估。派工後要宣稱用了哪個檔位，先查 `~/.codex/sessions` 的紀錄（模型自報的名稱不可信）。這些是 Claude 端的入口檢查。Codex 執行時，另由 `.codex/hooks.json` 呼叫同一支腳本的 `--codex` 模式（Bash／spawn_agent／apply_patch；Codex 不支援 `ask`，一律改成 `deny`），2026-10-25 已實測會擋下工作樹內的 npm 安裝。hook 內容改過以後，使用者要在 Codex 用 `/hooks` 重新信任才會生效。`.agents/skills`、`.codex/agents` 是 Codex 版的副本：改了 `.claude/skills` 或 `.claude/agents` 之後，執行 `node tools/agent/sync-codex-contracts.mjs` 同步；沒同步的話，`tests/HarnessContract.test.ts` 會失敗。生圖只做少量概念稿，不做整套圖集。
+**Codex（GPT）**：用使用者的 ChatGPT Plus 額度（很緊）。呼叫方式、`--model`／`--effort` 規則、檔位查核、Codex 端 hook 與合約副本同步都在 `codex-dispatch` skill；hook 會擋下不合規的呼叫。
 
 **開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
 
@@ -61,6 +57,7 @@
 | 保真或 UI 樣式基準需要重錄 | `rebaseline-fidelity` |
 | 開新一輪、寫 Gemini／Codex 提示詞 | `agent-prompt` |
 | 某一輪跑完要審查，或合併後收尾 | `review-round` |
+| 呼叫 Codex，或改了 `.claude/skills`、`.claude/agents` 要同步副本 | `codex-dispatch` |
 
 ## 文件分工
 - `docs/HANDOFF.md`：只放 TBD（待確認、待決定、待辦）。做完就刪。

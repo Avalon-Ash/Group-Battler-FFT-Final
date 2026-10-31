@@ -368,6 +368,15 @@
 - 狀態視覺：16 組 `STATUS_*` 色帶（測試禁止狀態借陣營色帶）；`status_parts` 改用 `category`（HARD_CC／DEBUFF／BUFF…）；頭頂與腳下各只畫最高優先；新增 `StatusStripPainter` 圖示列（品質階層上限 8/6/4/2），`GaugePainter` 只剩詠唱；`SLOW` 腳踝箭頭；多段傷害數字錯開（`HUD_TEXT_MOTION.STAGGER`）。刪 `UIFactory.generateStatusIcon`、`AssetManager.getStatusIcon`。
 - `battle_frozen` 取證重錄一次（圖示列、數字錯開、狀態色；地形 5 張 0 差異，證據 `cc_fidelity_cmp.png`）。主代理在 clone 重跑：lint、991 測試、build、knip、smoke、`perf:guard`、保真全過。
 
+### AS. 2026-10-31 省 token 合約（TokenEconomizer 移植，雲端工作階段 `chore/token-economy`）
+- 從 microsoft/TokenEconomizer 萃取規則，不裝插件（判斷模型與 LLM 事實提議器會多花額度）。
+- 常駐瘦身：Codex 呼叫說明與檔位表移到新 skill `codex-dispatch`；METHODOLOGY §5／§6 移到 `docs/PROJECT_MAP.md`；HANDOFF §4 烘焙細節改連結。常駐 CLAUDE.md＋HANDOFF＋METHODOLOGY 24.3 KB→21.3 KB（−12%；計畫估 −35% 太樂觀，剩下的多半每輪都需要）。
+- METHODOLOGY §1 快取規則（合約／設定中途改下一個工作階段才生效）；§6 環境事實清單（≤12 條、附日期、禁「可略過／已完成」，`HarnessContract` 檢查）。
+- 迴圈守衛 hook（`PostToolUseFailure`）：同一失敗第 3 次要求換假設、第 5 次停下回報。狀態改成只附加的日誌：實測三個平行失敗用讀–改–寫只記到 2。雲端實跑觸發成功；Codex payload 形狀未實測。
+- 工具修剪：deny `NotebookEdit`；`tools/agent/tool-usage-audit.mjs` 依 TE 門檻提出建議，不寫設定，`review-round` 約每 5 輪跑一次。
+- 驗證：lint、build 過；測試 992/993（`AgentRunner` Linux 上本來就失敗，CI 已排除）。
+- 合約效果：待觀察（迴圈守衛的提醒有沒有讓代理換方向、環境事實有沒有增長），下一次 review-round 記。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

@@ -5,6 +5,7 @@
 // ║    ② 子代理定義鎖定模型，且不是 Opus（使用者是 Pro 方案）        ║
 // ║    ③ settings.json 掛的 hook 腳本存在                            ║
 // ║    ④ agent-guardrails.mjs 以實際 payload 執行的判定              ║
+// ║    ⑤ METHODOLOGY §6 環境事實的條數、日期與禁用詞                 ║
 // ║  [ARCH] 能寫成測試的合約規則就寫成測試（DECISIONS §4）。         ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
@@ -50,6 +51,19 @@ describe('HarnessContract', () => {
             if (!fm.description) bad.push(`${name}: 缺 description`);
             if (!claudeMd.includes(`\`${name}\``)) bad.push(`${name}: CLAUDE.md 沒有觸發句`);
         }
+        expect(bad).toEqual([]);
+    });
+
+    it('METHODOLOGY §6 環境事實：≤12 條、每條有確認日期、只寫事實不寫「可略過／已完成」', () => {
+        const doc = fs.readFileSync(path.join(ROOT, 'docs/METHODOLOGY.md'), 'utf8');
+        const block = doc.match(/<!-- env-facts:start -->([\s\S]*?)<!-- env-facts:end -->/);
+        expect(block, '缺 env-facts 區塊標記').not.toBeNull();
+        const facts = block![1].split('\n').filter(l => l.startsWith('- '));
+        expect(facts.length).toBeGreaterThan(0);
+        expect(facts.length).toBeLessThanOrEqual(12);
+        // 借自 TokenEconomizer 的 fact lint：事實一旦帶上結論，就成了跳過驗證的藉口
+        const verdict = /略過|跳過|不必|不用(?:跑|測|驗)|免(?:驗|測|跑)|已完成|已修好|\bskip\b|\bno need\b|\bdone\b/i;
+        const bad = facts.filter(l => !/（確認 \d{4}-\d{2}-\d{2}）$/.test(l) || verdict.test(l));
         expect(bad).toEqual([]);
     });
 
@@ -217,6 +231,35 @@ describe('HarnessContract', () => {
             expect(bash('git worktree remove -f C:/Git/_wt_x').permissionDecision).toBe('deny');
             expect(bash('git worktree remove .claude/worktrees/agent-x').permissionDecision).toBeUndefined();
             expect(bash('git commit -m "deny git worktree remove --force"').permissionDecision).toBeUndefined();
+        });
+
+        it('迴圈守衛：同一個失敗第 3 次換假設、第 5 次停下回報；不同錯誤分開算；同指令成功就清掉', () => {
+            const session = `test-loop-${process.pid}-${Date.now()}`;
+            const state = path.join(os.tmpdir(), `tactical-loopguard-${session}.log`);
+            const fail = (command: string, error: string) => runHook({ hook_event_name: 'PostToolUseFailure', session_id: session, tool_name: 'Bash', tool_input: { command }, error });
+            const ok = (command: string) => runHook({ hook_event_name: 'PostToolUse', session_id: session, tool_name: 'Bash', tool_input: { command }, tool_response: { stdout: '' } });
+            try {
+                // 行號、耗時不同仍算同一個失敗；cd 前綴與路徑不影響指令頭
+                expect(fail('npm test', 'Exit code 1\nFAIL tests/A.test.ts:12 expected 3').additionalContext).toBeUndefined();
+                expect(fail('cd /repo && npm test', 'Exit code 1\nFAIL tests/A.test.ts:40 expected 7').additionalContext).toBeUndefined();
+                expect(fail('npm run lint', 'Exit code 1\nFAIL tests/A.test.ts:12 expected 3').additionalContext).toBeUndefined();
+                const third = fail('npm test', 'Exit code 2\nFAIL tests/A.test.ts:99 expected 1');
+                expect(third.additionalContext).toMatch(/3 次.*實質不同的假設/);
+                expect(fail('npm test', 'Exit code 1\nFAIL tests/A.test.ts:1 expected 1').additionalContext).toBeUndefined();
+                expect(fail('npm test', 'Exit code 1\nFAIL tests/A.test.ts:1 expected 1').additionalContext).toMatch(/5 次.*停下來向使用者回報/);
+                // 成功後重新計數
+                expect(ok('npm test').additionalContext).toBeUndefined();
+                fail('npm test', 'FAIL tests/A.test.ts:1 expected 1');
+                expect(fail('npm test', 'FAIL tests/A.test.ts:1 expected 1').additionalContext).toBeUndefined();
+                // 非 shell 工具不計
+                expect(runHook({ hook_event_name: 'PostToolUseFailure', session_id: session, tool_name: 'Edit', tool_input: {}, error: 'x' }).additionalContext).toBeUndefined();
+                // Codex：PostToolUse 帶非零 exit_code 也算失敗
+                const cx = (n: number) => runHook({ hook_event_name: 'PostToolUse', session_id: `${session}-cx`, tool_name: 'Bash', tool_input: { command: 'npm run build' }, tool_response: { exit_code: n, stderr: 'error TS2322 at line 4' } }, ['--codex']);
+                cx(1); cx(1);
+                expect(cx(1).additionalContext).toMatch(/3 次/);
+            } finally {
+                for (const f of [state, path.join(os.tmpdir(), `tactical-loopguard-${session}-cx.log`)]) fs.rmSync(f, { force: true });
+            }
         });
     });
 });

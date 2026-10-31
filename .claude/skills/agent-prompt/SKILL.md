@@ -14,7 +14,7 @@ description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主�
 4. 跑完 → `review-round` skill。
 
 ## 改派給 Codex 時（主代理自己發起）
-- **先選檔位**（CLAUDE.md 派工表）：定位、範圍明確的摘要用 `gpt-6-luna`／low，讀檔／轉換用 Luna／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
+- **先選檔位**（`codex-dispatch` skill 檔位表）：定位、範圍明確的摘要用 `gpt-6-luna`／low，讀檔／轉換用 Luna／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
 - **範圍要窄**：一份提示詞一個工作包。成本來自上下文、工具呼叫和重試，不只是訊息數；把讀檔範圍、驗收指令、停下條件寫死，並寫明探索與重試的上限。要避免的寫法：整庫清冊、要它重貼全文、沒有新假設的重試、要它看所有截圖。
 - **工作樹**：可寫任務在 repo 外開**獨立 clone**（`git clone --no-hardlinks <主資料夾> C:\Git\_wt_<topic>`，切好分支），`node_modules` 用 `robocopy` 複製真目錄，不跑 npm 安裝。linked worktree 的 metadata 在主資料夾 `.git` 裡、junction 的 `node_modules` 沙盒寫不進去，都會讓 Codex 在開工前卡住（2026-10-26 R1 卡了三次）。不可放在主資料夾或 `.claude/worktrees` 底下。Gemini 在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，Gemini 和 Codex 共用這個限制。
 - **git 擁有者檢查**：獨立 clone 在 Codex 沙盒裡會被判定 dubious ownership，`git status` 等全部失敗，Luna 會照規定直接停下（2026-10-29 O6）。INV 要寫明「所有 git 指令一律 `git -c safe.directory=<工作樹> …`（單次參數，不改設定）」；測試裡呼叫 git 的也要帶這個參數（`MagicNumberBudget`、`ToolsReferenced`、`NoLocalHash` 已改）。
