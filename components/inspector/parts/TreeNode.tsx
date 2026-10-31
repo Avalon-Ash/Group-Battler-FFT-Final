@@ -2,6 +2,7 @@
 import React from 'react';
 import { BTNode } from '../../../engine/behaviorTree';
 import { NodeState } from '../../../types';
+import { BT_VIEW_PARAM } from '../../../constants';
 
 interface TreeNodeProps {
     node: BTNode;
@@ -61,8 +62,8 @@ export const TreeNode: React.FC<TreeNodeProps> = ({ node, version, now }) => {
         if (timeDiff < 1000) { 
             visualState = node.lastResult;
             isFading = true;
-            if (timeDiff > 200) opacity = 0.7;
-            if (timeDiff > 500) opacity = 0.4;
+            if (timeDiff > BT_VIEW_PARAM.FADE_MID_MS) opacity = BT_VIEW_PARAM.FADE_MID_OPACITY;
+            if (timeDiff > BT_VIEW_PARAM.FADE_OLD_MS) opacity = BT_VIEW_PARAM.FADE_OLD_OPACITY;
         }
     }
 

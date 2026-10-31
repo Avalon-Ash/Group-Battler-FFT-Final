@@ -13,11 +13,14 @@ import { floatXorHash2 as hash2 } from '../../math/hash';
 import { createCanvas } from '../CanvasUtils';
 import { NoiseFieldConfig } from '../../../data/vfx/materialConfig';
 
+const FADE_K5 = 6;
+const FADE_K4 = 15;
+
 /** 整數雜湊 → [0,1)，取代 GLSL 的 fract(sin(dot(...))) */
 
 
 function smootherstep(t: number): number {
-    return t * t * t * (t * (t * 6 - 15) + 10);
+    return t * t * t * (t * (t * FADE_K5 - FADE_K4) + 10);
 }
 
 /** 2D value noise，回傳 [0,1] */

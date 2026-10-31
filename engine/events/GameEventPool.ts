@@ -11,6 +11,8 @@ import { GameEvent, GameEventType, Point } from "../../types";
 /** pushEvent / EventPool.get 可攜帶的選填欄位（GameEvent 去除 type/pos）。 */
 export type GameEventOpts = Omit<GameEvent, 'type' | 'pos'>;
 
+const EVENT_POOL_SIZE = 200;
+
 class GameEventPool {
     private pool: GameEvent[] = [];
 
@@ -71,4 +73,4 @@ class GameEventPool {
     }
 }
 
-export const EventPool = new GameEventPool(200);
+export const EventPool = new GameEventPool(EVENT_POOL_SIZE);

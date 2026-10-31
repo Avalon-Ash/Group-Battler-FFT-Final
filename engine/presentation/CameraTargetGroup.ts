@@ -1,4 +1,4 @@
-import { UI_SETTINGS } from "../../constants";
+import { UI_SETTINGS, CAMERA_PARAM } from "../../constants";
 
 export interface CameraTarget {
     px: number;
@@ -16,10 +16,10 @@ export class CameraTargetGroup {
         this.targets.push({ px, py, weight, radius });
     }
 
-    public solve(screenW: number, screenH: number, paddingFactor: number = 1.25):
+    public solve(screenW: number, screenH: number, paddingFactor: number = CAMERA_PARAM.GROUP_PADDING_FACTOR):
         { x: number, y: number, zoom: number } {
 
-        if (this.targets.length === 0) return { x: 0, y: 0, zoom: 0.9 };
+        if (this.targets.length === 0) return { x: 0, y: 0, zoom: CAMERA_PARAM.GROUP_DEFAULT_ZOOM };
 
         // 1. 加權重心
         let totalWeight = 0, cx = 0, cy = 0;
@@ -56,7 +56,7 @@ export class CameraTargetGroup {
         // paddingFactor 越大，鏡頭拉越遠 (縮放倍率越小)
         const zoom = maxRadius > 0
             ? (minDim * 0.5) / (maxRadius * paddingFactor)
-            : 0.9;
+            : CAMERA_PARAM.GROUP_DEFAULT_ZOOM;
 
         return { x: cx, y: cy, zoom: Math.max(UI_SETTINGS.CAMERA_ZOOM.directorMin, Math.min(UI_SETTINGS.CAMERA_ZOOM.directorMax, zoom)) };
     }

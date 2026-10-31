@@ -13,6 +13,9 @@ import { CLASS_GLYPHS, CLASS_GLYPH_STYLE, type GlyphStyleId } from "../../data/u
 const PEDESTAL_CANVAS_SIZE = 128;
 /** 職業字形的設計半幅（drawClassGlyph 座標約 ±14），用來把字形縮放到 skin.classIcon.scale × radius */
 const CLASS_GLYPH_HALF_EXTENT = 14;
+const HEX_SIDES = 6;
+const POINTY_ROTATION = Math.PI / HEX_SIDES;
+const CLASS_ICON_GLOW_BLUR = 6;
 
 /**
  * 棋座程序化畫法（貼圖槽缺席時的退路）。
@@ -60,7 +63,7 @@ function drawTopDownTexture(
     ctx.globalCompositeOperation = blend;
     ctx.globalAlpha = alpha;
     ctx.scale(1, ISO_SCALE_Y);
-    if (layout === 'POINTY') ctx.rotate(Math.PI / 6);
+    if (layout === 'POINTY') ctx.rotate(POINTY_ROTATION);
     ctx.drawImage(tex, -halfSize, -halfSize, halfSize * 2, halfSize * 2);
     ctx.restore();
 }
@@ -89,7 +92,7 @@ function drawEngravedGlyph(
     ctx.strokeStyle = skin.classIcon.color;
     ctx.fillStyle = skin.classIcon.color;
     ctx.shadowColor = skin.classIcon.glow;
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = CLASS_ICON_GLOW_BLUR;
     drawClassGlyph(ctx, role, skin.classIcon.glyph);
     ctx.restore();
 }

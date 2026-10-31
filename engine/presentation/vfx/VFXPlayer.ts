@@ -9,7 +9,7 @@ import { VFXSystem } from "./VFXSystem";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory, particleTexture } from "../../graphics/VFXFactory";
-import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET, FIXED_ORIENTATION_PARTICLE_TYPES, SELF_DRAWN_PARTICLE_TYPES } from "../../../constants";
+import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET, FIXED_ORIENTATION_PARTICLE_TYPES, SELF_DRAWN_PARTICLE_TYPES, VFX_PRESENTATION_PARAM } from "../../../constants";
 import { getQualityTier } from "../../renderers/RenderQuality";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 import { VFX_PARTS } from "../../../data/vfx/parts/partConfig";
@@ -21,7 +21,7 @@ const rnd = (r: Range | number | undefined): number => {
     return r[0] + Math.random() * (r[1] - r[0]);
 };
 const pickColor = (colors: string[]): string => {
-    if (!colors || colors.length === 0) return '#ffffff';
+    if (!colors || colors.length === 0) return VFX_PRESENTATION_PARAM.PALETTE_FALLBACK_COLOR;
     return colors[Math.floor(Math.random() * colors.length)];
 };
 

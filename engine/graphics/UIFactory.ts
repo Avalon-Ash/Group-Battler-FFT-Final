@@ -1,4 +1,4 @@
-import { UI_ICON_BAKE } from "../../constants";
+import { UI_ICON_BAKE, SKILL_ICON_FRAME } from "../../constants";
 
 import { createCanvas } from "./CanvasUtils";
 
@@ -10,10 +10,10 @@ export const UIFactory = {
         const { canvas, ctx } = createCanvas(ICON_SIZE, ICON_SIZE);
         
         // Background Frame
-        ctx.fillStyle = '#1e293b'; 
+        ctx.fillStyle = SKILL_ICON_FRAME.BG; 
         ctx.fillRect(0, 0, ICON_SIZE, ICON_SIZE);
         
-        ctx.strokeStyle = '#334155'; 
+        ctx.strokeStyle = SKILL_ICON_FRAME.STROKE; 
         ctx.strokeRect(0, 0, ICON_SIZE, ICON_SIZE);
         
         // Symbol drawing

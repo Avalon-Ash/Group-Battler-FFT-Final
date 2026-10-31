@@ -14,6 +14,7 @@ export interface MapConfig {
 const Q_BIT_SHIFT = 16;
 const Q_OFFSET = 128;
 const R_OFFSET = 128;
+const R_MASK = 0xFFFF;
 
 export const NEIGHBOR_HASH_OFFSETS = [
     (1 << Q_BIT_SHIFT),
@@ -67,7 +68,7 @@ export const HexUtils = {
         return (Math.round(q) + Q_OFFSET) << Q_BIT_SHIFT | (Math.round(r) + R_OFFSET);
     },
     unhash: (h: number): Hex => {
-        const r = (h & 0xFFFF) - R_OFFSET;
+        const r = (h & R_MASK) - R_OFFSET;
         const q = (h >> Q_BIT_SHIFT) - Q_OFFSET;
         return { q, r };
     },

@@ -3,6 +3,7 @@ import { useRef, useEffect, MutableRefObject } from 'react';
 import { GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { getRenderDpr, getDefaultQualityGovernor } from '../engine/renderers/RenderQuality';
+import { GAME_LOOP_PARAM } from '../constants';
 
 export const useGameLoop = (
     engine: GameEngine,
@@ -60,7 +61,7 @@ export const useGameLoop = (
                         if (isMountedRef.current) {
                             resizeCallbackRef.current(logicalW, logicalH);
                         }
-                    }, 50);
+                    }, GAME_LOOP_PARAM.RESIZE_DEBOUNCE_MS);
                 }
             });
         });
@@ -134,14 +135,14 @@ export const useGameLoop = (
                             if (isMountedRef.current) {
                                 resizeCallbackRef.current(logicalW, logicalH);
                             }
-                        }, 50);
+                        }, GAME_LOOP_PARAM.RESIZE_DEBOUNCE_MS);
                     }
                 }
             }
 
             if (engine.isRunning) {
                 acc += dt;
-                if (acc > 250) acc = 250; 
+                if (acc > GAME_LOOP_PARAM.MAX_ACCUMULATOR_MS) acc = GAME_LOOP_PARAM.MAX_ACCUMULATOR_MS; 
                 
                 while (acc >= step) {
                     const sdt = (step / 1000) * engine.timeScale;

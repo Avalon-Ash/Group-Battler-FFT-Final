@@ -18,6 +18,9 @@ import { lookupSpriteAppearance } from '../../../data/units/appearance/sprite';
 import { resolveBodyType } from '../../../data/units/appearance/bodyTypes';
 import { getFactionSkinByAtlasKey } from '../../../data/units/factionSkin';
 
+/** 預烘焙受擊白閃剪影底色 */
+const SILHOUETTE_FILL = '#ffffff';
+
 export interface UnitFrameDef {
     x: number;
     y: number;
@@ -354,7 +357,7 @@ export class SpriteAtlasStore {
             if (silCtx) {
                 silCtx.drawImage(normCanvas, 0, 0);
                 silCtx.globalCompositeOperation = 'source-in';
-                silCtx.fillStyle = '#ffffff';
+                silCtx.fillStyle = SILHOUETTE_FILL;
                 silCtx.fillRect(0, 0, mw, mh);
             }
             silhouetteMips.set(level, silCanvas);

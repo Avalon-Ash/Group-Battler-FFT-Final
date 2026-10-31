@@ -14,6 +14,25 @@ import type { HexLayout } from '../../../types';
 
 const TAU = Math.PI * 2;
 
+/** 六角形邊數（邊） */
+const HEX_SIDES = 6;
+/** 顱骨圓弧起始角比例（PI 乘數） */
+const SKULL_ARC_START = 0.85;
+/** 顱骨圓弧結束角比例（PI 乘數） */
+const SKULL_ARC_END = 0.15;
+/** 鉤狀尾端圓弧結束角比例（PI 乘數） */
+const HOOK_ARC_END = 0.6;
+
+/** 具名參數：保持原值與運算次序。 */
+const MASK_COLOR = {
+    /** 遮罩裁切色 */
+    CUT: '#000',
+    /** 漸層完全透明色 */
+    CLEAR: 'rgba(0,0,0,0)',
+    /** 漸層完全不透明色 */
+    SOLID: 'rgba(0,0,0,1)',
+} as const;
+
 /** 六角形第 k 個頂點（半徑 r，起始角見 VFX_PARTS.HEX）。 */
 function hexVertex(r: number, k: number): [number, number] {
     const a = VFX_PARTS.HEX.ANGLE_OFFSET_RAD + (k / VFX_PARTS.HEX.SIDES) * TAU;
@@ -156,7 +175,7 @@ function bakeRing(ctx: CanvasRenderingContext2D, r: number, t: number, ramp: VFX
     // 灰燼風：外緣鋸齒缺口＋斷裂（destination-out 挖掉）
     const rng = createPartRng(seed);
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = MASK_COLOR.CUT;
     const notches = Math.round(C.NOTCHES_AT_FULL * roughness);
     for (let i = 0; i < notches; i++) {
         const a = rng() * TAU;
@@ -514,7 +533,7 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         turnEmblem();
         // 顱骨
         ctx.beginPath();
-        ctx.arc(0, -r * VFX_PARTS.SIGIL.SKULL_CENTER_Y, r * VFX_PARTS.SIGIL.SKULL_RADIUS, Math.PI * 0.85, Math.PI * 0.15 + TAU);
+        ctx.arc(0, -r * VFX_PARTS.SIGIL.SKULL_CENTER_Y, r * VFX_PARTS.SIGIL.SKULL_RADIUS, Math.PI * SKULL_ARC_START, Math.PI * SKULL_ARC_END + TAU);
         ctx.lineTo(r * VFX_PARTS.SIGIL.SKULL_JAW_HALF, r * VFX_PARTS.SIGIL.SKULL_JAW_Y); ctx.lineTo(-r * VFX_PARTS.SIGIL.SKULL_JAW_HALF, r * VFX_PARTS.SIGIL.SKULL_JAW_Y); ctx.closePath();
         ctx.stroke();
         // 眼窩（倒三角）
@@ -769,9 +788,9 @@ function bakePillar(ctx: CanvasRenderingContext2D, w: number, h: number, ramp: V
     // 頂端淡出
     ctx.globalCompositeOperation = 'destination-in';
     const v = ctx.createLinearGradient(0, -h, 0, 0);
-    v.addColorStop(0, 'rgba(0,0,0,0)');
-    v.addColorStop(1 - C.TOP_FADE, 'rgba(0,0,0,1)');
-    v.addColorStop(1, 'rgba(0,0,0,1)');
+    v.addColorStop(0, MASK_COLOR.CLEAR);
+    v.addColorStop(1 - C.TOP_FADE, MASK_COLOR.SOLID);
+    v.addColorStop(1, MASK_COLOR.SOLID);
     ctx.fillStyle = v;
     ctx.fillRect(-hw, -h, w, h);
     ctx.globalCompositeOperation = 'source-over';
@@ -1060,12 +1079,12 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
     ctx.beginPath();
     ctx.moveTo(L * K.SHAFT_FROM, 0);
     ctx.lineTo(h - r, 0);
-    ctx.arc(h - r, r, r, -Math.PI / 2, Math.PI * 0.6);
+    ctx.arc(h - r, r, r, -Math.PI / 2, Math.PI * HOOK_ARC_END);
     ctx.stroke();
     ctx.fillStyle = ramp.core;
     ctx.beginPath();
-    const bx = h - r + Math.cos(Math.PI * 0.6) * r;
-    const by = r + Math.sin(Math.PI * 0.6) * r;
+    const bx = h - r + Math.cos(Math.PI * HOOK_ARC_END) * r;
+    const by = r + Math.sin(Math.PI * HOOK_ARC_END) * r;
     ctx.moveTo(bx, by);
     ctx.lineTo(bx - L * K.BARB, by - L * K.BARB * VFX_PARTS.MISSILE.HOOK.BARB_UP);
     ctx.lineTo(bx + L * K.BARB * VFX_PARTS.MISSILE.HOOK.BARB_RIGHT, by - L * K.BARB * VFX_PARTS.MISSILE.HOOK.BARB_LOWER);
@@ -1316,7 +1335,7 @@ function bakeSingularity(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp
     // 事件視界：轉 30° 的深色內六角，邊緣一圈被壓縮的亮光
     ctx.save();
     ctx.translate(ax * 0.5, ay * 0.5);
-    ctx.rotate(Math.PI / 6);
+    ctx.rotate(Math.PI / HEX_SIDES);
     hexPath(ctx, R * S.HORIZON);
     ctx.shadowColor = ramp.main;
     ctx.shadowBlur = D * C.CORE_BLUR;

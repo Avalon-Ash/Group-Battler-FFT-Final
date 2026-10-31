@@ -5,6 +5,7 @@ import { Role, Skill, Team } from '../../../types';
 import { ROLE_MAP, TAG_MAP } from '../InspectorConstants';
 import { SkillIcon } from '../parts/SkillIcon';
 import { Icons } from '../../ui/icons';
+import { INSPECTOR_PARAM } from '../../../constants';
 
 interface UnitStatusTabProps {
     agent: Agent;
@@ -95,7 +96,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         stopMomentum();
         const step = () => {
             if (!scrollRef.current) return;
-            dragState.current.velocity *= 0.95; 
+            dragState.current.velocity *= INSPECTOR_PARAM.SCROLL_FRICTION; 
             if (Math.abs(dragState.current.velocity) > 0.5) {
                 scrollRef.current.scrollTop -= dragState.current.velocity;
                 rafRef.current = requestAnimationFrame(step);

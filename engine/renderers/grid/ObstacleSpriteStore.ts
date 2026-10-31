@@ -19,6 +19,18 @@ import { createCanvas } from '../../graphics/CanvasUtils';
 import { EnvironmentFactory } from '../../graphics/EnvironmentFactory';
 import { resolveAssetUrl } from './TerrainTextureStore';
 
+/** 具名參數：保持原值與運算次序。 */
+const ICE_GLINT = {
+    /** 冰晶光芒核心色 */
+    CORE: 'rgba(255,255,255,1)',
+    /** 冰晶光芒主體色 */
+    MAIN: 'rgba(200,240,255,0.55)',
+    /** 冰晶光芒淡出邊界色 */
+    FADE: 'rgba(200,240,255,0)',
+    /** 冰晶十字光芒線條色 */
+    STROKE: 'rgba(255,255,255,0.9)',
+} as const;
+
 interface ObstacleVariantDef {
     x: number;
     y: number;
@@ -280,12 +292,12 @@ function drawGlint(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = alpha;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(OBSTACLE_DRAW.GLINT_MAIN_STOP, 'rgba(200,240,255,0.55)');
-    g.addColorStop(1, 'rgba(200,240,255,0)');
+    g.addColorStop(0, ICE_GLINT.CORE);
+    g.addColorStop(OBSTACLE_DRAW.GLINT_MAIN_STOP, ICE_GLINT.MAIN);
+    g.addColorStop(1, ICE_GLINT.FADE);
     ctx.fillStyle = g;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.strokeStyle = ICE_GLINT.STROKE;
     ctx.lineWidth = OBSTACLE_DRAW.GLINT_LINE_WIDTH;
     ctx.beginPath();
     ctx.moveTo(x - r * OBSTACLE_DRAW.GLINT_CROSS_RADIUS, y); ctx.lineTo(x + r * OBSTACLE_DRAW.GLINT_CROSS_RADIUS, y);

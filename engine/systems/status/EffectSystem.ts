@@ -49,7 +49,7 @@ export class EffectSystem {
                 }
                 
                 if (frameDamage > 0 || absorbed === 0) {
-                    const dotColor = (agent.effects.DOT.tag && DOT_COLORS[agent.effects.DOT.tag]) || '#10b981';
+                    const dotColor = (agent.effects.DOT.tag && DOT_COLORS[agent.effects.DOT.tag]) || DOT_COLORS.POISON;
                     engine.events.push({ 
                         type: 'DAMAGE', 
                         pos: unitEventPos(agent, engine), 

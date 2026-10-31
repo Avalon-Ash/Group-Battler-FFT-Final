@@ -7,6 +7,9 @@ import { CORE_VISUAL, UNIT_SCALE } from "../../../../constants";
 import { SpriteManager } from "../../../sprites";
 import { UnitCorePainter } from "./UnitCorePainter";
 
+/** 預渲染棋座半寬高（px） */
+const PEDESTAL_HALF_PX = 64;
+
 export const PedestalGhostPainter = {
     /**
      * @param ctx 已套用鏡頭變換的世界座標 context
@@ -23,7 +26,7 @@ export const PedestalGhostPainter = {
         ctx.globalAlpha = CORE_VISUAL.ghostAlpha;
         ctx.save();
         ctx.scale(UNIT_SCALE, UNIT_SCALE);
-        ctx.drawImage(base, -64, -64);
+        ctx.drawImage(base, -PEDESTAL_HALF_PX, -PEDESTAL_HALF_PX);
         ctx.restore();
         UnitCorePainter.drawCore(ctx, team, role, body, layout, t, { casting: false, alpha: CORE_VISUAL.ghostAlpha, phase: 0 });
         ctx.restore();

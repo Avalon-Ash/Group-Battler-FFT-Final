@@ -6,12 +6,13 @@ import { CameraSystem } from "../../CameraSystem";
 import { Point3D } from "../../../math/VisualMath";
 import { HexUtils } from "../../../utils";
 import { AOE_BREAK, aoeBreakFxId, castBreakFxId, castBreakBurstFxId } from "../../../../data/vfx/registry/cast_break";
+import { VFX_PRESENTATION_PARAM } from "../../../../constants";
 
 export class UnitVFXHandler {
     public static handle(event: GameEvent, engine: GameEngine, vfx: VFXSystem, camera: CameraSystem, origin: Point3D, groundZ: number, hexKey?: string) {
         
         if (event.type === 'DEATH') {
-            camera.addTrauma(0.1);
+            camera.addTrauma(VFX_PRESENTATION_PARAM.DEATH_TRAUMA);
             return;
         }
 
@@ -24,7 +25,7 @@ export class UnitVFXHandler {
         }
 
         if (event.type === 'CAST_BREAK') {
-            const progress = event.value || 0.1;
+            const progress = event.value || VFX_PRESENTATION_PARAM.CAST_BREAK_DEFAULT_PROGRESS;
             const powerScale = 0.5 + progress;
 
             vfx.playEffect(castBreakBurstFxId(event.team), origin.x, origin.y, origin.z, undefined, groundZ, undefined, hexKey);
@@ -35,7 +36,7 @@ export class UnitVFXHandler {
                 camera.addTrauma(0.5 * powerScale);
                 vfx.playEffect('FX_HIT_GENERIC', origin.x, origin.y, origin.z, undefined, groundZ, undefined, hexKey);
             } else {
-                camera.addTrauma(0.2 * powerScale); 
+                camera.addTrauma(VFX_PRESENTATION_PARAM.CAST_BREAK_TRAUMA * powerScale); 
             }
             return;
         }

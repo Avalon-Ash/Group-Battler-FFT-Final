@@ -5,7 +5,7 @@
 // ║  [TODO: CINEMACHINE] 未來支援多目標混合 / 自動構圖        ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { UI_SETTINGS } from '../../constants';
+import { UI_SETTINGS, CAMERA_PARAM } from '../../constants';
 import type { Camera } from '../../types';
 
 export type { Camera };
@@ -45,7 +45,7 @@ export class CameraSystem {
     private isManualControlling: boolean = false;
 
     private trauma: number = 0;
-    private readonly DECAY_RATE = 8.0;
+    private readonly DECAY_RATE = CAMERA_PARAM.SHAKE_DECAY_RATE;
 
     constructor() {}
 
@@ -102,7 +102,7 @@ export class CameraSystem {
             this.targetY = y;
             
             // Dead zone：±5% 內的 zoom 變化直接忽略，不觸發追蹤
-            if (!this.manualZoom && Math.abs(this.directorZoom - this.targetZoom) > this.targetZoom * 0.05) {
+            if (!this.manualZoom && Math.abs(this.directorZoom - this.targetZoom) > this.targetZoom * CAMERA_PARAM.ZOOM_DEAD_ZONE) {
                 this.targetZoom = this.directorZoom;
             }
         }
@@ -153,7 +153,7 @@ export class CameraSystem {
         let shakeX = 0, shakeY = 0;
         if (this.trauma > 0) {
             const p = this.trauma * this.trauma;
-            const maxShake = 30 * this.zoom; 
+            const maxShake = CAMERA_PARAM.MAX_SHAKE_PX * this.zoom; 
             const angle = Math.random() * Math.PI * 2;
             shakeX = Math.cos(angle) * maxShake * p;
             shakeY = Math.sin(angle) * maxShake * p;

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useMatrixRain } from './useMatrixRain';
 import { Icons } from '../icons';
 import { GameEngine } from '../../../engine/game';
-import { UI_Z } from '../../../constants';
+import { UI_Z, UI_PANEL_PARAM } from '../../../constants';
 import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { useWindowStore } from '../../../hooks/useWindowStore';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
@@ -78,7 +78,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
                 className="absolute inset-0 block w-full h-full pointer-events-none mix-blend-screen"
             />
 
-            {config.enabled && config.bgOpacity > 0.1 && (
+            {config.enabled && config.bgOpacity > UI_PANEL_PARAM.SHOWCASE_BG_MIN_OPACITY && (
                 <>
                     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwIiAvPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxIiBmaWxsPSJyZ2JhKDI1NSwgMjU1LDI1NSwgMC4wNSkiIC8+Cjwvc3ZnPg==')] opacity-30 pointer-events-none"></div>
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_90%)] pointer-events-none"></div>

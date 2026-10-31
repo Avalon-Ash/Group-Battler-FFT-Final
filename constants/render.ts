@@ -246,6 +246,20 @@ export const DIRECTOR_PARAM = {
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */
+export const CAMERA_PARAM = {
+    /** 震動衰減速率（每秒） */
+    SHAKE_DECAY_RATE: 8.0,
+    /** 導演縮放變化死區（目標縮放的比例） */
+    ZOOM_DEAD_ZONE: 0.05,
+    /** 最大震動幅度（px，乘上目前縮放） */
+    MAX_SHAKE_PX: 30,
+    /** 目標群組取景留白係數（倍） */
+    GROUP_PADDING_FACTOR: 1.25,
+    /** 無目標或半徑為 0 時的群組縮放（倍） */
+    GROUP_DEFAULT_ZOOM: 0.9,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
 export const RENDER_LIST_PARAM = {
     /** 預配置繪製操作數（個） */
     INITIAL_CAPACITY: 8000,
@@ -287,4 +301,26 @@ export const RENDER_STATS_PARAM = {
     HISTORY_FRAMES: 240,
     /** 最慢影格平均的取樣比例（比例） */
     LOW_FPS_FRACTION: 0.01,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const GRID_TRANSITION_PARAM = {
+    /** 退場轉場進度超過此值就不再畫地塊（比例） */
+    OUT_SKIP_T: 0.95,
+    /** 轉場位移超過此值的地塊不畫（px） */
+    CULL_OFFSET_PX: 800,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const RENDER_DISPATCH_PARAM = {
+    /** 掉落深度淡出距離：z 為負時透明度＝1 − |z| ÷ 此值（px） */
+    Z_FADE_DIST_PX: 800,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const RENDER_PIPELINE_PARAM = {
+    /** 第一幀之前的預設幀時間（秒） */
+    INITIAL_DT_S: 0.016,
+    /** 每幀清除畫布的底色 */
+    CLEAR_COLOR: '#020617',
 } as const;

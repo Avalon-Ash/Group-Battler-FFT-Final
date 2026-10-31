@@ -22,7 +22,7 @@ import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 import { PartPainter } from "./renderers/painters/PartPainter";
 import { GroundDrapeLayer } from "../../renderers/GroundDrape";
 
-import { VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES, GROUND_DRAPE } from "../../../constants";
+import { VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES, GROUND_DRAPE, VFX_PRESENTATION_PARAM } from "../../../constants";
 
 export class VFXRenderer {
     public submitRenderables(
@@ -65,7 +65,7 @@ export class VFXRenderer {
 
             // Use SSOT Math
             const offset = VisualMath.getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
-            if (Math.abs(offset) > 1500) return;
+            if (Math.abs(offset) > VFX_PRESENTATION_PARAM.TRANSITION_CULL_OFFSET_PX) return;
 
             const isGroundLocked = VFX_GROUND_TYPES.has(p.type);
             const isUlt = !!p.pIsUlt;

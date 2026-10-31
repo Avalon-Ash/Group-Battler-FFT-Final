@@ -1,4 +1,4 @@
-import { HUD_TEXT_MOTION } from "../../constants";
+import { HUD_TEXT_MOTION, HUD_TEXT_DEFAULTS } from "../../constants";
 
 import { GameEngine } from "../game";
 import { Team } from "../../types";
@@ -53,7 +53,7 @@ export class HUDSystem {
         return {
             active: false,
             x: 0, y: 0, vx: 0, vy: 0,
-            text: '', color: '#fff', life: 0, maxLife: 0, size: 0,
+            text: '', color: HUD_TEXT_DEFAULTS.POOL_INIT_COLOR, life: 0, maxLife: 0, size: 0,
             type: 'DAMAGE', isUlt: false,
             ownerId: undefined, isShattered: false, rotation: 0, vRot: 0,
             time: 0, totalDuration: 0, cachedWidth: undefined

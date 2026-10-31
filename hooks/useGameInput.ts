@@ -4,6 +4,7 @@ import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role, BodyTypeId } from '../types';
 import { HexUtils, Vector } from '../engine/utils';
 import { GameRenderer } from '../engine/renderer';
+import { GAME_INPUT_PARAM } from '../constants';
 import {
     queryAgentAt,
     queryIsValidHex,
@@ -118,7 +119,7 @@ export const useGameInput = (props: GameInputProps) => {
         hoveredHexRef.current = (h && queryIsValidHex(engine, h.q, h.r)) ? h : null;
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
-            const driftThreshold = e.pointerType === 'touch' ? 18 : 8;
+            const driftThreshold = e.pointerType === 'touch' ? GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX : GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;
             if (dist > driftThreshold) {
                 if (!engine.isRunning && configRef.current.tool === ToolType.SELECT) {
                     if (pressedAgentRef.current) interactionMode.current = 'DRAG_UNIT';
