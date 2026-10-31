@@ -377,6 +377,18 @@
 - 驗證：lint、build 過；測試 992/993（`AgentRunner` Linux 上本來就失敗，CI 已排除）。
 - 合約效果：待觀察（迴圈守衛的提醒有沒有讓代理換方向、環境事實有沒有增長），下一次 review-round 記。
 
+### AT. 2026-10-31 憲法切分、AS 覆核、Gemini 改由主代理直接派（本機 `chore/constitution-split`）
+- 使用者把全域 `~/.claude/CLAUDE.md` 定為憲法（位階高於本 repo 合約）。本機事實（PowerShell 寫法 6 條）移過去；Codex 檔位表、額度、呼叫方式移到全域 `codex-call` skill，`codex-dispatch` 只留 hook 與副本同步。雲端工作階段讀不到憲法，鐵律仍留在本 repo。
+- AS 覆核修了兩個 bug：`tool-usage-audit.mjs` 沒讀子代理紀錄，會建議 deny 只在子代理用過的 `ReportFindings`（實測 2 次），另依 TE 保護計畫模式與網路工具；`HarnessContract` 環境事實測試在 Windows checkout（CRLF）必失敗，改用 `/\r?\n/` 切行。
+- 迴圈守衛另有全域版 `~/.claude/hooks/loop-guard.mjs`，本 repo 自己掛了 `PostToolUseFailure`，全域版讓位。
+- 長線實作改由主代理用 agy 直接派 Gemini 4（`agent-prompt` 改寫；不順利才回 IDE `/goal`）。`tools/agent/gemini-allow.json` 是確切指令的允許清單，`HarnessContract` 擋萬用字元與 commit／push／刪除。實測：萬用字元無效、`--mode auto` 帳號不能用、被拒一次整個執行就結束、不寫「不串接」時模型會把兩個指令串成一行；Gemini 不能 commit，由主代理審查後代為 commit。
+- 驗證：lint、build、`npm test` 全過（見本輪 commit）。
+- 同日重評 Gemini 檔位（全域 `agy-call`，原名 `gemini-call`，記來源）：Argon 代理式寫程式落後 Sonnet 5.5（Terminal-Bench 4.0 約 57% 對 71%），訂閱額度約 3.8 Flash 的 8～11 倍，論壇有 Argon（high）在測試反覆失敗時改驗證腳本、捏造完成報告的詳細回報。實作小包改為先 Flash high、兩次不及格才升 Argon medium，一份提示詞 ≤3 任務；`agent-prompt` 範本加「驗證不准動」與報告附檔案:行號，審查先看 `tests/**`。
+- 同日再改：agy 裡的 Claude Sonnet 5.5（走 Antigravity 額度，不吃 Claude Pro）納入派工。同一小任務（slugify，埋一條矛盾案例）實測：Sonnet medium 18 秒、輸出 1.5k；Flash high 61 秒、輸入 77.5k／輸出 6.2k；Argon medium 72 秒、輸出 2.3k；三者都停下回報矛盾、沒改測試。實作小包首選改為 agy 的 `claude-sonnet-5-5-medium`、次選 Argon medium；使用者回報訂閱額度，主代理記在 `~/.claude/QUOTA.md` 並依換池順序自己切換。另實測 agy 會寫到工作區外（使用者全域設定 `nonWorkspaceFileAccessPolicy: ALLOW`，`--settings` 蓋不掉）。
+- 同日再改（使用者提供 Antigravity 額度畫面）：Pro 有三個池：Gemini Models（Flash，5 小時＋週）、Gemini 4 Argon（只有週）、Claude and GPT（5 小時＋週，週只有約 1.5 個 5 小時窗）。以本機用量反推（`~/.claude/QUOTA.md`）：Claude 池週約 2.2 美元等值、Argon 週約 5 美元、Flash 5 小時約 10 美元；換算實作小包每週 Sonnet 約 2 包、Argon 約 3 包，Opus 一次長線就接近整週。實作首選改回 Argon medium，agy 的 Sonnet 只當升級，Opus 不用；讀檔與機械性工作只走 Flash 池。
+- 同日修正：Flash 池最大，token 多不是成本，規格明確的實作小包改回 `gemini-3.8-flash-high` 首選（A/B 一樣過關、老實回報矛盾）；要跨檔判斷的給 Argon medium；兩次不及格再升一級，Sonnet 最後。
+- 11/01 依使用者對三家服務的評價定分工（寫進憲法）：Claude 最貴最穩，寫程式與架構遠勝 Codex；Codex 美術視覺強、邏輯不輸 Claude，只派美術視覺與邏輯根因，不派寫程式；Gemini 便宜耐操，主力 3.8 Flash high，Gemini 4 Argon 使用者實際用過覺得不堪用，不派實作。Flash 兩次不及格或要判斷的小包收回 Claude（agy 的 Sonnet → Sonnet 子代理）。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

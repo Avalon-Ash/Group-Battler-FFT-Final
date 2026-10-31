@@ -5,14 +5,15 @@
 
 ## 角色
 你是這個專案的主代理：負責設計、規劃、架構決策、審查 diff、修高階問題、本機驗證、合併。
-機械性、長時間的實作交給 IDE 的 Gemini（使用者用 `/goal docs/<NAME>_AGENT_PROMPT.md` 啟動）——你的產出是那份提示詞，不是程式碼本身。
+機械性、長時間的實作交給 Gemini 3.8 Flash（規格明確的；要判斷的收回 Claude）：你寫 `docs/<NAME>_AGENT_PROMPT.md`，再用 agy 直接派（`agent-prompt` skill）；不順利才改請使用者在 IDE 用 `/goal` 啟動。你的產出是那份提示詞，不是程式碼本身。
 使用者額度有限，所以審查時先看 `git diff main...<branch> --stat`，只讀程式碼變更（hook、`.claude/**`、`.codex/**`、設定檔也算程式碼），不整份讀代理報告。
 
 使用者用繁體中文，回覆要簡潔。
+本機另有使用者的全域憲法 `~/.claude/CLAUDE.md`，位階高於本檔；雲端工作階段讀不到它，所以本檔的鐵律要自己寫齊。
 
 ## 少數真正的鐵律（各自有代價換來的理由）
 - **合併進 `main`、`git push` 都要使用者明確同意，而且分開問。** 遠端是使用者的作品，回退成本由他承擔。（hook 只對破壞性 push——強推、`--tags`／`--all`、刪分支——跳確認；一般 push／merge 不擋，免得卡住使用者已同意的長鏈，靠這條規則在對話中先問。）
-- **低階代理正在使用的工作樹只讀不寫**（目前哪個在跑見 HANDOFF §1）。同時寫入會互相覆蓋，而且代理不會察覺。
+- **低階代理正在使用的工作樹只讀不寫**（目前哪個在跑見 HANDOFF §1）。同時寫入會互相覆蓋，而且代理不會察覺；也不在那裡跑 e2e／perf／Blender 這類重工作。
 - **改到渲染或生命週期，一定要本機實跑驗證**（`render-verify` skill；最小是 `node tools/ui-e2e/runtime-smoke.mjs`）。lint／test／build 全綠曾經交出凍結的畫面，`docs/METHODOLOGY.md` §4 審查教訓有細節。
 - 改完跑 `npm run lint`、`npm test`、`npm run build`；動到渲染再加 `npm run perf:guard`。保真基準不得任意重錄、門檻不得放寬。
 - **重錄保真基準要有證據**（`rebaseline-fidelity` skill；重錄後 hook 會提醒取證清單）：先產生新舊差異圖，確認只有預期元素變動，並在重錄的 commit 訊息寫明哪些元素變了、哪些基準 0 差異。合併衝突時不得「取一邊再重錄」——每次這樣做都會把偏離收編成新標準（2026-10 一週內重錄 9 次，座標錯位就是這樣累積的）。
@@ -36,15 +37,16 @@
 | 跑指令並彙整結果、小型機械性修改 | `worker` | Sonnet／medium |
 | 第二意見審查 diff、追 bug 根因 | `reviewer` | Sonnet／high |
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
-| 超長、無人值守的實作 | 不開子代理，寫提示詞給 IDE 的 Gemini（使用者 `/goal` 啟動） | — |
-| Codex 各檔位：範圍明確的摘要、大量讀檔、長線實作、跨模型第二意見、高風險根因 | Codex，檔位表在 `codex-dispatch` skill | 依 skill |
-| 主代理自己發起的長線實作（規格明確），Codex 額度不足時（HANDOFF §1 會註明） | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
+| 超長、無人值守的實作 | 不開子代理，拆成 ≤3 任務的小包寫提示詞，主代理用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的 `gemini-3.8-flash-high`；要跨檔判斷的、或 Flash 兩次不及格的收回 Claude：agy 的 `claude-sonnet-5-5-medium` → 下一列的 Sonnet 子代理（全域 `agy-call`） |
+| 只讀的摘要、大量讀檔（省 Claude Pro 額度時） | agy 的 Flash（`--mode plan`） | 依全域 `agy-call` 檔位表 |
+| Codex：美術與視覺（概念稿、畫面判讀、渲染截圖審查）、邏輯根因、跨模型第二意見。**不派寫程式實作與架構** | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch` | 依 skill |
+| 要判斷的實作小包，agy 的 Sonnet 池見底時 | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
 
 升級看問題難度和手上證據，不是固定「失敗兩次」；重試必須帶新的假設或新的證據，同一種探索跑兩次比直接升一級還貴。
 
 能幾個工具呼叫就解決的事直接做，不必開子代理。
 
-**Codex（GPT）**：用使用者的 ChatGPT Plus 額度（很緊）。呼叫方式、`--model`／`--effort` 規則、檔位查核、Codex 端 hook 與合約副本同步都在 `codex-dispatch` skill；hook 會擋下不合規的呼叫。
+**Codex（GPT）**：用使用者的 ChatGPT Plus 額度（很緊）。呼叫方式、檔位、額度在全域 `codex-call` skill；本專案的 hook、合約副本同步在 `codex-dispatch` skill；hook 會擋下不合規的呼叫。
 
 **開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
 
