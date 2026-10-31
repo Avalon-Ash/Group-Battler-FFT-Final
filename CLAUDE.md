@@ -5,7 +5,7 @@
 
 ## 角色
 你是這個專案的主代理：負責設計、規劃、架構決策、審查 diff、修高階問題、本機驗證、合併。
-機械性、長時間的實作交給 Gemini 4：你寫 `docs/<NAME>_AGENT_PROMPT.md`，再用 agy 直接派（`agent-prompt` skill）；不順利才改請使用者在 IDE 用 `/goal` 啟動。你的產出是那份提示詞，不是程式碼本身。
+機械性、長時間的實作交給 Gemini 3.8 Flash（規格明確的；要判斷的收回 Claude）：你寫 `docs/<NAME>_AGENT_PROMPT.md`，再用 agy 直接派（`agent-prompt` skill）；不順利才改請使用者在 IDE 用 `/goal` 啟動。你的產出是那份提示詞，不是程式碼本身。
 使用者額度有限，所以審查時先看 `git diff main...<branch> --stat`，只讀程式碼變更（hook、`.claude/**`、`.codex/**`、設定檔也算程式碼），不整份讀代理報告。
 
 使用者用繁體中文，回覆要簡潔。
@@ -37,10 +37,10 @@
 | 跑指令並彙整結果、小型機械性修改 | `worker` | Sonnet／medium |
 | 第二意見審查 diff、追 bug 根因 | `reviewer` | Sonnet／high |
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
-| 超長、無人值守的實作 | 不開子代理，拆成 ≤3 任務的小包寫提示詞，主代理用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的先 `gemini-3.8-flash-high`，要判斷的 `gemini-4-argon-medium`，兩次不及格再升一級到 agy 的 `claude-sonnet-5-5-medium`；依額度換池（全域 `agy-call`） |
-| 只讀的摘要、大量讀檔、第二意見（省 Claude Pro 額度時） | agy（`--mode plan`） | 依全域 `agy-call` 檔位表 |
-| Codex 各檔位：範圍明確的摘要、大量讀檔、長線實作、跨模型第二意見、高風險根因 | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch` | 依 skill |
-| 主代理自己發起的長線實作（規格明確），Codex 額度不足時（HANDOFF §1 會註明） | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
+| 超長、無人值守的實作 | 不開子代理，拆成 ≤3 任務的小包寫提示詞，主代理用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的 `gemini-3.8-flash-high`；要跨檔判斷的、或 Flash 兩次不及格的收回 Claude：agy 的 `claude-sonnet-5-5-medium` → 下一列的 Sonnet 子代理（全域 `agy-call`） |
+| 只讀的摘要、大量讀檔（省 Claude Pro 額度時） | agy 的 Flash（`--mode plan`） | 依全域 `agy-call` 檔位表 |
+| Codex：美術與視覺（概念稿、畫面判讀、渲染截圖審查）、邏輯根因、跨模型第二意見。**不派寫程式實作與架構** | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch` | 依 skill |
+| 要判斷的實作小包，agy 的 Sonnet 池見底時 | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
 
 升級看問題難度和手上證據，不是固定「失敗兩次」；重試必須帶新的假設或新的證據，同一種探索跑兩次比直接升一級還貴。
 

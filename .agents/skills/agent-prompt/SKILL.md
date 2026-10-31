@@ -10,10 +10,10 @@ description: 撰寫給 agy 低階代理（Claude Sonnet 5.5 或 Gemini，主代�
 ## 開一輪的流程（預設：主代理用 agy 派）
 1. 寫 `docs/<NAME>_AGENT_PROMPT.md`（本 skill 的範本）。還沒提交就放 scratchpad，派工時用絕對路徑。
 2. **工作資料夾**：在 repo 外開**獨立 clone**（`git clone --no-hardlinks <主資料夾> C:\Git\_wt_<topic>`），切好分支 `feat/<topic>`，`node_modules` 用 `robocopy` 複製真目錄，不跑 npm 安裝。不可放在主資料夾或 `.claude/worktrees` 底下。
-3. **派工**（檔位與韁繩見全域 `agy-call` skill；規格明確的實作小包先 `gemini-3.8-flash-high`（池最大），要跨檔判斷的用 `gemini-4-argon-medium`（獨立週額度，每週約 3 包），同一包兩次不及格再升一級，最後才是 agy 的 `claude-sonnet-5-5-medium`（池最小，每週約 2 包），依 `~/.claude/QUOTA.md` 的額度換池；一份提示詞 ≤3 個任務，長線工作拆成多份逐份派）：背景 Bash 執行
+3. **派工**（檔位與韁繩見全域 `agy-call` skill；規格明確的實作小包用 `gemini-3.8-flash-high`（池最大）；要跨檔判斷的、或 Flash 同一包兩次不及格的收回 Claude：agy 的 `claude-sonnet-5-5-medium`（池最小，每週約 2 包）→ Sonnet 子代理。Gemini 4 Argon 不派實作（使用者實際用過覺得不堪用）。依 `~/.claude/QUOTA.md` 的額度換池；一份提示詞 ≤3 個任務，長線工作拆成多份逐份派）：背景 Bash 執行
    `cd C:/Git/_wt_<topic> && "$LOCALAPPDATA/agy/bin/agy.exe" --model <模型> --mode accept-edits --settings C:/Git/Group-Battler-FFT-Final/tools/agent/gemini-allow.json --output-format json -p "讀 <提示詞絕對路徑> 並照做"`
    等 harness 通知，不輪詢。代理跑的期間主代理對該資料夾只讀不寫，也不跑 e2e／perf／Blender。
-4. 跑完 → `review-round` skill。agy 的代理不能 commit（允許清單只放確切指令），主代理審查後依任務分批代為 commit（訊息加 `Co-Authored-By:` 實際用的模型）。審查先看 `tests/**` 與驗收腳本的 diff（Gemini 4 在測試一直失敗時會改驗證來過關），再 grep 報告提到的每個函式與行號確認存在。
+4. 跑完 → `review-round` skill。agy 的代理不能 commit（允許清單只放確切指令），主代理審查後依任務分批代為 commit（訊息加 `Co-Authored-By:` 實際用的模型）。審查先看 `tests/**` 與驗收腳本的 diff（低階代理在測試一直失敗時會改驗證來過關），再 grep 報告提到的每個函式與行號確認存在。
 5. **改回 IDE 的條件**：權限擋住必要的指令、反覆卡住、或品質兩次不及格 → 改請使用者在 IDE 執行 `/goal <提示詞>`（資料夾同上），並說明原因；在 INV 補上下方「IDE 備援」的長指令規則。
 
 ## 允許清單（`tools/agent/gemini-allow.json`）
@@ -21,8 +21,8 @@ description: 撰寫給 agy 低階代理（Claude Sonnet 5.5 或 Gemini，主代�
 - 提示詞的 INV 要列出「只能跑這些指令」，照抄清單，並寫明「每個指令單獨一次呼叫，字串照抄，不加 `cd`、不用 `&&` 或 `;` 串接」。**被拒一次整個執行就結束**（2026-10-31 實測：沒寫這句時模型把兩個指令串成一行而被拒）。
 - 某輪需要別的確切指令（例如某支量測腳本）就加進清單，跟該輪一起 commit。
 
-## 改派給 Codex 時（主代理自己發起）
-- **先選檔位**（全域 `codex-call` skill 檔位表）：定位、範圍明確的摘要用 `gpt-6-luna`／low，讀檔／轉換用 Luna／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
+## 派給 Codex 時（美術視覺、邏輯根因；不派寫程式實作）
+- **先選檔位**（全域 `codex-call` skill 檔位表）：美術視覺與邏輯根因用 `gpt-6.1-sol`／medium，Flash 不可用時的摘要用 `gpt-6-luna`／low。下面的可寫流程只用在美術素材（概念稿、離線素材腳本）這類 Codex 擅長的工作。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
 - **工作樹**：同上的獨立 clone。linked worktree 的 metadata 在主資料夾 `.git` 裡、junction 的 `node_modules` 沙盒寫不進去，都會讓 Codex 在開工前卡住（2026-10-26 R1 卡了三次）。agy 代理在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，agy 代理和 Codex 共用這個限制。
 - **git 擁有者檢查**：獨立 clone 在 Codex 沙盒裡會被判定 dubious ownership，`git status` 等全部失敗，Luna 會照規定直接停下（2026-10-29 O6）。INV 要寫明「所有 git 指令一律 `git -c safe.directory=<工作樹> …`（單次參數，不改設定）」；測試裡呼叫 git 的也要帶這個參數（`MagicNumberBudget`、`ToolsReferenced`、`NoLocalHash` 已改）。
 - **沙盒限制要寫進提示詞**：workspace-write 沙盒連獨立 clone 的 `.git` 都唯讀，**Codex 不能 commit**（同 agy 代理，主代理代為 commit，訊息加 `Co-Authored-By: Codex`）。測試指令寫 `npx vitest run --exclude "**/AgentRunner.test.ts"`（那 2 項在沙盒內必失敗），主代理在沙盒外補跑完整 `npm test`。寫明「中途不要詢問；遇到停下條件就寫報告後結束」，非互動執行時它問了也沒人答（要答用 `task --resume-last`）。

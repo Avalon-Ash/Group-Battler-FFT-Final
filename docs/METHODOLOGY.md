@@ -4,7 +4,7 @@
 
 ## 1. 省點數守則（使用者額度有限，最重要）
 - 使用者之前在 Antigravity 花了很多點數（含一次在 AI Studio 燒掉 400 元卻交出壞掉的畫面）。**Claude Code 的主代理請把工作壓到最小**。
-- **分工**：長時間、機械性、無人值守的實作交給低階代理（Gemini 4：主代理用 agy 直接派，見 `agent-prompt` skill；不順利才改 IDE `/goal`）；主代理只做 ① 設計／寫提示詞 ② 審查 diff ③ 小修 ④ 本機驗證 ⑤ 合併。
+- **分工**：長時間、機械性、無人值守的實作交給低階代理（Gemini 3.8 Flash：主代理用 agy 直接派，見 `agent-prompt` skill；不順利才改 IDE `/goal`）；主代理只做 ① 設計／寫提示詞 ② 審查 diff ③ 小修 ④ 本機驗證 ⑤ 合併。
 - **審查要便宜**：先 `git diff main...<branch> --stat`，只讀**程式碼**變更（`engine/`、`components/`、`data/`、`constants/`）；**不要整份讀 `docs/*REPORT*`**（代理報告常誇大，只看數字表與回退指南）；用 `grep`／`Select-String` 抓關鍵字；每次只讀一小段。
 - **不要重複量測**；少截圖；回覆精簡；一次對話做完一輪就收。
 - Claude Code 內用 `/compact` 壓縮上下文；`HANDOFF.md`（待辦）＋本檔＋`AGENTS.md` 足以在新對話重建上下文，需要歷史時才搜 `WORKLOG.md`、`DECISIONS.md`。
