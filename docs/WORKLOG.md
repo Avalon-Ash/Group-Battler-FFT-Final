@@ -377,6 +377,13 @@
 - 驗證：lint、build 過；測試 992/993（`AgentRunner` Linux 上本來就失敗，CI 已排除）。
 - 合約效果：待觀察（迴圈守衛的提醒有沒有讓代理換方向、環境事實有沒有增長），下一次 review-round 記。
 
+### AT. 2026-10-31 憲法切分、AS 覆核、Gemini 改由主代理直接派（本機 `chore/constitution-split`）
+- 使用者把全域 `~/.claude/CLAUDE.md` 定為憲法（位階高於本 repo 合約）。本機事實（PowerShell 寫法 6 條）移過去；Codex 檔位表、額度、呼叫方式移到全域 `codex-call` skill，`codex-dispatch` 只留 hook 與副本同步。雲端工作階段讀不到憲法，鐵律仍留在本 repo。
+- AS 覆核修了兩個 bug：`tool-usage-audit.mjs` 沒讀子代理紀錄，會建議 deny 只在子代理用過的 `ReportFindings`（實測 2 次），另依 TE 保護計畫模式與網路工具；`HarnessContract` 環境事實測試在 Windows checkout（CRLF）必失敗，改用 `/\r?\n/` 切行。
+- 迴圈守衛另有全域版 `~/.claude/hooks/loop-guard.mjs`，本 repo 自己掛了 `PostToolUseFailure`，全域版讓位。
+- 長線實作改由主代理用 agy 直接派 Gemini 4（`agent-prompt` 改寫；不順利才回 IDE `/goal`）。`tools/agent/gemini-allow.json` 是確切指令的允許清單，`HarnessContract` 擋萬用字元與 commit／push／刪除。實測：萬用字元無效、`--mode auto` 帳號不能用、被拒一次整個執行就結束、不寫「不串接」時模型會把兩個指令串成一行；Gemini 不能 commit，由主代理審查後代為 commit。
+- 驗證：lint、build、`npm test` 全過（見本輪 commit）。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
