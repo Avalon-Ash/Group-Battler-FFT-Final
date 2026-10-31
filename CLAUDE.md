@@ -37,7 +37,7 @@
 | 跑指令並彙整結果、小型機械性修改 | `worker` | Sonnet／medium |
 | 第二意見審查 diff、追 bug 根因 | `reviewer` | Sonnet／high |
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
-| 超長、無人值守的實作 | 不開子代理，拆成 ≤3 任務的小包寫提示詞，主代理用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 首選 `gemini-4-argon-medium`，兩次不及格或 Argon 週額度偏低才用 agy 的 `claude-sonnet-5-5-medium`；依額度換池（全域 `agy-call`） |
+| 超長、無人值守的實作 | 不開子代理，拆成 ≤3 任務的小包寫提示詞，主代理用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的先 `gemini-3.8-flash-high`，要判斷的 `gemini-4-argon-medium`，兩次不及格再升一級到 agy 的 `claude-sonnet-5-5-medium`；依額度換池（全域 `agy-call`） |
 | 只讀的摘要、大量讀檔、第二意見（省 Claude Pro 額度時） | agy（`--mode plan`） | 依全域 `agy-call` 檔位表 |
 | Codex 各檔位：範圍明確的摘要、大量讀檔、長線實作、跨模型第二意見、高風險根因 | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch` | 依 skill |
 | 主代理自己發起的長線實作（規格明確），Codex 額度不足時（HANDOFF §1 會註明） | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |

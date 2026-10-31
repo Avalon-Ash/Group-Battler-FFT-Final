@@ -10,7 +10,7 @@ description: 撰寫給 agy 低階代理（Claude Sonnet 5.5 或 Gemini，主代�
 ## 開一輪的流程（預設：主代理用 agy 派）
 1. 寫 `docs/<NAME>_AGENT_PROMPT.md`（本 skill 的範本）。還沒提交就放 scratchpad，派工時用絕對路徑。
 2. **工作資料夾**：在 repo 外開**獨立 clone**（`git clone --no-hardlinks <主資料夾> C:\Git\_wt_<topic>`），切好分支 `feat/<topic>`，`node_modules` 用 `robocopy` 複製真目錄，不跑 npm 安裝。不可放在主資料夾或 `.claude/worktrees` 底下。
-3. **派工**（檔位與韁繩見全域 `agy-call` skill；實作小包首選 `gemini-4-argon-medium`（獨立週額度，每週約 3 包），兩次不及格或 Argon 偏低才用 agy 的 `claude-sonnet-5-5-medium`（池最小，每週約 2 包），依 `~/.claude/QUOTA.md` 的額度換池；一份提示詞 ≤3 個任務，長線工作拆成多份逐份派）：背景 Bash 執行
+3. **派工**（檔位與韁繩見全域 `agy-call` skill；規格明確的實作小包先 `gemini-3.8-flash-high`（池最大），要跨檔判斷的用 `gemini-4-argon-medium`（獨立週額度，每週約 3 包），同一包兩次不及格再升一級，最後才是 agy 的 `claude-sonnet-5-5-medium`（池最小，每週約 2 包），依 `~/.claude/QUOTA.md` 的額度換池；一份提示詞 ≤3 個任務，長線工作拆成多份逐份派）：背景 Bash 執行
    `cd C:/Git/_wt_<topic> && "$LOCALAPPDATA/agy/bin/agy.exe" --model <模型> --mode accept-edits --settings C:/Git/Group-Battler-FFT-Final/tools/agent/gemini-allow.json --output-format json -p "讀 <提示詞絕對路徑> 並照做"`
    等 harness 通知，不輪詢。代理跑的期間主代理對該資料夾只讀不寫，也不跑 e2e／perf／Blender。
 4. 跑完 → `review-round` skill。agy 的代理不能 commit（允許清單只放確切指令），主代理審查後依任務分批代為 commit（訊息加 `Co-Authored-By:` 實際用的模型）。審查先看 `tests/**` 與驗收腳本的 diff（Gemini 4 在測試一直失敗時會改驗證來過關），再 grep 報告提到的每個函式與行號確認存在。
