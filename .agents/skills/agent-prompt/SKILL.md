@@ -8,7 +8,7 @@ description: 撰寫給 agy 低階代理（Claude Sonnet 5.5 或 Gemini，主代�
 主代理的產出是這份提示詞，不是程式碼。執行代理會讀 `AGENTS.md`（合約）＋這份提示詞，其他東西它看不到。
 
 ## 開一輪的流程（預設：主代理用 agy 派）
-1. 寫 `docs/<NAME>_AGENT_PROMPT.md`（本 skill 的範本）。還沒提交就放 scratchpad，派工時用絕對路徑。
+1. 寫 `docs/<NAME>_AGENT_PROMPT.md`（本 skill 的範本），放在下一步開好的工作樹 clone 裡，派工時用絕對路徑。不放 scratchpad：那在 `C:\Git` 工作區外（憲法），代理不該去讀。
 2. **工作資料夾**：在 repo 外開**獨立 clone**（`git clone --no-hardlinks <主資料夾> C:\Git\_wt_<topic>`），切好分支 `feat/<topic>`，`node_modules` 用 `robocopy` 複製真目錄，不跑 npm 安裝。不可放在主資料夾或 `.claude/worktrees` 底下。
 3. **派工**（檔位與韁繩見全域 `agy-call` skill；規格明確的實作小包用 `gemini-3.8-flash-high`（池最大）；要跨檔判斷的、或 Flash 同一包兩次不及格的收回 Claude：agy 的 `claude-sonnet-5-5-medium`（池最小，每週約 2 包）→ Sonnet 子代理。Gemini 4 Argon 不派實作（使用者實際用過覺得不堪用）。依 `~/.claude/QUOTA.md` 的額度換池；一份提示詞 ≤3 個任務，長線工作拆成多份逐份派）：背景 Bash 執行
    `cd C:/Git/_wt_<topic> && "$LOCALAPPDATA/agy/bin/agy.exe" --model <模型> --mode accept-edits --settings C:/Git/Group-Battler-FFT-Final/tools/agent/gemini-allow.json --output-format json -p "讀 <提示詞絕對路徑> 並照做"`
