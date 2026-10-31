@@ -30,10 +30,18 @@
  * 6. Re-recording a fidelity / style baseline gets the evidence checklist as a reminder
  *    (rebaseline-fidelity skill); it does not block.
  *
+ * PostToolUseFailure (and Codex PostToolUse with a non-zero exit_code)
+ * 8. Loop guard, after microsoft/TokenEconomizer: a failing shell command is reduced to a
+ *    signature (command head + normalised first error lines) and counted per session. The 3rd
+ *    identical failure gets one redirect that mirrors the agent's own actions and asks for a
+ *    materially different hypothesis; the 5th asks it to stop and report to the user. It never
+ *    blocks. A later success of the same command head clears its signatures. State is an
+ *    append-only log per session, because parallel tool calls run the hook concurrently.
+ *
  * Reads the hook payload as JSON on stdin; prints a decision as JSON, or nothing to allow.
  * Behaviour is covered by tests/HarnessContract.test.ts (runs this script with sample payloads).
  */
-import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -124,9 +132,80 @@ function requireRenderSpec(prompt, where, deny) {
     }
 }
 
-function postContext(text) {
+// ── 迴圈守衛（借自 microsoft/TokenEconomizer 的 loop guard）──────────────
+// 免費的計數閘門取代判斷模型：同一個失敗重複出現才介入；提醒只複述代理自己的動作。
+const LOOP_REDIRECT_AT = 3;
+const LOOP_STOP_AT = 5;
+const LOOP_EXCERPT_CHARS = 160;
+const LOOP_HEAD_TOKENS = 3;
+
+/** 指令頭：去掉開頭的 cd …&&、環境變數，取前幾個字；路徑只留檔名 */
+function commandHead(cmd) {
+    const seg = String(cmd || '').split(/&&|;|\|\|/).map(x => x.trim()).filter(x => x && !/^(cd|pushd|Set-Location)\b/i.test(x))[0] || '';
+    return seg.replace(/^(?:\w+=\S*\s+)+/, '').split(/\s+/).slice(0, LOOP_HEAD_TOKENS)
+        .map(t => t.replace(/^["']|["']$/g, '').replace(/^.*[\\/]/, '')).join(' ');
+}
+
+/** 錯誤摘要：前幾行非空白、去掉「Exit code」行，數字一律換成 #，避免時間戳與行號讓同一個錯誤看起來不同 */
+function errorExcerpt(text) {
+    return String(text || '').split(/\r?\n/).map(l => l.trim())
+        .filter(l => l && !/^exit code\s*\d+$/i.test(l)).slice(0, 3).join(' | ')
+        .replace(/\d+/g, '#').replace(/\s+/g, ' ').slice(0, LOOP_EXCERPT_CHARS);
+}
+
+/** 這次 shell 呼叫失敗了嗎？回傳錯誤文字，成功回傳 null */
+function shellFailure(payload) {
+    if (payload.hook_event_name === 'PostToolUseFailure') return String(payload.error || 'failed');
+    const r = payload.tool_response;
+    if (r && typeof r === 'object') {
+        const code = r.exit_code ?? r.exitCode;
+        if (typeof code === 'number' && code !== 0) return [r.stderr, r.stdout, r.output].filter(Boolean).join('\n') || `exit ${code}`;
+    }
+    return null;
+}
+
+function loopLogPath(sessionId) {
+    return join(tmpdir(), `tactical-loopguard-${String(sessionId || 'nosession').replace(/[^\w-]/g, '')}.log`);
+}
+
+/**
+ * 回傳要附給代理的提醒文字，或 null；失敗開放：任何 I/O 錯誤都當作沒事。
+ * 狀態是只附加的日誌（一行一筆失敗或成功），不做讀–改–寫：平行的工具呼叫會同時觸發 hook，
+ * 讀–改–寫會互相蓋掉計數（2026-10-31 實測三個平行失敗只記到 2）。
+ */
+function loopGuard(payload, cmd) {
+    const file = loopLogPath(payload.session_id);
+    const head = commandHead(cmd);
+    const failure = shellFailure(payload);
+    if (failure === null && !existsSync(file)) return null;
+    const sig = failure === null ? null : `${head} :: ${errorExcerpt(failure)}`;
+    try { appendFileSync(file, JSON.stringify(sig === null ? { ok: head } : { fail: sig }) + '\n'); } catch { return null; }
+    if (sig === null) return null;
+    let n = 0;
+    try {
+        for (const line of readFileSync(file, 'utf8').split('\n')) {
+            if (!line) continue;
+            const e = JSON.parse(line);
+            if (e.ok === head) n = 0;           // 同一個指令頭成功過：之前的失敗算解決
+            else if (e.fail === sig) n += 1;
+        }
+    } catch { return null; }
+    const what = `指令 \`${head}\`，錯誤「${errorExcerpt(failure)}」`;
+    if (n === LOOP_REDIRECT_AT) {
+        return `流程檢查（自動）：同一個失敗已出現 ${n} 次（${what}）。這看起來是重複迴圈。不要用同一個做法再試：`
+            + '換一個實質不同的假設（重讀錯誤訊息與預期、考慮別的檔案或根因、環境寫法問題先查 METHODOLOGY §6），'
+            + '先用最小的指令直接驗證新假設，再動手改。';
+    }
+    if (n === LOOP_STOP_AT) {
+        return `流程檢查（自動）：同一個失敗已出現 ${n} 次（${what}），換做法後仍未解決。停下來向使用者回報：`
+            + '做過哪些嘗試、失敗訊息、目前的假設，由使用者決定下一步（CLAUDE.md：重試必須帶新的假設或證據）。';
+    }
+    return null;
+}
+
+function postContext(text, hookEventName = 'PostToolUse') {
     process.stdout.write(JSON.stringify({
-        hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: text },
+        hookSpecificOutput: { hookEventName, additionalContext: text },
     }));
 }
 
@@ -156,8 +235,20 @@ function main() {
         ? [...String(input.command || '').matchAll(/^\*\*\* (?:Add File|Update File|Delete File|Move to): ([^\r\n]+)\r?$/gm)].map(m => m[1])
         : [];
 
+    const shellTool = tool === 'Bash' || tool === 'PowerShell';
+    if (payload.hook_event_name === 'PostToolUseFailure') {
+        if (shellTool) {
+            const nudge = loopGuard(payload, input.command);
+            if (nudge) postContext(nudge, 'PostToolUseFailure');
+        }
+        process.exit(0);
+    }
+
     if (payload.hook_event_name === 'PostToolUse') {
-        if ((/^(Edit|Write|MultiEdit)$/.test(tool) && isRenderPath(input.file_path)) || patchPaths.some(isRenderPath)) {
+        const nudge = shellTool ? loopGuard(payload, input.command) : null;
+        if (nudge) {
+            postContext(nudge);
+        } else if ((/^(Edit|Write|MultiEdit)$/.test(tool) && isRenderPath(input.file_path)) || patchPaths.some(isRenderPath)) {
             // 每個工作階段只提醒一次，避免每次編輯都塞同一段話進上下文
             const marker = join(tmpdir(), `tactical-render-reminder-${String(payload.session_id || 'nosession').replace(/[^\w-]/g, '')}`);
             if (!existsSync(marker)) {
