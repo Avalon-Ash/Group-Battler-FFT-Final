@@ -71,7 +71,7 @@ description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主�
 | 任務 | 內容 | 驗證 |
 | :-- | :-- | :-- |
 | X0 | ... | lint／test／build；<實跑或量測> |
-| REPORT | `docs/<NAME>_REPORT.md`：改前／改後數字表、每個改動的理由、沒達標的項目與原因、回退指南（每個任務的 commit） | — |
+| REPORT | `docs/<NAME>_REPORT.md`：改前／改後數字表、每個改動的理由、沒達標的項目與原因、回退指南（每個任務的 commit）。只寫數字、指令輸出與沒做到的事，不寫效果形容詞（「大幅改善」「完全解決」）；每個結論附產生它的指令 | — |
 
 - 每個任務一個 commit。
 
