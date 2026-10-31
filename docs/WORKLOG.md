@@ -389,6 +389,16 @@
 - 同日修正：Flash 池最大，token 多不是成本，規格明確的實作小包改回 `gemini-3.8-flash-high` 首選（A/B 一樣過關、老實回報矛盾）；要跨檔判斷的給 Argon medium；兩次不及格再升一級，Sonnet 最後。
 - 11/01 依使用者對三家服務的評價定分工（寫進憲法）：Claude 最貴最穩，寫程式與架構遠勝 Codex；Codex 美術視覺強、邏輯不輸 Claude，只派美術視覺與邏輯根因，不派寫程式；Gemini 便宜耐操，主力 3.8 Flash high，Gemini 4 Argon 使用者實際用過覺得不堪用，不派實作。Flash 兩次不及格或要判斷的小包收回 Claude（agy 的 Sonnet → Sonnet 子代理）。
 
+### AU. 2026-11-01 轉場實機確認結案
+- 使用者實機看轉場（不閃、圖集預載、單位停穩 3 幀後出現）OK，HANDOFF §2 C、§3 第 1 項刪除。CPU×4 模擬剩下的 33～58 ms 進場尖峰移到 HANDOFF §4，與地形烘焙一起暫緩（轉場期間已有 12 ms 分幀烘焙，尖峰來源未量）。
+
+### AV. 2026-11-01 未命名數字清理 D1～D3（agy Gemini 3.8 Flash high，合併 `725d30a`）
+- 只搬家不改值：D1 UI／hooks／數學／鏡頭 21 檔（47 數字、2 顏色，`5b63708`）、D2 graphics＋presentation 18 檔（15、19，`d49dacc`）、D3 渲染器 15 檔（25、17，`7786c63`）。新物件放在 `constants/ui.ts`、`render.ts`、`vfx.ts`、`hud.ts`、`terrain.ts` 檔尾；數學固有值（`HEX_SIDES` 等）用檔內常數；同值同義的沿用既有常數。預算檔 108／49 → 9／6，剩下的是刻意不動（HANDOFF §2 D）。
+- 證據：每包 lint、`npm test`（994）、build、knip、runtime-smoke；D2、D3 `perf:guard`（保真＋效能）；D3 `coord-guard --order` 與 base 同環境 A/B，每個種子 judged／wrongPairFrames／stableEpisodes 相同。`ConstantsBarrel` 名單與快照只新增。回退：`git revert -m 1 725d30a`。
+- Flash 品質：D1 部分及格（20 檔正確，但把 `constants/render.ts` 每個物件結尾的 `} as const;` 刪光、沒加要求的物件；一個指令被拒後結束，沒報告）；D2 及格；D3 第一次不及格（同一段常數往檔尾重複貼約 15 次，想用 git 還原被拒，104 秒結束），第二次改成主代理先加好常數、提示詞禁止 git 還原後及格。三包都由主代理調降預算、補快照。
+- 觀察（confounded，未升級成規則）：3 次失敗有 2 次在「往共用常數檔新增」那一步；D3 第二次同時改了兩個條件，無法單獨歸因。之後類似的搬家輪，可以先試「主代理先加好常數、代理只改使用處」。提示詞也寫錯兩處計數規則（`Math.PI / 6`、`1 << 5` 在算式裡仍算），由主代理修正。
+- 派工：`tools/ui-e2e/out/` 在新 clone 不存在，agy 輸出改寫到 scratchpad；Git Bash 的 robocopy 會把 `/E` 轉成路徑，改用 PowerShell 執行。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
