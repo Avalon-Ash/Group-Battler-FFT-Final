@@ -48,6 +48,15 @@ export class UICommandSystem {
                 break;
             }
 
+            case 'SET_WATCH_AGENT': {
+                // 記陣營而不是單位：單位死後仍算它的陣營，直到玩家改點
+                const agent = typeof cmd.agentId === 'string'
+                    ? this.engine.agents.find(a => a.id === cmd.agentId)
+                    : undefined;
+                this.engine.director.setPickedSide(agent ? agent.side : null);
+                break;
+            }
+
             case 'SET_ZONE_CONFIG': {
                 if (!cmd.config || typeof cmd.config !== 'object') break;
                 if (typeof cmd.config.enabled === 'boolean') {

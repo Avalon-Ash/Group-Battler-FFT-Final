@@ -139,7 +139,8 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
     it.each([1, 2, 3, 4, 5, 6, 7] as const)('maps KILL_SPREE value %s to KILL_SPREE_%s and preserves pan', value => {
         audioEngine.unlock();
         const playCueSpy = vi.spyOn(audioEngine, 'playCue');
-        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value, pos: { x: 900, y: 300 } });
+        bus.emit('WATCH_SIDE', { side: 0 });
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value, side: 0, pos: { x: 900, y: 300 } });
         expect(playCueSpy).toHaveBeenCalledExactlyOnceWith(`KILL_SPREE_${value}`, { x: 0.75 });
         // 本機音檔未載入（測試環境沒有）時靜音，不回退合成音
         expect(playCueSpy.mock.results[0].value).toBe(false);
@@ -148,9 +149,25 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
     it.each([0, -1, 8, undefined])('ignores KILL_SPREE value %s, and KILL_STREAK text events stay silent', value => {
         audioEngine.unlock();
         const playCueSpy = vi.spyOn(audioEngine, 'playCue');
-        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value, pos: { x: 900, y: 300 } });
-        bus.emit('GAME_EVENT', { type: 'KILL_STREAK', value: 2, text: 'DOUBLE KILL', pos: { x: 900, y: 300 } });
+        bus.emit('WATCH_SIDE', { side: 0 });
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value, side: 0, pos: { x: 900, y: 300 } });
+        bus.emit('GAME_EVENT', { type: 'KILL_STREAK', value: 2, side: 0, text: 'DOUBLE KILL', pos: { x: 900, y: 300 } });
         expect(playCueSpy).not.toHaveBeenCalled();
+    });
+
+    it('KILL_SPREE only plays for the watched side; no watch side or no event side stays silent', () => {
+        audioEngine.unlock();
+        const playCueSpy = vi.spyOn(audioEngine, 'playCue');
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value: 2, side: 0, pos: { x: 900, y: 300 } });
+        bus.emit('WATCH_SIDE', { side: 1 });
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value: 2, side: 0, pos: { x: 900, y: 300 } });
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value: 2, pos: { x: 900, y: 300 } });
+        expect(playCueSpy).not.toHaveBeenCalled();
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value: 3, side: 1, pos: { x: 900, y: 300 } });
+        expect(playCueSpy).toHaveBeenCalledExactlyOnceWith('KILL_SPREE_3', { x: 0.75 });
+        bus.emit('WATCH_SIDE', { side: null });
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value: 4, side: 1, pos: { x: 900, y: 300 } });
+        expect(playCueSpy).toHaveBeenCalledTimes(1);
     });
 
     it('maps HEAL, CC_APPLIED, and rumbling CAMERA_IMPACT events', () => {

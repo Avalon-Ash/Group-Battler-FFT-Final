@@ -70,6 +70,7 @@ export class GameEngine implements SpatialProvider {
 
     public sessionState: GlobalSessionState = {
         killStreaks: new Map(),
+        sideKills: new Map(),
         firstBloodTriggered: false
     };
 
@@ -224,6 +225,7 @@ export class GameEngine implements SpatialProvider {
             this.effects.reset();
 
             this.sessionState.killStreaks.clear();
+            this.sessionState.sideKills.clear();
             this.sessionState.firstBloodTriggered = false;
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
             this.bus.emit('GAME_START', { sceneId: this.currentScene.id });
@@ -254,6 +256,7 @@ export class GameEngine implements SpatialProvider {
         this.map.rebuildMap(this); // Restore tiles removed by zone system
         this.director.reset(this);
         this.sessionState.killStreaks.clear();
+        this.sessionState.sideKills.clear();
         this.sessionState.firstBloodTriggered = false;
         this.agents.forEach(a => {
             resetAgent(a, this.mapConfig);
@@ -292,6 +295,7 @@ export class GameEngine implements SpatialProvider {
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.sessionState.killStreaks.clear();
+        this.sessionState.sideKills.clear();
         this.sessionState.firstBloodTriggered = false;
         
         if (!skipRebuild) {

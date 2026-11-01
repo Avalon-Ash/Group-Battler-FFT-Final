@@ -2,6 +2,8 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  DirectorSystem — 戰鬥演出導演                           ║
 // ║  職責：CameraSystem 目標決策 / 戲劇性鏡頭切換邏輯        ║
+// ║  觀看陣營 getWatchSide：擊殺播報與連殺字只給這個陣營      ║
+// ║  [ARCH] targetId 只在 update 開頭依評分改，擊殺不切鏡     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";
@@ -46,23 +48,42 @@ export class DirectorSystem {
         ds.focusTimer = 0;
         ds.priorityTimer = 0;
         this.shakeDirector.reset();
+        this.publishedWatchSide = undefined;
         // Keep enabled state as is
     }
+
+    /** 導播關閉時的觀看陣營：玩家點選的單位（UICommand SET_WATCH_AGENT） */
+    private pickedSide: number | null = null;
+    /** 上次發出的 WATCH_SIDE；undefined＝還沒發過 */
+    private publishedWatchSide: number | null | undefined = undefined;
 
     public bind(engine: GameEngine) {
         engine.bus.on('CAMERA_IMPACT', (data) => {
             this.shakeDirector.report(data, engine.state.director.targetId);
         });
-        engine.bus.on('KILL', (data) => {
-            if (data.killerId) {
-                this.forceFocus(engine, data.killerId, DIRECTOR_PARAM.KILL_FOCUS_S);
-            }
-        });
-        engine.bus.on('CAST_START', (data) => {
-            if (data.skill?.tag === 'ULT' && data.sourceId) {
-                this.forceFocus(engine, data.sourceId, DIRECTOR_PARAM.ULT_FOCUS_S);
-            }
-        });
+    }
+
+    public setPickedSide(side: number | null): void {
+        this.pickedSide = side;
+    }
+
+    /**
+     * 觀看陣營：導播開著看導播目標的陣營，關著看玩家點選的單位；都沒有回 null（不播）。
+     * 擊殺不切鏡，所以同一個 tick 稍後讀到的仍是擊殺發生前的目標。
+     */
+    public getWatchSide(engine: GameEngine): number | null {
+        if (!this.enabled) return this.pickedSide;
+        const id = engine.state.director.targetId;
+        const target = id ? engine.agents.find(a => a.id === id) : undefined;
+        return target ? target.side : null;
+    }
+
+    /** 觀看陣營改變才發 WATCH_SIDE（AudioSystem 只能經 bus 取得） */
+    private publishWatchSide(engine: GameEngine): void {
+        const side = this.getWatchSide(engine);
+        if (side === this.publishedWatchSide) return;
+        this.publishedWatchSide = side;
+        engine.bus.emit('WATCH_SIDE', { side });
     }
 
     public forceFocus(engine: GameEngine, id: string, duration: number = DIRECTOR_PARAM.DEFAULT_FOCUS_S) {
@@ -77,7 +98,10 @@ export class DirectorSystem {
         if (shake >= SHAKE_DIRECTOR_PARAM.MIN_OUTPUT) {
             engine.bus.emit('CAMERA_SHAKE', { intensity: shake });
         }
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            this.publishWatchSide(engine);
+            return;
+        }
 
         // 0. Update Zoom Logic based on Canvas Aspect Ratio
         // Responsive Scaling: Adjust zoom to fit content based on screen shape
@@ -111,6 +135,7 @@ export class DirectorSystem {
 
         // 2. Select Target (Decision Making)
         this.decideTarget(engine, ds);
+        this.publishWatchSide(engine);
 
         // 3. Calculate Cinematic Frame (Computation)
         const frame = this._buildTargetGroup(engine, ds.targetId);
@@ -194,8 +219,8 @@ export class DirectorSystem {
     private _buildTargetGroup(engine: GameEngine, priorityId: string | null): { x: number, y: number, zoom: number } | null {
         this.targetGroup.clear();
 
-        // 優先度 0: 強制焦點 (priorityId)
-        if (engine.state.director.priorityTimer > 0 && priorityId) {
+        // 優先度 0: 導播目標（主角）永遠是群組成員、權重最高；下面各層的人再加進來
+        if (priorityId) {
             const focal = engine.agents.find(a => a.id === priorityId && a.hp > 0);
             if (focal) {
                 this.targetGroup.add(focal.px + focal.physics.x, this._agentVisualY(focal), 2.0, 100);

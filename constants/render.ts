@@ -179,10 +179,6 @@ export const POST_PROCESS = {
 export const DIRECTOR_PARAM = {
     /** 奧義鏡頭基準縮放（倍） */
     ULT_ZOOM: 1.45,
-    /** 擊殺強制聚焦時間（秒） */
-    KILL_FOCUS_S: 2.5,
-    /** 奧義強制聚焦時間（秒） */
-    ULT_FOCUS_S: 3.5,
     /** 預設強制聚焦時間（秒） */
     DEFAULT_FOCUS_S: 2,
     /** 缺少螢幕資訊時的寬高比（比值） */
