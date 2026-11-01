@@ -430,6 +430,12 @@
 - 證據：lint、1032 項測試（新增 SET_BATTLE_SETUP／APPLY 與玩法 schema 測試）、build、knip、smoke、e2e:ui、perf:guard 全過，六張保真數字和 main 完全相同。實跑：面板設 4×3 套用→12 人、side 0～3 各 3 人；6×1→6 人各自一陣營，5 倍速打完結算「最後倖存者」，頁面錯誤 0。
 - 沒做：三個以上陣營的外觀區分（只有藍紅兩套皮膚）。
 
+### BB. 2026-11-01 玩法面板總池制、轉場壓黑（agy Flash high＋主代理）
+- A：`querySpawnableHexes`（不含障礙物與最外圈）由生成與面板共用；`SET_BATTLE_SETUP` 夾到總池＝min(可出生格−1, 40)；selector 提供 pool／maxFactions／maxUnitsPerFaction，滑桿用 `maxValueId` 動態上限；生成前依新地圖重新夾並在設定變動時重新規劃陣容。
+- B：`RenderPipeline` 最上層黑幕，OUT 漸黑、IN 漸亮（`BACKGROUND_FX.BLACKOUT_FADE_S` 0.35 秒）；RenderSpec §1 與檔頭補一行。探針：展示模式兩次換場，換場前 6 幀四個取樣點亮度都是 0。
+- 派工：主代理先加常數、`maxValueId` 欄位與 3 個規格測試。Flash 做完 A1、A2 後被一個不在允許清單的指令拒絕而結束（沒報告、留下多餘空行與混合行尾）；接生成、清理、B 由主代理做。
+- 證據：lint、1034 項測試、build、knip、smoke、e2e:ui、perf:guard 全過，六張保真數字與 main 相同。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
