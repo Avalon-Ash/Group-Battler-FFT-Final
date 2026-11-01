@@ -1,4 +1,3 @@
-
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  VisualSystem — 視覺事件路由器 (Visual Event Facade)             ║
 // ║                                                                  ║
@@ -29,6 +28,7 @@ import { VFXSystem } from "./vfx";
 import { HUDSystem } from "./hud";
 import { GridSystem } from "../systems/grid";
 import { CameraSystem } from "./CameraSystem";
+import { CameraImpactSink } from "./ShakeDirector";
 import { SequenceSystem } from "./visuals/SequenceSystem";
 import { EventHUDMapper } from "./visuals/EventHUDMapper";
 import { EventVFXMapper } from "./visuals/EventVFXMapper";
@@ -41,23 +41,40 @@ import { VISUAL_MATH_PARAM, VFX_PRESENTATION_PARAM } from "../../constants";
 export class VisualSystem {
     private hudMapper: EventHUDMapper;
     private vfxMapper: EventVFXMapper;
+    private impactSinks = new WeakMap<GameEngine, CameraImpactSink>();
+
     constructor() {
         this.hudMapper = new EventHUDMapper();
         this.vfxMapper = new EventVFXMapper();
     }
     public reset() { this.hudMapper.reset(); }
+
+    private getImpactSink(engine: GameEngine): CameraImpactSink {
+        let sink = this.impactSinks.get(engine);
+        if (!sink) {
+            sink = {
+                reportImpact: (kind, intensity, targetId) => {
+                    engine.bus.emit('CAMERA_IMPACT', { kind, intensity, targetId });
+                }
+            };
+            this.impactSinks.set(engine, sink);
+        }
+        return sink;
+    }
+
     public flush(
         events: GameEvent[], 
         engine: GameEngine, 
         vfx: VFXSystem, 
         hud: HUDSystem, 
         grid: GridSystem,
-        camera: CameraSystem,
+        _camera: CameraSystem,
         sequences: SequenceSystem
     ) {
         if (events.length === 0) return;
+        const impacts = this.getImpactSink(engine);
         events.forEach(event => {
-            this.hudMapper.process(event, engine, hud, grid, camera);
+            this.hudMapper.process(event, engine, hud, grid, impacts);
             if (event.type === 'PROJECTILE_HIT' && event.skill?.id) {
                 const impact = SKILL_SEQUENCES[event.skill.id]?.impact;
                 if (impact) this.runImpact(impact, event, engine, vfx, sequences);
@@ -96,7 +113,7 @@ export class VisualSystem {
                 // Also let Mapper handle the particles
             }
 
-            this.vfxMapper.process(event, engine, vfx, grid, camera, sequences);
+            this.vfxMapper.process(event, engine, vfx, grid, impacts, sequences);
         });
     }
 

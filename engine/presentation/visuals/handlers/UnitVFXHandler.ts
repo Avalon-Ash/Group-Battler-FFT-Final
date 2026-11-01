@@ -1,18 +1,17 @@
-
 import { GameEvent } from "../../../../types";
 import { GameEngine } from "../../../game";
 import { VFXSystem } from "../../vfx";
-import { CameraSystem } from "../../CameraSystem";
+import type { CameraImpactSink } from "../../ShakeDirector";
 import { Point3D } from "../../../math/VisualMath";
 import { HexUtils } from "../../../utils";
 import { AOE_BREAK, aoeBreakFxId, castBreakFxId, castBreakBurstFxId } from "../../../../data/vfx/registry/cast_break";
 import { VFX_PRESENTATION_PARAM } from "../../../../constants";
 
 export class UnitVFXHandler {
-    public static handle(event: GameEvent, engine: GameEngine, vfx: VFXSystem, camera: CameraSystem, origin: Point3D, groundZ: number, hexKey?: string) {
+    public static handle(event: GameEvent, engine: GameEngine, vfx: VFXSystem, impacts: CameraImpactSink, origin: Point3D, groundZ: number, hexKey?: string) {
         
         if (event.type === 'DEATH') {
-            camera.addTrauma(VFX_PRESENTATION_PARAM.DEATH_TRAUMA);
+            impacts.reportImpact('DEATH', VFX_PRESENTATION_PARAM.DEATH_TRAUMA, event.targetId ?? event.sourceId);
             return;
         }
 
@@ -33,10 +32,10 @@ export class UnitVFXHandler {
             if (event.hexes && event.hexes.length > 0) UnitVFXHandler.playAoeBreak(event, engine, vfx);
             
             if (event.skill && event.skill.tag === 'ULT') {
-                camera.addTrauma(0.5 * powerScale);
+                impacts.reportImpact('CAST_BREAK_ULT', 0.5 * powerScale, event.sourceId);
                 vfx.playEffect('FX_HIT_GENERIC', origin.x, origin.y, origin.z, undefined, groundZ, undefined, hexKey);
             } else {
-                camera.addTrauma(VFX_PRESENTATION_PARAM.CAST_BREAK_TRAUMA * powerScale); 
+                impacts.reportImpact('CAST_BREAK', VFX_PRESENTATION_PARAM.CAST_BREAK_TRAUMA * powerScale, event.sourceId); 
             }
             return;
         }

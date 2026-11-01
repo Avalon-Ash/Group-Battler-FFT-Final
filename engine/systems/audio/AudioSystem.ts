@@ -122,10 +122,13 @@ export class AudioSystem {
             }
         });
 
-        this.subscribe('CAMERA_SHAKE', (data: { intensity: number }) => {
-            const intensity = Math.min(AUDIO_EVENT_PARAM.SHAKE_MAX_GAIN, Math.max(AUDIO_EVENT_PARAM.SHAKE_MIN_GAIN, data.intensity * AUDIO_EVENT_PARAM.SHAKE_GAIN_MULT));
-            this.audioEngine.playCue('RUMBLE', { intensity });
+        this.subscribe('CAMERA_IMPACT', (data) => {
+            if (data.kind === 'ULT' || data.kind === 'FALL' || data.kind === 'KNOCKBACK' || data.kind === 'DASH') {
+                const intensity = Math.min(AUDIO_EVENT_PARAM.SHAKE_MAX_GAIN, Math.max(AUDIO_EVENT_PARAM.SHAKE_MIN_GAIN, data.intensity * AUDIO_EVENT_PARAM.SHAKE_GAIN_MULT));
+                this.audioEngine.playCue('RUMBLE', { intensity });
+            }
         });
+
 
         this.subscribe('TILE_COLLAPSED', (data: { q: number; r: number; worldX?: number; worldY?: number }) => {
             const x = data.worldX !== undefined ? data.worldX : (data.q + AUDIO_EVENT_PARAM.FALLBACK_Q_OFFSET) * AUDIO_EVENT_PARAM.FALLBACK_Q_SCALE;

@@ -5,13 +5,14 @@ import {
     DIRECTOR_SETTINGS_SCHEMA,
     ZONE_SETTINGS_SCHEMA,
 } from '../../../data/ui/settingsSchema';
-import { UI_SETTINGS } from '../../../constants';
+import { UI_SETTINGS, SHAKE_DIRECTOR_PARAM } from '../../../constants';
 import { useEngineView } from '../../../hooks/useEngineView';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import {
     selectDirectorView,
     selectCameraTuningView,
     selectZoneView,
+    selectShakeTuningView,
 } from '../../../engine/systems/ui/selectors';
 
 export interface SettingsWindowProps {
@@ -21,14 +22,25 @@ export interface SettingsWindowProps {
 export function useDirectorSettingsValues(engine?: GameEngine) {
     const directorView = useEngineView(engine, selectDirectorView);
     const cameraView = useEngineView(engine, selectCameraTuningView);
+    const shakeView = useEngineView(engine, selectShakeTuningView);
 
     return useMemo(
         () => ({
             directorEnabled: directorView?.enabled ?? true,
             followStiffness: cameraView?.followStiffness ?? UI_SETTINGS.CAMERA_STIFFNESS.followDefault,
             zoomStiffness: cameraView?.zoomStiffness ?? UI_SETTINGS.CAMERA_STIFFNESS.zoomDefault,
+            shakeStrength: shakeView?.strength ?? SHAKE_DIRECTOR_PARAM.DEFAULT_STRENGTH,
+            shakeOffFocus: shakeView?.offFocusScale ?? SHAKE_DIRECTOR_PARAM.OFF_FOCUS_SCALE,
+            shakeMax: shakeView?.maxTrauma ?? SHAKE_DIRECTOR_PARAM.MAX_TRAUMA,
         }),
-        [directorView?.enabled, cameraView?.followStiffness, cameraView?.zoomStiffness]
+        [
+            directorView?.enabled,
+            cameraView?.followStiffness,
+            cameraView?.zoomStiffness,
+            shakeView?.strength,
+            shakeView?.offFocusScale,
+            shakeView?.maxTrauma,
+        ]
     );
 }
 

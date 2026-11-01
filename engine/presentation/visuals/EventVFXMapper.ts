@@ -1,9 +1,8 @@
-
 import { GameEvent, Point, Team } from "../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../../systems/grid";
-import { CameraSystem } from "../CameraSystem";
+import type { CameraImpactSink } from "../ShakeDirector";
 import { SequenceSystem } from "./SequenceSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath, Point3D } from "../../math/VisualMath";
@@ -26,7 +25,7 @@ export class EventVFXMapper {
         engine: GameEngine, 
         vfx: VFXSystem, 
         grid: GridSystem, 
-        camera: CameraSystem,
+        impacts: CameraImpactSink,
         sequences: SequenceSystem
     ) {
         // 1. Resolve Spatial Context
@@ -45,13 +44,13 @@ export class EventVFXMapper {
         // 2. Route to specialized atomic handlers
         switch (event.type) {
             case 'DAMAGE': 
-                CombatVFXHandler.handle(event, vfx, camera, target, groundZ, hexKey);
+                CombatVFXHandler.handle(event, vfx, impacts, target, groundZ, hexKey);
                 break;
             case 'HEAL':
             case 'PROJECTILE_HIT': 
             case 'IMPACT_AOE':
             case 'HIT_FX':
-                CombatVFXHandler.handle(event, vfx, camera, target, groundZ, hexKey);
+                CombatVFXHandler.handle(event, vfx, impacts, target, groundZ, hexKey);
                 break;
 
             case 'PROJECTILE_SPAWN': {
@@ -64,7 +63,7 @@ export class EventVFXMapper {
             case 'DEATH':
             case 'SPAWN':
             case 'CAST_BREAK':
-                UnitVFXHandler.handle(event, engine, vfx, camera, origin, groundZ, hexKey);
+                UnitVFXHandler.handle(event, engine, vfx, impacts, origin, groundZ, hexKey);
                 break;
 
             case 'VISUAL_BEAM':

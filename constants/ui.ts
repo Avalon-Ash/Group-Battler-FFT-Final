@@ -57,6 +57,10 @@ export const UI_SETTINGS = {
     ZONE_SHRINK_INTERVAL: { min: 1, max: 60, default: 15, step: 1 },
     ZONE_MIN_RADIUS: { min: 0, max: 10, default: 1, step: 1 },
     CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 0.25, zoomDefault: 0.2, step: 0.1, sliderMax: 5.0 },
+    /** 鏡頭震動滑桿範圍（預設值在 SHAKE_DIRECTOR_PARAM） */
+    SHAKE_STRENGTH: { min: 0, max: 1.5, step: 0.05 },
+    SHAKE_OFF_FOCUS: { min: 0, max: 1, step: 0.05 },
+    SHAKE_MAX: { min: 0.1, max: 1, step: 0.05 },
     TIME_SCALE: { min: 0.1, max: 5.0, default: 1.0, step: 0.1 },
     MATRIX_SPEED: { min: 0.1, max: 5.0, step: 0.1 },
     MATRIX_GAP: { min: 0, max: 1.0, step: 0.05 },

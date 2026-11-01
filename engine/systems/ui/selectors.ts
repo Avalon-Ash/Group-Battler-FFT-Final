@@ -11,6 +11,12 @@ import { Skill, Team, AIState, ActionState } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
 import { displayAiState } from '../../core/AgentDerived';
 
+export interface ShakeTuningView {
+    readonly strength: number;
+    readonly offFocusScale: number;
+    readonly maxTrauma: number;
+}
+
 export interface DirectorTargetView {
     readonly id: string;
     readonly team: Team;
@@ -30,6 +36,7 @@ let prevZoneView: ZoneView | null = null;
 let prevCameraTuningView: CameraTuningView | null = null;
 let prevLogView: LogView | null = null;
 let prevPlaybackView: GamePlaybackView | null = null;
+let prevShakeTuningView: ShakeTuningView | null = null;
 
 /**
  * Resets selector memoization caches. Primarily used in unit tests.
@@ -42,6 +49,7 @@ export function clearSelectorCache(): void {
     prevCameraTuningView = null;
     prevLogView = null;
     prevPlaybackView = null;
+    prevShakeTuningView = null;
 }
 
 /**
@@ -209,6 +217,31 @@ export function selectCameraTuningView(engine: GameEngine): CameraTuningView {
     };
 
     prevCameraTuningView = next;
+    return next;
+}
+
+/**
+ * Returns a stable read-only ShakeTuningView snapshot.
+ */
+export function selectShakeTuningView(engine: GameEngine): ShakeTuningView {
+    const tuning = engine.director.getShakeTuning();
+
+    if (
+        prevShakeTuningView &&
+        prevShakeTuningView.strength === tuning.strength &&
+        prevShakeTuningView.offFocusScale === tuning.offFocusScale &&
+        prevShakeTuningView.maxTrauma === tuning.maxTrauma
+    ) {
+        return prevShakeTuningView;
+    }
+
+    const next: ShakeTuningView = {
+        strength: tuning.strength,
+        offFocusScale: tuning.offFocusScale,
+        maxTrauma: tuning.maxTrauma,
+    };
+
+    prevShakeTuningView = next;
     return next;
 }
 

@@ -316,7 +316,7 @@ export class SequenceSystem {
                 }
                 break;
             case 'SHAKE':
-                engine.bus.emit('CAMERA_SHAKE', { intensity: action.shakeIntensity || VFX_SEQUENCE.SHAKE_INTENSITY });
+                engine.bus.emit('CAMERA_IMPACT', { kind: 'ULT', intensity: action.shakeIntensity || VFX_SEQUENCE.SHAKE_INTENSITY });
                 break;
             case 'GRID_PULSE':
                 // 依施法者陣營選格子脈衝；曾用 action.color 是否含 '#3b' 判斷，29 個藍方技能播成紅色（docs/VFX_PIPELINE_MAP.md §2.3）

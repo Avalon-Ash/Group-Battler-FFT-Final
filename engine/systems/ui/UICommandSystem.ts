@@ -34,6 +34,15 @@ export class UICommandSystem {
         if (!cmd || typeof cmd !== 'object') return;
 
         switch (cmd.type) {
+            case 'SET_SHAKE_TUNING': {
+                this.engine.director.setShakeTuning({
+                    strength: cmd.strength,
+                    offFocusScale: cmd.offFocusScale,
+                    maxTrauma: cmd.maxTrauma,
+                });
+                break;
+            }
+
             case 'SET_DIRECTOR_ENABLED': {
                 this.engine.director.enabled = Boolean(cmd.enabled);
                 break;

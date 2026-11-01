@@ -232,12 +232,27 @@ export interface GameEvent {
     hexes?: readonly Hex[];
 }
 
+/** 鏡頭衝擊種類。MINOR（一般命中等）在非導演焦點單位上會打折；其餘不打折（SHAKE_DIRECTOR_PARAM） */
+export type ImpactKind =
+    | 'HIT' | 'CRIT' | 'MASSIVE' | 'PROJECTILE' | 'AOE' | 'SACRIFICE' | 'DEATH'
+    | 'CAST_BREAK' | 'CAST_BREAK_ULT' | 'KILL_STREAK' | 'ULT' | 'FALL' | 'KNOCKBACK' | 'DASH';
+
+/** intensity：原本直接加到 trauma 的量（值不變）；targetId：受衝擊的單位（有的話） */
+export interface CameraImpact {
+    kind: ImpactKind;
+    intensity: number;
+    targetId?: string;
+}
+
 export interface EventMap {
     GAME_RESET: Record<string, never> | void;
     GAME_CLEAR: Record<string, never> | void;
     ENV_UPDATE: Record<string, never> | void;
     /** sceneId：開戰時的地圖（SCENE_DB id），AudioSystem 依它選戰鬥曲 */
     GAME_START: { sceneId?: string } | void;
+    /** 鏡頭衝擊回報：所有震動來源只送這個，由 DirectorSystem 的 ShakeDirector 決定最後震多少（再發 CAMERA_SHAKE） */
+    CAMERA_IMPACT: CameraImpact;
+    /** 只由 ShakeDirector 發出；renderer 收到後呼叫 CameraSystem.addTrauma */
     CAMERA_SHAKE: { intensity: number };
     CAMERA_MOVE: { x: number; y: number; zoom: number };
     GAME_OVER: { winner: Team | null };
@@ -258,6 +273,8 @@ export interface EventMap {
 export type UICommand =
     | { type: 'SET_DIRECTOR_ENABLED'; enabled: boolean }
     | { type: 'SET_CAMERA_TUNING'; followStiffness?: number; zoomStiffness?: number }
+    /** 鏡頭震動調整（DirectorSystem 的 ShakeDirector）。strength 0＝不震 */
+    | { type: 'SET_SHAKE_TUNING'; strength?: number; offFocusScale?: number; maxTrauma?: number }
     | { type: 'SET_ZONE_CONFIG'; config: Partial<ZoneConfig> }
     | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number; bodyType?: BodyTypeId }
     | { type: 'REBUILD_AGENT_AI'; agentId: string }

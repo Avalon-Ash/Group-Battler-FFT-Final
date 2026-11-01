@@ -107,7 +107,7 @@ export class SkillExecutor {
                 // 衝刺因此帶著速度前傾與殘影
                 dashTo(source, bestH.q, bestH.r, engine);
                 
-                engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_DASH });
+                engine.bus.emit('CAMERA_IMPACT', { kind: 'DASH', intensity: VFX_PARAM.SHAKE_INTENSITY_DASH, targetId: source.id });
                 
                 engine.events.push({ 
                     type: 'CC_APPLIED', 

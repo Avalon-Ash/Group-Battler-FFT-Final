@@ -153,7 +153,7 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
         expect(playCueSpy).not.toHaveBeenCalled();
     });
 
-    it('maps HEAL, CC_APPLIED, and CAMERA_SHAKE events', () => {
+    it('maps HEAL, CC_APPLIED, and rumbling CAMERA_IMPACT events', () => {
         audioEngine.unlock();
         const playCueSpy = vi.spyOn(audioEngine, 'playCue');
 
@@ -170,7 +170,12 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
         } as GameEvent);
         expect(playCueSpy).toHaveBeenCalledWith('CC_STUN', expect.anything());
 
+        // RUMBLE 只跟 ULT／FALL／KNOCKBACK／DASH 衝擊（ShakeDirector 收歸後，CAMERA_SHAKE 只驅動鏡頭）
+        bus.emit('CAMERA_IMPACT', { kind: 'HIT', intensity: 0.5 });
+        expect(playCueSpy).not.toHaveBeenCalledWith('RUMBLE', expect.anything());
         bus.emit('CAMERA_SHAKE', { intensity: 0.5 });
+        expect(playCueSpy).not.toHaveBeenCalledWith('RUMBLE', expect.anything());
+        bus.emit('CAMERA_IMPACT', { kind: 'ULT', intensity: 0.5 });
         expect(playCueSpy).toHaveBeenCalledWith('RUMBLE', expect.objectContaining({ intensity: 1.0 }));
     });
 

@@ -62,6 +62,45 @@ export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
             zoomStiffness,
         }),
     },
+    {
+        id: 'shakeStrength',
+        label: '鏡頭震動強度（0＝關）',
+        kind: 'slider',
+        min: UI_SETTINGS.SHAKE_STRENGTH.min,
+        max: UI_SETTINGS.SHAKE_STRENGTH.max,
+        step: UI_SETTINGS.SHAKE_STRENGTH.step,
+        format: (val: number) => `${Math.round(val * 100)}%`,
+        createCommand: (strength: number): UICommand => ({
+            type: 'SET_SHAKE_TUNING',
+            strength,
+        }),
+    },
+    {
+        id: 'shakeOffFocus',
+        label: '非焦點單位震動比例',
+        kind: 'slider',
+        min: UI_SETTINGS.SHAKE_OFF_FOCUS.min,
+        max: UI_SETTINGS.SHAKE_OFF_FOCUS.max,
+        step: UI_SETTINGS.SHAKE_OFF_FOCUS.step,
+        format: (val: number) => `${Math.round(val * 100)}%`,
+        createCommand: (offFocusScale: number): UICommand => ({
+            type: 'SET_SHAKE_TUNING',
+            offFocusScale,
+        }),
+    },
+    {
+        id: 'shakeMax',
+        label: '震動上限',
+        kind: 'slider',
+        min: UI_SETTINGS.SHAKE_MAX.min,
+        max: UI_SETTINGS.SHAKE_MAX.max,
+        step: UI_SETTINGS.SHAKE_MAX.step,
+        format: (val: number) => `${Math.round(val * 100)}%`,
+        createCommand: (maxTrauma: number): UICommand => ({
+            type: 'SET_SHAKE_TUNING',
+            maxTrauma,
+        }),
+    },
 ];
 
 export const ZONE_SETTINGS_SCHEMA: SettingField[] = [

@@ -1,12 +1,11 @@
-
-import { GameEvent } from "../../../../types";
+import { GameEvent, ImpactKind } from "../../../../types";
 import { VFXSystem } from "../../vfx";
-import { CameraSystem } from "../../CameraSystem";
+import type { CameraImpactSink } from "../../ShakeDirector";
 import { Point3D } from "../../../math/VisualMath";
 import { COMBAT_PARAM, COMBAT_VFX, DAMAGE_TEXT_COLORS } from "../../../../constants";
 
 export class CombatVFXHandler {
-    public static handle(event: GameEvent, vfx: VFXSystem, camera: CameraSystem, target: Point3D, groundZ: number, hexKey?: string) {
+    public static handle(event: GameEvent, vfx: VFXSystem, impacts: CameraImpactSink, target: Point3D, groundZ: number, hexKey?: string) {
         if (event.type === 'HIT_FX') {
             const hitFX = event.text || 'FX_HIT_BLUE_LIGHTNING';
             const hitDamage = event.value || 0;
@@ -48,12 +47,14 @@ export class CombatVFXHandler {
         if (event.type === 'DAMAGE') {
             if (event.text === 'SACRIFICE') {
                 vfx.playEffect('FX_SELF_DAMAGE', target.x, target.y, target.z, event.color, undefined, undefined, hexKey);
-                camera.addTrauma(COMBAT_VFX.SACRIFICE_TRAUMA);
+                impacts.reportImpact('SACRIFICE', COMBAT_VFX.SACRIFICE_TRAUMA, event.targetId);
             } else if (event.text === 'BURN') {
                 vfx.playEffect('FX_MANA_BURN', target.x, target.y, target.z, event.color || DAMAGE_TEXT_COLORS.MANA_BURN, undefined, undefined, hexKey);
             } else if (!event.skill?.projectileSpeed && event.skill?.ccType !== 'DOT') {
                 // Impact VFX now handled in SkillExecutor.resolveHit
-                camera.addTrauma(isMassive ? COMBAT_VFX.MASSIVE_TRAUMA : (isCrit ? COMBAT_VFX.CRIT_TRAUMA : COMBAT_VFX.HIT_TRAUMA));
+                const kind: ImpactKind = isMassive ? 'MASSIVE' : (isCrit ? 'CRIT' : 'HIT');
+                const trauma = isMassive ? COMBAT_VFX.MASSIVE_TRAUMA : (isCrit ? COMBAT_VFX.CRIT_TRAUMA : COMBAT_VFX.HIT_TRAUMA);
+                impacts.reportImpact(kind, trauma, event.targetId);
             }
             // DOT（BURN／POISON）的持續視覺由 StatusPartPainter 依 effects.DOT.tag 逐幀繪製狀態零件；
             // 這裡曾在每一跳再播 FX_STATUS_BURN_LOOP，燒傷因此畫兩次、毒也冒火花（docs/VFX_PIPELINE_MAP.md §4.1）。
@@ -63,13 +64,13 @@ export class CombatVFXHandler {
 
         if (event.type === 'PROJECTILE_HIT') {
             // Impact VFX now handled in SkillExecutor.resolveHit
-            camera.addTrauma(COMBAT_VFX.PROJECTILE_TRAUMA * intensity);
+            impacts.reportImpact('PROJECTILE', COMBAT_VFX.PROJECTILE_TRAUMA * intensity, event.targetId);
             return;
         }
 
         if (event.type === 'IMPACT_AOE') {
             // Impact VFX now handled in SkillExecutor.resolveHit for each target
-            camera.addTrauma(COMBAT_VFX.AOE_TRAUMA * intensity);
+            impacts.reportImpact('AOE', COMBAT_VFX.AOE_TRAUMA * intensity, event.targetId);
         }
     }
 }
