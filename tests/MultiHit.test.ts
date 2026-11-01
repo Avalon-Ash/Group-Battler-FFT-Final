@@ -257,7 +257,7 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
             CCManager.applyCC(hostile, slowed, {} as Skill, 'SLOW', 5, 0.65, undefined, engine);
             CCManager.applyCC(hostile, slowedAndIce, {} as Skill, 'SLOW', 5, 0.2, undefined, engine);
             engine.state.spatialHazards.push({
-                id: 'ice', type: 'ICE', cells: [{ q: 1, r: 3 }], duration: 10, sourceId: 'x', team: Team.BLUE,
+                id: 'ice', type: 'ICE', cells: [{ q: 1, r: 3 }], duration: 10, sourceId: 'x', team: Team.BLUE, side: Team.BLUE,
                 color: '#fff', power: 0, tickInterval: 1, lastTickTime: 0,
             });
 

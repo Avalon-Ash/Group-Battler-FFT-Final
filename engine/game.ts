@@ -62,7 +62,7 @@ export class GameEngine implements SpatialProvider {
     public state = {
         director: { focusTimer: 0, priorityTimer: 0, targetId: null as string | null },
         spatialHazards: [] as SpatialHazard[],
-        victory: { victoryTimer: 0, winningTeam: null as Team | null, isFinishing: false },
+        victory: { victoryTimer: 0, winningTeam: null as Team | null, winnerId: null as string | null, isFinishing: false },
         time: { battleTime: 0, timeScale: 1.0, targetTimeScale: 1.0 },
         isLastStand: false,
         finalHex: null as Hex | null

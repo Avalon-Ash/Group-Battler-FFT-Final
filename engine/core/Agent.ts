@@ -16,6 +16,8 @@ export type { SpecialVisualStatus, AgentView };
 export class Agent {
     public id: string;
     public team: Team;
+    /** 敵我與勝負用的陣營（engine/core/Allegiance.ts）。一般模式等於 team；大逃殺每人一個 */
+    public side: number;
     public role: Role;
     public q: number;
     public r: number;
@@ -105,6 +107,7 @@ export class Agent {
     constructor(id: string, team: Team, q: number, r: number, config: MapConfig) {
         this.id = id;
         this.team = team;
+        this.side = team;
         this.role = Role.WARRIOR;
         this.q = q;
         this.r = r;

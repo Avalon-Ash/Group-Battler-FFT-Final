@@ -184,6 +184,8 @@ export interface Projectile {
     skill: Skill;
     sourceId: string;
     team: Team;
+    /** 施法者的陣營（Allegiance）；team 只管外觀 */
+    side: number;
 
     /** 生成時鎖定的軌跡參數（TrajectoryMath）與外觀鍵（PROJECTILE_VISUALS 的鍵，繪製端查 look） */
     trajectoryInfo: {
@@ -204,6 +206,8 @@ export interface SpatialHazard {
     duration: number;
     sourceId: string;
     team: Team;
+    /** 施法者的陣營（Allegiance）；team 只管外觀 */
+    side: number;
     color: string;
     power: number;
     tickInterval: number;
@@ -244,6 +248,9 @@ export interface CameraImpact {
     targetId?: string;
 }
 
+/** 戰鬥模式：TEAMS＝雙陣營；ROYALE＝大逃殺（每個單位一個陣營，最後一人獲勝） */
+export type BattleMode = 'TEAMS' | 'ROYALE';
+
 export interface EventMap {
     GAME_RESET: Record<string, never> | void;
     GAME_CLEAR: Record<string, never> | void;
@@ -255,7 +262,8 @@ export interface EventMap {
     /** 只由 ShakeDirector 發出；renderer 收到後呼叫 CameraSystem.addTrauma */
     CAMERA_SHAKE: { intensity: number };
     CAMERA_MOVE: { x: number; y: number; zoom: number };
-    GAME_OVER: { winner: Team | null };
+    /** winnerId：最後倖存的單位（有人存活時才有）；大逃殺的結算畫面用它 */
+    GAME_OVER: { winner: Team | null; winnerId?: string };
     TILE_COLLAPSED: { q: number; r: number; worldX?: number; worldY?: number };
     ZONE_SHRUNK: { radius: number };
     LAST_STAND_TRIGGERED: { q: number; r: number };
@@ -284,7 +292,7 @@ export type UICommand =
     | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | boolean | Team | undefined }
     | { type: 'RESET_GAME' }
     | { type: 'SET_TIME_SCALE'; timeScale: number }
-    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId }
+    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId; /** 陣營（Allegiance）；省略時等於 team。大逃殺每人一個 */ side?: number }
     | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
     | { type: 'SET_OBSTACLE'; q: number; r: number; obstacleType?: string }
     | { type: 'REMOVE_OBSTACLE'; q: number; r: number }

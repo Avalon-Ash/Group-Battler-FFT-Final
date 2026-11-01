@@ -6,7 +6,7 @@ import { COMBAT_PARAM } from '../constants';
 import { getHazardSpeedMult } from '../engine/systems/HazardSystem';
 
 const hazard = (type: SpatialHazard['type'], team: Team, cells: { q: number; r: number }[], extra: Partial<SpatialHazard> = {}): SpatialHazard => ({
-    id: 'h', type, cells, duration: 10, sourceId: 'src', team, color: '#fff', power: 0, tickInterval: 1, lastTickTime: 0, ...extra,
+    id: 'h', type, cells, duration: 10, sourceId: 'src', team, side: team, color: '#fff', power: 0, tickInterval: 1, lastTickTime: 0, ...extra,
 });
 
 describe('getHazardSpeedMult (hazard slows are computed, never written into the agent)', () => {

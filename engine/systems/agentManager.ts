@@ -52,11 +52,12 @@ export class AgentManager {
         }
     }
 
-    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role, bodyTypeOverride?: BodyTypeId): Agent | null {
+    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role, bodyTypeOverride?: BodyTypeId, sideOverride?: number): Agent | null {
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
         const id = engine.nextId(team === Team.BLUE ? 'BLU' : 'RED');
         const a = new Agent(id, team, q, r, engine.mapConfig);
+        if (sideOverride !== undefined) a.side = sideOverride;
         
         if (roleOverride) {
             a.role = roleOverride;

@@ -11,6 +11,7 @@ import { CameraTargetGroup } from "./CameraTargetGroup";
 import { DIRECTOR_PARAM, HEX_SIZE, UI_SETTINGS, SHAKE_DIRECTOR_PARAM } from "../../constants";
 import { ShakeDirector } from "./ShakeDirector";
 import { VisualMath } from "../math/VisualMath";
+import { sameSide } from '../core/Allegiance';
 
 export class DirectorSystem {
     // Dynamic Zoom Baselines (Calculated based on Aspect Ratio)
@@ -236,7 +237,7 @@ export class DirectorSystem {
                     this.targetGroup.add(target.px + target.physics.x, this._agentVisualY(target), w * DIRECTOR_PARAM.TARGET_WEIGHT_MULT, DIRECTOR_PARAM.TARGET_RADIUS);
                     // 附近的敵人也稍微抓進來
                     engine.agents.forEach(a => {
-                        if (a.hp > 0 && a.team !== caster.team && a.id !== target.id) {
+                        if (a.hp > 0 && !sameSide(a, caster) && a.id !== target.id) {
                             const d = HexUtils.dist(a, target);
                             if (d <= 1) this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), DIRECTOR_PARAM.NEARBY_WEIGHT, DIRECTOR_PARAM.NEARBY_RADIUS);
                         }

@@ -1,6 +1,7 @@
 import { BATTLE_RULES } from '../../constants';
 import { GameEngine } from "../game";
-import { Team } from "../../types";
+import type { Agent } from "../core/Agent";
+import { sameSide } from "../core/Allegiance";
 import { VICTORY_PHASE_DURATION } from "../game";
 
 export class VictorySystem {
@@ -9,28 +10,35 @@ export class VictorySystem {
         vs.isFinishing = false;
         vs.victoryTimer = 0;
         vs.winningTeam = null;
+        vs.winnerId = null;
     }
 
     public check(engine: GameEngine): boolean {
         const vs = engine.state.victory;
         if (vs.isFinishing) return true;
 
-        let blue = 0, red = 0;
+        // 勝負看陣營（Allegiance）：一般模式 side＝team；大逃殺每人一個 side，最後剩一個 side 就結束
+        let survivor: Agent | null = null;
+        let contested = false;
         for (const a of engine.agents) {
-            if (a.hp > 0) a.team === Team.BLUE ? blue++ : red++;
+            if (a.hp <= 0) continue;
+            if (!survivor) survivor = a;
+            else if (!sameSide(a, survivor)) { contested = true; break; }
         }
 
-        if (blue === 0 && red === 0) {
+        if (!survivor) {
             vs.isFinishing = true;
-            vs.winningTeam = null; 
+            vs.winningTeam = null;
+            vs.winnerId = null; 
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
             engine.state.time.targetTimeScale = BATTLE_RULES.FINISH_TIME_SCALE; 
             return true;
         }
 
-        if ((blue === 0 && red > 0) || (red === 0 && blue > 0)) { 
+        if (!contested) {
             vs.isFinishing = true;
-            vs.winningTeam = blue === 0 ? Team.RED : Team.BLUE;
+            vs.winningTeam = survivor.team;
+            vs.winnerId = survivor.id;
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
             engine.state.time.targetTimeScale = BATTLE_RULES.FINISH_TIME_SCALE; 
             return true;
@@ -47,7 +55,7 @@ export class VictorySystem {
                 engine.stop();
                 engine.state.time.targetTimeScale = 1.0;
                 engine.state.time.timeScale = 1.0;
-                engine.bus.emit('GAME_OVER', { winner: vs.winningTeam });
+                engine.bus.emit('GAME_OVER', { winner: vs.winningTeam, winnerId: vs.winnerId ?? undefined });
             }
         }
     }

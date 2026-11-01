@@ -13,6 +13,7 @@ import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedM
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 import { EFFECT_DEFS } from "../../../data/status/effect_defs";
 import type { EffectKind } from "../../../types";
+import { sameSide } from '../../core/Allegiance';
 
 export const CCManager = {
     
@@ -34,8 +35,8 @@ export const CCManager = {
         const isBuff = type === 'SHIELD' || def?.polarity === 'BUFF';
         const isDebuff = type === 'KNOCKBACK' || type === 'PULL' || def?.polarity === 'DEBUFF';
 
-        if (isBuff && source.team !== target.team) return;
-        if (isDebuff && source.team === target.team) return;
+        if (isBuff && !sameSide(source, target)) return;
+        if (isDebuff && sameSide(source, target)) return;
         
         const amount = force || CC_RULES.DEFAULT_SHIELD_AMOUNT;
         let isImmune = false;

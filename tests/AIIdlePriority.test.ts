@@ -64,7 +64,7 @@ describe('AIIdlePriority', () => {
             if (!a || !e) throw new Error('addAgent failed');
             engine.map.setHeight('0,0', 3 * BLOCK_HEIGHT);
             engine.state.spatialHazards.push({
-                id: 'h1', type: 'GRAVITY', cells: [{ q: 0, r: 0 }], duration: 5, sourceId: e.id, team: Team.RED,
+                id: 'h1', type: 'GRAVITY', cells: [{ q: 0, r: 0 }], duration: 5, sourceId: e.id, team: Team.RED, side: Team.RED,
                 color: '#fff', power: 0, tickInterval: 1, lastTickTime: 0,
             });
             a.target = e;
@@ -95,7 +95,7 @@ describe('AIIdlePriority', () => {
     };
     const addHazard = (q: number, r: number, team: Team) => {
         engine.state.spatialHazards.push({
-            id: `h${q}_${r}`, type: 'ICE', cells: [{ q, r }], duration: 9, sourceId: 'x', team,
+            id: `h${q}_${r}`, type: 'ICE', cells: [{ q, r }], duration: 9, sourceId: 'x', team, side: team,
             color: '#fff', power: 0, tickInterval: 1, lastTickTime: 0,
         });
     };

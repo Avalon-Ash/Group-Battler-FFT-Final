@@ -10,6 +10,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, AIState, ActionState, Skill } from '../../types';
+import { getFactionSkin } from '../../data/units/factionSkin';
 import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
 import { PROJECTILE_VISUALS } from '../../data/vfx/projectile_visuals';
 
@@ -23,12 +24,12 @@ export const ROLE_MAP: Record<Role, { label: string; color: string; border: stri
 
 const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
     [Team.BLUE]: { 
-        label: '帝國軍 (IMPERIAL)', 
+        label: getFactionSkin(Team.BLUE).name, 
         color: 'text-cyan-400', 
         bg: 'bg-cyan-900' 
     },
     [Team.RED]:  { 
-        label: '誓約軍團 (COVENANT)', 
+        label: getFactionSkin(Team.RED).name, 
         color: 'text-red-400',  
         bg: 'bg-red-900' 
     }
