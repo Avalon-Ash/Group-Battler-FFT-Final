@@ -414,6 +414,11 @@
 - 證據：lint、1019 項測試（新增 `tests/SilhouetteMask.test.ts`）、build、knip、smoke、perf:guard；`battle_frozen` 保真 0.167→0.368、壞像素 0.00%→0.38%（門檻 0.5%，未重錄），新舊差異只在被遮擋單位與其上的半透明傷害字。剪影強制 1.0 時單位維持原色、白只出現在擋住單位的柱子上。回退：`git revert -m 1 d48d69e`。
 - 過程：探針一度關錯函式（改 `GridSpatial` 靜態方法沒攔到 renderer 的呼叫）而誤判「不是剪影」；假時鐘相減因粒子雜訊失敗；最後用「把效果放大到 1.0」直接看最快。修正一開始誤以主資料夾當時的 `feat/announcer-side` 為基底，已改疊到 main 重驗。
 
+### AY. 2026-11-01 擊殺播報依觀看陣營、導播目標進取景（另一工作階段實作，主代理審查合併）
+- 擊殺累計改成每個陣營一個池（`sessionState.sideKills`，大逃殺＝每人一個）；語音播報、First Blood、DOUBLE～PENTA 字只給觀看陣營（`Allegiance.isWatchedSide`）。觀看陣營＝`DirectorSystem.getWatchSide`：導播開＝導播目標的陣營，關＝單位檢查器點選的單位（新 `UICommand SET_WATCH_AGENT`），變動時發 `WATCH_SIDE` 給 AudioSystem。
+- 拿掉擊殺／奧義強制切鏡（`KILL_FOCUS_S`、`ULT_FOCUS_S` 刪除）；導播目標永遠加進取景群組、權重最高（`tests/DirectorFraming.test.ts`）。`battle_frozen` 因鏡頭構圖改變在分支上重錄（只有這張；證據圖 `tools/ui-e2e/out/battle_frozen_old_new_diff.png`，未進版控：整張略為拉遠平移，單位與地形相對位置不變）。
+- 合併：基於 `1b2c56c`，與 main 的遮擋剪影修正只在 `docs/HANDOFF.md` §3 衝突（兩項都留，編號 9、10）；基準圖 main 沒動、沒有衝突，不重錄。
+- 證據（合併後）：lint、1028 項測試、build、knip、smoke、perf:guard 全過；`battle_frozen` 0.062、壞像素 0.16%（門檻 0.8／0.5%），其他 5 張與合併前相同。
 
 ## 3. 更早的輪次與審查修補
 
