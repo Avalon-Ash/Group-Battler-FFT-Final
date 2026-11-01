@@ -229,6 +229,8 @@ export interface GameEvent {
     sourceId?: string;
     targetId?: string;
     team?: Team;
+    /** KILL_STREAK／KILL_SPREE：擊殺者的陣營（Allegiance）；播報與連殺字只給觀看陣營 */
+    side?: number;
     absorbed?: number;
     /** DAMAGE：本次是暴擊（DamageCalculator 的結果；浮字字級與重擊音效讀它） */
     crit?: boolean;
@@ -262,6 +264,8 @@ export interface EventMap {
     /** 只由 ShakeDirector 發出；renderer 收到後呼叫 CameraSystem.addTrauma */
     CAMERA_SHAKE: { intensity: number };
     CAMERA_MOVE: { x: number; y: number; zoom: number };
+    /** 只由 DirectorSystem 發出，觀看陣營改變時才發；null＝沒有觀看對象（擊殺播報全部不播） */
+    WATCH_SIDE: { side: number | null };
     /** winnerId：最後倖存的單位（有人存活時才有）；大逃殺的結算畫面用它 */
     GAME_OVER: { winner: Team | null; winnerId?: string };
     TILE_COLLAPSED: { q: number; r: number; worldX?: number; worldY?: number };
@@ -294,6 +298,8 @@ export type UICommand =
     | { type: 'SET_TIME_SCALE'; timeScale: number }
     | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId; /** 陣營（Allegiance）；省略時等於 team。大逃殺每人一個 */ side?: number }
     | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
+    /** 玩家點選觀看的單位（單位檢查器）；導播關閉時擊殺播報只給它的陣營。null＝沒點 */
+    | { type: 'SET_WATCH_AGENT'; agentId: string | null }
     | { type: 'SET_OBSTACLE'; q: number; r: number; obstacleType?: string }
     | { type: 'REMOVE_OBSTACLE'; q: number; r: number }
     | { type: 'MOVE_AGENT'; agentId: string; q: number; r: number }
@@ -374,12 +380,12 @@ export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SY
 interface KillStreakInfo {
     count: number;
     lastTime: number;
-    /** 本場累計擊殺數（不受 KILL_STREAK_WINDOW 重置；KILL_SPREE 播報用） */
-    total: number;
 }
 
 export interface GlobalSessionState {
     killStreaks: Map<string, KillStreakInfo>;
+    /** 各陣營（Allegiance side）本場累計擊殺數（不受 KILL_STREAK_WINDOW 重置；KILL_SPREE 播報用） */
+    sideKills: Map<number, number>;
     firstBloodTriggered: boolean;
 }
 

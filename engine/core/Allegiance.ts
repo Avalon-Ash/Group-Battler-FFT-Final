@@ -13,3 +13,8 @@ export interface HasSide {
 export function sameSide(a: HasSide, b: HasSide): boolean {
     return a.side === b.side;
 }
+
+/** 擊殺播報與連殺字的過濾：事件陣營等於觀看陣營（DirectorSystem.getWatchSide）才出現；任一邊沒有值就不出現 */
+export function isWatchedSide(side: number | undefined, watchSide: number | null): boolean {
+    return side !== undefined && watchSide !== null && side === watchSide;
+}

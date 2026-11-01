@@ -326,6 +326,12 @@ export const useGameApp = () => {
         engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: session.timeScale });
     }, [session.timeScale]);
 
+    // 點選的單位同步給引擎：導播關閉時擊殺播報只給它的陣營
+    const selectedAgentId = hud.selectedAgent?.id ?? null;
+    useEffect(() => {
+        engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_WATCH_AGENT', agentId: selectedAgentId });
+    }, [selectedAgentId]);
+
     const enterManualMode = () => {
         const engine = engineRef.current;
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });

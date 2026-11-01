@@ -8,6 +8,7 @@ import {
     releaseSharedAudioEngine
 } from '../../audio/AudioEngine';
 import { EventBus } from '../../events/EventBus';
+import { isWatchedSide } from '../../core/Allegiance';
 import { WINNER_TO_VICTORY_TRACK, battleTrackForScene } from '../../../data/audio/music';
 
 /**
@@ -29,6 +30,8 @@ export class AudioSystem {
     private isBattleActive: boolean = false;
     private isTenseActive: boolean = false;
     private isShowcase: boolean = true;
+    /** 觀看陣營（DirectorSystem 的 WATCH_SIDE）；擊殺播報只播這個陣營，null＝不播 */
+    private watchSide: number | null = null;
 
     // 儲存事件取消訂閱用之引用
     private unsubscribers: (() => void)[] = [];
@@ -80,6 +83,9 @@ export class AudioSystem {
         // 1. 遊戲核心視覺/音訊事件流
         this.subscribe('GAME_EVENT', (evt: GameEvent) => {
             this.handleGameEvent(evt);
+        });
+        this.subscribe('WATCH_SIDE', (data: { side: number | null }) => {
+            this.watchSide = data.side;
         });
 
         // 2. 系統級事件
@@ -196,6 +202,7 @@ export class AudioSystem {
 
         switch (evt.type) {
             case 'KILL_SPREE': {
+                if (!isWatchedSide(evt.side, this.watchSide)) break;
                 const cue = evt.value !== undefined ? KILL_SPREE_CUE_BY_TIER[evt.value] : undefined;
                 if (cue) this.audioEngine.playCue(cue, cueOpts);
                 break;

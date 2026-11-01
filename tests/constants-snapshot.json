@@ -89,8 +89,6 @@
   },
   "DIRECTOR_PARAM": {
     "ULT_ZOOM": 1.45,
-    "KILL_FOCUS_S": 2.5,
-    "ULT_FOCUS_S": 3.5,
     "DEFAULT_FOCUS_S": 2,
     "DEFAULT_ASPECT": 1.77,
     "ASPECT_EPSILON": 0.1,

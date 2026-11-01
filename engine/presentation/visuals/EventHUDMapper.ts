@@ -19,6 +19,7 @@ import { HUD_LAYOUT, DAMAGE_TEXT_COLORS, FLOATING_TEXT, HUD_TEXT_DEFAULTS } from
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
 import { hudTextHeight } from "../../../data/units/appearance/projection";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
+import { isWatchedSide } from "../../core/Allegiance";
 
 export class EventHUDMapper {
 
@@ -62,7 +63,8 @@ export class EventHUDMapper {
                 }
                 break;
             case 'KILL_STREAK':
-                if (event.text && event.color) {
+                // 連殺字只給觀看陣營（和擊殺播報同一規則）
+                if (event.text && event.color && isWatchedSide(event.side, engine.director.getWatchSide(engine))) {
                     const textY = visualGroundY - textOffset - FLOATING_TEXT.KILL_STREAK_LIFT;
                     const size = FLOATING_TEXT.SIZE.KILL_STREAK_BASE + ((event.value || 1) * FLOATING_TEXT.SIZE.KILL_STREAK_PER);
                     hud.addFloatingText(event.pos.x, textY, event.text, event.color, size, 'KILL_STREAK');
