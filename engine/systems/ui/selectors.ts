@@ -221,9 +221,6 @@ export function selectCameraTuningView(engine: GameEngine): CameraTuningView {
 }
 
 /**
- * Returns a stable read-only LogView snapshot.
- */
-/**
  * Returns a stable read-only ShakeTuningView snapshot.
  */
 export function selectShakeTuningView(engine: GameEngine): ShakeTuningView {
