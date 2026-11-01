@@ -399,6 +399,15 @@
 - 觀察（confounded，未升級成規則）：3 次失敗有 2 次在「往共用常數檔新增」那一步；D3 第二次同時改了兩個條件，無法單獨歸因。之後類似的搬家輪，可以先試「主代理先加好常數、代理只改使用處」。提示詞也寫錯兩處計數規則（`Math.PI / 6`、`1 << 5` 在算式裡仍算），由主代理修正。
 - 派工：`tools/ui-e2e/out/` 在新 clone 不存在，agy 輸出改寫到 scratchpad；Git Bash 的 robocopy 會把 `/E` 轉成路徑，改用 PowerShell 執行。
 
+### AW. 2026-11-01 震動收歸導演、大逃殺模式、換場背景淡化（過夜長線，合併 `98cb693`）
+- **T2 震動**（`feat/shake-director`）：13 個震動來源改送 `CAMERA_IMPACT`，由 `DirectorSystem` 的 `ShakeDirector` 決定：同 tick 取最大不累加、MINOR 衝擊打在非焦點單位乘 0.4、上限 0.7，導演 AI 關掉照樣運作；`CameraSystem.addTrauma` 取最大、抖動改兩條正弦。RUMBLE 改聽 `CAMERA_IMPACT`（ULT／FALL／KNOCKBACK／DASH，與以前發 `CAMERA_SHAKE` 的同一組）。導演設定視窗三個滑桿（`SET_SHAKE_TUNING`，夾在 `UI_SETTINGS.SHAKE_*`）。單位受擊抖動、VFX 零件抖動不動。
+- **T3 大逃殺**（`feat/allegiance`）：`Agent.side`（預設＝team，複製到危害區、投射物），53 處 `x.team ===/!== y.team` 以 codemod 改成 `sameSide()`（`engine/core/Allegiance.ts`）；勝負看最後剩的 side。`PLACE_AGENT.side`、`winnerId`、`battleMode`（TEAMS／ROYALE）；ROYALE 生成 10 人各一個 side、外觀技能隨機 team，控制列與展示畫面都有「雙陣營／大逃殺」鈕。勝利畫面與檢視器的陣營名改讀 `getFactionSkin(team).name`。
+- **T1 背景**（`feat/bg-crossfade`）：閃爍原因是換場景那幀靜態背景快取同步重建後直接畫上（全螢幕 A→B）。改成雙畫布、轉場中 0.6 秒淡入（`BACKGROUND_FX.SCENE_FADE_S`），IDLE 時照舊直接切（保真不受影響）。證據：背景條平均色 main 換場景一次跳 18，分支約 0.5 秒內逐步、每步 ≤ 8。
+- **背景耗用率**（`tools/ui-e2e/out/bg-layer-probe.mjs`，CPU 每幀平均）：桌機 0.035～0.064 ms（靜態底圖約 0.007、光點＋光暈約 0.02、極光 0.029、樹冠光束 0.015、沙塵 0.013、霧 ≤0.008）；CPU×4 最高 0.165 ms，且自動降到第 3 階關掉動態層。CPU 上不需要降級；GPU 填充量不到，留手機 `?quality=3` 對照。換場景後 33～38 ms 的幀不是背景。
+- 證據：三條疊在 main 上試合併（只有 `types.ts` 兩邊新增，兩邊都保留），lint、1014 項測試、build、knip、smoke、perf:guard 全過；`balance:sim --battles=200 --seed=21` 與 main 逐欄相同（只有 `wallSeconds` 不同）。回退：`git revert -m 1` 各合併 commit（`47877710` 震動、`290da7c0` 大逃殺、`98cb6939` 背景）。
+- Flash 品質：T2 及格但漏了規格沒列的兩個來源（我的 grep 被 `head` 截掉），還自己加了音效備援旗標讓舊測試過關（已移除、測試改成新契約）；T3 第一次在另一個 agy 同時執行時一開始就被拒，單獨重派後及格；震動 UI 及格（最後一個指令被拒，沒報告）。常數、型別全部主代理先加好，三包都沒再出現 D 輪那種常數檔損壞。
+
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
