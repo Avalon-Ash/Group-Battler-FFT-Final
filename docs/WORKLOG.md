@@ -407,6 +407,13 @@
 - 證據：三條疊在 main 上試合併（只有 `types.ts` 兩邊新增，兩邊都保留），lint、1014 項測試、build、knip、smoke、perf:guard 全過；`balance:sim --battles=200 --seed=21` 與 main 逐欄相同（只有 `wallSeconds` 不同）。回退：`git revert -m 1` 各合併 commit（`47877710` 震動、`290da7c0` 大逃殺、`98cb6939` 背景）。
 - Flash 品質：T2 及格但漏了規格沒列的兩個來源（我的 grep 被 `head` 截掉），還自己加了音效備援旗標讓舊測試過關（已移除、測試改成新契約）；T3 第一次在另一個 agy 同時執行時一開始就被拒，單獨重派後及格；震動 UI 及格（最後一個指令被拒，沒報告）。常數、型別全部主代理先加好，三包都沒再出現 D 輪那種常數檔損壞。
 
+### AX. 2026-11-01 遮擋剪影灰白修正（主代理，合併 `d48d69e`）
+- 使用者回報單位進戰鬥後蒙一層灰白、雙方都有、不太會恢復。排除：受擊閃白（計時為負）、狀態疊色（visualStatus NONE）、護盾、mip 圖集（載入時預烘）。實證：把 `UNIT_SPRITE.silhouetteAlpha` 暫時設 1.0，被判定遮擋的單位整個變白，其中幾個前方沒有東西。
+- 原因：遮擋剪影把 25% 白整個疊在被判定遮擋的單位上；判定寬（前方鄰格高 20 px、或 60 px 內有障礙物），戰鬥中常成立。
+- 修正：`SilhouetteMask` 把剪影裁成只畫在擋住它的東西上——地塊＝頂面六角往下延伸的凸包、障礙物＝圖的不透明像素（暫存畫布 destination-in）；位置取本幀 TERRAIN／OBSTACLE op。`GridSpatial.getOcclusionSources`（判定與舊兩函式同一份）；RenderSpec §13。
+- 證據：lint、1019 項測試（新增 `tests/SilhouetteMask.test.ts`）、build、knip、smoke、perf:guard；`battle_frozen` 保真 0.167→0.368、壞像素 0.00%→0.38%（門檻 0.5%，未重錄），新舊差異只在被遮擋單位與其上的半透明傷害字。剪影強制 1.0 時單位維持原色、白只出現在擋住單位的柱子上。回退：`git revert -m 1 d48d69e`。
+- 過程：探針一度關錯函式（改 `GridSpatial` 靜態方法沒攔到 renderer 的呼叫）而誤判「不是剪影」；假時鐘相減因粒子雜訊失敗；最後用「把效果放大到 1.0」直接看最快。修正一開始誤以主資料夾當時的 `feat/announcer-side` 為基底，已改疊到 main 重驗。
+
 
 ## 3. 更早的輪次與審查修補
 
