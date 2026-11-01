@@ -80,6 +80,8 @@ export const BACKGROUND_COLORS = {
 
 /** 背景動態特效與幾何參數 SSOT */
 export const BACKGROUND_FX = {
+    /** 轉場中換場景時，新舊靜態背景交叉淡化的秒數（BackgroundRenderer；IDLE 時換場景仍直接切換） */
+    SCENE_FADE_S: 0.6,
     /** 靜態背景快取參數（底色、星空、地平線接縫、暗角、山脈、沙丘、天河） */
     STATIC: {
         /** 基礎背景漸層色標位置（頂部 0 為 scene.background） */

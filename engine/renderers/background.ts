@@ -21,6 +21,10 @@ import { getQualityTier, getRenderDpr } from "./RenderQuality";
 
 export class BackgroundRenderer {
     private staticCache: HTMLCanvasElement | null = null;
+    /** 換場景交叉淡化：上一個場景的靜態背景（與 staticCache 輪流使用，不重新配置畫布） */
+    private prevCache: HTMLCanvasElement | null = null;
+    /** 淡化開始的時間（與 draw 的 globalTime 同單位）；< 0 表示沒有在淡化 */
+    private fadeStart = -1;
     private lastSceneId: string = "";
     private lastWidth: number = 0;
     private lastHeight: number = 0;
@@ -48,13 +52,39 @@ export class BackgroundRenderer {
     private sandstormMistGrad: CanvasGradient | null = null;
     private sandstormMistKey: string = '';
 
-    public draw(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneTheme, mapConfig: MapConfig, globalTime: number): void {
+    /**
+     * allowFade：轉場期間（RenderPipeline 的 transitionPhase ≠ IDLE）換場景時，舊背景留在底下、新背景在 SCENE_FADE_S 內淡入；
+     * 否則（保真截圖、手動換地圖、改尺寸）直接切換，行為與以前相同。
+     */
+    public draw(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneTheme, mapConfig: MapConfig, globalTime: number, allowFade: boolean = false): void {
         const dpr = getRenderDpr();
-        if (!this.staticCache || this.lastSceneId !== scene.id || this.lastWidth !== width || this.lastHeight !== height || this.lastDpr !== dpr) {
+        const sizeChanged = this.lastWidth !== width || this.lastHeight !== height || this.lastDpr !== dpr;
+        const sceneChanged = this.lastSceneId !== scene.id;
+        if (!this.staticCache || sceneChanged || sizeChanged) {
+            if (this.staticCache && sceneChanged && !sizeChanged && allowFade) {
+                const old = this.staticCache;
+                this.staticCache = this.prevCache;
+                this.prevCache = old;
+                this.fadeStart = globalTime;
+            } else {
+                this.fadeStart = -1;
+            }
             this.updateStaticCache(width, height, scene, dpr);
         }
-        if (this.staticCache) {
-            ctx.drawImage(this.staticCache, 0, 0, width, height);
+        const fade = this.fadeStart < 0 ? 1 : (globalTime - this.fadeStart) / BACKGROUND_FX.SCENE_FADE_S;
+        if (fade < 1 && this.prevCache) {
+            ctx.drawImage(this.prevCache, 0, 0, width, height);
+            if (this.staticCache) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, fade);
+                ctx.drawImage(this.staticCache, 0, 0, width, height);
+                ctx.restore();
+            }
+        } else {
+            this.fadeStart = -1;
+            if (this.staticCache) {
+                ctx.drawImage(this.staticCache, 0, 0, width, height);
+            }
         }
 
         // 品質階層降級：Tier 3 完全關閉動態層（僅保留靜態快取）
