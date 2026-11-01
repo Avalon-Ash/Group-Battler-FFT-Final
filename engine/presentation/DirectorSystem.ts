@@ -23,6 +23,18 @@ export class DirectorSystem {
     public enabled: boolean = true;
     public shakeDirector = new ShakeDirector();
 
+    public setShakeTuning(t: { strength?: number; offFocusScale?: number; maxTrauma?: number }): void {
+        this.shakeDirector.setTuning(t);
+    }
+
+    public getShakeTuning(): { strength: number; offFocusScale: number; maxTrauma: number } {
+        return {
+            strength: this.shakeDirector.strength,
+            offFocusScale: this.shakeDirector.offFocusScale,
+            maxTrauma: this.shakeDirector.maxTrauma,
+        };
+    }
+
     // State
     private targetGroup = new CameraTargetGroup();
     private lastAspectRatio: number = 0;

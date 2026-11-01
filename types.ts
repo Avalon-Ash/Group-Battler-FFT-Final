@@ -273,6 +273,8 @@ export interface EventMap {
 export type UICommand =
     | { type: 'SET_DIRECTOR_ENABLED'; enabled: boolean }
     | { type: 'SET_CAMERA_TUNING'; followStiffness?: number; zoomStiffness?: number }
+    /** 鏡頭震動調整（DirectorSystem 的 ShakeDirector）。strength 0＝不震 */
+    | { type: 'SET_SHAKE_TUNING'; strength?: number; offFocusScale?: number; maxTrauma?: number }
     | { type: 'SET_ZONE_CONFIG'; config: Partial<ZoneConfig> }
     | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number; bodyType?: BodyTypeId }
     | { type: 'REBUILD_AGENT_AI'; agentId: string }

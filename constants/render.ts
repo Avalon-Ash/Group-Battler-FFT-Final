@@ -330,6 +330,8 @@ export const RENDER_PIPELINE_PARAM = {
  * MINOR 種類打在「不是導演焦點」的單位上乘 OFF_FOCUS_SCALE；輸出不超過 MAX_TRAUMA。
  */
 export const SHAKE_DIRECTOR_PARAM = {
+    /** 整體強度倍率預設值（設定面板可調，0＝不震） */
+    DEFAULT_STRENGTH: 1,
     /** 單次輸出的 trauma 上限（舊版累加可到 1.0） */
     MAX_TRAUMA: 0.7,
     /** MINOR 衝擊打在非焦點單位時的倍率 */

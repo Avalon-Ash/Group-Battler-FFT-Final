@@ -78,3 +78,54 @@ describe('DirectorSystem shake integration', () => {
         expect(receivedShake).toEqual({ intensity: 0.5 });
     });
 });
+
+describe('ShakeDirector tuning', () => {
+    it('strength = 0 時有衝擊也 consume() 回傳 0', () => {
+        const director = new ShakeDirector();
+        director.setTuning({ strength: 0 });
+        director.report({ kind: 'MASSIVE', intensity: 0.8 }, null);
+        expect(director.consume()).toBe(0);
+    });
+
+    it('strength = 1.5 時 0.4 的衝擊輸出 0.6', () => {
+        const director = new ShakeDirector();
+        director.setTuning({ strength: 1.5 });
+        director.report({ kind: 'MASSIVE', intensity: 0.4 }, null);
+        expect(director.consume()).toBeCloseTo(0.6);
+    });
+
+    it('maxTrauma = 0.3 時 0.5 的衝擊輸出 0.3', () => {
+        const director = new ShakeDirector();
+        director.setTuning({ maxTrauma: 0.3 });
+        director.report({ kind: 'MASSIVE', intensity: 0.5 }, null);
+        expect(director.consume()).toBeCloseTo(0.3);
+    });
+
+    it('offFocusScale = 0 時 MINOR 打在非焦點單位輸出 0', () => {
+        const director = new ShakeDirector();
+        director.setTuning({ offFocusScale: 0 });
+        director.report({ kind: 'HIT', intensity: 0.5, targetId: 'agent-2' }, 'agent-1');
+        expect(director.consume()).toBe(0);
+    });
+
+    it('setTuning({ strength: 99 }) 被夾到 1.5', () => {
+        const director = new ShakeDirector();
+        director.setTuning({ strength: 99 });
+        expect(director.strength).toBe(1.5);
+    });
+
+    it('setTuning({ strength: Number.NaN }) 不改值', () => {
+        const director = new ShakeDirector();
+        const originalStrength = director.strength;
+        director.setTuning({ strength: Number.NaN });
+        expect(director.strength).toBe(originalStrength);
+    });
+});
+
+describe('UICommand SET_SHAKE_TUNING integration', () => {
+    it('用真的 GameEngine 送 { type: SET_SHAKE_TUNING, strength: 0.5 } 後 engine.director.getShakeTuning().strength 是 0.5', () => {
+        const engine = new GameEngine();
+        engine.bus.emit('UI_COMMAND', { type: 'SET_SHAKE_TUNING', strength: 0.5 });
+        expect(engine.director.getShakeTuning().strength).toBe(0.5);
+    });
+});
