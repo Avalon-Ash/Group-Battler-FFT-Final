@@ -521,7 +521,8 @@ const runShowcaseAndPinSuite = async () => {
 
     // Shrink viewport to 420x400
     await page.setViewportSize({ width: 420, height: 400 });
-    await page.waitForTimeout(500);
+    // 工具列先切精簡排版、再夾回畫面內，位移有 500ms 過場（transition-all duration-500）；等它停下再量
+    await page.waitForTimeout(1200);
 
     const pbSmall = await getPlaybackRect();
     ok(
