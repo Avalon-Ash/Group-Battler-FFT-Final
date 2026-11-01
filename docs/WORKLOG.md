@@ -420,6 +420,11 @@
 - 合併：基於 `1b2c56c`，與 main 的遮擋剪影修正只在 `docs/HANDOFF.md` §3 衝突（兩項都留，編號 9、10）；基準圖 main 沒動、沒有衝突，不重錄。
 - 證據（合併後）：lint、1028 項測試、build、knip、smoke、perf:guard 全過；`battle_frozen` 0.062、壞像素 0.16%（門檻 0.8／0.5%），其他 5 張與合併前相同。
 
+### AZ. 2026-11-01 設定表單分類抬頭（主代理）
+- `SchemaForm` 加 `heading` 欄位類型（只有標題、沒有值）；導演設定分成「自動運鏡」「鏡頭震動」，展示設定的鏡頭分頁共用同一份 schema。`tests/SchemaForm.test.ts` 檢查分組。
+- 順手修 e2e：工具列小視窗（420×400）檢查原本等 500 ms，剛好碰上 500 ms 的位移過場；大逃殺鈕讓工具列變寬後要先切精簡排版再滑回，量到半路（x=98～148）。停下後 x=9、寬 403。斷言不變，等待改 1200 ms。
+- 證據：lint、單元測試、knip、smoke、e2e:ui 全過；截圖確認兩個抬頭。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
