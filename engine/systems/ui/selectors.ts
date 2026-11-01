@@ -7,7 +7,7 @@ import {
     LogView,
     GamePlaybackView,
 } from '../../../types/UIViewModel';
-import { Skill, Team, AIState, ActionState } from '../../../types';
+import { Skill, Team, AIState, ActionState, BattleSetup } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
 import { displayAiState } from '../../core/AgentDerived';
 
@@ -37,6 +37,7 @@ let prevCameraTuningView: CameraTuningView | null = null;
 let prevLogView: LogView | null = null;
 let prevPlaybackView: GamePlaybackView | null = null;
 let prevShakeTuningView: ShakeTuningView | null = null;
+let prevBattleSetupView: Readonly<BattleSetup> | null = null;
 
 /**
  * Resets selector memoization caches. Primarily used in unit tests.
@@ -50,6 +51,7 @@ export function clearSelectorCache(): void {
     prevLogView = null;
     prevPlaybackView = null;
     prevShakeTuningView = null;
+    prevBattleSetupView = null;
 }
 
 /**
@@ -242,6 +244,23 @@ export function selectShakeTuningView(engine: GameEngine): ShakeTuningView {
     };
 
     prevShakeTuningView = next;
+    return next;
+}
+
+/**
+ * Returns a stable read-only snapshot of the battle setup (factions × units per faction).
+ */
+export function selectBattleSetupView(engine: GameEngine): Readonly<BattleSetup> {
+    const { factions, unitsPerFaction } = engine.battleSetup;
+    if (
+        prevBattleSetupView &&
+        prevBattleSetupView.factions === factions &&
+        prevBattleSetupView.unitsPerFaction === unitsPerFaction
+    ) {
+        return prevBattleSetupView;
+    }
+    const next = { factions, unitsPerFaction };
+    prevBattleSetupView = next;
     return next;
 }
 

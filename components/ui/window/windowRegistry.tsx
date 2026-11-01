@@ -6,7 +6,7 @@ import { LogTab } from '../../inspector/tabs/LogTab';
 import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
 import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
 import { DirectorMonitorHUD } from '../DirectorMonitorHUD';
-import { DirectorSettingsWindow, ZoneSettingsWindow } from '../settings/SettingsWindows';
+import { DirectorSettingsWindow, GameplaySettingsWindow } from '../settings/SettingsWindows';
 import { ShowcaseSettings } from '../showcase/ShowcaseSettings';
 import { AudioSettingsWindow } from '../settings/AudioSettingsWindow';
 import { UnitInspectorBody } from '../inspector/UnitInspectorBody';
@@ -67,7 +67,7 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     zoneSettings: {
         icon: <span className="text-sm">🗺️</span>,
         flush: true,
-        render: ({ engine }) => <ZoneSettingsWindow engine={engine} />,
+        render: ({ engine }) => <GameplaySettingsWindow engine={engine} />,
     },
     showcaseSettings: {
         icon: <Icons.Settings className="w-4 h-4" />,

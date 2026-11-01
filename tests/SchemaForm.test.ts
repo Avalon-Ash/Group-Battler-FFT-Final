@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
     DIRECTOR_SETTINGS_SCHEMA,
     ZONE_SETTINGS_SCHEMA,
+    GAMEPLAY_SETTINGS_SCHEMA,
     ToggleSettingField,
     SliderSettingField,
 } from '../data/ui/settingsSchema';
@@ -53,6 +54,24 @@ describe('settingsSchema SSOT (E4)', () => {
                 'shakeOffFocus',
                 'shakeMax',
             ]);
+        });
+    });
+
+    describe('GAMEPLAY_SETTINGS_SCHEMA', () => {
+        it('puts the faction controls first, then the zone fields', () => {
+            expect(GAMEPLAY_SETTINGS_SCHEMA.map((f) => f.id)).toEqual([
+                'headingFactions',
+                'battleFactions',
+                'battleUnitsPerFaction',
+                'battleApply',
+                'headingZone',
+                ...ZONE_SETTINGS_SCHEMA.map((f) => f.id),
+            ]);
+            const factions = GAMEPLAY_SETTINGS_SCHEMA.find((f) => f.id === 'battleFactions') as SliderSettingField;
+            expect(factions.min).toBe(UI_SETTINGS.BATTLE_FACTIONS.min);
+            expect(factions.createCommand(3)).toEqual({ type: 'SET_BATTLE_SETUP', setup: { factions: 3 } });
+            const units = GAMEPLAY_SETTINGS_SCHEMA.find((f) => f.id === 'battleUnitsPerFaction') as SliderSettingField;
+            expect(units.createCommand(1)).toEqual({ type: 'SET_BATTLE_SETUP', setup: { unitsPerFaction: 1 } });
         });
     });
 

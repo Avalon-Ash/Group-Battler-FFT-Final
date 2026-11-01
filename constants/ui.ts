@@ -56,6 +56,12 @@ export const UI_SETTINGS = {
     ZONE_INITIAL_RADIUS: { min: 3, max: 20, default: 8, step: 1 },
     ZONE_SHRINK_INTERVAL: { min: 1, max: 60, default: 15, step: 1 },
     ZONE_MIN_RADIUS: { min: 0, max: 10, default: 1, step: 1 },
+    /** 開局陣營數（個） */
+    BATTLE_FACTIONS: { min: 2, max: 8, default: 2, step: 1 },
+    /** 每陣營人數（人）；1＝大逃殺 */
+    BATTLE_UNITS_PER_FACTION: { min: 1, max: 10, default: 5, step: 1 },
+    /** 開局總人數上限（人）；陣營多時壓低每陣營人數 */
+    BATTLE_MAX_UNITS: 20,
     CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 0.25, zoomDefault: 0.2, step: 0.1, sliderMax: 5.0 },
     /** 鏡頭震動滑桿範圍（預設值在 SHAKE_DIRECTOR_PARAM） */
     SHAKE_STRENGTH: { min: 0, max: 1.5, step: 0.05 },
@@ -91,8 +97,6 @@ export const GAME_APP_PARAM = {
     DEFAULT_MAP_W: 12,
     /** 編輯器預設地圖高（格） */
     DEFAULT_MAP_H: 8,
-    /** 自動配置每隊人數（人） */
-    TEAM_SIZE: 5,
     /** 自動配置生命下限（HP） */
     SPAWN_HP_MIN: 600,
     /** 自動配置生命隨機幅度（HP） */
@@ -124,10 +128,6 @@ export const GAME_APP_PARAM = {
     UNIT_POLL_MS: 500,
     /** 陣營警告顯示時間（毫秒） */
     WARNING_MS: 2500,
-    /** 大逃殺生成的單位數（人） */
-    ROYALE_UNIT_COUNT: 10,
-    /** 大逃殺生成點彼此的最小格距（格）；湊不滿時放寬到能放下為止 */
-    ROYALE_MIN_SPACING: 2,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

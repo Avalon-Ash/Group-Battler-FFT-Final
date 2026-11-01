@@ -102,6 +102,25 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                     );
                 }
 
+                if (field.kind === 'action') {
+                    return (
+                        <div key={field.id} className="space-y-1">
+                            <button
+                                type="button"
+                                data-testid={`setting-action-${field.id}`}
+                                onClick={() => onChange(field.createCommand())}
+                                className="w-full py-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-[11px] font-bold tracking-wider transition-colors active:scale-[0.98]"
+                                style={{ color: 'var(--token-literal-cyan400)' }}
+                            >
+                                {field.label}
+                            </button>
+                            {field.description && (
+                                <p className="text-[10px] text-white/40 text-center">{field.description}</p>
+                            )}
+                        </div>
+                    );
+                }
+
                 return null;
             })}
         </div>

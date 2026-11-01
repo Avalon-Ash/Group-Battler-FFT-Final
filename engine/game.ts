@@ -17,9 +17,9 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider, Point } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, BattleSetup, ActionState, SpatialHazard, SpatialProvider, Point } from "../types";
 import { HexUtils, MapConfig } from "./utils";
-import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
+import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS, UI_SETTINGS } from "../constants";
 import { Agent } from "./core/Agent";
 import { resetAgent, saveAgentState } from "./core/AgentLifecycle";
 import { MovementSystem } from "./systems/movement";
@@ -106,6 +106,11 @@ export class GameEngine implements SpatialProvider {
 
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
     public zoneConfig: ZoneConfig = { ...DEFAULT_ZONE_CONFIG };
+    /** 開局陣營設定（唯一寫入者 UICommandSystem；useGameApp 生成單位時讀） */
+    public battleSetup: BattleSetup = {
+        factions: UI_SETTINGS.BATTLE_FACTIONS.default,
+        unitsPerFaction: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.default,
+    };
     public currentScene: SceneTheme = SCENE_DB[0];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     

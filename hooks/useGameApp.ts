@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleMode } from '../types';
+import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup } from '../types';
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
@@ -10,9 +10,31 @@ import { queryMapKeys, queryHasObstacle } from '../engine/systems/ui/editorQueri
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 
-/** 展示陣容的一個位置：角色與體型在生成前就決定，圖集才能在轉場期間預載 */
-interface ShowcaseSlot { team: Team; role: Role; bodyType: BodyTypeId }
+/** 展示陣容的一個位置：陣營、角色與體型在生成前就決定，圖集才能在轉場期間預載 */
+interface ShowcaseSlot { side: number; team: Team; role: Role; bodyType: BodyTypeId }
 const SHOWCASE_ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
+type HexCoord = { q: number; r: number };
+
+/** 陣營用的外觀：只有藍、紅兩套皮膚，雙數陣營藍、單數紅（陣營 0／1 和 Team 數值相同） */
+const factionTeam = (side: number): Team => (side % 2 === 0 ? Team.BLUE : Team.RED);
+
+/** 各陣營的據點：最遠點取樣（第一個取洗牌後的第一格），讓陣營分散在地圖上 */
+function pickFactionAnchors(hexes: readonly HexCoord[], count: number): HexCoord[] {
+    const anchors = hexes.slice(0, 1);
+    while (anchors.length < count && anchors.length < hexes.length) {
+        let best = hexes[0];
+        let bestDist = -1;
+        for (const hex of hexes) {
+            const d = Math.min(...anchors.map(a => HexUtils.dist(a, hex)));
+            if (d > bestDist) {
+                bestDist = d;
+                best = hex;
+            }
+        }
+        anchors.push(best);
+    }
+    return anchors;
+}
 
 type DevWindow = Window & {
     __TACTICAL_ENGINE__?: GameEngine;
@@ -57,12 +79,13 @@ export const useGameApp = () => {
         };
     }, []);
     
-    const battleModeRef = useRef<BattleMode>('TEAMS');
     const [session, setSession] = useState({
         isPlaying: false,
         winner: null as Team | null,
         winnerId: null as string | null,
-        battleMode: 'TEAMS' as BattleMode,
+        winnerSide: null as number | null,
+        /** 目前場上這一局的陣營設定（生成時記下；面板改了但還沒開新局時，結算仍照這個） */
+        battleSetup: { ...initialEngine.battleSetup } as BattleSetup,
         timeScale: 1.0,
         isShowcaseMode: true, 
         transitionPhase: 'IDLE' as 'IDLE' | 'IN' | 'OUT',
@@ -92,6 +115,8 @@ export const useGameApp = () => {
     // 下一批展示單位的陣容（planShowcaseRoster 決定，internalSpawnTeams 依它生成）與換場時的生成等待 rAF
     const rosterRef = useRef<ShowcaseSlot[]>([]);
     const rosterRoundRef = useRef(0);
+    const plannedSetupRef = useRef<BattleSetup>({ ...initialEngine.battleSetup });
+    const showcaseModeRef = useRef(true);
     const spawnWaitRef = useRef<number | null>(null);
 
     /**
@@ -100,32 +125,25 @@ export const useGameApp = () => {
      */
     const planShowcaseRoster = useCallback((): ShowcaseSlot[] => {
         const round = ++rosterRoundRef.current;
+        const setup = { ...engineRef.current.battleSetup };
         const plan: ShowcaseSlot[] = [];
-        if (battleModeRef.current === 'ROYALE') {
-            for (let i = 0; i < GAME_APP_PARAM.ROYALE_UNIT_COUNT; i++) {
-                const role = SHOWCASE_ROLES[i % SHOWCASE_ROLES.length];
-                const bodyType = pickBodyType(`ROYALE-${i}`, round);
-                plan.push({ team: Team.BLUE, role, bodyType });
-                plan.push({ team: Team.RED, role, bodyType });
+        for (let side = 0; side < setup.factions; side++) {
+            const team = factionTeam(side);
+            for (let i = 0; i < setup.unitsPerFaction; i++) {
+                plan.push({ side, team, role: SHOWCASE_ROLES[i % SHOWCASE_ROLES.length], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round) });
             }
-        } else {
-            for (const team of [Team.BLUE, Team.RED]) {
-            for (let i = 0; i < GAME_APP_PARAM.TEAM_SIZE; i++) {
-                plan.push({ team, role: SHOWCASE_ROLES[i % SHOWCASE_ROLES.length], bodyType: pickBodyType(`SHOWCASE-${team}-${i}`, round) });
-            }
-        }
         }
         rosterRef.current = plan;
+        plannedSetupRef.current = setup;
         return plan;
     }, []);
 
-    const internalSpawnTeams = useCallback((modeOverride?: BattleMode) => {
-        const currentMode = modeOverride ?? battleModeRef.current; let shuffle: <T>(array: T[]) => void;
+    const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
         const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
-        
+
         // Find valid spawnable hexes (not blocked, not extreme edge)
-        let validHexes = queryMapKeys(engine).map((k: string) => {
+        const validHexes: HexCoord[] = queryMapKeys(engine).map((k: string) => {
             const [q, r] = k.split(',').map(Number);
             return {q, r};
         }).filter(hex => {
@@ -134,100 +152,59 @@ export const useGameApp = () => {
             const dist = HexUtils.dist({q:0, r:0}, hex);
             return dist < radius;
         });
-        
-        shuffle = <T,>(array: T[]) => {
+
+        const shuffle = <T,>(array: T[]) => {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
         };
-
-        if (currentMode === 'ROYALE') {
-            shuffle(validHexes);
-            const chosenHexes: { q: number; r: number }[] = [];
-            const remainingHexes: { q: number; r: number }[] = [];
-
-            for (const hex of validHexes) {
-                if (chosenHexes.length >= GAME_APP_PARAM.ROYALE_UNIT_COUNT) break;
-                const ok = chosenHexes.every(chosen => HexUtils.dist(chosen, hex) >= GAME_APP_PARAM.ROYALE_MIN_SPACING);
-                if (ok) {
-                    chosenHexes.push(hex);
-                } else {
-                    remainingHexes.push(hex);
-                }
-            }
-
-            if (chosenHexes.length < GAME_APP_PARAM.ROYALE_UNIT_COUNT) {
-                for (const hex of remainingHexes) {
-                    if (chosenHexes.length >= GAME_APP_PARAM.ROYALE_UNIT_COUNT) break;
-                    chosenHexes.push(hex);
-                }
-            }
-
-            if (rosterRef.current.length === 0) planShowcaseRoster();
-            const round = rosterRoundRef.current;
-
-            for (let i = 0; i < chosenHexes.length; i++) {
-                const hex = chosenHexes[i];
-                const team = random() < 0.5 ? Team.BLUE : Team.RED;
-                const role = SHOWCASE_ROLES[i % SHOWCASE_ROLES.length];
-                const bodyType = pickBodyType(`ROYALE-${i}`, round);
-                const hp = GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE;
-                engine.bus.emit('UI_COMMAND', {
-                    type: 'PLACE_AGENT',
-                    team,
-                    q: hex.q,
-                    r: hex.r,
-                    hp,
-                    role,
-                    bodyType,
-                    side: i,
-                });
-            }
-
-            setSession(prev => ({ ...prev, unitCount: engine.agents.length }));
-            return;
-        }
-
-        // Since it's a giant hexagon centered at (0,0), it's symmetric.
-        // We can split the teams perfectly by `q` (left/right) or another dividing plane.
-        // For axial (q, r), q < 0 is roughly left, q > 0 is roughly right.
-        let leftHexes = validHexes.filter(hex => hex.q < -1);
-        const rightHexes = validHexes.filter(hex => hex.q > 1);
-
-
-        shuffle = <T,>(array: T[]) => {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-        };
-        shuffle(leftHexes);
-        shuffle(rightHexes);
 
         if (rosterRef.current.length === 0) planShowcaseRoster();
-        
-        const spawn = (team: Team, hexes: {q: number, r: number}[]) => {
-            const slots = rosterRef.current.filter(s => s.team === team);
-            let spawnIdx = 0;
-            for(let i=0; i<GAME_APP_PARAM.TEAM_SIZE; i++) {
-                if (spawnIdx >= hexes.length) break;
-                const hex = hexes[spawnIdx++];
-                engine.bus.emit('UI_COMMAND', {
-                    type: 'PLACE_AGENT',
-                    team,
-                    q: hex.q,
-                    r: hex.r,
-                    hp: GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE,
-                    role: slots[i].role,
-                    bodyType: slots[i].bodyType,
-                });
-            }
+        const setup = plannedSetupRef.current;
+        const slotsOf = (side: number) => rosterRef.current.filter(s => s.side === side);
+        const place = (slot: ShowcaseSlot, hex: HexCoord, side?: number) => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: slot.team,
+                q: hex.q,
+                r: hex.r,
+                hp: GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE,
+                role: slot.role,
+                bodyType: slot.bodyType,
+                side,
+            });
         };
 
-        spawn(Team.BLUE, leftHexes); 
-        spawn(Team.RED, rightHexes);
-        setSession(prev => ({ ...prev, unitCount: engine.agents.length }));
+        if (setup.factions === 2) {
+            // 兩個陣營：左右對分（地圖是以 (0,0) 為中心的大六角，q<0 偏左、q>0 偏右）；side 省略＝等於 team
+            const leftHexes = validHexes.filter(hex => hex.q < -1);
+            const rightHexes = validHexes.filter(hex => hex.q > 1);
+            shuffle(leftHexes);
+            shuffle(rightHexes);
+            [leftHexes, rightHexes].forEach((hexes, side) => {
+                const slots = slotsOf(side);
+                for (let i = 0; i < slots.length && i < hexes.length; i++) place(slots[i], hexes[i]);
+            });
+        } else {
+            // 三個以上：各陣營一個據點，輪流取離自己據點最近的空格
+            shuffle(validHexes);
+            const anchors = pickFactionAnchors(validHexes, setup.factions);
+            const nearest = anchors.map(a => [...validHexes].sort((x, y) => HexUtils.dist(a, x) - HexUtils.dist(a, y)));
+            const slots = anchors.map((_, side) => slotsOf(side));
+            const used = new Set<string>();
+            for (let i = 0; i < setup.unitsPerFaction; i++) {
+                for (let side = 0; side < anchors.length; side++) {
+                    const slot = slots[side][i];
+                    const hex = nearest[side].find(h => !used.has(`${h.q},${h.r}`));
+                    if (!slot || !hex) continue;
+                    used.add(`${hex.q},${hex.r}`);
+                    place(slot, hex, side);
+                }
+            }
+        }
+
+        setSession(prev => ({ ...prev, unitCount: engine.agents.length, battleSetup: { ...setup } }));
     }, [planShowcaseRoster]);
 
     const setupShowcaseMap = useCallback(() => {
@@ -250,7 +227,8 @@ export const useGameApp = () => {
     useEffect(() => {
         const engine = engineRef.current;
         const handleGameOver = (data: { winner: Team | null; winnerId?: string }) => {
-            setSession(prev => ({ ...prev, winner: data.winner, winnerId: data.winnerId ?? null, isPlaying: false }));
+            const winnerSide = engine.agents.find(a => a.id === data.winnerId)?.side ?? null;
+            setSession(prev => ({ ...prev, winner: data.winner, winnerId: data.winnerId ?? null, winnerSide, isPlaying: false }));
             if (engine.isRunning) {
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
             }
@@ -258,6 +236,28 @@ export const useGameApp = () => {
         engine.bus.on('GAME_OVER', handleGameOver);
         return () => engine.bus.off('GAME_OVER', handleGameOver);
     }, []);
+
+    useEffect(() => {
+        showcaseModeRef.current = session.isShowcaseMode;
+    }, [session.isShowcaseMode]);
+
+    // 遊戲玩法面板「套用並重新開局」：換新地圖、依新陣營設定生成；展示模式直接開打，手動模式等玩家按開始
+    useEffect(() => {
+        const engine = engineRef.current;
+        const handleApply = () => {
+            rosterRef.current = [];
+            engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+            engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
+            internalSpawnTeams();
+            rosterRef.current = [];
+            const autoStart = showcaseModeRef.current;
+            if (autoStart) engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
+            setSession(p => ({ ...p, winner: null, winnerId: null, winnerSide: null, isPlaying: autoStart, timeScale: 1.0 }));
+            setEditor(p => ({ ...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id }));
+        };
+        engine.bus.on('BATTLE_SETUP_APPLY', handleApply);
+        return () => engine.bus.off('BATTLE_SETUP_APPLY', handleApply);
+    }, [internalSpawnTeams]);
 
     const spawnShowcaseUnits = useCallback(() => {
         internalSpawnTeams();
@@ -349,7 +349,7 @@ export const useGameApp = () => {
     return {
         engineRef,
         state: { 
-            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, battleMode: session.battleMode, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
+            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: editor.hexLayout,
             selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
@@ -396,29 +396,6 @@ export const useGameApp = () => {
                     randomizeScene: false,
                 });
                 setEditor(p => ({...p, currentSceneId: id}));
-            },
-            toggleBattleMode: () => {
-                const nextMode: BattleMode = battleModeRef.current === 'TEAMS' ? 'ROYALE' : 'TEAMS';
-                battleModeRef.current = nextMode;
-                rosterRef.current = [];
-                const engine = engineRef.current;
-                engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
-                engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
-                internalSpawnTeams(nextMode);
-                setSession(p => ({
-                    ...p,
-                    battleMode: nextMode,
-                    winner: null,
-                    winnerId: null,
-                    isPlaying: false,
-                    timeScale: 1.0,
-                }));
-                setEditor(p => ({
-                    ...p,
-                    mapW: engine.mapConfig.w,
-                    mapH: engine.mapConfig.h,
-                    currentSceneId: engine.currentScene.id,
-                }));
             },
             handleRandomBattlefield: () => { 
                 const engine = engineRef.current;

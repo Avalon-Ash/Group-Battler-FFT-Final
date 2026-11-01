@@ -53,6 +53,29 @@ describe('UICommandSystem', () => {
         });
     });
 
+    describe('SET_BATTLE_SETUP / APPLY_BATTLE_SETUP', () => {
+        it('clamps factions and units per faction, and caps the total', () => {
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 99, unitsPerFaction: 0 } });
+            expect(engine.battleSetup).toEqual({
+                factions: UI_SETTINGS.BATTLE_FACTIONS.max,
+                unitsPerFaction: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min,
+            });
+
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 4, unitsPerFaction: 10 } });
+            expect(engine.battleSetup.factions).toBe(4);
+            expect(engine.battleSetup.unitsPerFaction).toBe(Math.floor(UI_SETTINGS.BATTLE_MAX_UNITS / 4));
+        });
+
+        it('only changes the stored setup; APPLY emits it for the app to respawn', () => {
+            const applied: unknown[] = [];
+            engine.bus.on('BATTLE_SETUP_APPLY', (setup) => applied.push(setup));
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 3, unitsPerFaction: 2 } });
+            expect(applied).toEqual([]);
+            engine.bus.emit('UI_COMMAND', { type: 'APPLY_BATTLE_SETUP' });
+            expect(applied).toEqual([{ factions: 3, unitsPerFaction: 2 }]);
+        });
+    });
+
     describe('SET_AGENT_SKILL', () => {
         it('sets a skill slot by id, clears with null, ignores unknown ids and bad slots', () => {
             const a = new Agent('agent_skill_1', Team.BLUE, 0, 0, engine.mapConfig);

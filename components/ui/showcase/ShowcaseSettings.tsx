@@ -4,11 +4,11 @@ import { GameEngine } from '../../../engine/game';
 import { SchemaForm } from '../settings/SchemaForm';
 import {
     DIRECTOR_SETTINGS_SCHEMA,
-    ZONE_SETTINGS_SCHEMA,
+    GAMEPLAY_SETTINGS_SCHEMA,
 } from '../../../data/ui/settingsSchema';
 import {
     useDirectorSettingsValues,
-    useZoneSettingsValues,
+    useGameplaySettingsValues,
 } from '../settings/SettingsWindows';
 import { useEngineView } from '../../../hooks/useEngineView';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
@@ -56,7 +56,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
     const activeLayout = useShowcaseLayout();
 
     const directorSettingsValues = useDirectorSettingsValues(engine);
-    const zoneSettingsValues = useZoneSettingsValues(engine);
+    const gameplaySettingsValues = useGameplaySettingsValues(engine);
     const playbackView = useEngineView(engine, selectGamePlaybackView);
     const { send } = useEngineCommands(engine);
 
@@ -264,8 +264,8 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                 {activeTab === 'GAMEPLAY' && (
                     <div className="animate-fade-in">
                         <SchemaForm
-                            fields={ZONE_SETTINGS_SCHEMA}
-                            values={zoneSettingsValues}
+                            fields={GAMEPLAY_SETTINGS_SCHEMA}
+                            values={gameplaySettingsValues}
                             onChange={send}
                         />
                     </div>

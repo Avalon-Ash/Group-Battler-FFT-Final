@@ -3,7 +3,7 @@ import { GameEngine } from '../../../engine/game';
 import { SchemaForm } from './SchemaForm';
 import {
     DIRECTOR_SETTINGS_SCHEMA,
-    ZONE_SETTINGS_SCHEMA,
+    GAMEPLAY_SETTINGS_SCHEMA,
 } from '../../../data/ui/settingsSchema';
 import { UI_SETTINGS, SHAKE_DIRECTOR_PARAM } from '../../../constants';
 import { useEngineView } from '../../../hooks/useEngineView';
@@ -13,6 +13,7 @@ import {
     selectCameraTuningView,
     selectZoneView,
     selectShakeTuningView,
+    selectBattleSetupView,
 } from '../../../engine/systems/ui/selectors';
 
 export interface SettingsWindowProps {
@@ -44,8 +45,9 @@ export function useDirectorSettingsValues(engine?: GameEngine) {
     );
 }
 
-export function useZoneSettingsValues(engine?: GameEngine) {
+export function useGameplaySettingsValues(engine?: GameEngine) {
     const zoneView = useEngineView(engine, selectZoneView);
+    const setupView = useEngineView(engine, selectBattleSetupView);
 
     return useMemo(
         () => ({
@@ -53,12 +55,16 @@ export function useZoneSettingsValues(engine?: GameEngine) {
             initialRadius: zoneView?.initialRadius ?? UI_SETTINGS.ZONE_INITIAL_RADIUS.default,
             shrinkInterval: zoneView?.shrinkInterval ?? UI_SETTINGS.ZONE_SHRINK_INTERVAL.default,
             minRadius: zoneView?.minRadius ?? UI_SETTINGS.ZONE_MIN_RADIUS.default,
+            battleFactions: setupView?.factions ?? UI_SETTINGS.BATTLE_FACTIONS.default,
+            battleUnitsPerFaction: setupView?.unitsPerFaction ?? UI_SETTINGS.BATTLE_UNITS_PER_FACTION.default,
         }),
         [
             zoneView?.enabled,
             zoneView?.initialRadius,
             zoneView?.shrinkInterval,
             zoneView?.minRadius,
+            setupView?.factions,
+            setupView?.unitsPerFaction,
         ]
     );
 }
@@ -78,14 +84,14 @@ export const DirectorSettingsWindow: React.FC<SettingsWindowProps> = ({ engine }
     );
 };
 
-export const ZoneSettingsWindow: React.FC<SettingsWindowProps> = ({ engine }) => {
-    const values = useZoneSettingsValues(engine);
+export const GameplaySettingsWindow: React.FC<SettingsWindowProps> = ({ engine }) => {
+    const values = useGameplaySettingsValues(engine);
     const { send } = useEngineCommands(engine);
 
     return (
         <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar select-none">
             <SchemaForm
-                fields={ZONE_SETTINGS_SCHEMA}
+                fields={GAMEPLAY_SETTINGS_SCHEMA}
                 values={values}
                 onChange={send}
             />

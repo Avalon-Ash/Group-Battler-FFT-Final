@@ -59,9 +59,9 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
     },
     {
         id: 'zoneSettings',
-        title: '縮圈系統設定 (Zone Collapse)',
+        title: '遊戲玩法 (Gameplay)',
         icon: 'shield',
-        defaultRect: { x: 780, y: 140, width: 300, height: 360 },
+        defaultRect: { x: 780, y: 140, width: 300, height: 520 },
         minSize: { width: 280, height: 240 },
         kind: 'window',
         visibleInShowcase: false,

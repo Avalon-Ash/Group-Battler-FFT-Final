@@ -83,6 +83,27 @@ export class UICommandSystem {
                 break;
             }
 
+            case 'SET_BATTLE_SETUP': {
+                if (!cmd.setup || typeof cmd.setup !== 'object') break;
+                const setup = this.engine.battleSetup;
+                if (isFiniteNumber(cmd.setup.factions)) {
+                    setup.factions = clampToRange(Math.round(cmd.setup.factions), UI_SETTINGS.BATTLE_FACTIONS);
+                }
+                if (isFiniteNumber(cmd.setup.unitsPerFaction)) {
+                    setup.unitsPerFaction = clampToRange(Math.round(cmd.setup.unitsPerFaction), UI_SETTINGS.BATTLE_UNITS_PER_FACTION);
+                }
+                // 總人數上限：陣營多時壓低每陣營人數
+                setup.unitsPerFaction = Math.min(
+                    setup.unitsPerFaction,
+                    Math.max(UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min, Math.floor(UI_SETTINGS.BATTLE_MAX_UNITS / setup.factions))
+                );
+                break;
+            }
+
+            case 'APPLY_BATTLE_SETUP':
+                this.engine.bus.emit('BATTLE_SETUP_APPLY', { ...this.engine.battleSetup });
+                break;
+
             case 'EDIT_AGENT': {
                 if (!cmd.agentId) break;
                 const agent = this.engine.agents.find((a) => a.id === cmd.agentId);

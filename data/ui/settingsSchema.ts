@@ -1,7 +1,7 @@
 import { UI_SETTINGS } from '../../constants';
 import { UICommand } from '../../types';
 
-type SettingFieldKind = 'heading' | 'toggle' | 'slider';
+type SettingFieldKind = 'heading' | 'toggle' | 'slider' | 'action';
 
 interface BaseSettingField {
     id: string;
@@ -29,7 +29,13 @@ interface HeadingSettingField extends BaseSettingField {
     kind: 'heading';
 }
 
-export type SettingField = HeadingSettingField | ToggleSettingField | SliderSettingField;
+/** 動作按鈕：按下送出一個指令，不對應設定值。 */
+interface ActionSettingField extends BaseSettingField {
+    kind: 'action';
+    createCommand: () => UICommand;
+}
+
+export type SettingField = HeadingSettingField | ToggleSettingField | SliderSettingField | ActionSettingField;
 
 export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
     { id: 'headingDirector', label: '自動運鏡', kind: 'heading' },
@@ -113,7 +119,7 @@ export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
 export const ZONE_SETTINGS_SCHEMA: SettingField[] = [
     {
         id: 'zoneEnabled',
-        label: '大逃殺模式開關',
+        label: '縮圈開關',
         kind: 'toggle',
         createCommand: (enabled: boolean): UICommand => ({
             type: 'SET_ZONE_CONFIG',
@@ -159,4 +165,44 @@ export const ZONE_SETTINGS_SCHEMA: SettingField[] = [
             config: { minRadius },
         }),
     },
+];
+
+/** 遊戲玩法面板：開局陣營（下一局生效，按鈕立即重開）＋縮圈 */
+export const GAMEPLAY_SETTINGS_SCHEMA: SettingField[] = [
+    { id: 'headingFactions', label: '陣營', kind: 'heading' },
+    {
+        id: 'battleFactions',
+        label: '陣營數量',
+        kind: 'slider',
+        min: UI_SETTINGS.BATTLE_FACTIONS.min,
+        max: UI_SETTINGS.BATTLE_FACTIONS.max,
+        step: UI_SETTINGS.BATTLE_FACTIONS.step,
+        format: (val: number) => `${Math.round(val)} 個`,
+        createCommand: (factions: number): UICommand => ({
+            type: 'SET_BATTLE_SETUP',
+            setup: { factions },
+        }),
+    },
+    {
+        id: 'battleUnitsPerFaction',
+        label: '每陣營人數（1＝大逃殺）',
+        kind: 'slider',
+        min: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min,
+        max: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.max,
+        step: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.step,
+        format: (val: number) => `${Math.round(val)} 人`,
+        createCommand: (unitsPerFaction: number): UICommand => ({
+            type: 'SET_BATTLE_SETUP',
+            setup: { unitsPerFaction },
+        }),
+    },
+    {
+        id: 'battleApply',
+        label: '套用並重新開局',
+        description: '不按的話，下一局才換成新設定',
+        kind: 'action',
+        createCommand: (): UICommand => ({ type: 'APPLY_BATTLE_SETUP' }),
+    },
+    { id: 'headingZone', label: '縮圈', kind: 'heading' },
+    ...ZONE_SETTINGS_SCHEMA,
 ];

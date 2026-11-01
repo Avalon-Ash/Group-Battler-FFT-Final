@@ -4,7 +4,7 @@ import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
 import { VisualMath } from '../engine/math/VisualMath';
-import { Team, ToolType, Skill, Role, BodyTypeId, BattleMode } from '../types';
+import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup } from '../types';
 import { getFactionSkin } from '../data/units/factionSkin';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
@@ -30,7 +30,10 @@ interface GameCanvasProps {
     onSelect: (a: Agent | null) => void;
     winner: Team | null;
     winnerId?: string | null;
-    battleMode?: BattleMode;
+    /** 勝方單位的陣營（Allegiance side） */
+    winnerSide?: number | null;
+    /** 這一局的陣營設定：決定結算顯示陣營名、第幾陣營或最後倖存者 */
+    battleSetup?: BattleSetup;
     rematch: () => void;
     nextLevel: () => void;
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
@@ -39,7 +42,7 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, battleMode, rematch, nextLevel, transitionPhase, onOpenLogs 
+        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, transitionPhase, onOpenLogs 
     } = props;
     const isCompact = useCompactViewport();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -186,9 +189,11 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                         <div className={isCompact ? 'mb-3' : 'mb-6'}>
                             <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">戰鬥模擬演算結束</span>
                             <h2 className={`${isCompact ? 'text-3xl' : 'text-5xl md:text-6xl'} font-black tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]'}`}>
-                                {battleMode === 'ROYALE'
-                                    ? (winnerId ? `最後倖存者 (${winnerId})` : '最後倖存者')
-                                    : getFactionSkin(winner).name}
+                                {!battleSetup || battleSetup.factions === 2
+                                    ? getFactionSkin(winner).name
+                                    : battleSetup.unitsPerFaction === 1
+                                        ? (winnerId ? `最後倖存者 (${winnerId})` : '最後倖存者')
+                                        : `第 ${(winnerSide ?? 0) + 1} 陣營`}
                             </h2>
                             <h2 className={`${isCompact ? 'text-2xl' : 'text-4xl md:text-5xl'} font-black text-white tracking-widest mt-1 opacity-90`}>
                                 獲得勝利 (VICTORY)

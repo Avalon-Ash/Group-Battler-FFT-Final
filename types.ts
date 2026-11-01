@@ -250,8 +250,14 @@ export interface CameraImpact {
     targetId?: string;
 }
 
-/** 戰鬥模式：TEAMS＝雙陣營；ROYALE＝大逃殺（每個單位一個陣營，最後一人獲勝） */
-export type BattleMode = 'TEAMS' | 'ROYALE';
+/**
+ * 開局陣營設定：factions 個陣營、每陣營 unitsPerFaction 人（每陣營 1 人＝大逃殺）。
+ * 唯一寫入者 UICommandSystem（SET_BATTLE_SETUP）；下一次開局才生效，APPLY_BATTLE_SETUP 立即重開。
+ */
+export interface BattleSetup {
+    factions: number;
+    unitsPerFaction: number;
+}
 
 export interface EventMap {
     GAME_RESET: Record<string, never> | void;
@@ -268,6 +274,8 @@ export interface EventMap {
     WATCH_SIDE: { side: number | null };
     /** winnerId：最後倖存的單位（有人存活時才有）；大逃殺的結算畫面用它 */
     GAME_OVER: { winner: Team | null; winnerId?: string };
+    /** 只由 UICommandSystem 發出（APPLY_BATTLE_SETUP）；useGameApp 收到後依設定重新開局 */
+    BATTLE_SETUP_APPLY: BattleSetup;
     TILE_COLLAPSED: { q: number; r: number; worldX?: number; worldY?: number };
     ZONE_SHRUNK: { radius: number };
     LAST_STAND_TRIGGERED: { q: number; r: number };
@@ -288,6 +296,8 @@ export type UICommand =
     /** 鏡頭震動調整（DirectorSystem 的 ShakeDirector）。strength 0＝不震 */
     | { type: 'SET_SHAKE_TUNING'; strength?: number; offFocusScale?: number; maxTrauma?: number }
     | { type: 'SET_ZONE_CONFIG'; config: Partial<ZoneConfig> }
+    | { type: 'SET_BATTLE_SETUP'; setup: Partial<BattleSetup> }
+    | { type: 'APPLY_BATTLE_SETUP' }
     | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number; bodyType?: BodyTypeId }
     | { type: 'REBUILD_AGENT_AI'; agentId: string }
     /** 檢視器換技能槽（UnitStatusTab）；skillId null＝清空。開戰時 game.ts 依 skillIds 重建 skills */
