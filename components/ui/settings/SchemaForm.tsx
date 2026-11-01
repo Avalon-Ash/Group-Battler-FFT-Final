@@ -19,6 +19,19 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
         <div className={className}>
             {fields.map((field) => {
                 const val = values[field.id];
+                if (field.kind === 'heading') {
+                    return (
+                        <div
+                            key={field.id}
+                            data-testid={`setting-heading-${field.id}`}
+                            className="pt-2 first:pt-0 pb-1 border-b border-white/10 text-[11px] font-black uppercase tracking-widest"
+                            style={{ color: 'var(--token-literal-cyan400)' }}
+                        >
+                            {field.label}
+                        </div>
+                    );
+                }
+
                 if (field.kind === 'toggle') {
                     const toggleField = field as ToggleSettingField;
                     const checked = Boolean(val ?? false);

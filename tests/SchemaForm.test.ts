@@ -42,6 +42,18 @@ describe('settingsSchema SSOT (E4)', () => {
                 zoomStiffness: 2.5,
             });
         });
+
+        it('groups fields under headings: director first, shake last', () => {
+            const kinds = DIRECTOR_SETTINGS_SCHEMA.map((f) => `${f.kind}:${f.id}`);
+            expect(kinds[0]).toBe('heading:headingDirector');
+            const shakeAt = kinds.indexOf('heading:headingShake');
+            expect(shakeAt).toBeGreaterThan(0);
+            expect(DIRECTOR_SETTINGS_SCHEMA.slice(shakeAt + 1).map((f) => f.id)).toEqual([
+                'shakeStrength',
+                'shakeOffFocus',
+                'shakeMax',
+            ]);
+        });
     });
 
     describe('ZONE_SETTINGS_SCHEMA', () => {
