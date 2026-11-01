@@ -84,6 +84,8 @@ export const BACKGROUND_FX = {
     SCENE_FADE_S: 0.6,
     /** 轉場壓黑：OUT 時全畫面黑幕漸入、IN 時漸出的秒數（RenderPipeline 最上層） */
     BLACKOUT_FADE_S: 0.35,
+    /** 轉場黑幕顏色 */
+    BLACKOUT_COLOR: '#000000',
     /** 靜態背景快取參數（底色、星空、地平線接縫、暗角、山脈、沙丘、天河） */
     STATIC: {
         /** 基礎背景漸層色標位置（頂部 0 為 scene.background） */
