@@ -77,9 +77,10 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         onClick={(e) => { e.stopPropagation(); onToggleBattleMode?.(); }}
                         onPointerDown={(e) => e.stopPropagation()}
                         title="切換模式：雙陣營／大逃殺"
-                        className={`touch-target-icon w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 border ${battleMode === 'ROYALE' ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-200 border-amber-500/30 hover:border-amber-500/50' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5 hover:border-white/20'}`}
+                        className={`touch-target-icon h-8 px-2 gap-1 rounded-full flex items-center justify-center whitespace-nowrap text-[11px] font-bold transition-all active:scale-95 border ${battleMode === 'ROYALE' ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-200 border-amber-500/30 hover:border-amber-500/50' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5 hover:border-white/20'}`}
                     >
                         <Icons.RoleWarrior className="w-4 h-4" />
+                        <span>{battleMode === 'ROYALE' ? '大逃殺' : '雙陣營'}</span>
                     </button>
                 </div>
                 <div className={`h-8 w-px bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>

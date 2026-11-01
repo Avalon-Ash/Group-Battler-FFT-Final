@@ -115,9 +115,10 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
                                 onClick={(e) => { e.stopPropagation(); onToggleBattleMode(); }}
                                 onPointerDown={(e) => e.stopPropagation()}
                                 title="切換模式：雙陣營／大逃殺"
-                                className={`touch-target-icon ${isWideBar ? 'w-16 h-16' : 'w-14 h-14'} rounded-2xl flex items-center justify-center transition-all active:scale-95 border ${battleMode === 'ROYALE' ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-200 border-amber-500/30 hover:border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/10 hover:border-white/20'}`}
+                                className={`touch-target-icon ${isWideBar ? 'h-16 px-5' : 'h-14 px-4'} gap-2 rounded-2xl flex items-center justify-center whitespace-nowrap text-sm font-bold transition-all active:scale-95 border ${battleMode === 'ROYALE' ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-200 border-amber-500/30 hover:border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/10 hover:border-white/20'}`}
                             >
                                 <Icons.RoleWarrior className="w-6 h-6" />
+                                <span>{battleMode === 'ROYALE' ? '大逃殺' : '雙陣營'}</span>
                             </button>
                         )}
                         <button 
