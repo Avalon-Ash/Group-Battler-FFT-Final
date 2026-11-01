@@ -377,6 +377,7 @@
   },
   "BACKGROUND_FX": {
     "SCENE_FADE_S": 0.6,
+    "BLACKOUT_FADE_S": 0.35,
     "STATIC": {
       "BG_GRAD_FOG_STOP": 0.4,
       "BG_GRAD_HORIZON_STOP": 1,
@@ -1701,17 +1702,17 @@
     },
     "BATTLE_FACTIONS": {
       "min": 2,
-      "max": 8,
+      "max": 40,
       "default": 2,
       "step": 1
     },
     "BATTLE_UNITS_PER_FACTION": {
       "min": 1,
-      "max": 10,
+      "max": 40,
       "default": 5,
       "step": 1
     },
-    "BATTLE_MAX_UNITS": 20,
+    "BATTLE_MAX_UNITS": 40,
     "CAMERA_STIFFNESS": {
       "min": 0.1,
       "max": 20,

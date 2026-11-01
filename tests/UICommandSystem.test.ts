@@ -3,6 +3,9 @@ import { GameEngine } from '../engine/game';
 import { Role, Team } from '../types';
 import { UI_SETTINGS } from '../constants';
 import { Agent } from '../engine/core/Agent';
+import { querySpawnableHexes, queryHasObstacle } from '../engine/systems/ui/editorQueries';
+import { selectBattleSetupView } from '../engine/systems/ui/selectors';
+import { HexUtils } from '../engine/utils';
 
 describe('UICommandSystem', () => {
     let engine: GameEngine;
@@ -54,16 +57,38 @@ describe('UICommandSystem', () => {
     });
 
     describe('SET_BATTLE_SETUP / APPLY_BATTLE_SETUP', () => {
-        it('clamps factions and units per faction, and caps the total', () => {
-            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 99, unitsPerFaction: 0 } });
-            expect(engine.battleSetup).toEqual({
-                factions: UI_SETTINGS.BATTLE_FACTIONS.max,
-                unitsPerFaction: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min,
-            });
+        it('clamps to the pool: factions x units never exceed min(spawnable hexes - 1, BATTLE_MAX_UNITS)', () => {
+            const pool = Math.min(querySpawnableHexes(engine).length - 1, UI_SETTINGS.BATTLE_MAX_UNITS);
+            expect(pool).toBeGreaterThan(UI_SETTINGS.BATTLE_FACTIONS.min);
 
-            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 4, unitsPerFaction: 10 } });
-            expect(engine.battleSetup.factions).toBe(4);
-            expect(engine.battleSetup.unitsPerFaction).toBe(Math.floor(UI_SETTINGS.BATTLE_MAX_UNITS / 4));
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 999, unitsPerFaction: 0 } });
+            expect(engine.battleSetup).toEqual({ factions: pool, unitsPerFaction: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min });
+
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 4, unitsPerFaction: 999 } });
+            expect(engine.battleSetup).toEqual({ factions: 4, unitsPerFaction: Math.floor(pool / 4) });
+        });
+
+        it('spawnable hexes exclude obstacles and the outer ring', () => {
+            const hexes = querySpawnableHexes(engine);
+            const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
+            expect(hexes.length).toBeGreaterThan(0);
+            for (const h of hexes) {
+                expect(engine.mapKeys.has(`${h.q},${h.r}`)).toBe(true);
+                expect(queryHasObstacle(engine, h.q, h.r)).toBe(false);
+                expect(HexUtils.dist({ q: 0, r: 0 }, h)).toBeLessThan(radius);
+            }
+        });
+
+        it('selectBattleSetupView exposes the pool and the dynamic slider maxima', () => {
+            const pool = Math.min(querySpawnableHexes(engine).length - 1, UI_SETTINGS.BATTLE_MAX_UNITS);
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 3, unitsPerFaction: 2 } });
+            expect(selectBattleSetupView(engine)).toEqual({
+                factions: 3,
+                unitsPerFaction: 2,
+                pool,
+                maxFactions: pool,
+                maxUnitsPerFaction: Math.floor(pool / 3),
+            });
         });
 
         it('only changes the stored setup; APPLY emits it for the app to respawn', () => {

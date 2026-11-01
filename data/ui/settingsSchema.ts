@@ -21,6 +21,8 @@ export interface SliderSettingField extends BaseSettingField {
     max: number;
     step: number;
     format?: (val: number) => string;
+    /** 動態上限：取 values[maxValueId]（數字時）取代 max */
+    maxValueId?: string;
     createCommand: (val: number) => UICommand;
 }
 

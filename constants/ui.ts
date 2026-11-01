@@ -56,12 +56,12 @@ export const UI_SETTINGS = {
     ZONE_INITIAL_RADIUS: { min: 3, max: 20, default: 8, step: 1 },
     ZONE_SHRINK_INTERVAL: { min: 1, max: 60, default: 15, step: 1 },
     ZONE_MIN_RADIUS: { min: 0, max: 10, default: 1, step: 1 },
-    /** 開局陣營數（個） */
-    BATTLE_FACTIONS: { min: 2, max: 8, default: 2, step: 1 },
-    /** 每陣營人數（人）；1＝大逃殺 */
-    BATTLE_UNITS_PER_FACTION: { min: 1, max: 10, default: 5, step: 1 },
-    /** 開局總人數上限（人）；陣營多時壓低每陣營人數 */
-    BATTLE_MAX_UNITS: 20,
+    /** 開局陣營數（個）；實際上限另受總池限制（selectBattleSetupView.maxFactions） */
+    BATTLE_FACTIONS: { min: 2, max: 40, default: 2, step: 1 },
+    /** 每陣營人數（人）；1＝大逃殺；實際上限另受總池限制 */
+    BATTLE_UNITS_PER_FACTION: { min: 1, max: 40, default: 5, step: 1 },
+    /** 開局總人數硬上限（人，效能）；總池＝min(本張地圖可出生格數 − 1, 這個值) */
+    BATTLE_MAX_UNITS: 40,
     CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 0.25, zoomDefault: 0.2, step: 0.1, sliderMax: 5.0 },
     /** 鏡頭震動滑桿範圍（預設值在 SHAKE_DIRECTOR_PARAM） */
     SHAKE_STRENGTH: { min: 0, max: 1.5, step: 0.05 },
