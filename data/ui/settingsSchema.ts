@@ -1,7 +1,7 @@
 import { UI_SETTINGS } from '../../constants';
 import { UICommand } from '../../types';
 
-type SettingFieldKind = 'toggle' | 'slider';
+type SettingFieldKind = 'heading' | 'toggle' | 'slider';
 
 interface BaseSettingField {
     id: string;
@@ -24,9 +24,15 @@ export interface SliderSettingField extends BaseSettingField {
     createCommand: (val: number) => UICommand;
 }
 
-export type SettingField = ToggleSettingField | SliderSettingField;
+/** 分類抬頭：只顯示標題，不對應任何設定值。 */
+interface HeadingSettingField extends BaseSettingField {
+    kind: 'heading';
+}
+
+export type SettingField = HeadingSettingField | ToggleSettingField | SliderSettingField;
 
 export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
+    { id: 'headingDirector', label: '自動運鏡', kind: 'heading' },
     {
         id: 'directorEnabled',
         label: '自動運鏡狀態',
@@ -62,6 +68,7 @@ export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
             zoomStiffness,
         }),
     },
+    { id: 'headingShake', label: '鏡頭震動', kind: 'heading' },
     {
         id: 'shakeStrength',
         label: '鏡頭震動強度（0＝關）',
