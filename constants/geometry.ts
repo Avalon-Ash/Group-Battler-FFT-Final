@@ -108,6 +108,8 @@ export const GRID_SPATIAL = {
     PICK_HALF_HEIGHT_FACTOR: 0.6,
     /** 障礙物遮擋單位的垂直距離上限（像素）。 */
     OBSTACLE_OCCLUSION_Y_RANGE: 120,
+    /** 障礙物遮擋判定的水平距離（px，格心到單位） */
+    OBSTACLE_OCCLUSION_X_RANGE: 60,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

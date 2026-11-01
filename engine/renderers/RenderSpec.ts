@@ -261,6 +261,13 @@ export class RenderSpec {
         s += "Deduplication: for aoeRadius > 0, compare the telegraph target center (targetHex, otherwise target, otherwise caster; same source as CombatSystem) with caster q,r. If equal, omit the whole telegraph tint, preserving the existing caster-centered AOE ground indicator. Targeted AOE elsewhere retains its telegraph.\n";
         s += "Per-cell casting color: getFactionSkin(team).fallbackBodyColor; first caster in agents order wins overlap deterministically.\n\n";
 
+        s += "## 13. 遮擋剪影 (Occlusion Silhouette)\n\n";
+        s += "戰鬥中（engine.isRunning），被擋住的單位在世界層最後補畫一層白色剪影（UNIT_SPRITE.silhouetteAlpha），讓玩家看得到被擋住的部分。\n";
+        s += "- 判定：GridSpatial.getOcclusionSources——前方（格心螢幕 Y 較大）鄰格比單位腳下高出 UNIT_OCCLUSION.MIN_STEP；或障礙物在前方、水平 GRID_SPATIAL.OBSTACLE_OCCLUSION_X_RANGE、垂直 OBSTACLE_OCCLUSION_Y_RANGE 內。\n";
+        s += "- 裁切（SilhouetteMask）：剪影只畫在擋住它的東西上，不再整個疊在單位上（以前露在外面的身體也變灰白）。\n";
+        s += "  - 地塊：頂面中心＝本幀 TERRAIN op 的 snap(tx)、snap(ty) − th（含漂浮與轉場），外形＝頂面六角（HEX_SIZE）往下 SILHOUETTE_MASK.COLUMN_DEPTH 的凸包。\n";
+        s += "  - 障礙物：本幀 OBSTACLE op 的 snap 位置減 sprite 錨點；剪影先畫在暫存畫布，再用障礙物圖 destination-in，只留不透明像素。\n";
+        s += "- 座標一律取本幀 op，不自己重算高度或漂浮；判定寬鬆也不會讓露在外面的部分變色（裁切區和本體沒重疊就什麼都不畫）。\n\n";
         return s;
     }
 
