@@ -378,6 +378,7 @@
     "TRANSPARENT": "rgba(0, 0, 0, 0)"
   },
   "BACKGROUND_FX": {
+    "SCENE_FADE_S": 0.6,
     "STATIC": {
       "BG_GRAD_FOG_STOP": 0.4,
       "BG_GRAD_HORIZON_STOP": 1,

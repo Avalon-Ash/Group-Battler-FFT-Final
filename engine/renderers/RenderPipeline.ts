@@ -151,7 +151,7 @@ export class RenderPipeline {
         ctx.scale(dpr, dpr);
         // Background uses RealTime for ambient effects (stars, fog) even when game paused
         CtxOpCounter.track('background', () => {
-            this.background.draw(ctx, lW, lH, sc, cfg, realTime);
+            this.background.draw(ctx, lW, lH, sc, cfg, realTime, this.transitionPhase !== 'IDLE');
         });
         RenderStats.end('background');
         
