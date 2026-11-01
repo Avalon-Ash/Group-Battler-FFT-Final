@@ -9,6 +9,7 @@
 // ║  VFXRenderer 登記、RenderDispatcher 逐格繪製。             ║
 // ║  轉場進度 T：進場在 TRANSITION_IN_MS − SETTLE 走到 1，IDLE  ║
 // ║  邊界不跳變；進入 IN 時 TerrainRenderer.forgetTileHistory。 ║
+// ║  剪影只畫在擋住單位的地塊柱與障礙物上（SilhouetteMask，§13）。║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -20,7 +21,8 @@ import { TacticalRenderer } from "./tactical";
 import { HUDRenderer } from "./HUDRenderer";
 import { UnitFrameStore } from "./frame/UnitFrame";
 import { PostProcessor } from "./PostProcessor"; 
-import { RenderList, RenderOpType } from "./RenderList";
+import { RenderList, RenderOpType, type RenderOp } from "./RenderList";
+import { SilhouetteMask } from "./units/SilhouetteMask";
 import { GroundDrapeLayer } from "./GroundDrape";
 import { RenderDispatcher } from "./RenderDispatcher";
 import { VisualMath } from "../math/VisualMath";
@@ -72,8 +74,10 @@ export class RenderPipeline {
     private _floatT: number | null = null;
     
     // Scratch structures to eliminate per-frame allocations
-    private _scratchOccludedSet = new Set<Agent>();
-    private _scratchOccludedList: Agent[] = [];
+    /** 剪影 pass 的暫存：本幀 TERRAIN／OBSTACLE op 依格查找（key＝T/O 加 q,r） */
+    private _opByKey = new Map<string, RenderOp>();
+    private _tileOps: RenderOp[] = [];
+    private _obstacleOps: RenderOp[] = [];
     private _viewportScratch: { width: number; height: number; camera: Camera } = {
         width: 0,
         height: 0,
@@ -274,36 +278,29 @@ export class RenderPipeline {
         // [FIX] 編輯模式（isRunning === false）下禁用 silhouette pass：
         // 地形高度被拖拉改變時，遮擋偵測會誤判，產生幽靈梯形。
         // Silhouette 只在戰鬥進行中有意義。
+        // 剪影只畫在擋住單位的東西上（SilhouetteMask，RenderSpec §13）：前方高地塊柱、障礙物不透明像素。
+        // 位置取本幀已排好的 TERRAIN／OBSTACLE op，和實際畫出來的地塊、障礙物同一個座標。
         if (engine.isRunning) {
-            const occluded = this.renderer.grid.getOccludedAgents(engine);
-            const obstacleOccluded = this.renderer.grid.getObstacleOccludedAgents(engine);
-
-            this._scratchOccludedSet.clear();
-            this._scratchOccludedList.length = 0;
-
-            for (let i = 0; i < occluded.length; i++) {
-                const a = occluded[i];
-                if (!this._scratchOccludedSet.has(a)) {
-                    this._scratchOccludedSet.add(a);
-                    this._scratchOccludedList.push(a);
-                }
-            }
-            for (let i = 0; i < obstacleOccluded.length; i++) {
-                const a = obstacleOccluded[i];
-                if (!this._scratchOccludedSet.has(a)) {
-                    this._scratchOccludedSet.add(a);
-                    this._scratchOccludedList.push(a);
-                }
-            }
-
-            if (this._scratchOccludedList.length > 0) {
+            const sources = this.renderer.grid.getOcclusionSources(engine);
+            if (sources.length > 0) {
                 CtxOpCounter.track('silhouette', () => {
-                    ctx.save();
-                    for (let i = 0; i < this._scratchOccludedList.length; i++) {
-                        const frame = this.frames.get(this._scratchOccludedList[i]);
-                        if (frame) this.renderer.unit.drawSilhouette(ctx, frame, t, engine.mapConfig.layout);
+                    this._opByKey.clear();
+                    for (let i = 0; i < this.renderList.count; i++) {
+                        const op = this.renderList.ops[i];
+                        if (op.type === RenderOpType.TERRAIN) this._opByKey.set(`T${op.tq},${op.tr}`, op);
+                        else if (op.type === RenderOpType.OBSTACLE) this._opByKey.set(`O${op.tq},${op.tr}`, op);
                     }
-                    ctx.restore();
+                    const layout = engine.mapConfig.layout;
+                    for (const src of sources) {
+                        const frame = this.frames.get(src.agent);
+                        if (!frame) continue;
+                        this._tileOps.length = 0;
+                        this._obstacleOps.length = 0;
+                        for (const k of src.tiles) { const op = this._opByKey.get(`T${k}`); if (op) this._tileOps.push(op); }
+                        for (const k of src.obstacles) { const op = this._opByKey.get(`O${k}`); if (op) this._obstacleOps.push(op); }
+                        SilhouetteMask.draw(ctx, this._tileOps, this._obstacleOps, layout, t,
+                            (c) => this.renderer.unit.drawSilhouette(c, frame, t, layout));
+                    }
                 });
             }
         }

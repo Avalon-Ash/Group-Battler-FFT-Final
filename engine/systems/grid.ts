@@ -6,7 +6,7 @@
 
 import { GameEngine, Agent } from "../game";
 import { Hex, HexSpatialLookup } from "../../types";
-import { GridSpatial } from "./grid/GridSpatial";
+import { GridSpatial, type OcclusionSource } from "./grid/GridSpatial";
 
 export class GridSystem {
     public spatialCache?: HexSpatialLookup;
@@ -29,5 +29,9 @@ export class GridSystem {
 
     public getObstacleOccludedAgents(engine: GameEngine): Agent[] {
         return GridSpatial.getObstacleOccludedAgents(engine);
+    }
+
+    public getOcclusionSources(engine: GameEngine): OcclusionSource[] {
+        return GridSpatial.getOcclusionSources(engine);
     }
 }

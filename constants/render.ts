@@ -349,3 +349,12 @@ export const CAMERA_SHAKE_PARAM = {
     /** Y 軸相位偏移（rad），讓兩軸不同步 */
     PHASE_Y: 1.3,
 } as const;
+
+/**
+ * 遮擋剪影的裁切（engine/renderers/units/SilhouetteMask.ts，RenderSpec §13）：剪影只畫在擋住單位的東西上。
+ * 地塊＝頂面六角（半徑 HEX_SIZE）往下延伸 COLUMN_DEPTH 的凸包；障礙物＝該障礙物圖的不透明像素。
+ */
+export const SILHOUETTE_MASK = {
+    /** 地塊柱往下延伸的深度（px），要大於任何單位的螢幕高度 */
+    COLUMN_DEPTH: 400,
+} as const;
