@@ -10,6 +10,7 @@
 // ║  轉場進度 T：進場在 TRANSITION_IN_MS − SETTLE 走到 1，IDLE  ║
 // ║  邊界不跳變；進入 IN 時 TerrainRenderer.forgetTileHistory。 ║
 // ║  剪影只畫在擋住單位的地塊柱與障礙物上（SilhouetteMask，§13）。║
+// ║  轉場黑幕：最上層、只在轉場中（OUT 漸黑、IN 漸亮）。         ║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -36,7 +37,7 @@ import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { UltWorldRenderer } from "./ult/UltWorldRenderer";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
-import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM, RENDER_PIPELINE_PARAM } from "../../constants";
+import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM, RENDER_PIPELINE_PARAM, BACKGROUND_FX } from "../../constants";
 
 let allAssetsReady = typeof Image === 'undefined';
 
@@ -87,6 +88,8 @@ export class RenderPipeline {
     // Transition State managed internally (SSOT)
     private transitionT: number = 0;
     private transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE';
+    /** 轉場黑幕不透明度 0～1：OUT 往 1、其他往 0，速度 1/BLACKOUT_FADE_S（唯一寫入者 update） */
+    private blackout = 0;
     private lastDt: number = RENDER_PIPELINE_PARAM.INITIAL_DT_S;
 
     constructor(renderer: GameRenderer) { 
@@ -121,6 +124,12 @@ export class RenderPipeline {
         } else {
             this.transitionT = 0;
         }
+
+        const blackoutTarget = this.transitionPhase === 'OUT' ? 1 : 0;
+        const blackoutStep = dt / BACKGROUND_FX.BLACKOUT_FADE_S;
+        this.blackout = blackoutTarget > this.blackout
+            ? Math.min(blackoutTarget, this.blackout + blackoutStep)
+            : Math.max(blackoutTarget, this.blackout - blackoutStep);
     }
 
     public draw(rawCtx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
@@ -211,6 +220,16 @@ export class RenderPipeline {
         if (this.transitionPhase === 'OUT') blur = 1.0; 
         else if (this.transitionPhase === 'IN') blur = 1.0 - this.transitionT;
         if (blur > 0) this.post.applyFinishBlur(ctx, pW, pH, Math.max(0, Math.min(1, blur)));
+
+        // 6. 轉場黑幕（最上層、只在轉場中）：OUT 漸黑、IN 漸亮，換場景的色相跳動藏在黑底下
+        if (this.blackout > 0) {
+            ctx.save();
+            ctx.resetTransform();
+            ctx.globalAlpha = this.blackout;
+            ctx.fillStyle = BACKGROUND_FX.BLACKOUT_COLOR;
+            ctx.fillRect(0, 0, pW, pH);
+            ctx.restore();
+        }
 
         if (CtxOpCounter.enabled) {
             CtxOpCounter.drawDebug(ctx);

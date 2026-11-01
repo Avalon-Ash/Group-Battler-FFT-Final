@@ -39,6 +39,7 @@ export class RenderSpec {
         s += "| CORPSE           | 48       | 死亡單位（擊飛、淡出） |\n";
         s += "| VFX (air)        | 50       | 空中特效，套 z-boost |\n";
         s += "| PROJECTILE       | 50       | 投射物，套同一套 z-boost |\n\n";
+        s += "RenderList 之外的螢幕層（RenderPipeline.draw 尾端，依序）：後製模糊 → 轉場黑幕（只在轉場中，OUT 漸黑、IN 漸亮，BACKGROUND_FX.BLACKOUT_FADE_S）。\n\n";
 
         s += "--- \n\n";
 

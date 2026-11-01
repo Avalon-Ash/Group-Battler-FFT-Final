@@ -6,6 +6,7 @@ import { SCENE_DB } from '../../../data/scenes';
 import { AgentManager } from '../agentManager';
 import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
+import { querySpawnableHexes } from './editorQueries';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
@@ -86,17 +87,21 @@ export class UICommandSystem {
             case 'SET_BATTLE_SETUP': {
                 if (!cmd.setup || typeof cmd.setup !== 'object') break;
                 const setup = this.engine.battleSetup;
+                const pool = Math.min(querySpawnableHexes(this.engine).length - 1, UI_SETTINGS.BATTLE_MAX_UNITS);
                 if (isFiniteNumber(cmd.setup.factions)) {
-                    setup.factions = clampToRange(Math.round(cmd.setup.factions), UI_SETTINGS.BATTLE_FACTIONS);
+                    setup.factions = Math.round(cmd.setup.factions);
                 }
+                setup.factions = clampToRange(setup.factions, {
+                    min: UI_SETTINGS.BATTLE_FACTIONS.min,
+                    max: Math.max(UI_SETTINGS.BATTLE_FACTIONS.min, pool),
+                });
                 if (isFiniteNumber(cmd.setup.unitsPerFaction)) {
-                    setup.unitsPerFaction = clampToRange(Math.round(cmd.setup.unitsPerFaction), UI_SETTINGS.BATTLE_UNITS_PER_FACTION);
+                    setup.unitsPerFaction = Math.round(cmd.setup.unitsPerFaction);
                 }
-                // 總人數上限：陣營多時壓低每陣營人數
-                setup.unitsPerFaction = Math.min(
-                    setup.unitsPerFaction,
-                    Math.max(UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min, Math.floor(UI_SETTINGS.BATTLE_MAX_UNITS / setup.factions))
-                );
+                setup.unitsPerFaction = clampToRange(setup.unitsPerFaction, {
+                    min: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min,
+                    max: Math.max(UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min, Math.floor(pool / setup.factions)),
+                });
                 break;
             }
 

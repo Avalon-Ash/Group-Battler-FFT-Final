@@ -10,6 +10,15 @@ import {
 import { Skill, Team, AIState, ActionState, BattleSetup } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
 import { displayAiState } from '../../core/AgentDerived';
+import { querySpawnableHexes } from './editorQueries';
+
+export interface BattleSetupView {
+    readonly factions: number;
+    readonly unitsPerFaction: number;
+    readonly pool: number;
+    readonly maxFactions: number;
+    readonly maxUnitsPerFaction: number;
+}
 
 export interface ShakeTuningView {
     readonly strength: number;
@@ -37,7 +46,7 @@ let prevCameraTuningView: CameraTuningView | null = null;
 let prevLogView: LogView | null = null;
 let prevPlaybackView: GamePlaybackView | null = null;
 let prevShakeTuningView: ShakeTuningView | null = null;
-let prevBattleSetupView: Readonly<BattleSetup> | null = null;
+let prevBattleSetupView: BattleSetupView | null = null;
 
 /**
  * Resets selector memoization caches. Primarily used in unit tests.
@@ -250,16 +259,31 @@ export function selectShakeTuningView(engine: GameEngine): ShakeTuningView {
 /**
  * Returns a stable read-only snapshot of the battle setup (factions × units per faction).
  */
-export function selectBattleSetupView(engine: GameEngine): Readonly<BattleSetup> {
+export function selectBattleSetupView(engine: GameEngine): BattleSetupView {
     const { factions, unitsPerFaction } = engine.battleSetup;
+    const pool = Math.min(querySpawnableHexes(engine).length - 1, UI_SETTINGS.BATTLE_MAX_UNITS);
+    const maxFactions = Math.max(UI_SETTINGS.BATTLE_FACTIONS.min, pool);
+    const maxUnitsPerFaction = Math.max(
+        UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min,
+        Math.floor(pool / factions)
+    );
     if (
         prevBattleSetupView &&
         prevBattleSetupView.factions === factions &&
-        prevBattleSetupView.unitsPerFaction === unitsPerFaction
+        prevBattleSetupView.unitsPerFaction === unitsPerFaction &&
+        prevBattleSetupView.pool === pool &&
+        prevBattleSetupView.maxFactions === maxFactions &&
+        prevBattleSetupView.maxUnitsPerFaction === maxUnitsPerFaction
     ) {
         return prevBattleSetupView;
     }
-    const next = { factions, unitsPerFaction };
+    const next: BattleSetupView = {
+        factions,
+        unitsPerFaction,
+        pool,
+        maxFactions,
+        maxUnitsPerFaction,
+    };
     prevBattleSetupView = next;
     return next;
 }

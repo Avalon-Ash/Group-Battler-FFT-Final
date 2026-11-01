@@ -57,6 +57,8 @@ export function useGameplaySettingsValues(engine?: GameEngine) {
             minRadius: zoneView?.minRadius ?? UI_SETTINGS.ZONE_MIN_RADIUS.default,
             battleFactions: setupView?.factions ?? UI_SETTINGS.BATTLE_FACTIONS.default,
             battleUnitsPerFaction: setupView?.unitsPerFaction ?? UI_SETTINGS.BATTLE_UNITS_PER_FACTION.default,
+            battleFactionsMax: setupView?.maxFactions,
+            battleUnitsMax: setupView?.maxUnitsPerFaction,
         }),
         [
             zoneView?.enabled,
@@ -65,6 +67,8 @@ export function useGameplaySettingsValues(engine?: GameEngine) {
             zoneView?.minRadius,
             setupView?.factions,
             setupView?.unitsPerFaction,
+            setupView?.maxFactions,
+            setupView?.maxUnitsPerFaction,
         ]
     );
 }

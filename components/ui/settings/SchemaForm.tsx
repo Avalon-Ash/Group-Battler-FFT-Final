@@ -69,6 +69,10 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                 if (field.kind === 'slider') {
                     const sliderField = field as SliderSettingField;
                     const numVal = typeof val === 'number' ? val : sliderField.min;
+                    const dynamicMax =
+                        sliderField.maxValueId && typeof values[sliderField.maxValueId] === 'number'
+                            ? (values[sliderField.maxValueId] as number)
+                            : sliderField.max;
                     const displayVal = sliderField.format
                         ? sliderField.format(numVal)
                         : String(numVal);
@@ -84,7 +88,7 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                             <input
                                 type="range"
                                 min={sliderField.min}
-                                max={sliderField.max}
+                                max={dynamicMax}
                                 step={sliderField.step}
                                 value={numVal}
                                 data-testid={`setting-slider-${field.id}`}

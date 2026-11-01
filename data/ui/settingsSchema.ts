@@ -178,6 +178,7 @@ export const GAMEPLAY_SETTINGS_SCHEMA: SettingField[] = [
         kind: 'slider',
         min: UI_SETTINGS.BATTLE_FACTIONS.min,
         max: UI_SETTINGS.BATTLE_FACTIONS.max,
+        maxValueId: 'battleFactionsMax',
         step: UI_SETTINGS.BATTLE_FACTIONS.step,
         format: (val: number) => `${Math.round(val)} 個`,
         createCommand: (factions: number): UICommand => ({
@@ -191,6 +192,7 @@ export const GAMEPLAY_SETTINGS_SCHEMA: SettingField[] = [
         kind: 'slider',
         min: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.min,
         max: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.max,
+        maxValueId: 'battleUnitsMax',
         step: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.step,
         format: (val: number) => `${Math.round(val)} 人`,
         createCommand: (unitsPerFaction: number): UICommand => ({

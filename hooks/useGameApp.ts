@@ -6,7 +6,7 @@ import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
 import { random } from '../engine/math/rng';
-import { queryMapKeys, queryHasObstacle } from '../engine/systems/ui/editorQueries';
+import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 
@@ -140,18 +140,8 @@ export const useGameApp = () => {
 
     const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
-        const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
-
-        // Find valid spawnable hexes (not blocked, not extreme edge)
-        const validHexes: HexCoord[] = queryMapKeys(engine).map((k: string) => {
-            const [q, r] = k.split(',').map(Number);
-            return {q, r};
-        }).filter(hex => {
-            if (queryHasObstacle(engine, hex.q, hex.r)) return false;
-            // Don't spawn on the extreme outer edge
-            const dist = HexUtils.dist({q:0, r:0}, hex);
-            return dist < radius;
-        });
+        // 可出生格：不含障礙物與最外圈（與面板總池同一份判定）
+        const validHexes: HexCoord[] = querySpawnableHexes(engine);
 
         const shuffle = <T,>(array: T[]) => {
             for (let i = array.length - 1; i > 0; i--) {
@@ -160,7 +150,14 @@ export const useGameApp = () => {
             }
         };
 
-        if (rosterRef.current.length === 0) planShowcaseRoster();
+        // 依這張地圖的總池重新夾一次陣營設定；和規劃好的陣容不同就重新規劃
+        engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { ...engine.battleSetup } });
+        const planned = plannedSetupRef.current;
+        if (rosterRef.current.length === 0
+            || planned.factions !== engine.battleSetup.factions
+            || planned.unitsPerFaction !== engine.battleSetup.unitsPerFaction) {
+            planShowcaseRoster();
+        }
         const setup = plannedSetupRef.current;
         const slotsOf = (side: number) => rosterRef.current.filter(s => s.side === side);
         const place = (slot: ShowcaseSlot, hex: HexCoord, side?: number) => {

@@ -97,6 +97,24 @@ export function queryMapKeys(engine: GameEngine | null | undefined): string[] {
 }
 
 /**
+ * Returns an array of hex coordinates where units can spawn.
+ * Excludes tiles with obstacles and tiles on the extreme outer edge.
+ */
+export function querySpawnableHexes(engine: GameEngine): { q: number; r: number }[] {
+    if (!engine) return [];
+    const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
+    return queryMapKeys(engine)
+        .map((k: string) => {
+            const [q, r] = k.split(',').map(Number);
+            return { q, r };
+        })
+        .filter((hex) => {
+            if (queryHasObstacle(engine, hex.q, hex.r)) return false;
+            return HexUtils.dist({ q: 0, r: 0 }, hex) < radius;
+        });
+}
+
+/**
  * Converts screen/pointer coordinates into the corresponding Hex using Camera and GridCache.
  */
 export function queryHexAtScreenPoint(
