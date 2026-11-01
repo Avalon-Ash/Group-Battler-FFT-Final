@@ -219,8 +219,8 @@ export class DirectorSystem {
     private _buildTargetGroup(engine: GameEngine, priorityId: string | null): { x: number, y: number, zoom: number } | null {
         this.targetGroup.clear();
 
-        // 優先度 0: 強制焦點 (priorityId)
-        if (engine.state.director.priorityTimer > 0 && priorityId) {
+        // 優先度 0: 導播目標（主角）永遠是群組成員、權重最高；下面各層的人再加進來
+        if (priorityId) {
             const focal = engine.agents.find(a => a.id === priorityId && a.hp > 0);
             if (focal) {
                 this.targetGroup.add(focal.px + focal.physics.x, this._agentVisualY(focal), 2.0, 100);
