@@ -1,9 +1,9 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ai-idle-sim — AI 發呆與大逃殺勝率量測工具                 ║
 // ║  用法：node tools/balance/ai-idle-sim.mjs                 ║
-// ║        --scenario=TEAMS|MELEE|ROYALE|MELEE_ROYALE        ║
+// ║        --scenario=TEAMS|MELEE|ROYALE|MELEE_ROYALE|TANK_ROYALE ║
 // ║        [--battles=200] [--seed=1] [--maxTime=180]        ║
-// ║        [--dt=0.0333] [--hp=game|role]                    ║
+// ║        [--dt=0.0333] [--loadout=role|mixed|mixedAll]     ║
 // ║        [--out=tools/ui-e2e/out/ai-idle-<scenario>.json]   ║
 // ║  做法：Vite ssrLoadModule 載入引擎（Node，無渲染），       ║
 // ║  每 tick 後分類單位狀態（busy/moving/waitInRange/發呆原因），║
@@ -20,8 +20,8 @@ const arg = (n, d) => {
 };
 
 const scenario = arg('scenario');
-if (!scenario || !['TEAMS', 'MELEE', 'ROYALE', 'MELEE_ROYALE'].includes(scenario)) {
-    console.error(`Error: --scenario must be one of TEAMS, MELEE, ROYALE, MELEE_ROYALE (got: ${scenario})`);
+if (!scenario || !['TEAMS', 'MELEE', 'ROYALE', 'MELEE_ROYALE', 'TANK_ROYALE'].includes(scenario)) {
+    console.error(`Error: --scenario must be one of TEAMS, MELEE, ROYALE, MELEE_ROYALE, TANK_ROYALE (got: ${scenario})`);
     process.exit(1);
 }
 
@@ -30,8 +30,10 @@ const SEED = Number(arg('seed', 1));
 const MAX_TIME = Number(arg('maxTime', 180));
 const DT = Number(arg('dt', 0.0333));
 const OUT = arg('out', `tools/ui-e2e/out/ai-idle-${scenario}.json`);
-// game＝和 useGameApp 開局相同（SPAWN_HP_MIN＋隨機幅度，蓋掉職業血量）；role＝用職業預設血量
-const HP_MODE = arg('hp', 'game');
+// role＝照職業抽技能；mixed＝大招、主動從全部職業與陣營抽，普攻照職業；mixedAll＝三格都混
+const LOADOUT = arg('loadout', 'role');
+// 血量差壓縮：1＝職業血量；0.5＝差距減半；0＝全部同血（五職業平均）
+const HP_SCALE = Number(arg('hpScale', 1));
 
 const server = await createServer({
     root: process.cwd(),
@@ -43,15 +45,37 @@ const server = await createServer({
 try {
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
-    const { Team, Role, ActionState } = await server.ssrLoadModule('/types.ts');
+    const { Team, Role, ActionState, AIState } = await server.ssrLoadModule('/types.ts');
     const { HexUtils } = await server.ssrLoadModule('/engine/utils.ts');
     const { COMBAT_PARAM } = await server.ssrLoadModule('/constants.ts');
     const { isGroundMeleeRange, isMeleeAttackCell } = await server.ssrLoadModule('/engine/ai/MeleeAttack.ts');
     const { querySpawnableHexes, layoutFactionHexes } = await server.ssrLoadModule('/engine/systems/ui/editorQueries.ts');
     const { random } = await server.ssrLoadModule('/engine/math/rng.ts');
-    const { GAME_APP_PARAM } = await server.ssrLoadModule('/constants.ts');
-    const spawnHp = () => (HP_MODE === 'game' ? GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE : undefined);
+    const { Pathfinder } = await server.ssrLoadModule('/engine/ai/Pathfinder.ts');
+    const { HEX_SIZE } = await server.ssrLoadModule('/constants.ts');
+    const { DEFAULT_SKILL_DB } = await server.ssrLoadModule('/skillDatabase.ts');
     const winsByTeamRole = {};
+    const streaks = { over1: 0, over3: 0, over3ByReason: {} };
+    const END_PHASE_TILES = 19;
+    const skillPicks = {};
+    const skillWins = {};
+    const pickFrom = (tag) => {
+        const pool = DEFAULT_SKILL_DB.filter((s) => s.tag === tag);
+        return pool[Math.floor(random() * pool.length)].id;
+    };
+    // 額外指標：路徑重算、換目標、繞圈（3 秒內走了 3 格以上、淨位移不到 1 格）、過早逃離、終局
+    const CIRCLE_WINDOW_S = 3;
+    const CELL_PX = HEX_SIZE * 1.5;
+    const EARLY_ESCAPE_S = 3;
+    const extra = {};
+    const extraOf = (role) => (extra[role] ??= { pathCalls: 0, targetSwitches: 0, circlingSec: 0, evadeSec: 0, evadeEarlySec: 0, attackSec: 0 });
+    const finalStage = { battles: 0, lastStandBattles: 0, startTiles: 0, startAlive: 0, sec: 0, attack: 0, evade: 0, moving: 0, wait: 0, idle: 0, endTilesSum: 0 };
+    let curEngine = null;
+    const origFindPath = Pathfinder.prototype.findPath;
+    Pathfinder.prototype.findPath = function (startAgent, ...rest) {
+        if (curEngine && this === curEngine.movement.pathfinder) extraOf(startAgent.role).pathCalls++;
+        return origFindPath.call(this, startAgent, ...rest);
+    };
 
     const shuffle = (arr) => {
         for (let i = arr.length - 1; i > 0; i--) {
@@ -61,6 +85,15 @@ try {
             arr[j] = tmp;
         }
         return arr;
+    };
+
+    // 「其他」再細分：擠在路上走不動、施法後硬直、逃生冷卻、行為樹落到 Idle
+    const otherReason = (a) => {
+        if (a.isMoving) return 'moveBlocked';
+        if (a._castCompleteCooldown > 0 || a._interruptCooldown > 0) return 'afterCast';
+        if (a.escapeCooldown > 0) return 'escapeCooldown';
+        if (a.aiState === AIState.IDLE) return 'idleNode';
+        return 'other';
     };
 
     const rolesList = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
@@ -130,6 +163,11 @@ try {
             }
         }
         const dur = +s.duration.toFixed(2);
+        if (dur >= 1) streaks.over1++;
+        if (dur >= 3) {
+            streaks.over3++;
+            streaks.over3ByReason[dominantReason] = (streaks.over3ByReason[dominantReason] ?? 0) + 1;
+        }
         allIdleStreaks.push({
             battle: battleIndex,
             agentId: s.agentId,
@@ -164,8 +202,8 @@ try {
             shuffle(left);
             shuffle(right);
             for (let i = 0; i < 5; i++) {
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', hp: spawnHp(), team: Team.BLUE, q: left[i].q, r: left[i].r, role: rolesList[i] });
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', hp: spawnHp(), team: Team.RED, q: right[i].q, r: right[i].r, role: rolesList[i] });
+                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.BLUE, q: left[i].q, r: left[i].r, role: rolesList[i] });
+                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.RED, q: right[i].q, r: right[i].r, role: rolesList[i] });
             }
         } else if (scenario === 'MELEE') {
             const left = spawnable.filter((h) => h.q < -1);
@@ -176,8 +214,8 @@ try {
             shuffle(left);
             shuffle(right);
             for (let i = 0; i < 5; i++) {
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', hp: spawnHp(), team: Team.BLUE, q: left[i].q, r: left[i].r, role: Role.WARRIOR });
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', hp: spawnHp(), team: Team.RED, q: right[i].q, r: right[i].r, role: Role.WARRIOR });
+                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.BLUE, q: left[i].q, r: left[i].r, role: Role.WARRIOR });
+                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.RED, q: right[i].q, r: right[i].r, role: Role.WARRIOR });
             }
         } else if (scenario === 'ROYALE') {
             const shuffledHexes = shuffle([...spawnable]);
@@ -190,19 +228,38 @@ try {
                 const hex = layout[i]?.[0];
                 if (!hex) throw new Error(`Battle ${b}: Faction ${i} missing spawn hex`);
                 const team = (i % 2 === 0) ? Team.BLUE : Team.RED;
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', hp: spawnHp(), team, side: i, q: hex.q, r: hex.r, role: royaleRoles[i] });
+                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team, side: i, q: hex.q, r: hex.r, role: royaleRoles[i] });
             }
-        } else if (scenario === 'MELEE_ROYALE') {
+        } else if (scenario === 'MELEE_ROYALE' || scenario === 'TANK_ROYALE') {
             const shuffledHexes = shuffle([...spawnable]);
             const layout = layoutFactionHexes(shuffledHexes, 10, 1);
             for (let i = 0; i < 10; i++) {
                 const hex = layout[i]?.[0];
                 if (!hex) throw new Error(`Battle ${b}: Faction ${i} missing spawn hex`);
                 const team = (i % 2 === 0) ? Team.BLUE : Team.RED;
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', hp: spawnHp(), team, side: i, q: hex.q, r: hex.r, role: Role.WARRIOR });
+                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team, side: i, q: hex.q, r: hex.r, role: scenario === 'TANK_ROYALE' ? Role.TANK : Role.WARRIOR });
             }
         }
 
+        if (HP_SCALE !== 1) {
+            const roleHps = engine.agents.map((a) => a.maxHp);
+            const mean = roleHps.reduce((x, y) => x + y, 0) / roleHps.length;
+            for (const a of engine.agents) {
+                a.maxHp = Math.round(mean + (a.maxHp - mean) * HP_SCALE);
+                a.hp = a.maxHp;
+            }
+        }
+        if (LOADOUT !== 'role') {
+            for (const a of engine.agents) {
+                engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: a.id, slot: 0, skillId: pickFrom('ULT') });
+                engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: a.id, slot: 1, skillId: pickFrom('ACTIVE') });
+                if (LOADOUT === 'mixedAll') engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: a.id, slot: 2, skillId: pickFrom('BASIC') });
+            }
+        }
+        curEngine = engine;
+        const history = new Map();
+        const lastTarget = new Map();
+        let finalSeen = false;
         const lineup = engine.agents.map((a) => ({
             id: a.id,
             team: a.team,
@@ -242,6 +299,13 @@ try {
         engine.bus.on('KILL', onKill);
 
         engine.play();
+        for (const a of engine.agents) {
+            if (a.skills.map((s) => s?.id ?? null).join() !== a.skillIds.join()) {
+                console.error(`Loadout not applied on ${a.id}`);
+                process.exit(1);
+            }
+            for (const id of a.skillIds) if (id) skillPicks[id] = (skillPicks[id] ?? 0) + 1;
+        }
         let t = 0;
 
         while (gameOverWinner === null && t < MAX_TIME) {
@@ -253,6 +317,14 @@ try {
             if (engine.victory.isFinishing) continue;
 
             const alive = engine.agents.filter((a) => a.hp > 0 && !a.outOfBounds && !a.banished);
+            const zones = engine.zones;
+            const inFinalStage = engine.zoneConfig.enabled && engine.map.mapKeys.size <= END_PHASE_TILES;
+            if (inFinalStage && !finalSeen) {
+                finalSeen = true;
+                finalStage.battles++;
+                finalStage.startTiles += engine.map.mapKeys.size;
+                finalStage.startAlive += alive.length;
+            }
 
             for (const a of alive) {
                 const rs = roleStats[a.role];
@@ -269,6 +341,32 @@ try {
                     a.actionState === ActionState.STUNNED ||
                     a.actionState === ActionState.EVADING
                 );
+
+                const ex = extraOf(a.role);
+                const tid = a.target?.id ?? null;
+                const prevTid = lastTarget.get(a.id) ?? null;
+                if (tid && prevTid && tid !== prevTid) ex.targetSwitches++;
+                if (tid) lastTarget.set(a.id, tid);
+                if (a.actionState === ActionState.EVADING) {
+                    ex.evadeSec += DT;
+                    if (zones.shrinkTimer > EARLY_ESCAPE_S && engine.isWarningTile(HexUtils.key(a))) ex.evadeEarlySec += DT;
+                } else if (isBusy) {
+                    ex.attackSec += DT;
+                }
+                const hist = history.get(a.id) ?? { pts: [], walked: 0 };
+                history.set(a.id, hist);
+                const lastPt = hist.pts[hist.pts.length - 1];
+                if (lastPt) hist.walked += Math.hypot(a.px - lastPt.px, a.py - lastPt.py);
+                hist.pts.push({ t, px: a.px, py: a.py });
+                while (hist.pts.length > 1 && t - hist.pts[0].t > CIRCLE_WINDOW_S) {
+                    const [p0, p1] = hist.pts;
+                    hist.walked -= Math.hypot(p1.px - p0.px, p1.py - p0.py);
+                    hist.pts.shift();
+                }
+                if (t - hist.pts[0].t >= CIRCLE_WINDOW_S - DT * 2 && hist.walked >= CELL_PX * 3 &&
+                    Math.hypot(a.px - hist.pts[0].px, a.py - hist.pts[0].py) < CELL_PX) {
+                    ex.circlingSec += DT;
+                }
 
                 let cat = 'idle';
                 let idleReason = 'other';
@@ -325,17 +423,25 @@ try {
                                         if (allTaken) {
                                             idleReason = 'cellsTaken';
                                         } else {
-                                            idleReason = 'other';
+                                            idleReason = otherReason(a);
                                         }
                                     }
                                 } else {
-                                    idleReason = 'other';
+                                    idleReason = otherReason(a);
                                 }
                             }
                         }
                     }
                 }
 
+                if (inFinalStage) {
+                    finalStage.sec += DT;
+                    if (a.actionState === ActionState.EVADING) finalStage.evade += DT;
+                    else if (cat === 'busy') finalStage.attack += DT;
+                    else if (cat === 'moving') finalStage.moving += DT;
+                    else if (cat === 'waitInRange') finalStage.wait += DT;
+                    else finalStage.idle += DT;
+                }
                 if (cat === 'busy') {
                     rs.busySec += DT;
                 } else if (cat === 'moving') {
@@ -396,6 +502,9 @@ try {
         }
 
         curMatch.active = false;
+        curEngine = null;
+        if (engine.state.isLastStand) finalStage.lastStandBattles++;
+        finalStage.endTilesSum += engine.map.mapKeys.size;
         engine.bus.off('GAME_OVER', onGameOver);
         engine.bus.off('KILL', onKill);
 
@@ -412,7 +521,7 @@ try {
         } else if (gameOverWinner === 'DRAW' || (gameOverWinner === null && gameOverWinnerId === null)) {
             draws++;
         } else {
-            if (scenario === 'ROYALE' || scenario === 'MELEE_ROYALE') {
+            if (scenario !== 'TEAMS' && scenario !== 'MELEE') {
                 let winnerAgent = lineup.find((u) => u.id === gameOverWinnerId);
                 if (!winnerAgent) {
                     const lastSurvivor = engine.agents.find((a) => a.hp > 0 && !a.outOfBounds && !a.banished);
@@ -422,6 +531,8 @@ try {
                     roleStats[winnerAgent.role].wins++;
                     const k = `${winnerAgent.team === Team.BLUE ? 'BLUE' : 'RED'}/${winnerAgent.role}`;
                     winsByTeamRole[k] = (winsByTeamRole[k] ?? 0) + 1;
+                    const wa = engine.agents.find((x) => x.id === winnerAgent.id);
+                    for (const id of wa.skillIds) if (id) skillWins[id] = (skillWins[id] ?? 0) + 1;
                 } else {
                     draws++;
                 }
@@ -443,7 +554,7 @@ try {
 
     // 自我檢查（不符就 process.exit(1)）
     // ① 勝場＋平手＋超時＝場數（ROYALE 類）
-    if (scenario === 'ROYALE' || scenario === 'MELEE_ROYALE') {
+    if (scenario !== 'TEAMS' && scenario !== 'MELEE') {
         const totalWins = Object.values(roleStats).reduce((acc, r) => acc + r.wins, 0);
         if (totalWins + draws + timeouts !== BATTLES) {
             console.error(`Self-check 1 failed: totalWins(${totalWins}) + draws(${draws}) + timeouts(${timeouts}) !== BATTLES(${BATTLES})`);
@@ -489,7 +600,7 @@ try {
     const top10IdleStreaks = allIdleStreaks.slice(0, 10);
 
     const avgDuration = +(battleTimes.reduce((a, b) => a + b, 0) / BATTLES).toFixed(2);
-    const isRoyale = (scenario === 'ROYALE' || scenario === 'MELEE_ROYALE');
+    const isRoyale = (scenario !== 'TEAMS' && scenario !== 'MELEE');
 
     const roleOutput = {};
     for (const role of rolesList) {
@@ -574,9 +685,51 @@ try {
     };
 
     mkdirSync(dirname(OUT), { recursive: true });
-    result.hpMode = HP_MODE;
+    Pathfinder.prototype.findPath = origFindPath;
+    const perRole = {};
+    for (const [role, ex] of Object.entries(extra)) {
+        const alive = roleStats[role].aliveSec;
+        perRole[role] = {
+            pathCallsPerSec: +(ex.pathCalls / alive).toFixed(2),
+            targetSwitchPerMin: +((ex.targetSwitches / alive) * 60).toFixed(1),
+            circlingPct: +((ex.circlingSec / alive) * 100).toFixed(2),
+            evadePct: +((ex.evadeSec / alive) * 100).toFixed(2),
+            evadeEarlyPct: +((ex.evadeEarlySec / alive) * 100).toFixed(2),
+            attackPct: +((ex.attackSec / alive) * 100).toFixed(2),
+        };
+    }
+    const fs = finalStage;
+    const finalSummary = fs.battles === 0 ? null : {
+        battlesReached: fs.battles,
+        lastStandBattles: fs.lastStandBattles,
+        avgStartTiles: +(fs.startTiles / fs.battles).toFixed(1),
+        avgStartAlive: +(fs.startAlive / fs.battles).toFixed(1),
+        attackPct: +((fs.attack / fs.sec) * 100).toFixed(1),
+        evadePct: +((fs.evade / fs.sec) * 100).toFixed(1),
+        movingPct: +((fs.moving / fs.sec) * 100).toFixed(1),
+        waitPct: +((fs.wait / fs.sec) * 100).toFixed(1),
+        idlePct: +((fs.idle / fs.sec) * 100).toFixed(1),
+    };
+    const skillTable = Object.entries(skillPicks)
+        .map(([id, picks]) => ({ id, picks, wins: skillWins[id] ?? 0, winPct: +(((skillWins[id] ?? 0) / picks) * 100).toFixed(1) }))
+        .sort((a, b) => b.winPct - a.winPct);
+    const idleDetail = {};
+    for (const [role, rs] of Object.entries(roleStats)) {
+        if (rs.aliveSec <= 0) continue;
+        idleDetail[role] = Object.fromEntries(Object.entries(rs.idleReasons).filter(([, v]) => v > 0).map(([k, v]) => [k, +((v / rs.aliveSec) * 100).toFixed(2)]));
+    }
+    result.loadout = LOADOUT;
     result.winsByTeamRole = winsByTeamRole;
-    console.log(`HP mode: ${HP_MODE}; wins by team/role: ${JSON.stringify(winsByTeamRole)}`);
+    result.perRole = perRole;
+    result.finalStage = finalSummary;
+    result.skillTable = skillTable;
+    console.log(`LOADOUT ${LOADOUT}; wins by team/role: ${JSON.stringify(winsByTeamRole)}`);
+    console.log(`PERROLE ${JSON.stringify(perRole)}`);
+    console.log(`IDLEDETAIL ${JSON.stringify(idleDetail)}`);
+    console.log(`FINAL ${JSON.stringify(finalSummary)} avgEndTiles=${(fs.endTilesSum / BATTLES).toFixed(1)}`);
+    console.log(`STREAKS per battle: >=1s ${(streaks.over1 / BATTLES).toFixed(2)}, >=3s ${(streaks.over3 / BATTLES).toFixed(2)} ${JSON.stringify(streaks.over3ByReason)}`);
+    console.log(`SKILLS_TOP ${JSON.stringify(skillTable.slice(0, 6))}`);
+    console.log(`SKILLS_BOTTOM ${JSON.stringify(skillTable.slice(-6))}`);
     writeFileSync(OUT, JSON.stringify(result, null, 2));
 
     console.log('\n' + '='.repeat(123));
