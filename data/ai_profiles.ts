@@ -40,50 +40,49 @@ const LAST_STAND_PUSH: BTDef = {
     ]
 };
 
-const COMBAT_TREE: BTDef = {
-    type: 'SEQUENCE',
-    name: 'Combat',
+const SKILL_PRIORITY: BTDef = {
+    type: 'SELECTOR',
+    name: 'Skill Priority',
     children: [
-        { type: 'CONDITION', name: 'Scan Target', key: 'HasTarget' },
-        {
-            type: 'SELECTOR',
-            name: 'Combat Actions',
-            children: [
-                {
-                    type: 'SELECTOR',
-                    name: 'Skill Priority',
-                    children: [
-                        // Slot 0 (Ult), Slot 1 (Active), Slot 2 (Basic)
-                        createSkillRoutine(0, "Ultimate"),
-                        createSkillRoutine(1, "Active"),
-                        createSkillRoutine(2, "Basic")
-                    ]
-                },
-                // [FIX] Gap Close Fallback: If skills are on CD, ensure we stay close to target
-                {
-                    type: 'SEQUENCE',
-                    name: 'Gap Close',
-                    children: [
-                        // Try to chase using Basic Attack range as reference (Slot 2)
-                        { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } }
-                    ]
-                },
-                // Reposition: chase refused (e.g. the only approach ends on a collapsing tile) -> edge toward the
-                // target over safe ground instead of standing still.
-                { type: 'ACTION', name: 'Reposition', key: 'Reposition' },
-                // 以上都不行：走到走得到的格子裡離敵人最近的地方；連這個都不行就整棵樹失敗，轉 UNSTICK。
-                { type: 'ACTION', name: 'Advance', key: 'Advance' }
-            ]
-        }
+        // Slot 0 (Ult), Slot 1 (Active), Slot 2 (Basic)
+        createSkillRoutine(0, "Ultimate"),
+        createSkillRoutine(1, "Active"),
+        createSkillRoutine(2, "Basic")
+    ]
+};
+
+// 目標在普攻射程外：順手打得到別人就打；否則技能 → 追擊 → 走位 → 前進，全失敗轉 UNSTICK
+const ENGAGE_TREE: BTDef = {
+    type: 'SELECTOR',
+    name: 'Engage Actions',
+    children: [
+        { type: 'ACTION', name: 'Strike Nearby', key: 'StrikeNearby' },
+        SKILL_PRIORITY,
+        // 追擊只拒絕「停下來的格子會塌陷」；被拒絕時走位，往目標挪但不踩塌陷格
+        { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } },
+        { type: 'ACTION', name: 'Reposition', key: 'Reposition' },
+        { type: 'ACTION', name: 'Advance', key: 'Advance' }
+    ]
+};
+
+// 目標在普攻射程內：只管出手；技能都在冷卻時追擊節點回 SUCCESS（就位等冷卻），不找路
+const FIGHT_TREE: BTDef = {
+    type: 'SELECTOR',
+    name: 'Fight Actions',
+    children: [
+        SKILL_PRIORITY,
+        { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } }
     ]
 };
 
 /**
  * AI 狀態拓樸：節點是模式，每個模式一棵小樹；模式之間只能走這裡列出的邊。
  *   DEAD／CONTROLLED —— 不能行動（全域，任何模式都會切過來）
+ *   ACQUIRE          —— 沒有目標（場上沒有敵人）：等
+ *   ENGAGE           —— 目標在普攻射程外：接敵
+ *   FIGHT            —— 目標在普攻射程內：出手
  *   RETREAT          —— 站在塌陷格／敵方 hazard 上：逃；逃不掉轉 TRAPPED
- *   TRAPPED          —— 逃不掉：有推拉技能就用，否則原地戰鬥（SkillReady 不再因塌陷格拒絕出手）
- *   COMBAT           —— 技能 Ult > Active > Basic → 追擊（只拒絕「停下來的格子會塌陷」）→ 走位 → 前進；全失敗轉 UNSTICK
+ *   TRAPPED          —— 逃不掉：有推拉技能就用，否則原地戰鬥（SkillReady 不再因塌陷拒絕）
  *   UNSTICK          —— 打不到也走不到更近的地方：短暫等待後強制跳上鄰格
  * 任何「移動」節點在 CanMove 為假（root/stun/放逐/恐懼）時必須失敗，不能回 RUNNING。
  */
@@ -92,23 +91,42 @@ export const AI_MODE_GRAPH: {
     modes: Record<AIMode, AIModeDef>;
     edges: readonly AIModeEdgeDef[];
 } = {
-    initial: 'COMBAT',
+    initial: 'ACQUIRE',
     modes: {
         DEAD: { tree: { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } } },
         CONTROLLED: { tree: { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } } },
+        ACQUIRE: { tree: { type: 'ACTION', name: 'No Enemy', key: 'Wait', args: { state: AIState.IDLE } } },
+        ENGAGE: { tree: ENGAGE_TREE, onFailure: 'UNSTICK' },
+        FIGHT: { tree: FIGHT_TREE, onFailure: 'ENGAGE' },
         RETREAT: { tree: { type: 'ACTION', name: 'Run!', key: 'EscapeWarning' }, onFailure: 'TRAPPED' },
-        TRAPPED: { tree: { type: 'SELECTOR', name: 'Trapped Tactics', children: [LAST_STAND_PUSH, COMBAT_TREE] } },
-        COMBAT: { tree: COMBAT_TREE, onFailure: 'UNSTICK' },
+        TRAPPED: {
+            tree: {
+                type: 'SELECTOR',
+                name: 'Trapped Tactics',
+                children: [
+                    LAST_STAND_PUSH,
+                    {
+                        type: 'SEQUENCE',
+                        name: 'Fight Back',
+                        children: [{ type: 'CONDITION', name: 'Scan Target', key: 'HasTarget' }, ENGAGE_TREE]
+                    }
+                ]
+            }
+        },
         UNSTICK: { tree: { type: 'ACTION', name: 'Force Jump', key: 'ForceJump' } },
     },
     edges: [
         { from: '*', to: 'DEAD', when: 'IsDead' },
-        { from: ['COMBAT', 'RETREAT', 'TRAPPED', 'UNSTICK'], to: 'CONTROLLED', when: 'IsControlled' },
-        { from: ['DEAD'], to: 'COMBAT', when: 'IsAlive' },
-        { from: ['CONTROLLED'], to: 'COMBAT', unless: 'IsControlled' },
-        { from: ['COMBAT', 'TRAPPED', 'UNSTICK'], to: 'RETREAT', when: 'WantsRetreat' },
-        { from: ['UNSTICK'], to: 'COMBAT', unless: 'IsBoxedIn' },
-        { from: ['RETREAT', 'TRAPPED'], to: 'COMBAT', unless: 'WantsRetreat' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'RETREAT', 'TRAPPED', 'UNSTICK'], to: 'CONTROLLED', when: 'IsControlled' },
+        { from: ['DEAD'], to: 'ACQUIRE', when: 'IsAlive' },
+        { from: ['CONTROLLED'], to: 'ACQUIRE', unless: 'IsControlled' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'TRAPPED', 'UNSTICK'], to: 'RETREAT', when: 'WantsRetreat' },
+        { from: ['RETREAT', 'TRAPPED'], to: 'ACQUIRE', unless: 'WantsRetreat' },
+        { from: ['UNSTICK'], to: 'ACQUIRE', unless: 'IsBoxedIn' },
+        { from: ['ENGAGE', 'FIGHT'], to: 'ACQUIRE', unless: 'HasTarget' },
+        { from: ['ACQUIRE'], to: 'ENGAGE', when: 'HasTarget' },
+        { from: ['ENGAGE'], to: 'FIGHT', when: 'TargetInBasicRange' },
+        { from: ['FIGHT'], to: 'ENGAGE', unless: 'TargetInBasicRange' },
     ],
 };
 

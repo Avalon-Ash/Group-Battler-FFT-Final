@@ -55,6 +55,10 @@ export class Agent {
     public target: Agent | null = null;
     /** 施法的地面落點／靠近隊友的格（戰鬥用） */
     public targetHex: Hex | null = null;
+    /** 這個戰鬥時間之前不重新選敵（嘲諷、站在危險格除外） */
+    public targetLockUntil: number = 0;
+    /** 這個戰鬥時間之前不因目的地改變重新尋路（路徑失效不受限） */
+    public nextRepathAt: number = 0;
     /** RETREAT 的逃生目的地；只由 EscapeWarning 寫入，和 targetHex 分開 */
     public escapeHex: Hex | null = null;
     public _savedCombatTarget?: Agent | null = null;

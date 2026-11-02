@@ -85,6 +85,8 @@ export function resetAgent(agent: Agent, config: MapConfig): void {
     agent._savedCombatTarget = null;
     agent.aiState = AIState.IDLE;
     agent.escapeHex = null;
+    agent.targetLockUntil = 0;
+    agent.nextRepathAt = 0;
     agent.aiMode = null;
     agent.aiModeSince = 0;
     agent.aiModeTrace = [];

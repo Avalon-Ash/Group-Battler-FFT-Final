@@ -34,6 +34,8 @@ export const BT_RULES = {
 } as const;
 
 export const TARGET_RULES = {
+    /** 選定目標後鎖定多久才重新評分（秒）。 */
+    LOCK_S: 2,
     /** 射程劣勢判定的高度差（像素）。 */
     LOW_GROUND_THRESHOLD: -4,
     /** 安全格後備搜尋半徑上限（格）。 */
@@ -69,6 +71,8 @@ export const TARGET_RULES = {
 } as const;
 
 export const PATH_RULES = {
+    /** 目的地變了但路徑還能走時，至少隔多久才重新尋路（秒）。 */
+    REPATH_MIN_S: 0.25,
     /** 六角格鄰格數（格）。 */
     HEX_NEIGHBOR_COUNT: 6,
     /** 一般尋路警告格成本（分）。 */

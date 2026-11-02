@@ -121,6 +121,9 @@ export class TargetingSystem {
             }
         }
 
+        // 剛選定的目標鎖一小段時間：不然站在射程外時每次決策都重新評分，A* 成本一變就換人，路徑跟著抖
+        if (a.target && !inDanger && spatial.battleTime < a.targetLockUntil) return;
+
         const isSilenced = a.effects.SILENCE.remaining > 0;
         // 可用的突進（DASH）或拉取（PULL）技能：近戰打不到的目標交給它們，不扣分
         const hasGapCloser = !isSilenced && a.skills.some((s, i) => !!s && s.range > COMBAT_PARAM.MELEE_RANGE &&
@@ -202,6 +205,7 @@ export class TargetingSystem {
                 }
             }
         }
+        if (bestTarget !== a.target) a.targetLockUntil = spatial.battleTime + TARGET_RULES.LOCK_S;
         a.target = bestTarget;
     }
 

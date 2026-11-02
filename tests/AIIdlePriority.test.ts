@@ -244,12 +244,13 @@ describe('AIIdlePriority', () => {
 
         it('逃不掉才推拉：RETREAT 失敗走 TRAPPED，TRAPPED 推拉優先於戰鬥', () => {
             expect(AI_MODE_GRAPH.modes.RETREAT.onFailure).toBe('TRAPPED');
-            expect(names(AI_MODE_GRAPH.modes.TRAPPED.tree)).toEqual(['Last Stand', 'Combat']);
+            expect(names(AI_MODE_GRAPH.modes.TRAPPED.tree)).toEqual(['Last Stand', 'Fight Back']);
         });
 
-        it('Combat Actions：技能 > 追擊 > 走位 > 前進，沒有 Idle', () => {
-            const combat = AI_MODE_GRAPH.modes.COMBAT.tree;
-            expect(names(find(combat, 'Combat Actions'))).toEqual(['Skill Priority', 'Gap Close', 'Reposition', 'Advance']);
+        it('ENGAGE：順手打 > 技能 > 追擊 > 走位 > 前進，沒有 Idle；FIGHT 只出手不找路', () => {
+            const combat = AI_MODE_GRAPH.modes.ENGAGE.tree;
+            expect(names(find(combat, 'Engage Actions'))).toEqual(['Strike Nearby', 'Skill Priority', 'Stick To Target', 'Reposition', 'Advance']);
+            expect(names(find(AI_MODE_GRAPH.modes.FIGHT.tree, 'Fight Actions'))).toEqual(['Skill Priority', 'Stick To Target']);
             expect(names(find(combat, 'Skill Priority'))).toEqual(['Try Ultimate', 'Try Active', 'Try Basic']);
         });
     });

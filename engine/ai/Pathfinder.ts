@@ -27,6 +27,15 @@ export class Pathfinder {
      */
     private collectAttackCells(startAgent: Agent, goalHex: Hex, range: number, ignoreUnits: boolean, includeGoal: boolean, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
         const cells: Hex[] = [];
+        // 別人正要走去的終點不算空格：大家搶同一格就會走到一半被迫重算，繞著目標轉圈
+        const claimed = new Set<number>();
+        if (!ignoreUnits) {
+            for (const o of spatial.getAgents()) {
+                if (o === startAgent || o.hp <= 0 || !o.isMoving || o.path.length === 0) continue;
+                const end = o.path[o.path.length - 1];
+                claimed.add(HexUtils.hash(end.q, end.r));
+            }
+        }
         const consider = (cell: Hex) => {
             const h = HexUtils.hash(cell.q, cell.r);
             if (!spatial.isValidHash(h)) return;
@@ -34,6 +43,7 @@ export class Pathfinder {
             if (!ignoreUnits) {
                 const occ = spatial.getAgentHash(h);
                 if (occ && occ.hp > 0 && occ !== startAgent) return;
+                if (claimed.has(h)) return;
             }
             if (isMeleeAttackCell(targeting, cell, goalHex.q, goalHex.r, range, spatial, startAgent.jump)) cells.push(cell);
         };

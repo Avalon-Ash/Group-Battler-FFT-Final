@@ -2,7 +2,7 @@
 import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
-import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM } from "../../constants";
+import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
@@ -37,6 +37,11 @@ function distToNearestEnemy(a: Agent, cell: Hex, engine: GameEngine): number {
         best = Math.min(best, HexUtils.dist(cell, o));
     }
     return best;
+}
+
+function lockTarget(a: Agent, target: Agent, engine: GameEngine): void {
+    a.target = target;
+    a.targetLockUntil = engine.battleTime + TARGET_RULES.LOCK_S;
 }
 
 /** 現在站的地方基本攻擊打得到的最近敵人 */
@@ -90,6 +95,11 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "WantsRetreat": (a, engine, args) =>
         BTConditions["IsInUrgentDanger"](a, engine, args) || BTConditions["IsEvading"](a, engine, args),
     
+    "TargetInBasicRange": (a, engine) => {
+        if (!a.target || sameSide(a.target, a)) return false;
+        const basicRange = a.skills.find(s => s?.tag === 'BASIC')?.range ?? 0;
+        return HexUtils.dist(a, a.target) <= engine.getEffectiveRange(a, a.target.q, a.target.r, basicRange);
+    },
     // 脫困判定：有敵人、打不到、而且走不到更近的地方（跳躍中也算還沒脫困）
     "IsBoxedIn": (a, engine) => {
         if (a.isMoving) return true;
@@ -694,6 +704,18 @@ export const BTActions: Record<string, BTActionFn> = {
         }
         return state;
     },
+    /** 順手打：目標在射程外時，普攻好了又有別的敵人打得到就換過去（下一次決策進 FIGHT）。 */
+    "StrikeNearby": (a, engine) => {
+        if (a.castingSkillIdx !== -1 || a.effects.TAUNT.remaining > 0) return NodeState.FAILURE;
+        if (BTConditions["TargetInBasicRange"](a, engine, {})) return NodeState.FAILURE;
+        const basicIdx = a.skills.findIndex(s => s?.tag === 'BASIC');
+        if (basicIdx < 0 || !BTConditions["SkillReady"](a, engine, { slot: basicIdx })) return NodeState.FAILURE;
+        const near = enemyInReach(a, engine);
+        if (!near) return NodeState.FAILURE;
+        lockTarget(a, near, engine);
+        if (a.isMoving) stopMovement(a);
+        return NodeState.RUNNING;
+    },
     /**
      * 前進：追擊和走位都不行時，走到走得到的格子裡離敵人最近的地方。
      * 不能動、或已經有敵人打得到（在等冷卻）是正當的等待；其餘 FAILURE 交給 UNSTICK。
@@ -702,11 +724,13 @@ export const BTActions: Record<string, BTActionFn> = {
         restoreCombatTarget(a, engine);
         const near = enemyInReach(a, engine);
         if (near || !BTConditions["CanMove"](a, engine, {})) {
-            if (near) a.target = near;
+            if (near) lockTarget(a, near, engine);
             a.aiState = AIState.WAITING;
             a.actionState = ActionState.IDLE;
             return NodeState.SUCCESS;
         }
+        // 目標走不到：解除鎖定，下一次選敵才換得掉
+        a.targetLockUntil = 0;
         const goal = bestAdvanceCell(a, engine);
         if (!goal) return NodeState.FAILURE;
         const state = engine.moveAgentToHex(a, goal, 0, 1.0);

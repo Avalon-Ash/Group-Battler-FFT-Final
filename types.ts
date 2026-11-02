@@ -151,6 +151,7 @@ export interface SpatialProvider {
     getTileDepth(q: number, r: number): number;
     getCurrentShrinkLevel(): number;
     readonly isLastStand: boolean;
+    readonly battleTime: number;
 }
 
 export interface Projectile {
@@ -251,7 +252,7 @@ export interface CameraImpact {
 }
 
 /** AI 模式：狀態拓樸的節點（data/ai_profiles.ts 的 AI_MODE_GRAPH）。只由 ModeMachine 寫入 */
-export type AIMode = 'DEAD' | 'CONTROLLED' | 'RETREAT' | 'TRAPPED' | 'COMBAT' | 'UNSTICK';
+export type AIMode = 'DEAD' | 'CONTROLLED' | 'ACQUIRE' | 'ENGAGE' | 'FIGHT' | 'RETREAT' | 'TRAPPED' | 'UNSTICK';
 
 /**
  * 開局陣營設定：factions 個陣營、每陣營 unitsPerFaction 人（每陣營 1 人＝大逃殺）。
