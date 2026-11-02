@@ -194,16 +194,12 @@ export class ZoneSystem {
     }
 
     /**
-     * 地塊站不下所有活著的單位，或只剩少數人在很小的地上：再縮只是逼人擠格子掉下去，
-     * 改成背水一戰打完（使用者 2026-11-01）。人一死條件就可能成立，所以每個 tick 都看，不只縮圈時。
+     * 地圖縮到只剩一格才開始背水一戰（使用者 2026-11-03：不提早收，像大風吹——沒搶到位子就打死或推開對方）。
+     * 人一死條件就可能成立，所以每個 tick 都看，不只縮圈時。
      */
     private checkLastStand(engine: GameEngine): void {
         if (engine.state.isLastStand) return;
-        const tiles = engine.map.mapKeys.size;
-        const alive = engine.agents.filter(a => a.hp > 0 && !a.outOfBounds).length;
-        if (tiles === 0) return;
-        const fewLeft = alive > 0 && alive <= ZONE.LAST_STAND_FEW_ALIVE && tiles <= ZONE.LAST_STAND_FEW_TILES;
-        if (tiles > 1 && !fewLeft && (alive === 0 || tiles > alive)) return;
+        if (engine.map.mapKeys.size !== 1) return;
         engine.state.isLastStand = true;
         engine.map.warningTiles.clear();
         const { q: fq, r: fr } = this.chooseLastStandHex(engine);

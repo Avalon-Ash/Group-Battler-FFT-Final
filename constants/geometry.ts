@@ -48,10 +48,6 @@ export const FLOAT_BOB = {
 
 /** 縮圈計時與塌陷格掉落參數。 */
 export const ZONE = {
-    /** 背水一戰：活著的人數小於等於這個值、而且 */
-    LAST_STAND_FEW_ALIVE: 3,
-    /** 地塊小於等於這個值時，就算還站得下也開始（格）。 */
-    LAST_STAND_FEW_TILES: 7,
     /** 尚未初始化縮圈時的安全層數。 */
     INITIAL_SAFE_RADIUS: 999,
     /** 計時跨秒與塌陷判定的浮點容差（秒）。 */
