@@ -72,6 +72,8 @@ export const TARGET_RULES = {
     MELEE_DETOUR_PENALTY_PER_COST: 40,
     /** 近戰選敵：繞路扣分的上限（分）。須遠小於「完全走不到」的 MELEE_UNREACHABLE_PENALTY。 */
     MELEE_DETOUR_PENALTY_CAP: 400,
+    /** 被打後多久內算「剛被打」，目標在射程外就轉頭砍攻擊者（秒）。 */
+    RETALIATE_WINDOW_S: 1,
 } as const;
 
 export const PATH_RULES = {

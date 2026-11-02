@@ -69,6 +69,27 @@ try {
     const EARLY_ESCAPE_S = 3;
     const extra = {};
     const extraOf = (role) => (extra[role] ??= { pathCalls: 0, targetSwitches: 0, circlingSec: 0, evadeSec: 0, evadeEarlySec: 0, attackSec: 0 });
+    // 互相鎖定又打不到：兩個存活單位互為 target、距離都大於各自基本攻擊的有效射程、都不在 busy（同 isBusy 定義）
+    // 被打沒回頭：近 HIT_RECENT_S 內 hp 下降、lastHitSourceId 是存活敵人、target 不是他、且 target 不在射程內
+    const HIT_RECENT_S = 1;
+    const MUTUAL_LONG_S = 2;
+    const circDiag = {};
+    const mutualSecByRole = {};
+    const hitNoTurnSecByRole = {};
+    const mutualDurations = [];
+    const baseRangeOf = (a) => {
+        const s = a.skills.find((k) => k && k.tag === 'BASIC');
+        return s ? s.range : COMBAT_PARAM.MELEE_RANGE;
+    };
+    const isLive = (u) => Boolean(u) && u.hp > 0 && !u.outOfBounds && !u.banished;
+    const outOfReach = (eng, a, t) => HexUtils.dist(a, t) > eng.getEffectiveRange(a, t.q, t.r, baseRangeOf(a));
+    const busyOf = (a) => (
+        a.castingSkillIdx !== -1 ||
+        a.actionState === ActionState.ATTACKING || a.actionState === ActionState.CASTING ||
+        a.actionState === ActionState.STUNNED || a.actionState === ActionState.EVADING ||
+        a.effects.STUN.remaining > 0 || a.effects.ROOT.remaining > 0 ||
+        a.effects.FEAR.remaining > 0 || a.effects.BANISH.remaining > 0
+    );
     const finalStage = { battles: 0, lastStandBattles: 0, startTiles: 0, startAlive: 0, sec: 0, attack: 0, evade: 0, moving: 0, wait: 0, idle: 0, endTilesSum: 0 };
     let curEngine = null;
     const origFindPath = Pathfinder.prototype.findPath;
@@ -280,6 +301,9 @@ try {
             roleStats[u.role].picks++;
         }
 
+        const mutualOpen = new Map();
+        const lastHp = new Map();
+        const lastHpDropT = new Map();
         const prevPositions = new Map();
         const matchTrackers = new Map();
         for (const a of engine.agents) {
@@ -381,6 +405,14 @@ try {
                 if (t - hist.pts[0].t >= CIRCLE_WINDOW_S - DT * 2 && hist.walked >= CELL_PX * 3 &&
                     Math.hypot(a.px - hist.pts[0].px, a.py - hist.pts[0].py) < CELL_PX) {
                     ex.circlingSec += DT;
+                    const tg = a.target;
+                    const dk = !isLive(tg) ? 'noTarget' : [
+                        tg.target === a ? 'mutual' : (isLive(tg.target) ? 'tgOther' : 'tgNone'),
+                        tg.isMoving ? 'tgMoving' : 'tgStill',
+                        outOfReach(engine, a, tg) ? 'out' : 'in',
+                        'd' + Math.min(5, HexUtils.dist(a, tg)), String(a.actionState), a.isMoving ? 'mv' : 'nomv', a.effects.KNOCKBACK ? 'kb' : '',
+                    ].join('/');
+                    circDiag[dk] = (circDiag[dk] ?? 0) + DT;
                 }
 
                 let cat = 'idle';
@@ -521,6 +553,34 @@ try {
                 }
             }
 
+            const mutualNow = new Set();
+            for (const a of alive) {
+                const prevHp = lastHp.get(a.id);
+                if (prevHp !== undefined && a.hp < prevHp) lastHpDropT.set(a.id, t);
+                lastHp.set(a.id, a.hp);
+                const tg = a.target;
+                if (!isLive(tg)) continue;
+                if (!busyOf(a) && outOfReach(engine, a, tg)) {
+                    const src = a.lastHitSourceId ? engine.agents.find((u) => u.id === a.lastHitSourceId) : null;
+                    if (isLive(src) && src.team !== a.team && src.id !== tg.id && t - (lastHpDropT.get(a.id) ?? -Infinity) <= HIT_RECENT_S) {
+                        hitNoTurnSecByRole[a.role] = (hitNoTurnSecByRole[a.role] ?? 0) + DT;
+                    }
+                }
+                if (tg.target !== a || a.id > tg.id) continue;
+                if (busyOf(a) || busyOf(tg) || !outOfReach(engine, a, tg) || !outOfReach(engine, tg, a)) continue;
+                const pk = `${a.id}|${tg.id}`;
+                mutualNow.add(pk);
+                mutualSecByRole[a.role] = (mutualSecByRole[a.role] ?? 0) + DT;
+                mutualSecByRole[tg.role] = (mutualSecByRole[tg.role] ?? 0) + DT;
+                mutualOpen.set(pk, (mutualOpen.get(pk) ?? 0) + DT);
+            }
+            for (const [k, d] of [...mutualOpen]) {
+                if (!mutualNow.has(k)) {
+                    mutualDurations.push(d);
+                    mutualOpen.delete(k);
+                }
+            }
+
             for (const [id, tracker] of matchTrackers.entries()) {
                 if (tracker.currentStreak && !alive.some((a) => a.id === id)) {
                     finalizeStreak(tracker, b);
@@ -545,6 +605,8 @@ try {
             }
         }
 
+        for (const d of mutualOpen.values()) mutualDurations.push(d);
+        mutualOpen.clear();
         curMatch.active = false;
         curEngine = null;
         if (engine.state.isLastStand) finalStage.lastStandBattles++;
@@ -741,8 +803,20 @@ try {
             evadePct: +((ex.evadeSec / alive) * 100).toFixed(2),
             evadeEarlyPct: +((ex.evadeEarlySec / alive) * 100).toFixed(2),
             attackPct: +((ex.attackSec / alive) * 100).toFixed(2),
+            mutualLockPct: +(((mutualSecByRole[role] ?? 0) / alive) * 100).toFixed(2),
+            hitNoTurnPct: +(((hitNoTurnSecByRole[role] ?? 0) / alive) * 100).toFixed(2),
         };
     }
+    const mutSorted = [...mutualDurations].sort((x, y) => x - y);
+    const totalAlive = Object.values(roleStats).reduce((s, r) => s + r.aliveSec, 0);
+    const mutualSummary = {
+        pctOfAlive: +((Object.values(mutualSecByRole).reduce((s, v) => s + v, 0) / totalAlive) * 100).toFixed(2),
+        hitNoTurnPctOfAlive: +((Object.values(hitNoTurnSecByRole).reduce((s, v) => s + v, 0) / totalAlive) * 100).toFixed(2),
+        episodes: mutSorted.length,
+        p90Sec: +(mutSorted[Math.floor(mutSorted.length * 0.9)] ?? 0).toFixed(2),
+        maxSec: +(mutSorted[mutSorted.length - 1] ?? 0).toFixed(2),
+        over2PerBattle: +(mutSorted.filter((d) => d >= MUTUAL_LONG_S).length / BATTLES).toFixed(3),
+    };
     const fs = finalStage;
     const finalSummary = fs.battles === 0 ? null : {
         battlesReached: fs.battles,
@@ -775,6 +849,8 @@ try {
     const lsSorted = [...lastStandDurations].sort((x, y) => x - y);
     console.log(`LASTSTAND battles=${lsSorted.length} durationSec avg=${(lsSorted.reduce((x, y) => x + y, 0) / (lsSorted.length || 1)).toFixed(1)} p90=${(lsSorted[Math.floor(lsSorted.length * 0.9)] ?? 0).toFixed(1)} max=${(lsSorted[lsSorted.length - 1] ?? 0).toFixed(1)}`);
     console.log(`RINGOUT ${JSON.stringify(Object.entries(ringOutBy).sort((x, y) => y[1] - x[1]).slice(0, 12))}`);
+    console.log('CIRCDIAG ' + JSON.stringify(Object.entries(circDiag).sort((x, y) => y[1] - x[1]).slice(0, 14).map(([k, v]) => [k, +v.toFixed(1)])));
+    console.log(`MUTUALLOCK ${JSON.stringify(mutualSummary)}`);
     console.log(`STREAKS per battle: >=1s ${(streaks.over1 / BATTLES).toFixed(2)}, >=3s ${(streaks.over3 / BATTLES).toFixed(2)} ${JSON.stringify(streaks.over3ByReason)}`);
     console.log(`SKILLS_TOP ${JSON.stringify(skillTable.slice(0, 6))}`);
     console.log(`SKILLS_BOTTOM ${JSON.stringify(skillTable.slice(-6))}`);

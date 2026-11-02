@@ -28,6 +28,9 @@ export function isHostileSkill(skill: Skill): boolean {
 }
 
 export class TargetingSystem {
+    /** 每個單位上次掉血的血量與時間：判斷「剛被打」用（只在這裡讀寫，不進 Agent）。 */
+    private hpWatch = new WeakMap<Agent, { lastHp: number; hitAt: number }>();
+
     private readonly attackPathfinder = new Pathfinder();
     /**
      * 檢查目標是否為合法選取對象
@@ -118,6 +121,26 @@ export class TargetingSystem {
                 // 嘲諷鎖定期間不追逐殘留的地塊目標（逃生中的除外）
                 if (!inDanger && a.castingSkillIdx === -1) a.targetHex = null;
                 return;
+            }
+        }
+
+        // 被打回頭（使用者 2026-11-03）：剛被敵人打到、而現有目標還在射程外時，改鎖定攻擊者（嘲諷優先，上面已 return）。
+        const watch = this.hpWatch.get(a);
+        if (!watch) this.hpWatch.set(a, { lastHp: a.hp, hitAt: -Infinity });
+        else {
+            if (a.hp < watch.lastHp) watch.hitAt = spatial.battleTime;
+            watch.lastHp = a.hp;
+        }
+        if (!inDanger && a.lastHitSourceId && spatial.battleTime - (watch?.hitAt ?? -Infinity) <= TARGET_RULES.RETALIATE_WINDOW_S) {
+            const attacker = spatial.getAgents().find(o => o.id === a.lastHitSourceId);
+            const basic = a.skills.find(s => s?.tag === 'BASIC');
+            if (attacker && attacker !== a.target && !sameSide(attacker, a) && this.isValidTarget(attacker, spatial) && basic) {
+                const outOfReach = (o: Agent) => HexUtils.dist(a, o) > this.getEffectiveRange(a, o.q, o.r, basic.range, spatial);
+                if (!a.target || outOfReach(a.target)) {
+                    a.target = attacker;
+                    a.targetLockUntil = spatial.battleTime + TARGET_RULES.LOCK_S;
+                    return;
+                }
             }
         }
 
