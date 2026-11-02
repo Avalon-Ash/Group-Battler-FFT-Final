@@ -436,6 +436,13 @@
 - 派工：主代理先加常數、`maxValueId` 欄位與 3 個規格測試。Flash 做完 A1、A2 後被一個不在允許清單的指令拒絕而結束（沒報告、留下多餘空行與混合行尾）；接生成、清理、B 由主代理做。
 - 證據：lint、1034 項測試、build、knip、smoke、e2e:ui、perf:guard 全過，六張保真數字與 main 相同。
 
+### BC. 2026-11-02 AI 發呆與大逃殺勝率量測、全員坦克修正（agy Flash high＋主代理）
+- 工具 `tools/balance/ai-idle-sim.mjs`（`npm run balance:idle`）：四個場景，輸出各職業勝率、存活、擊殺、死因與發呆原因，加總對不上就失敗。Flash 寫，主代理排除勝負已定的慢動作階段、加 `--hp`、依隊伍統計勝場。
+- 使用者「每場都是騎士贏」的主因：`planShowcaseRoster` 用陣營內索引取職業，每陣營 1 人時全是坦克（BA 帶進來的錯）。`factionRoleIndex` 修正，2×5 不變。實跑：10×1 各職業 2 人、4×3 為 3／3／2／2／2、2×5 各 2 人。
+- 量測時發現：`useGameApp` 開局血量 600～1000 蓋掉職業血量，`batch-sim` 卻用職業血量，過去平衡數字和遊戲內不同。待使用者決定（HANDOFF §2 F）。
+- 基準（200 場 seed 21，遊戲內血量）｜大逃殺勝率：法師 37%、遊俠 26.5%、輔助 18%、坦克 9.5%、戰士 7%，平手 4，紅方法師 53 勝對藍方 21 勝。發呆：坦克 6.2%、戰士 4.5%、其他約 1%。全戰士 5v5 發呆 2.2%、全戰士大逃殺 2.5%。
+- 證據：lint、1035 項測試、build、knip、smoke、perf:guard 全過，`battle_frozen` 0.062 與 main 相同。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
