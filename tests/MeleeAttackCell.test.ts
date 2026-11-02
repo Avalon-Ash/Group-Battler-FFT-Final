@@ -6,7 +6,7 @@ import { HexUtils } from '../engine/utils';
 import { BTActions } from '../engine/ai/BTRegistry';
 
 /**
- * 近戰追擊挑「具體的同層攻擊格」並沿用路徑（規則 R6 的射程判定不變，見 TargetingSystem.getEffectiveRange）。
+ * 近戰追擊挑「具體的攻擊格」並沿用路徑（射程判定在 TargetingSystem.getEffectiveRange，見 TargetingSystem.getEffectiveRange）。
  */
 describe('MeleeAttackCell', () => {
     let engine: GameEngine;

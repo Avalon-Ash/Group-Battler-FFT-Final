@@ -132,7 +132,7 @@ export class TargetingSystem {
 
         for (const o of spatial.getAgents()) {
             if (!sameSide(o, a) && this.isValidTarget(o, spatial)) {
-                // 近戰（規則 A）普攻打不到的目標只扣分、不排除：追擊尋路會找同層攻擊格，
+                // 近戰普攻打不到的目標（高低差超過跳躍力）只扣分、不排除：追擊尋路會找同層攻擊格，
                 // 突進／拉取技能可用時完全不扣分，留給行為樹的 ACTIVE／ULT 槽先出手（使用者 2026-10-28）。
                 const basic = a.skills.find(s => s?.tag === 'BASIC');
                 const meleeBasic = !!basic && basic.range > 0 && basic.range <= COMBAT_PARAM.MELEE_RANGE && !hasGapCloser;

@@ -151,6 +151,7 @@ try {
     let totalTicks = 0;
     const battleTimes = [];
     const allIdleStreaks = [];
+    const lastStandDurations = [];
     const ringOutBy = {};
     const lastProgress = new Map();
 
@@ -316,10 +317,12 @@ try {
             for (const id of a.skillIds) if (id) skillPicks[id] = (skillPicks[id] ?? 0) + 1;
         }
         let t = 0;
+        let lastStandAt = null;
 
         while (gameOverWinner === null && t < MAX_TIME) {
             engine.tick(DT);
             t += DT;
+            if (lastStandAt === null && engine.state.isLastStand) lastStandAt = t;
             totalTicks++;
 
             // 勝負已定的慢動作階段不量：倖存者沒有目標是正常的，算進去會墊高贏家的發呆
@@ -545,6 +548,7 @@ try {
         curMatch.active = false;
         curEngine = null;
         if (engine.state.isLastStand) finalStage.lastStandBattles++;
+        if (lastStandAt !== null) lastStandDurations.push(t - lastStandAt);
         finalStage.endTilesSum += engine.map.mapKeys.size;
         engine.bus.off('GAME_OVER', onGameOver);
         engine.bus.off('KILL', onKill);
@@ -768,6 +772,8 @@ try {
     console.log(`PERROLE ${JSON.stringify(perRole)}`);
     console.log(`IDLEDETAIL ${JSON.stringify(idleDetail)}`);
     console.log(`FINAL ${JSON.stringify(finalSummary)} avgEndTiles=${(fs.endTilesSum / BATTLES).toFixed(1)}`);
+    const lsSorted = [...lastStandDurations].sort((x, y) => x - y);
+    console.log(`LASTSTAND battles=${lsSorted.length} durationSec avg=${(lsSorted.reduce((x, y) => x + y, 0) / (lsSorted.length || 1)).toFixed(1)} p90=${(lsSorted[Math.floor(lsSorted.length * 0.9)] ?? 0).toFixed(1)} max=${(lsSorted[lsSorted.length - 1] ?? 0).toFixed(1)}`);
     console.log(`RINGOUT ${JSON.stringify(Object.entries(ringOutBy).sort((x, y) => y[1] - x[1]).slice(0, 12))}`);
     console.log(`STREAKS per battle: >=1s ${(streaks.over1 / BATTLES).toFixed(2)}, >=3s ${(streaks.over3 / BATTLES).toFixed(2)} ${JSON.stringify(streaks.over3ByReason)}`);
     console.log(`SKILLS_TOP ${JSON.stringify(skillTable.slice(0, 6))}`);
