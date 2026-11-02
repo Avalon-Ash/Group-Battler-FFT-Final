@@ -469,6 +469,12 @@
 - 探針抓到兩個錯：抽設定時地圖還是上一局縮圈後的殘圖，總池很小被夾低（出現 2x1）；StrictMode 重跑 effect 把隨機值存成玩家設定，回手動沒還原。都已修。
 - 證據：瀏覽器連跑 12 局都在 8～20 人、標籤相符、回手動 2×5、0 個頁面錯誤；lint、1051 項測試、build、knip、smoke、e2e:ui、perf:guard 全過，基準沒有重錄。
 
+### BG. 2026-11-03 近戰被打回頭、陣營染色、背水一戰留一格（主代理＋agy Sonnet 量測／Flash 實作）
+三項各一條分支、疊著做（`feat/melee-dodge` → `feat/faction-tint` → `feat/last-stand-one`），尚未合併。
+- **近戰躲貓貓**：新增被打回頭（剛掉血、現有目標在射程外 → 鎖定 `lastHitSourceId`，嘲諷優先；`TARGET_RULES.RETALIATE_WINDOW_S`＝1，受擊時間由 `TargetingSystem` 自己記，不加 Agent 欄位）。量測工具新增 `mutualLockPct`、`hitNoTurnPct`、`CIRCDIAG`。數字（200 場 seed 21，`node tools/balance/ai-idle-sim.mjs --scenario=MELEE …`）：被打沒回頭 1.64%→0.79%；繞圈 1.89%→1.88%（目標 1.5% **未達**）；換目標／分鐘 9.6→11；≥3 秒發呆 MELEE 0→0、TEAMS 0.04→0.06（贏家等最後一人被放逐）、ROYALE 0.01→0.01。雙陣營藍方勝率（`npm run balance:sim -- --battles=1500 --seed=21 [--swapSides]`）兩種擺法 53.9／57.1 → 54.1／57.1（平均 55.5→55.6）。「互相鎖定又打不到」只有 3.24%、單段最長 2.23 秒，是正常接近，沒做「一方站住等」。繞圈約六成是目標在鄰格、自己施法中（走開再回來的戰鬥位移），約兩成是繞著沒鎖定自己的靜止目標走（攻擊格被佔滿，要做 P1 ③ 攻擊格認領）。
+- **陣營染色**（只在陣營數 ≥3）：`data/units/factionTint.ts`（色票池＝藍原色、紅原色、六個色相，每局以 matchSalt＋局數洗牌；HSV 換色，藍色範圍 190～262°、飽和度 ≥0.18）、`Agent.look`、`getAgentSkin(agent)` 是渲染端的外觀唯一入口；圖集變體鍵 `BLUE:MAGE:MALE@135` 在 `SpriteAtlasStore.bakeAtlas` 烘焙期做一次，剪影在同基底的變體間共用。雙陣營路徑與快取鍵形狀不變：`npm run perf:guard` 全過，保真基準沒有重錄。載入耗時（探針 `--per=3`，6 人／17 人／22 人）：2 陣營 111 ms、6 陣營 384 ms、8 陣營 616～703 ms（約每個變體 +70～100 ms）。記憶體：單張圖集 2048×1309×4＝10.7 MB（彩色層），8 陣營×3 人約 21 個變體彩色層≈225 MB＋共用剪影，比雙陣營（約 6 張）多，**手機有風險**（2026-10-26 iPhone 因圖集記憶體被回收分頁）。已知限制：羊的項圈（`CcBodyStore`）、護盾描邊（用色階 id）、地面施法區域（`GridOverlays` 的 `zoneInfo.team`）、結算標題與檢視器仍用隊伍色；陣營多於 8 時顏色重複。
+- **背水一戰留一格**：`checkLastStand` 只在地塊剩 1 格觸發，移除 `ZONE.LAST_STAND_FEW_ALIVE／FEW_TILES`，沒加新 AI 模式（TRAPPED 就是大風吹）。數字（200 場 seed 21，`--scenario=ROYALE`／`TANK_ROYALE`）：墜落佔死亡 5.5%→6.2%／3.4%→6.0%；平均時長 29.3→29.8 秒／38.0→39.0 秒；≥3 秒發呆 0.01→0.01（兩者）；背水一戰時長平均與最長都只有 0.5 秒（最後一格一到，多出的人隨塌陷掉落）。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
