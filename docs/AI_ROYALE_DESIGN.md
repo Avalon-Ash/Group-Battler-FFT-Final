@@ -35,6 +35,8 @@
 
 ## 3. AI 提案（依序，各自能單獨驗收）
 
+> 實作架構見第 9 節（狀態拓樸＋小樹）；這裡的 P0～P3 是行為目標，對應到各狀態。
+
 | 包 | 內容 | 驗收（同 seed 重跑） |
 | :-- | :-- | :-- |
 | **P0 不准發呆** | ① 可達性：地圖變動時算各跳躍力的連通區；開局只放在主連通區；選目標直接跳過走不到的。② `Idle` 改成「前進」：還有敵人就走到可達區內離敵人最近的格。③ 脫困：連續 1.5 秒沒路時強制跳一次（無視 `canStepUp`）。④ 高低差 ≤ 自己跳躍力時近戰可互打（**推翻 R6 規則 A，要使用者同意**）。 | 全坦克 ≥3 秒發呆 ≤0.1／場（現 1.71）；≥1 秒 ≤1（現 9.73） |
@@ -83,3 +85,77 @@ AI 會改變所有平衡數字，所以先 P0→P1→P2→P3，再做第 5 節�
 ## 7. 參考資料（2026-11-02 查）
 - **有直接用上**：目標遲滯與承諾時間（[Utility AI Enemy Kit](https://studionightfall.itch.io/utility-ai-enemy-kit-for-unity)、[Utility Intelligence 動量加成](https://uintel-go.utilityworlds.com/Documentation/UtilityIntelligence/Decisions/)、[threat table 黏著分](https://www.strayspark.studio/blog/ai-threat-tables-target-selection-ue5)）；攻擊槽位與沒有槽位的不准發呆（[Attack Tokens 文章](https://www.strayspark.studio/blog/attack-token-system-ue5-group-combat-that-feels-fair)，[DOOM 的 token 概念](https://www.gamedeveloper.com/design/cyber-demons-the-ai-of-doom-2016-)）；預約表與交叉限制（[Silver, Cooperative Pathfinding](https://cdn.aaai.org/ojs/18726/18726-52-22369-1-10-20210928.pdf)，只看到摘要）；加時（[TFT wiki](https://wiki.leagueoflegends.com/en-us/Teamfight_Tactics_(game))）；控場後不重選（[TFT 18.1](https://teamfighttactics.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-18-1/)）；限制名單（[Liquipedia Ability Draft](https://liquipedia.net/dota2/Ability_Draft)，只看到搜尋摘要）。
 - **沒找到**：PUBG、Fortnite 的機器人設計文件；混用技能時坦克太強的公開數據（League 的 Ultimate Spellbook 也沒找到設計說明）。P2 的依時間撤退和最近安全格，以及第 4 節的混用結論，依據仍是本專案的量測與程式碼。
+
+## 8. 行為樹全量檢視（2026-11-02，讀碼）
+
+現在只有一棵樹（`data/ai_profiles.ts`）：`Dead → CC → Survival（Run! → 推拉）→ Combat（目標 → Ult／Active／Basic → 追擊 → Reposition → Idle）`。
+
+| # | 問題 | 位置 | 後果 |
+| :-- | :-- | :-- | :-- |
+| 1 | 樹沒有記憶：每 60～100 ms 從根重跑，`Selector` 每次從第一個子節點開始 | `engine/behaviorTree.ts`、`game.ts` AI tick | 沒有「正在做某事」，分數一變就改主意 |
+| 2 | 條件節點有副作用：`HasTarget`、`FindOptimalTarget` 會改 `target`、`targetHex` | `BTRegistry.ts` | 「只是檢查」就換了目標，難以預測 |
+| 3 | `targetHex` 一欄三用：逃生目的地、AOE 落點、靠近隊友的格 | `BTRegistry.ts`、`TargetingSystem.ts` | `EscapeWarning` 看到 `targetHex` 還安全就直接走過去，可能把 AOE 落點當逃生點（讀碼確認，未實測） |
+| 4 | `target` 一欄兩用：敵人與治療對象，靠 `_savedCombatTarget`＋`restoreCombatTarget` 還原 | `BTRegistry.ts` | 輔助每分鐘換目標 27～32 次（量測） |
+| 5 | 逃生邏輯兩份：`TargetingSystem.updateTarget` 開頭一份、`EscapeWarning` 一份，都會寫 `targetHex` | 同上 | 兩邊互相覆蓋 |
+| 6 | 隱形狀態機：`aiState` 看起來是標籤，但 `IsEvading` 讀它決定進不進 Survival，清除點散在好幾處 | `BTRegistry.ts` | 狀態轉換沒有地方看得到 |
+| 7 | 決策散在三層：行為樹、選目標、`moveAgentToHex`（擠人時回 RUNNING、卡住回 FAILURE） | `MovementSystem.ts` | 查一個發呆要追三個檔 |
+| 8 | 技能分支各自走路：大招、主動、普攻要的射程不同，走路時也不會打手邊的敵人 | `createSkillRoutine` | 走位來回、貼著敵人卻不打；AOE 落點每次重算會讓人來回走（讀碼推論） |
+| 9 | 兩個「背水」混在一起：`LAST_STAND_PUSH`（個人逃不掉）和全域背水一戰（剩 1 格）；AI 完全不知道全域那個 | `BTRegistry.ts`、`ZoneSystem.ts` | 終局沒有專屬行為 |
+| 10 | 危險判定重複：`IsInWarningZone`、`IsInUrgentDanger` 大半相同，後者有一段重複的死碼 | `BTRegistry.ts` | 改一邊漏一邊 |
+
+## 9. 新架構：狀態拓樸＋每個狀態一棵小樹
+
+單位任何時刻都在拓樸圖的一個節點上。**狀態機決定「現在是哪個模式」，那個模式的小樹決定「這一刻怎麼做」。**轉換全部寫成資料裡的邊，不再藏在節點裡。
+
+```mermaid
+stateDiagram-v2
+    [*] --> ACQUIRE
+    ACQUIRE --> ENGAGE: 選到走得到的目標
+    ACQUIRE --> UNSTICK: 沒有走得到的目標
+    ENGAGE --> FIGHT: 進入射程
+    ENGAGE --> ACQUIRE: 目標失效／走不到／沒位置
+    ENGAGE --> UNSTICK: 持續 1.5 秒沒進展
+    FIGHT --> ENGAGE: 目標離開射程（過承諾時間）
+    FIGHT --> ACQUIRE: 目標死亡
+    UNSTICK --> ACQUIRE: 脫困或找到路
+    ENGAGE --> RETREAT: 再不走就來不及
+    FIGHT --> RETREAT: 再不走就來不及／站在敵方危害上
+    RETREAT --> ACQUIRE: 抵達安全格
+    RETREAT --> TRAPPED: 沒路可退
+    TRAPPED --> ACQUIRE: 出現退路或危險解除
+```
+
+另外三條全域邊，任何節點都會觸發：`→ DEAD`、`→ CONTROLLED`（暈眩、放逐、恐懼；結束回原節點，不重選目標）、`→ FINALE`（背水一戰）。
+
+| 狀態 | 小樹做什麼 | 持有的資料 |
+| :-- | :-- | :-- |
+| `ACQUIRE` | 選目標（跳過走不到的），當幀就離開 | — |
+| `ENGAGE` | 手邊有敵人就打；認領攻擊格；走過去 | `combatTarget`、`attackCell` |
+| `FIGHT` | Ult > Active > Basic；對隊友的招走 `castTarget`，不動 `combatTarget` | `combatTarget`、`castTarget`、`castHex` |
+| `RETREAT` | 走向最近的安全格，有預約；路上被堵才推人 | `escapeHex`、`deadline` |
+| `TRAPPED` | 原地打、推人（取代 `LAST_STAND_PUSH`） | `combatTarget` |
+| `UNSTICK` | 走到可達區內離敵人最近的格；還是不行就強制跳 | `stuckSince` |
+| `CONTROLLED` | 不動，保留原節點與目標 | `resumeState` |
+| `FINALE` | 拉到中心、只打不跑、吃加時 | — |
+| `DEAD` | 等 | — |
+
+**規則**
+- 狀態只有一個寫入者（狀態機）。小樹不能改狀態，只能回報結果；條件節點不准有副作用。
+- `target`、`targetHex` 拆開後，施法開始時才寫一份給 `SkillExecutor`、`ProjectileSystem`、`ZoneSystem`（它們目前都讀這兩欄）。
+- 邊是資料（`data/ai_profiles.ts`），依優先序檢查；每個狀態可設最短停留時間（遲滯）。
+- `tests/` 靜態檢查拓樸：每個節點都到得了、都有出邊、沒有走不出去的環；執行期檢查「停在同一節點且沒有動作 > 1 秒」就算失敗，直接對應發呆指標。
+- 檢視器顯示目前節點、最近 10 次轉換與原因，加上目前那棵樹（現有 `TreeNode` 可沿用）。
+
+**和第 3 節的對應**：P0＝`ACQUIRE` 可達性＋`UNSTICK`；P1＝`ENGAGE`／`FIGHT`（承諾、認領、順手打）；P2＝`RETREAT`；P3＝`FINALE`。
+
+## 10. 遷移步驟（每步都能單獨驗收）
+
+| 步 | 內容 | 驗收 |
+| :-- | :-- | :-- |
+| M1 | 骨架：狀態機包住現有整棵樹（單一節點 `LEGACY`），加轉換紀錄與拓樸測試 | 同 seed 模擬數字**完全相同** |
+| M2 | 欄位拆開：`combatTarget`、`castTarget`、`castHex`、`escapeHex`；刪掉 `_savedCombatTarget` 與選目標裡那份逃生邏輯；條件節點去副作用 | 測試全過；第 3 項修掉；其他指標不變差 |
+| M3 | 切樹：`DEAD`、`CONTROLLED`、`RETREAT`、`TRAPPED`、`ACQUIRE`、`ENGAGE`、`FIGHT` 各一棵，先搬現有行為 | 指標不變差（容差內） |
+| M4～M7 | 依序做 P0、P1、P2、P3，每包達標才進下一包 | 第 3 節的驗收數字 |
+| M8 | 大逃殺技能規則（第 5 節），重量勝率 | 每職業 10～30% |
+
+M1～M3 是核心架構，主代理自己做；M4 之後規格清楚的小包可派 agy 的 Sonnet。全部是模擬與 AI，不動渲染；`aiState` 的讀者（導演、狀態視覺、檢視器、`AgentDerived`）在 M3 一起對照。
