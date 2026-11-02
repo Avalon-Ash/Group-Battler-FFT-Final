@@ -141,12 +141,12 @@ export const useGameApp = () => {
         const setup = plannedSetupRef.current;
         const slotsOf = (side: number) => rosterRef.current.filter(s => s.side === side);
         const place = (slot: ShowcaseSlot, hex: HexCoord, side?: number) => {
+            random(); // 每人保留一次取號（原本抽開局血量）：拿掉會讓之後的地圖亂數整串位移
             engine.bus.emit('UI_COMMAND', {
                 type: 'PLACE_AGENT',
                 team: slot.team,
                 q: hex.q,
                 r: hex.r,
-                hp: GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE,
                 role: slot.role,
                 bodyType: slot.bodyType,
                 side,
