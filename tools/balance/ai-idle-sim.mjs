@@ -225,6 +225,7 @@ try {
                 engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.RED, q: right[i].q, r: right[i].r, role: Role.WARRIOR });
             }
         } else if (scenario === 'ROYALE') {
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 10, unitsPerFaction: 1 } });
             const shuffledHexes = shuffle([...spawnable]);
             const layout = layoutFactionHexes(shuffledHexes, 10, 1);
             const royaleRoles = [
@@ -238,6 +239,7 @@ try {
                 engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team, side: i, q: hex.q, r: hex.r, role: royaleRoles[i] });
             }
         } else if (scenario === 'MELEE_ROYALE' || scenario === 'TANK_ROYALE') {
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 10, unitsPerFaction: 1 } });
             const shuffledHexes = shuffle([...spawnable]);
             const layout = layoutFactionHexes(shuffledHexes, 10, 1);
             for (let i = 0; i < 10; i++) {

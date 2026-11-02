@@ -2477,5 +2477,9 @@
   "AI_MODE_RULES": {
     "TRACE_LENGTH": 10,
     "MAX_HOPS_PER_TICK": 6
+  },
+  "ROYALE_RULES": {
+    "MIN_FACTIONS": 3,
+    "HP_GAP_SCALE": 0.5
   }
 }

@@ -268,7 +268,7 @@ export class GameEngine implements SpatialProvider {
         this.sessionState.firstBloodTriggered = false;
         this.agents.forEach(a => {
             resetAgent(a, this.mapConfig);
-            AgentManager.applyRoleStats(a, undefined, true);
+            AgentManager.applyRoleStats(a, AgentManager.spawnHp(a.role, this), true);
             AgentManager.prepareForBattle(a, this, false);
             this.map.registerAgent(a);
         });
@@ -280,7 +280,7 @@ export class GameEngine implements SpatialProvider {
 
     public resetAgent(a: Agent) {
         resetAgent(a, this.mapConfig);
-        AgentManager.applyRoleStats(a, undefined, true);
+        AgentManager.applyRoleStats(a, AgentManager.spawnHp(a.role, this), true);
     }
 
     public clear(keepScene: boolean = false, skipRebuild: boolean = false) {
