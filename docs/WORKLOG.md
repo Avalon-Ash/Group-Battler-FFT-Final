@@ -457,7 +457,7 @@
 - 證據：lint、1048 項測試、build、knip、smoke、e2e:ui、perf:guard 全過；瀏覽器實跑 10×1 三場 0 個頁面錯誤。
 
 ### BE. 2026-11-02 本機清理與文件全量核對（主代理＋agy Flash 只讀盤點）
-- 刪分支 `docs/royale-balance-notes`、`feat/ai-topology`（都已合併）；清 `tools/ui-e2e/out`（176 MB 一次性輸出）與 `dist`；移除 6 個空的 `_wt_opt-*`。6 個有內容的 `_wt_*` 等使用者手動刪（HANDOFF §1）。
+- 刪分支 `docs/royale-balance-notes`、`feat/ai-topology`（都已合併）；清 `tools/ui-e2e/out`（176 MB 一次性輸出）與 `dist`；移除 6 個空的 `_wt_opt-*`。6 個有內容的 `_wt_*`（約 3.5 GB，查過沒有未合併的分支與未提交的改動）由使用者手動刪（主代理的刪除被權限檢查擋下）。
 - 刪文件：`BAL02_REPORT`、`R7_DRIFT_CORPSE_REPORT`、`ULT_VISUAL_CLAUDE_REPORT`、`ULT_VISUAL_MATRIX.csv`（結論在本檔 W、AG、T 節）；`PROJECT_CLEANUP_AUDIT01_*.csv`（凍結的清冊）；`BGM_CANDIDATES`（已由 `data/audio/music.ts`、`ASSET_LEDGER`、`CREDITS` 取代）；`CORE_PROJECTION_DESIGN`（已實作，規格在 `RenderSpec`、`VisualMath`、`PEDESTAL_CORE`）。
 - 修正：README（控場 19 種、AI 拓樸、VFX 展示庫、匯出器、背水一戰、大逃殺規則、平衡指令）；AGENTS（`materialConfig` 範圍、AI 位置）；PROJECT_MAP（戰鬥曲、AI 段落）；ASSET_NEEDS（冰塊與羊已烘焙）；ASSET_LEDGER（補 10 組女性圖集）；ART_STYLE_BIBLE（不存在的檔名）；`prepare_runtime_atlases.mjs` 與它的 README 指向已刪分支，改標籤。
 - 工具：刪 `tools/ui-e2e/drift-corpse-probe.mjs`（R7 一次性取證）；`parts-sheet`、`ult-battle-probe` 還用得到，入口改記在 `VFX_PIPELINE_MAP`。

@@ -9,7 +9,7 @@
 - **派工**：同一時間只跑一個 agy（11-01 兩個同時跑，後派的一開始就被拒）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。
 - **額度**：Claude（Pro）每週要省。**Codex 週額度見底（`~/.claude/QUOTA.md`）：暫停派 Codex**（Codex 現在只派美術視覺與邏輯根因）。長線實作走 agy 的 Gemini 3.8 Flash，要判斷的收回 Claude（`agent-prompt` skill）。Antigravity 額度由使用者回報、記在 `~/.claude/QUOTA.md`。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
-- 本機殘留：`C:\Git\_wt_idle`、`_wt_melee`、`_wt_mhvis`、`_wt_multihit`、`_wt_r1`、`_wt_render`（已合併的暫存 clone，約 3.5 GB，查過沒有未合併的分支與未提交的改動；主代理的刪除被權限檢查擋下，等使用者手動刪）。本機標籤 `archive/lionheart-skin-trials` 保留 S0 沒收的預覽圖與 OPUS 交接。
+- 本機標籤 `archive/lionheart-skin-trials` 保留 S0 沒收的預覽圖與 OPUS 交接。
 - 逐檔人工審計已由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、`NoLocalHash`），清冊 CSV 已刪（11-02）。
 - 座標 findings：COORD-SINK-01（受擊下坡下陷 1.89 px）使用者 2026-10-26 實機幾乎看不到，**不修**，有新證據（更大的下陷、玩家看得見）才重開；COORD-VOID-01 屬量測工具問題，同樣擱置。已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
 
