@@ -68,6 +68,20 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         owners: ['engine/systems/movement/MovementSystem.ts', 'engine/systems/movement/MotionEngine.ts'],
         note: '落點預覽與投射物讀它；stopMovement 不動它。',
     },
+    targetLockUntil: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: ['engine/ai/TargetingSystem.ts', 'engine/ai/BTRegistry.ts'],
+        lifecycle: ['engine/core/AgentLifecycle.ts'],
+        note: '選定目標時由 TargetingSystem 設定；順手攻擊換目標、走不到目標時由 BTRegistry 設定或解除。',
+    },
+    nextRepathAt: {
+        group: 'locomotion',
+        kind: 'single',
+        owners: ['engine/systems/movement/MovementSystem.ts'],
+        lifecycle: ['engine/core/AgentLifecycle.ts'],
+        note: '尋路節流；路徑失效不受限。',
+    },
     moveSpeedMult: {
         group: 'locomotion',
         kind: 'single',
