@@ -28,6 +28,8 @@ export const FACTION_TINT = {
     /** 被換色的來源色相範圍（度，含端點） */
     SOURCE_HUE_MIN: 190,
     SOURCE_HUE_MAX: 262,
+    /** 血條色碼的來源色相下限（度）：藍隊血條是偏綠的青色（187°），比圖集的藍色範圍寬 */
+    HUD_SOURCE_HUE_MIN: 180,
     /** 被換色的最低飽和度（HSV）。低於它的灰藍、白、金屬不動 */
     MIN_SATURATION: 0.18,
     /** 圖集變體鍵的分隔字元：`BLUE:MAGE:MALE@135` */
@@ -93,7 +95,7 @@ export function splitVariantKey(key: string): { baseKey: string; hue: number | n
 }
 
 /** 單一像素：藍色範圍內就把色相換成 targetHue（度），回傳新的 [r, g, b]（0～255）；不在範圍內回傳原值 */
-export function retintRgb(r: number, g: number, b: number, targetHue: number): [number, number, number] {
+export function retintRgb(r: number, g: number, b: number, targetHue: number, minHue: number = FACTION_TINT.SOURCE_HUE_MIN): [number, number, number] {
     const rn = r / BYTE_MAX, gn = g / BYTE_MAX, bn = b / BYTE_MAX;
     const mx = Math.max(rn, gn, bn);
     const d = mx - Math.min(rn, gn, bn);
@@ -104,7 +106,7 @@ export function retintRgb(r: number, g: number, b: number, targetHue: number): [
     else sector = (rn - gn) / d + 4;
     const deg = ((sector * SECTOR_DEGREES) + DEGREES) % DEGREES;
     const sat = d / mx;
-    if (deg < FACTION_TINT.SOURCE_HUE_MIN || deg > FACTION_TINT.SOURCE_HUE_MAX || sat < FACTION_TINT.MIN_SATURATION) return [r, g, b];
+    if (deg < minHue || deg > FACTION_TINT.SOURCE_HUE_MAX || sat < FACTION_TINT.MIN_SATURATION) return [r, g, b];
     const k = (((targetHue % DEGREES) + DEGREES) % DEGREES) / SECTOR_DEGREES;
     const j = Math.floor(k) % HUE_SECTORS;
     const f = k - Math.floor(k);
@@ -117,31 +119,31 @@ export function retintRgb(r: number, g: number, b: number, targetHue: number): [
 const hexByte = (n: number): string => n.toString(HEX_RADIX).padStart(HEX_PAIR, '0');
 
 /** 色碼字串換色：支援 #rgb／#rrggbb／#rrggbbaa 與 rgb()／rgba()；不是色碼或不在藍色範圍回傳原字串 */
-export function retintCss(css: string, targetHue: number): string {
+export function retintCss(css: string, targetHue: number, minHue: number = FACTION_TINT.SOURCE_HUE_MIN): string {
     if (css.startsWith('#')) {
         let hex = css.slice(1);
         if (!/^[0-9a-f]+$/i.test(hex)) return css;
         if (hex.length === SHORT_HEX_LENGTH) hex = hex.split('').map(c => c + c).join('');
         if (hex.length !== LONG_HEX_LENGTH && hex.length !== ALPHA_HEX_LENGTH) return css;
         const r = parseInt(hex.slice(0, 2), HEX_RADIX), g = parseInt(hex.slice(2, 4), HEX_RADIX), b = parseInt(hex.slice(4, 6), HEX_RADIX);
-        const [nr, ng, nb] = retintRgb(r, g, b, targetHue);
+        const [nr, ng, nb] = retintRgb(r, g, b, targetHue, minHue);
         if (nr === r && ng === g && nb === b) return css;
         return `#${hexByte(nr)}${hexByte(ng)}${hexByte(nb)}${hex.slice(6)}`;
     }
     const m = COLOR_FN_PATTERN.exec(css);
     if (!m) return css;
     const r = Number(m[1]), g = Number(m[2]), b = Number(m[3]);
-    const [nr, ng, nb] = retintRgb(r, g, b, targetHue);
+    const [nr, ng, nb] = retintRgb(r, g, b, targetHue, minHue);
     if (nr === r && ng === g && nb === b) return css;
     return m[4] === undefined ? `rgb(${nr}, ${ng}, ${nb})` : `rgba(${nr}, ${ng}, ${nb}, ${m[4]})`;
 }
 
-function retintDeep<T>(value: T, hue: number): T {
-    if (typeof value === 'string') return retintCss(value, hue) as unknown as T;
-    if (Array.isArray(value)) return value.map(v => retintDeep(v, hue)) as unknown as T;
+function retintDeep<T>(value: T, hue: number, minHue: number = FACTION_TINT.SOURCE_HUE_MIN): T {
+    if (typeof value === 'string') return retintCss(value, hue, minHue) as unknown as T;
+    if (Array.isArray(value)) return value.map(v => retintDeep(v, hue, minHue)) as unknown as T;
     if (value && typeof value === 'object') {
         const out: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(value as Record<string, unknown>)) out[k] = retintDeep(v, hue);
+        for (const [k, v] of Object.entries(value as Record<string, unknown>)) out[k] = retintDeep(v, hue, minHue);
         return out as T;
     }
     return value;
@@ -171,7 +173,7 @@ export function getLookSkin(look: FactionLook, role: Role, body: BodyTypeId): Fa
     const key = `${look.skinTeam}|${role}|${body}|${look.hue}`;
     let skin = tintedSkinCache.get(key);
     if (!skin) {
-        skin = retintDeep(base, look.hue);
+        skin = { ...retintDeep(base, look.hue), hud: retintDeep(base.hud, look.hue, FACTION_TINT.HUD_SOURCE_HUE_MIN) };
         tintedSkinCache.set(key, skin);
     }
     return skin;

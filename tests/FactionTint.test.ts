@@ -23,6 +23,13 @@ describe('faction tint', () => {
         expect(pickFactionLooks(8, 'round-2')).not.toEqual(a);
     });
 
+    it('血條跟著陣營色：藍隊的青色血條也會換色（色相在圖集範圍之外）', () => {
+        const base = getFactionSkin(Team.BLUE, Role.WARRIOR, 'MALE').hud;
+        const hud = getAgentSkin({ team: Team.BLUE, role: Role.WARRIOR, bodyType: 'MALE', look: { skinTeam: Team.BLUE, hue: 135 } }).hud;
+        for (const field of ['top', 'bottom', 'glow', 'border'] as const) expect(hud[field]).not.toBe(base[field]);
+        expect(getAgentSkin({ team: Team.BLUE, role: Role.WARRIOR, bodyType: 'MALE', look: plainLook(Team.BLUE) }).hud).toBe(base);
+    });
+
     it('藍色像素換色相，皮膚、金屬、灰不動', () => {
         const [r, g, b] = retintRgb(40, 90, 200, 135);
         expect(g).toBeGreaterThan(r);

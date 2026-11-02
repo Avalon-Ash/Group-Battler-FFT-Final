@@ -639,7 +639,7 @@ try {
                     const k = `${winnerAgent.team === Team.BLUE ? 'BLUE' : 'RED'}/${winnerAgent.role}`;
                     winsByTeamRole[k] = (winsByTeamRole[k] ?? 0) + 1;
                     const wa = engine.agents.find((x) => x.id === winnerAgent.id);
-                    for (const id of wa.skillIds) if (id) skillWins[id] = (skillWins[id] ?? 0) + 1;
+                    if (wa) for (const id of wa.skillIds) if (id) skillWins[id] = (skillWins[id] ?? 0) + 1;
                 } else {
                     draws++;
                 }

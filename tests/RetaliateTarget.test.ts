@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { Team, Role } from '../types';
-import { TARGET_RULES } from '../constants';
+import { COMBAT_PARAM, TARGET_RULES } from '../constants';
 
 /**
  * 被打回頭（TargetingSystem.updateTarget）：剛被敵人打到、而現有目標還在射程外時，改鎖定攻擊者。
@@ -28,6 +28,8 @@ describe('Retaliate on hit (melee)', () => {
     const spawn = (team: Team, q: number, r: number) => {
         const a = engine.agentManager.addAgent(engine, team, q, r, 100, Role.WARRIOR);
         if (!a) throw new Error('addAgent failed');
+        // 戰士的普攻有 2/10 射程超過 1（隨機抽）：固定成近戰，才不會偶發失敗
+        a.skills = a.skills.map(s => (s?.tag === 'BASIC' ? { ...s, range: COMBAT_PARAM.MELEE_RANGE } : s));
         return a;
     };
 
@@ -69,6 +71,24 @@ describe('Retaliate on hit (melee)', () => {
         victim.targetLockUntil = engine.battleTime + 10;
         victim.lastHitSourceId = attacker.id;
         engine.updateTarget(victim);
+        engine.updateTarget(victim);
+        expect(victim.target).toBe(far);
+    });
+
+    it('遠程單位被打 → 不轉頭（只限近戰）', () => {
+        const victim = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 100, Role.RANGER);
+        if (!victim) throw new Error('addAgent failed');
+        const far = spawn(Team.RED, 6, 0);
+        const basicRange = victim.skills.find(s => s?.tag === 'BASIC')?.range;
+        expect(basicRange).toBeGreaterThan(1);
+        expect(basicRange).toBeLessThan(6); // 目標確實在射程外，才測得到「遠程不轉頭」
+        const attacker = spawn(Team.RED, 0, 2);
+        victim.target = far;
+        victim.targetLockUntil = engine.battleTime + 10;
+        engine.updateTarget(victim);
+
+        victim.hp -= 10;
+        victim.lastHitSourceId = attacker.id;
         engine.updateTarget(victim);
         expect(victim.target).toBe(far);
     });
