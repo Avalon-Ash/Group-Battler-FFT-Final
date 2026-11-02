@@ -1,7 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { AI_MODE_GRAPH, type BTDef } from '../data/ai_profiles';
 import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
+import { GameEngine } from '../engine/game';
+import { Team, Role } from '../types';
 import type { AIMode } from '../types';
+
+describe('建 AI 不動表現流', () => {
+    it('建樹不呼叫 Math.random：節點數改變不得影響開機地圖與保真基準', () => {
+        const engine = new GameEngine();
+        const spy = vi.spyOn(Math, 'random');
+        const a = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 100, Role.WARRIOR);
+        if (!a) throw new Error('addAgent failed');
+        spy.mockClear();
+        engine.ai.buildAI(a, engine);
+        expect(spy).not.toHaveBeenCalled();
+        spy.mockRestore();
+        engine.clear();
+    });
+});
 
 /** 拓樸的靜態檢查：圖是資料，寫錯要在這裡被抓到，不要等到實機發呆。 */
 describe('AI_MODE_GRAPH 拓樸', () => {

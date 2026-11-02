@@ -201,6 +201,7 @@ const createHarnessContext = async () => {
  * 值＝既有基準擷取時的設定（引擎預設），固定後基準與模組載入順序脫鉤。
  */
 const FIDELITY_MAP = { w: 12, h: 8, layout: 'POINTY' };
+const FIDELITY_WARMUP_CAPTURES = 8;
 
 const captureScene = async (page, sid) => {
     const cfg = await page.evaluate(async ({ sceneId, map }) => {
@@ -274,7 +275,8 @@ try {
     });
     // 暖機：先丟掉一張，讓鏡頭從展示戰鬥收斂到固定地圖（第一張擷取原本會因鏡頭起點不同而整張偏移）。
     // __resetSeed 會把合成時間重設，漂浮地圖的起伏相位不受暖機影響。
-    await captureScene(page, sceneIds[0]);
+    // 一張不夠：鏡頭還沒收斂時，第一個場景的基準會跟著展示戰鬥的亂數走（2026-11-02 VOID 因此隨行為樹節點數變動）。
+    for (let i = 0; i < FIDELITY_WARMUP_CAPTURES; i++) await captureScene(page, sceneIds[0]);
 
     if (isRecord) {
         console.log('== RECORDING FIDELITY BASELINE PNGs ==');

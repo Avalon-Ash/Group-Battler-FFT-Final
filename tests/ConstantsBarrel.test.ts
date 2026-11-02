@@ -20,7 +20,6 @@ export const EXPECTED_EXPORTS = [
     'BACKGROUND_FX',
     'BATTLE_RULES',
     'BLOCK_HEIGHT',
-    'BT_NODE_RULES',
     'BT_RULES',
     'BT_VIEW_PARAM',
     'CAMERA_PARAM',

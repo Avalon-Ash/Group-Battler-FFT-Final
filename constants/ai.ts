@@ -95,9 +95,3 @@ export const PATH_RULES = {
     SAFETY_OCCUPANCY_COST: 50,
 } as const;
 
-export const BT_NODE_RULES = {
-    /** 節點隨機識別碼的進位基數。 */
-    ID_RADIX: 36,
-    /** 節點隨機識別碼截取長度（字元）。 */
-    ID_LENGTH: 6,
-} as const;

@@ -255,10 +255,6 @@
     "CRIT_MULTIPLIER": 1.5,
     "TANK_DAMAGE_MULTIPLIER": 0.85
   },
-  "BT_NODE_RULES": {
-    "ID_RADIX": 36,
-    "ID_LENGTH": 6
-  },
   "PATH_RULES": {
     "REPATH_MIN_S": 0.25,
     "HEX_NEIGHBOR_COUNT": 6,

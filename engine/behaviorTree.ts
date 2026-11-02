@@ -1,6 +1,8 @@
-import { BT_NODE_RULES } from '../constants';
 import { NodeState } from "../types";
 import type { Agent } from "./core/Agent";
+/** 只當檢視器的 React key。不用 Math.random：節點數一變就會移動表現流，連開機地圖都跟著換。 */
+let nextNodeId = 0;
+
 export abstract class BTNode {
     id: string;
     n: string;
@@ -14,7 +16,7 @@ export abstract class BTNode {
         this.type = type;
         this.c = [];
         this.status = NodeState.PENDING;
-        this.id = Math.random().toString(BT_NODE_RULES.ID_RADIX).substr(2, BT_NODE_RULES.ID_LENGTH);
+        this.id = `bt${nextNodeId++}`;
     }
     add(child: BTNode): this {
         this.c.push(child);
