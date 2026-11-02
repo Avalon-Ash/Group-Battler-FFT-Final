@@ -89,7 +89,6 @@ export class Agent {
     public ccVisual: SpecialVisualStatus = 'NONE';
     public hasLandedLastStand: boolean = false; // Track one-time EMP hit
     public spawnTimer: number = 0;
-    public escapeCooldown: number = 0; // Added missing property
     public _interruptCooldown: number = 0;
     public _castCompleteCooldown: number = 0;
 

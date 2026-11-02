@@ -90,7 +90,6 @@ export function resetAgent(agent: Agent, config: MapConfig): void {
     agent.aiModeTrace = [];
     agent.aiUpdateTimer = 0;
     agent.forceAiUpdate = false;
-    agent.escapeCooldown = 0;
     agent.hasLandedLastStand = false;
     agent.dragOverQ = null;
     agent.dragOverR = null;

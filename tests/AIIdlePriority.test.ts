@@ -120,7 +120,8 @@ describe('AIIdlePriority', () => {
             const a = mk(Team.BLUE, -2, 0, Role.WARRIOR);
             const tower = mk(Team.RED, 0, 0, Role.WARRIOR);
             const reachable = mk(Team.RED, 2, 0, Role.WARRIOR);
-            engine.map.setHeight('0,0', BLOCK_HEIGHT);
+            a.jump = 1;
+            engine.map.setHeight('0,0', 2 * BLOCK_HEIGHT);
             a.target = tower;
             engine.updateTarget(a);
             expect(a.target).toBe(reachable);
@@ -246,9 +247,9 @@ describe('AIIdlePriority', () => {
             expect(names(AI_MODE_GRAPH.modes.TRAPPED.tree)).toEqual(['Last Stand', 'Combat']);
         });
 
-        it('Combat Actions：技能 > 追擊 > 走位 > 待命（Idle 一定最後）', () => {
+        it('Combat Actions：技能 > 追擊 > 走位 > 前進，沒有 Idle', () => {
             const combat = AI_MODE_GRAPH.modes.COMBAT.tree;
-            expect(names(find(combat, 'Combat Actions'))).toEqual(['Skill Priority', 'Gap Close', 'Reposition', 'Idle']);
+            expect(names(find(combat, 'Combat Actions'))).toEqual(['Skill Priority', 'Gap Close', 'Reposition', 'Advance']);
             expect(names(find(combat, 'Skill Priority'))).toEqual(['Try Ultimate', 'Try Active', 'Try Basic']);
         });
     });

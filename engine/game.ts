@@ -399,7 +399,7 @@ export class GameEngine implements SpatialProvider {
         this.logger.log(this.battleTime, this.battleTime * 10, agent, type, actionName, targetInfo, detail);
     }
 
-    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number): number {
+    public getEffectiveRange(a: Hex & { jump?: number }, targetQ: number, targetR: number, baseRange: number): number {
         return this.movement.getEffectiveRange(a, targetQ, targetR, baseRange, this);
     }
 

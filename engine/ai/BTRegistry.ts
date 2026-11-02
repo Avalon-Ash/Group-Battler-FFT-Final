@@ -6,6 +6,7 @@ import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM } from "../../constants"
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
+import { canStepUp } from "../math/ClimbRule";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 import { sameSide } from '../core/Allegiance';
@@ -28,6 +29,51 @@ function restoreCombatTarget(a: Agent, engine: GameEngine): void {
     }
 }
 
+/** 離最近敵人的格距（沒有敵人回 Infinity） */
+function distToNearestEnemy(a: Agent, cell: Hex, engine: GameEngine): number {
+    let best = Infinity;
+    for (const o of engine.agents) {
+        if (sameSide(o, a) || !engine.movement.targeting.isValidTarget(o, engine)) continue;
+        best = Math.min(best, HexUtils.dist(cell, o));
+    }
+    return best;
+}
+
+/** 現在站的地方基本攻擊打得到的最近敵人 */
+function enemyInReach(a: Agent, engine: GameEngine): Agent | null {
+    const basicRange = a.skills.find(s => s?.tag === 'BASIC')?.range ?? 0;
+    let best: Agent | null = null;
+    let bestDist = Infinity;
+    for (const o of engine.agents) {
+        if (sameSide(o, a) || !engine.movement.targeting.isValidTarget(o, engine)) continue;
+        const d = HexUtils.dist(a, o);
+        if (d < bestDist && d <= engine.getEffectiveRange(a, o.q, o.r, basicRange)) { bestDist = d; best = o; }
+    }
+    return best;
+}
+
+/** 走得到的格子裡離敵人最近、而且比現在更近的格；同距離挑離自己近的。沒有這種格回 null。 */
+function bestAdvanceCell(a: Agent, engine: GameEngine): Hex | null {
+    let bestDist = distToNearestEnemy(a, a, engine);
+    if (bestDist === Infinity) return null;
+    let best: Hex | null = null;
+    let bestStep = Infinity;
+    for (const h of engine.movement.pathfinder.reachableCells(a, engine)) {
+        if (h.q === a.q && h.r === a.r) continue;
+        if (engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
+        if (engine.isWarningTile(HexUtils.key(h))) continue;
+        if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => !sameSide(hz, a))) continue;
+        const d = distToNearestEnemy(a, h, engine);
+        const step = HexUtils.dist(a, h);
+        if (d < bestDist || (d === bestDist && best && step < bestStep)) {
+            bestDist = d;
+            bestStep = step;
+            best = h;
+        }
+    }
+    return best;
+}
+
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
@@ -44,6 +90,14 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "WantsRetreat": (a, engine, args) =>
         BTConditions["IsInUrgentDanger"](a, engine, args) || BTConditions["IsEvading"](a, engine, args),
     
+    // 脫困判定：有敵人、打不到、而且走不到更近的地方（跳躍中也算還沒脫困）
+    "IsBoxedIn": (a, engine) => {
+        if (a.isMoving) return true;
+        if (distToNearestEnemy(a, a, engine) === Infinity) return false;
+        if (!BTConditions["CanMove"](a, engine, {})) return false;
+        return !enemyInReach(a, engine) && bestAdvanceCell(a, engine) === null;
+    },
+
     "HasTarget": (a, engine) => {
         restoreCombatTarget(a, engine);
 
@@ -465,9 +519,6 @@ export const BTActions: Record<string, BTActionFn> = {
             if (state === NodeState.SUCCESS) {
                 engine.log(a, 'DECISION', '生存：脫離險境', '', `已抵達目標點 ${HexUtils.key(a.escapeHex)}`);
                 a.escapeHex = null;
-                // [FIX] Reduce cooldown significantly. 0.2s is enough to prevent jitter 
-                // but 1.0s was making them sit on dangerous tiles far too long.
-                a.escapeCooldown = BT_RULES.ESCAPE_RETRY_COOLDOWN; 
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
@@ -617,7 +668,7 @@ export const BTActions: Record<string, BTActionFn> = {
         // 地面近戰高低差感知：站得到同層攻擊格就優先去那裡（鄰著目標但差一層時，單看格距永遠找不到「更近」的格）
         const basicRange = a.skills.find(s => s?.tag === 'BASIC')?.range ?? 0;
         const meleeAware = isGroundMeleeRange(a, basicRange) &&
-            !isMeleeAttackCell(engine.movement.targeting, a, a.target.q, a.target.r, basicRange, engine);
+            !isMeleeAttackCell(engine.movement.targeting, a, a.target.q, a.target.r, basicRange, engine, a.jump);
         let bestIsAttack = false;
         let bestStep = Infinity;
         for (const h of HexUtils.range(a, REPOSITION_RADIUS)) {
@@ -625,7 +676,7 @@ export const BTActions: Record<string, BTActionFn> = {
             if (!engine.map.isValid(h.q, h.r) || engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
             if (engine.isWarningTile(HexUtils.key(h))) continue;
             if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => !sameSide(hz, a))) continue;
-            if (meleeAware && isMeleeAttackCell(engine.movement.targeting, h, a.target.q, a.target.r, basicRange, engine)) {
+            if (meleeAware && isMeleeAttackCell(engine.movement.targeting, h, a.target.q, a.target.r, basicRange, engine, a.jump)) {
                 // 攻擊格之間挑離自己最近的；有任何攻擊格就勝過「只是格距更近」的格
                 const step = HexUtils.dist(a, h);
                 if (!bestIsAttack || step < bestStep) { bestIsAttack = true; bestStep = step; best = h; }
@@ -642,6 +693,51 @@ export const BTActions: Record<string, BTActionFn> = {
             a.actionState = ActionState.WALKING;
         }
         return state;
+    },
+    /**
+     * 前進：追擊和走位都不行時，走到走得到的格子裡離敵人最近的地方。
+     * 不能動、或已經有敵人打得到（在等冷卻）是正當的等待；其餘 FAILURE 交給 UNSTICK。
+     */
+    "Advance": (a, engine) => {
+        restoreCombatTarget(a, engine);
+        const near = enemyInReach(a, engine);
+        if (near || !BTConditions["CanMove"](a, engine, {})) {
+            if (near) a.target = near;
+            a.aiState = AIState.WAITING;
+            a.actionState = ActionState.IDLE;
+            return NodeState.SUCCESS;
+        }
+        const goal = bestAdvanceCell(a, engine);
+        if (!goal) return NodeState.FAILURE;
+        const state = engine.moveAgentToHex(a, goal, 0, 1.0);
+        if (state === NodeState.RUNNING) {
+            a.aiState = AIState.TRACKING;
+            a.actionState = ActionState.WALKING;
+        }
+        return state;
+    },
+    /** 脫困：爬升規則走不到任何敵人時，短暫等待後強制跳上離敵人最近的鄰格（只在這裡無視 canStepUp）。 */
+    "ForceJump": (a, engine) => {
+        if (a.isMoving) return NodeState.RUNNING;
+        restoreCombatTarget(a, engine);
+        if (!BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
+        a.aiState = AIState.WAITING;
+        a.actionState = ActionState.IDLE;
+        if (engine.battleTime - a.aiModeSince < BT_RULES.UNSTICK_WAIT_S) return NodeState.RUNNING;
+        // 只挑爬升規則擋住的格：其他鄰格尋路本來就走得到，跳過去只會來回彈
+        const fromH = engine.getTerrainHeight(a.q, a.r);
+        let best: Hex | null = null;
+        let bestDist = Infinity;
+        for (const n of HexUtils.neighbors(a)) {
+            if (!engine.isValid(n.q, n.r) || engine.isBlocked(n.q, n.r, a.id, a.movementType)) continue;
+            if (engine.isWarningTile(HexUtils.key(n))) continue;
+            if (canStepUp(a, fromH, engine.getTerrainHeight(n.q, n.r))) continue;
+            const d = distToNearestEnemy(a, n, engine);
+            if (d < bestDist) { bestDist = d; best = n; }
+        }
+        if (!best) return NodeState.FAILURE;
+        engine.movement.forceStep(a, best);
+        return NodeState.RUNNING;
     },
     "CastPushPull": (a, engine) => {
         const savedTarget = a.target;

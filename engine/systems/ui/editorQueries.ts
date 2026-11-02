@@ -9,6 +9,7 @@ import { Hex, Camera, HexSpatialLookup } from '../../../types';
 import { GameEngine, Agent } from '../../game';
 import { PointerProjector } from '../../math/PointerProjector';
 import { HexUtils } from '../../utils';
+import { BATTLE_RULES } from '../../../constants';
 
 /** Current engine-owned zoom target, including inputs not yet smoothed on screen. */
 export function queryCameraTargetZoom(engine: GameEngine): number | undefined {
@@ -103,7 +104,7 @@ export function queryMapKeys(engine: GameEngine | null | undefined): string[] {
 export function querySpawnableHexes(engine: GameEngine): { q: number; r: number }[] {
     if (!engine) return [];
     const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
-    return queryMapKeys(engine)
+    return dropSpawnPockets(queryMapKeys(engine)
         .map((k: string) => {
             const [q, r] = k.split(',').map(Number);
             return { q, r };
@@ -111,7 +112,27 @@ export function querySpawnableHexes(engine: GameEngine): { q: number; r: number 
         .filter((hex) => {
             if (queryHasObstacle(engine, hex.q, hex.r)) return false;
             return HexUtils.dist({ q: 0, r: 0 }, hex) < radius;
-        });
+        }));
+}
+
+/** 被障礙物圍死的小區塊不能出生：單位整場走不出去也打不到人。順序不變，沒有小區塊時結果和輸入相同。 */
+function dropSpawnPockets(cells: HexCoord[]): HexCoord[] {
+    const open = new Set(cells.map(c => HexUtils.hash(c.q, c.r)));
+    const seen = new Set<number>();
+    const pockets = new Set<number>();
+    for (const start of open) {
+        if (seen.has(start)) continue;
+        seen.add(start);
+        const region = [start];
+        for (let head = 0; head < region.length; head++) {
+            for (const n of HexUtils.neighbors(HexUtils.unhash(region[head]))) {
+                const h = HexUtils.hash(n.q, n.r);
+                if (open.has(h) && !seen.has(h)) { seen.add(h); region.push(h); }
+            }
+        }
+        if (region.length < cells.length * BATTLE_RULES.SPAWN_MIN_REGION_RATIO) region.forEach(h => pockets.add(h));
+    }
+    return cells.filter(c => !pockets.has(HexUtils.hash(c.q, c.r)));
 }
 
 export type HexCoord = { q: number; r: number };

@@ -304,6 +304,8 @@ export const CONTROL_RULES = {
 } as const;
 
 export const BATTLE_RULES = {
+    /** 出生：連通塊小於全部可出生格這個比例就算被圍死的小區塊，不在那裡出生。 */
+    SPAWN_MIN_REGION_RATIO: 0.2,
     /** 勝負已定時的時間流速倍率。 */
     FINISH_TIME_SCALE: 0.4,
     /** 五連殺門檻與播報等級（擊殺數）。 */

@@ -35,7 +35,7 @@ export class Pathfinder {
                 const occ = spatial.getAgentHash(h);
                 if (occ && occ.hp > 0 && occ !== startAgent) return;
             }
-            if (isMeleeAttackCell(targeting, cell, goalHex.q, goalHex.r, range, spatial)) cells.push(cell);
+            if (isMeleeAttackCell(targeting, cell, goalHex.q, goalHex.r, range, spatial, startAgent.jump)) cells.push(cell);
         };
         if (includeGoal) consider(goalHex);
         for (const n of HexUtils.neighbors(goalHex)) consider(n);
@@ -379,6 +379,35 @@ export class Pathfinder {
             curr = this._cameFrom.get(curr) || -1;
         }
         return path.reverse();
+    }
+
+    /**
+     * 單位走得到的所有格子（照爬升規則與障礙物，不管其他單位，因為單位會移動）。
+     * 不連通的低窪地或高台就靠這個認出來。
+     */
+    public reachableCells(agent: Agent, spatial: SpatialProvider): Hex[] {
+        const startH = HexUtils.hash(agent.q, agent.r);
+        const seen = new Set<number>([startH]);
+        const queue: number[] = [startH];
+        for (let head = 0; head < queue.length; head++) {
+            const currentHex = HexUtils.unhash(queue[head]);
+            const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);
+            for (let i = 0; i < PATH_RULES.HEX_NEIGHBOR_COUNT; i++) {
+                const neighborH = queue[head] + NEIGHBOR_HASH_OFFSETS[i];
+                if (seen.has(neighborH) || !spatial.isValidHash(neighborH)) continue;
+                if (spatial.hasObstacleHash(neighborH)) {
+                    const def = OBSTACLE_DB[spatial.getObstacleTypeHash(neighborH) || 'WALL'];
+                    if (agent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
+                }
+                if (agent.movementType !== MovementType.FLYING) {
+                    const n = HexUtils.unhash(neighborH);
+                    if (!canStepUp(agent, h1, spatial.getTerrainHeight(n.q, n.r))) continue;
+                }
+                seen.add(neighborH);
+                queue.push(neighborH);
+            }
+        }
+        return queue.map(h => HexUtils.unhash(h));
     }
 
     /**

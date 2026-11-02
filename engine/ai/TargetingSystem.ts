@@ -5,7 +5,7 @@ import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
 import { OBSTACLE_DB } from "../../data/obstacles";
-import { canStepUp } from "../math/ClimbRule";
+import { canStepUp, jumpLayers } from "../math/ClimbRule";
 import { isGroundMeleeRange } from "./MeleeAttack";
 import { sameSide } from '../core/Allegiance';
 
@@ -48,9 +48,10 @@ export class TargetingSystem {
     }
 
     /**
-     * 射程 SSOT：近戰將高度層數扣出水平射程（可為負）；遠程保留高地加成。
+     * 射程 SSOT：近戰在跳躍力以內的高低差照常打，超過才把層數扣出水平射程（可為負）；遠程保留高地加成。
+     * a 帶 jump 時用它判斷（單位，或代單位試算的格子）；只傳格子就照每層扣一格。
      */
-    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
+    public getEffectiveRange(a: Hex & { jump?: number }, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
         // baseRange 0 = 「精確抵達該格」（逃生、自身 PBAOE）：高低差加成不得讓 dist 1 的鄰格算成已抵達，
         // 否則 moveAgentToHex 會對相鄰的逃生格直接回 SUCCESS 而原地不動（大逃殺發呆成因 A，tests/AIIdlePriority.test.ts）。
         if (baseRange === 0) return 0;
@@ -59,7 +60,8 @@ export class TargetingSystem {
         const h2 = spatial.getTerrainHeight(targetQ, targetR);
         const deltaH = h1 - h2;
         if (baseRange <= COMBAT_PARAM.MELEE_RANGE) {
-            return baseRange - Math.round(Math.abs(deltaH) / BLOCK_HEIGHT);
+            const layers = Math.round(Math.abs(deltaH) / BLOCK_HEIGHT);
+            return a.jump !== undefined && layers <= jumpLayers({ jump: a.jump }) ? baseRange : baseRange - layers;
         }
         
         // [FIX] 高低差增減機制 (Height Advantage/Penalty)
@@ -83,7 +85,7 @@ export class TargetingSystem {
     /**
      * RTS 等級目標選取評分
      */
-    public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder, skipEscapeLogic: boolean = false) {
+    public updateTarget(a: Agent, spatial: SpatialProvider) {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
         const hazardsOnTile = spatial.getSpatialHazardsAt(a.q, a.r);
@@ -133,7 +135,7 @@ export class TargetingSystem {
                 const meleeBasic = !!basic && basic.range > 0 && basic.range <= COMBAT_PARAM.MELEE_RANGE && !hasGapCloser;
                 const noAttackTile = meleeBasic && !HexUtils.neighbors(o).some(n => {
                         if (!spatial.isValid(n.q, n.r)) return false;
-                        if (HexUtils.dist(n, o) > this.getEffectiveRange(n, o.q, o.r, basic.range, spatial)) return false;
+                        if (HexUtils.dist(n, o) > this.getEffectiveRange({ ...n, jump: a.jump }, o.q, o.r, basic.range, spatial)) return false;
                         const hash = HexUtils.hash(n.q, n.r);
                         if (!spatial.hasObstacleHash(hash)) return true;
                         const def = OBSTACLE_DB[spatial.getObstacleTypeHash(hash) || 'WALL'];
@@ -346,8 +348,7 @@ export class TargetingSystem {
         }
 
         // 若當前無合適目標，重新搜尋
-        // calculateOptimalTarget 裡的 fallback 只應更新「攻擊目標」，不觸發逃生邏輯
-        this.updateTarget(source, spatial, undefined, true);
+        this.updateTarget(source, spatial);
         
         return { targetAgent: source.target, targetHex: null };
     }

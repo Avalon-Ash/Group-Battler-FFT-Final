@@ -23,8 +23,8 @@ export const BT_RULES = {
     ENEMY_OCCUPANCY_PENALTY: 5,
     /** 逃生移動速度倍率。 */
     ESCAPE_SPEED_MULTIPLIER: 1.8,
-    /** 逃生重試間隔（秒）。 */
-    ESCAPE_RETRY_COOLDOWN: 0.2,
+    /** 脫困：確定走不到敵人後，等多久才強制跳上鄰格（秒）。 */
+    UNSTICK_WAIT_S: 0.5,
     /** 低血追擊的目標生命比例門檻。 */
     LOW_HP_THRESHOLD: 0.25,
     /** 低血目標追擊速度倍率。 */

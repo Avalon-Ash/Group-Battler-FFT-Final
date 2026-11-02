@@ -89,9 +89,8 @@ try {
 
     // 「其他」再細分：擠在路上走不動、施法後硬直、逃生冷卻、行為樹落到 Idle
     const otherReason = (a) => {
-        if (a.isMoving) return 'moveBlocked';
+        if (a.isMoving) return 'moveBlocked'; // moveProgress 沒動卻還在移動：照理不會發生，出現就是 bug
         if (a._castCompleteCooldown > 0 || a._interruptCooldown > 0) return 'afterCast';
-        if (a.escapeCooldown > 0) return 'escapeCooldown';
         if (a.aiState === AIState.IDLE) return 'idleNode';
         return 'other';
     };
@@ -147,6 +146,7 @@ try {
     let totalTicks = 0;
     const battleTimes = [];
     const allIdleStreaks = [];
+    const lastProgress = new Map();
 
     const finalizeStreak = (tracker, battleIndex) => {
         const s = tracker.currentStreak;
@@ -175,7 +175,8 @@ try {
             startSec: +s.startSec.toFixed(2),
             durationSec: dur,
             length: dur,
-            reason: dominantReason
+            reason: dominantReason,
+            snapshot: s.snapshot ?? null
         });
         tracker.maxContinuousIdleSec = Math.max(tracker.maxContinuousIdleSec, s.duration);
         tracker.currentStreak = null;
@@ -339,6 +340,9 @@ try {
                     a.actionState === ActionState.ATTACKING ||
                     a.actionState === ActionState.CASTING ||
                     a.actionState === ActionState.STUNNED ||
+                    // 被控制（定身也算）不是 AI 發呆
+                    a.effects.STUN.remaining > 0 || a.effects.ROOT.remaining > 0 ||
+                    a.effects.FEAR.remaining > 0 || a.effects.BANISH.remaining > 0 ||
                     a.actionState === ActionState.EVADING
                 );
 
@@ -376,7 +380,10 @@ try {
                 } else {
                     const prev = prevPositions.get(a.id) ?? { px: a.px, py: a.py };
                     const distMoved = Math.hypot(a.px - prev.px, a.py - prev.py);
-                    if (distMoved >= 0.5) {
+                    // 走得慢（敵方地面效果 ×0.3）每 tick 不到半像素也還是在走：看 moveProgress，不只看位移
+                    const stepping = a.isMoving && a.moveProgress !== (lastProgress.get(a.id) ?? -1);
+                    lastProgress.set(a.id, a.moveProgress);
+                    if (distMoved >= 0.5 || stepping) {
                         cat = 'moving';
                     } else {
                         const hasAliveTarget = Boolean(a.target && a.target.hp > 0 && !a.target.outOfBounds && !a.target.banished);
@@ -411,7 +418,7 @@ try {
                                     const standableAttackCells = neighbors.filter((c) => (
                                         engine.isValid(c.q, c.r) &&
                                         !engine.hasObstacle(c.q, c.r) &&
-                                        isMeleeAttackCell(engine.movement.targeting, c, a.target.q, a.target.r, baseRange, engine)
+                                        isMeleeAttackCell(engine.movement.targeting, c, a.target.q, a.target.r, baseRange, engine, a.jump)
                                     ));
                                     if (standableAttackCells.length === 0) {
                                         idleReason = 'noAttackCell';
@@ -467,6 +474,32 @@ try {
                             };
                         }
                         tracker.currentStreak.duration += DT;
+                        // 連續發呆滿 1 秒時記下當下狀態，查根因不必重跑
+                        if (!tracker.currentStreak.snapshot && tracker.currentStreak.duration >= 1) {
+                            tracker.currentStreak.snapshot = {
+                                mode: a.aiMode,
+                                modeSince: +a.aiModeSince.toFixed(2),
+                                trace: a.aiModeTrace.slice(-4).map((e) => `${e.t.toFixed(1)}:${e.from}>${e.to}(${e.why})`),
+                                aiState: a.aiState,
+                                actionState: a.actionState,
+                                effects: Object.entries(a.effects).filter(([, v]) => v?.remaining > 0).map(([k]) => k),
+                                pos: [a.q, a.r],
+                                height: engine.getTerrainHeight(a.q, a.r),
+                                target: a.target ? { id: a.target.id, q: a.target.q, r: a.target.r, h: engine.getTerrainHeight(a.target.q, a.target.r) } : null,
+                                path: a.path.slice(0, 3).map((h) => [h.q, h.r]),
+                                progress: +a.moveProgress.toFixed(3),
+                                speedMult: a.moveSpeedMult,
+                                casting: a.castingSkillIdx,
+                                neighbors: HexUtils.neighbors(a).map((c) => ({
+                                    c: [c.q, c.r], ok: engine.isValid(c.q, c.r), obstacle: engine.hasObstacle(c.q, c.r),
+                                    h: engine.getTerrainHeight(c.q, c.r), unit: engine.getAgentAt(c.q, c.r)?.id ?? null,
+                                    warning: engine.isWarningTile(HexUtils.key(c))
+                                })),
+                                onWarning: engine.isWarningTile(HexUtils.key(a)),
+                                isMoving: a.isMoving, px: +a.px.toFixed(1), simT: +t.toFixed(2), battleTime: +engine.battleTime.toFixed(2),
+                                scale: engine.state.time.timeScale, aliveInBattle: alive.length
+                            };
+                        }
                         tracker.currentStreak.reasonCounts[idleReason] = (tracker.currentStreak.reasonCounts[idleReason] ?? 0) + DT;
                         tracker.maxContinuousIdleSec = Math.max(tracker.maxContinuousIdleSec, tracker.currentStreak.duration);
                     } else {

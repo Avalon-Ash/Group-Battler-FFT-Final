@@ -30,12 +30,12 @@ export class MovementSystem {
         this.stackingResolver = new StackingResolver();
     }
 
-    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
+    public getEffectiveRange(a: Hex & { jump?: number }, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
         return this.targeting.getEffectiveRange(a, targetQ, targetR, baseRange, spatial);
     }
 
     public updateTarget(a: Agent, spatial: SpatialProvider) {
-        this.targeting.updateTarget(a, spatial, this.pathfinder);
+        this.targeting.updateTarget(a, spatial);
     }
 
     public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider) {
@@ -46,6 +46,15 @@ export class MovementSystem {
         // 敵方危害與 SLOW 狀態的減速每 tick 重算（不寫進 Agent），取較慢的那個；moveSpeedMult 只代表 AI 要求的速度，由本檔寫入
         const hazardSpeedMult = getHazardSpeedMult(a, spatial.state.spatialHazards, spatial.getMapConfig());
         MotionEngine.updateMovement(a, dt, spatial, Math.min(hazardSpeedMult, slowSpeedMult(a)));
+    }
+
+    /** 脫困：朝鄰格走一步，不檢查爬升（只有 UNSTICK 用；一般移動一律走尋路）。 */
+    public forceStep(a: Agent, cell: Hex): void {
+        a.path = [cell];
+        a.trajectory = a.path;
+        a.isMoving = true;
+        a.moveProgress = 0;
+        a.moveSpeedMult = 1.0;
     }
 
     /** 格子上有「別人」的活單位（自己不算）。 */
@@ -60,7 +69,7 @@ export class MovementSystem {
      * 目標沒動、或只動了一格但這格仍合法時不重算；失效才重新挑格。
      */
     private isAttackCellStillValid(a: Agent, goal: Hex, targetHex: Hex, range: number, spatial: SpatialProvider): boolean {
-        if (!isMeleeAttackCell(this.targeting, goal, targetHex.q, targetHex.r, range, spatial)) return false;
+        if (!isMeleeAttackCell(this.targeting, goal, targetHex.q, targetHex.r, range, spatial, a.jump)) return false;
         if (this.isOccupiedByOther(a, goal, spatial)) return false;
         return !this.isOccupiedByOther(a, a.path[0], spatial);
     }

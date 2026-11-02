@@ -48,8 +48,10 @@ describe('MeleeAttackCell', () => {
         const a = mk(Team.BLUE, -3, 0, Role.WARRIOR);
         const e = mk(Team.RED, 0, 0, Role.WARRIOR);
         a.jump = 1;
+        // 高台比跳躍力高一層，低處的鄰格打不到；只有 (2,0) 這條坡走得上去
         const ledge = [{ q: 0, r: 0 }, { q: 1, r: 0 }, { q: 1, r: -1 }];
-        for (const h of ledge) engine.map.setHeight(HexUtils.key(h), BLOCK_HEIGHT);
+        for (const h of ledge) engine.map.setHeight(HexUtils.key(h), 2 * BLOCK_HEIGHT);
+        engine.map.setHeight('2,0', BLOCK_HEIGHT);
         a.target = e;
 
         let started = false;
@@ -59,7 +61,7 @@ describe('MeleeAttackCell', () => {
         }
 
         expect(started).toBe(true);
-        // 站在與目標同層的鄰格上（不是低處的鄰格）
+        // 站在高台上的鄰格（低處的鄰格差兩層，超過跳躍力）
         expect(ledge.some(h => h.q === a.q && h.r === a.r)).toBe(true);
         expect(HexUtils.dist(a, e)).toBeLessThanOrEqual(engine.getEffectiveRange(a, e.q, e.r, 1));
     });

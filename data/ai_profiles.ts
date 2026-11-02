@@ -71,8 +71,8 @@ const COMBAT_TREE: BTDef = {
                 // Reposition: chase refused (e.g. the only approach ends on a collapsing tile) -> edge toward the
                 // target over safe ground instead of standing still.
                 { type: 'ACTION', name: 'Reposition', key: 'Reposition' },
-                // Last resort only: nothing above could do anything useful.
-                { type: 'ACTION', name: 'Idle', key: 'Idle' }
+                // 以上都不行：走到走得到的格子裡離敵人最近的地方；連這個都不行就整棵樹失敗，轉 UNSTICK。
+                { type: 'ACTION', name: 'Advance', key: 'Advance' }
             ]
         }
     ]
@@ -83,7 +83,8 @@ const COMBAT_TREE: BTDef = {
  *   DEAD／CONTROLLED —— 不能行動（全域，任何模式都會切過來）
  *   RETREAT          —— 站在塌陷格／敵方 hazard 上：逃；逃不掉轉 TRAPPED
  *   TRAPPED          —— 逃不掉：有推拉技能就用，否則原地戰鬥（SkillReady 不再因塌陷格拒絕出手）
- *   COMBAT           —— 技能 Ult > Active > Basic → 追擊（只拒絕「停下來的格子會塌陷」）→ 走位 → 待命
+ *   COMBAT           —— 技能 Ult > Active > Basic → 追擊（只拒絕「停下來的格子會塌陷」）→ 走位 → 前進；全失敗轉 UNSTICK
+ *   UNSTICK          —— 打不到也走不到更近的地方：短暫等待後強制跳上鄰格
  * 任何「移動」節點在 CanMove 為假（root/stun/放逐/恐懼）時必須失敗，不能回 RUNNING。
  */
 export const AI_MODE_GRAPH: {
@@ -97,14 +98,16 @@ export const AI_MODE_GRAPH: {
         CONTROLLED: { tree: { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } } },
         RETREAT: { tree: { type: 'ACTION', name: 'Run!', key: 'EscapeWarning' }, onFailure: 'TRAPPED' },
         TRAPPED: { tree: { type: 'SELECTOR', name: 'Trapped Tactics', children: [LAST_STAND_PUSH, COMBAT_TREE] } },
-        COMBAT: { tree: COMBAT_TREE },
+        COMBAT: { tree: COMBAT_TREE, onFailure: 'UNSTICK' },
+        UNSTICK: { tree: { type: 'ACTION', name: 'Force Jump', key: 'ForceJump' } },
     },
     edges: [
         { from: '*', to: 'DEAD', when: 'IsDead' },
-        { from: ['COMBAT', 'RETREAT', 'TRAPPED'], to: 'CONTROLLED', when: 'IsControlled' },
+        { from: ['COMBAT', 'RETREAT', 'TRAPPED', 'UNSTICK'], to: 'CONTROLLED', when: 'IsControlled' },
         { from: ['DEAD'], to: 'COMBAT', when: 'IsAlive' },
         { from: ['CONTROLLED'], to: 'COMBAT', unless: 'IsControlled' },
-        { from: ['COMBAT', 'TRAPPED'], to: 'RETREAT', when: 'WantsRetreat' },
+        { from: ['COMBAT', 'TRAPPED', 'UNSTICK'], to: 'RETREAT', when: 'WantsRetreat' },
+        { from: ['UNSTICK'], to: 'COMBAT', unless: 'IsBoxedIn' },
         { from: ['RETREAT', 'TRAPPED'], to: 'COMBAT', unless: 'WantsRetreat' },
     ],
 };
