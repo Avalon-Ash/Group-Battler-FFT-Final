@@ -3,7 +3,7 @@
 // ║  UnitBodyPainter — 存活單位的主體繪製                    ║
 // ║  職責：hp > 0 單位的本體（精靈或替換本體）與衝刺殘影       ║
 // ║  （血條在 HUDRenderer、狀態在 StatusOrchestrator）       ║
-// ║  [ARCH] 陣營外觀來源：FACTION_SKINS (SSOT)               ║
+// ║  [ARCH] 陣營外觀來源：getAgentSkin (factionTint SSOT)     ║
 // ║  [ARCH] hp <= 0 時 early return，死亡演出由 UnitDeathPainter ║
 // ║  [ARCH] AnimState 由 AnimationSystem 寫入，此處唯讀       ║
 // ║  [ARCH] 衝刺殘影：本體之前呼叫 UnitAfterimagePainter，偏移讀 ║
@@ -24,7 +24,7 @@ import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { PolymorphPainter } from "./PolymorphPainter";
 import { FrozenPainter } from "./FrozenPainter";
 import { VisualMath } from "../../../math/VisualMath";
-import { getFactionSkin } from "../../../../data/units/factionSkin";
+import { getAgentSkin } from "../../../../data/units/factionTint";
 import { UnitAfterimagePainter } from "./UnitAfterimagePainter";
 import type { UnitFrame } from "../../frame/UnitFrame";
 import { unitFallProgress } from "../../../../data/units/appearance/fallMotion";
@@ -108,7 +108,7 @@ export const UnitBodyPainter = {
             if (SpriteUnitRenderer.canRender(agent)) {
                 SpriteUnitRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
-                ctx.fillStyle = isSilhouette ? UNIT_SPRITE.fallbackSilhouetteColor : getFactionSkin(agent.team).fallbackBodyColor;
+                ctx.fillStyle = isSilhouette ? UNIT_SPRITE.fallbackSilhouetteColor : getAgentSkin(agent).fallbackBodyColor;
                 ctx.beginPath();
                 ctx.arc(0, 0, UNIT_SPRITE.fallbackRadius, 0, Math.PI * 2);
                 ctx.fill();

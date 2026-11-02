@@ -181,7 +181,7 @@ export class RenderSpec {
         s += "| visual（ARROW／FIREBALL／BOLT／SLASH／SMASH／BEAM／BOMB） | 圖示與後備外觀鍵 | 技能圖示（UIFactory，量表 GaugePainter 與 Inspector 共用）；沒有 visualProjectileEffect 時當投射物外觀鍵 |\n\n";
         s += "粒子後端只有一個出處：constants/vfx.ts 的 PARTICLE_TRAITS（PART／PART_GROUND／PART_DEBRIS 走零件；BEAM 掛光束零件；\n";
         s += "天氣也是 PART 粒子（VFXAmbience，T4）；其餘舊型別只畫洋紅除錯點，tests/VFXBackend.test.ts 以只減不增的棘輪擋住）。\n\n";
-        s += "單位本體外觀不在本表：陣營外觀唯一入口是 data/units/factionSkin.ts 的 getFactionSkin（docs/FACTION_SLOTS.md），\n";
+        s += "單位本體外觀不在本表：陣營外觀唯一入口是 data/units/factionTint.ts 的 getAgentSkin（三個以上陣營時換色，雙陣營等同 getFactionSkin），\n";
         s += "精靈圖集與體型在 data/units/appearance/（sprite.ts、bodyTypes.ts、projection.ts），棋座顏色在 appearance/imperial.ts、covenant.ts。\n\n";
 
         s += "--- \n\n";
@@ -243,7 +243,7 @@ export class RenderSpec {
         s += "- 停留：UnitFrameStore 以單位物件為鍵保存最後一組殘影的世界 x、繪製 Y（已扣該點繪製高度）、z 與原 alpha；高速期間峰值 ≥ AFTERIMAGE.LINGER_MIN_PEAK_SPEED 才在降速後停留 AFTERIMAGE.LINGER_SEC，依 battleTime 線性淡出，暫停不流逝。\n";
         s += "  停留每幀只減目前 footX／floorY 轉成局部偏移，不再重取地形高度，故殘影固定在原路徑。仍跟隨單位 op 排序及轉場；新高速軌跡取代舊記憶，死亡、移除、隱藏、拖曳或變羊清除記憶。槽位每單位初次高速時配置並重用，無每幀新增殘影物件；一般移動與近戰前衝不延長。\n";
         s += "- 繪製：UnitAfterimagePainter。原點＝腳底繪製點；每個殘影 translate(dx, getVisualBodyCenterY(dy, z))、scale(UNIT_SCALE)、同本體的旋轉與漂浮，\n";
-        s += "  畫 SpriteUnitRenderer.resolveFrame 解析出的**同一張影格**（同朝向），染成陣營軌跡色（getFactionSkin(team).projection.trailColor）的快取畫布。\n";
+        s += "  畫 SpriteUnitRenderer.resolveFrame 解析出的**同一張影格**（同朝向），染成陣營軌跡色（getAgentSkin(agent).projection.trailColor）的快取畫布。\n";
         s += "  染色影格每 (圖集, Mip, 影格, 顏色) 一張，第一次用到才建立，數量上限 AFTERIMAGE.MAX_TINTED_FRAMES；每幀零分配。\n";
         s += "- 品質階層：殘影數 ≤ AFTERIMAGE.GHOSTS_BY_TIER[tier]。\n";
         s += "- 舊的 assets.base 糊影（MaterialPainter.drawMotionTrail）與梯形預留圖形已移除。\n";
@@ -260,7 +260,7 @@ export class RenderSpec {
         s += "| Rank | Ground fill | When a higher rank is present |\n|---|---|---|\n| 1 | Shrink warning, final cell / last stand | Warning fill capped at 0.4; border pulse unchanged |\n| 2 | Telegraph | x0.35 |\n| 3 | Hazard liquid base | x0.5; smoke and part layers unchanged |\n| 4 | Unit status floor | x0.25 |\n| 5 | Zone inside tint, tile light | Hidden |\n";
         s += "Ties: last stand wins over warning fill (both keep borders); zone tint wins over light. Player hover and range are border-only and unrestricted. AOE ground patterns and skill effects remain unrestricted. Parameter SSOT: GRID_OVERLAY.PRIORITY.\n";
         s += "Deduplication: for aoeRadius > 0, compare the telegraph target center (targetHex, otherwise target, otherwise caster; same source as CombatSystem) with caster q,r. If equal, omit the whole telegraph tint, preserving the existing caster-centered AOE ground indicator. Targeted AOE elsewhere retains its telegraph.\n";
-        s += "Per-cell casting color: getFactionSkin(team).fallbackBodyColor; first caster in agents order wins overlap deterministically.\n\n";
+        s += "Per-cell casting color: getAgentSkin(agent).fallbackBodyColor; first caster in agents order wins overlap deterministically.\n\n";
 
         s += "## 13. 遮擋剪影 (Occlusion Silhouette)\n\n";
         s += "戰鬥中（engine.isRunning），被擋住的單位在世界層最後補畫一層白色剪影（UNIT_SPRITE.silhouetteAlpha），讓玩家看得到被擋住的部分。\n";

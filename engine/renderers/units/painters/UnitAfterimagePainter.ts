@@ -13,7 +13,7 @@
 import { Agent } from "../../../game";
 import { AFTERIMAGE, UNIT_SCALE } from "../../../../constants";
 import { VisualMath } from "../../../math/VisualMath";
-import { getFactionSkin } from "../../../../data/units/factionSkin";
+import { getAgentSkin } from "../../../../data/units/factionTint";
 import { spriteAtlasStore } from "../SpriteAtlasStore";
 import { SpriteUnitRenderer, createResolvedSpriteFrame } from "../factions/SpriteUnitRenderer";
 import { getQualityTier } from "../../RenderQuality";
@@ -80,7 +80,7 @@ export const UnitAfterimagePainter = {
 
         const f = resolved.frame;
         const rect = resolved.rect;
-        const color = getFactionSkin(agent.team).projection.trailColor;
+        const color = getAgentSkin(agent).projection.trailColor;
         const img = getTintedFrame(resolved.manifestKey, resolved.mipLevel, f.x, f.y, f.w, f.h, color);
         if (!img) return;
 

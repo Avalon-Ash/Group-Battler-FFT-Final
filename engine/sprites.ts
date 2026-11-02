@@ -7,9 +7,9 @@
 // ║    本層不持有任何繪製邏輯，只做快取存取                          ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { Role, Team, HexLayout, BodyTypeId } from "../types";
+import { Role, Team, HexLayout, BodyTypeId, FactionLook } from "../types";
 import { UnitFactory } from "./graphics/UnitFactory";
-import { getFactionSkin } from "../data/units/factionSkin";
+import { getLookSkin, plainLook } from "../data/units/factionTint";
 import { factionTextureStore } from "./renderers/units/FactionTextureStore";
 import { EnvironmentFactory } from "./graphics/EnvironmentFactory";
 import { CoreFactory, CoreSprites } from "./graphics/units/CoreFactory";
@@ -29,15 +29,19 @@ export const SpriteManager = {
     /**
      * 棋座（含刻在頂面的職業字形）與核心（陣營皮膚 FACTION_SKINS＋手繪貼圖槽，烘焙一次後快取）
      */
-    getUnitImages(role: Role, team: Team, body: BodyTypeId = 'MALE', layout: HexLayout = 'FLAT'): UnitAssets {
+    getUnitImages(role: Role, teamOrLook: Team | FactionLook, body: BodyTypeId = 'MALE', layout: HexLayout = 'FLAT'): UnitAssets {
         if (_tokenRevision !== factionTextureStore.revision) {
             _tokenRevision = factionTextureStore.revision;
             _tokenCache.clear();
         }
-        const key = `${team}|${role}|${body}|${layout}`;
+        const look: FactionLook = typeof teamOrLook === 'number' ? plainLook(teamOrLook) : teamOrLook;
+        const key = look.hue === null
+            ? `${look.skinTeam}|${role}|${body}|${layout}`
+            : `${look.skinTeam}|${role}|${body}|${layout}|${look.hue}`;
         let assets = _tokenCache.get(key);
         if (!assets) {
-            const skin = getFactionSkin(team, role, body);
+            const skin = getLookSkin(look, role, body);
+            const team = look.skinTeam;
             const base = UnitFactory.generateTokenBase(skin, role, layout, {
                 pedestalTexture: factionTextureStore.getTexture(team, 'pedestalTexture', role, body),
                 pedestalRim: factionTextureStore.getTexture(team, 'pedestalRim', role, body),

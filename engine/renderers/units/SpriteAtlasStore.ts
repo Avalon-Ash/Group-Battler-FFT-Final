@@ -13,7 +13,8 @@
  */
 
 import { UNIT_SPRITE } from '../../../constants';
-import type { Team, Role, BodyTypeId } from '../../../types';
+import type { Team, Role, BodyTypeId, FactionLook } from '../../../types';
+import { splitVariantKey, variantKey, retintRgb } from '../../../data/units/factionTint';
 import { lookupSpriteAppearance } from '../../../data/units/appearance/sprite';
 import { resolveBodyType } from '../../../data/units/appearance/bodyTypes';
 import { getFactionSkinByAtlasKey } from '../../../data/units/factionSkin';
@@ -173,11 +174,12 @@ export class SpriteAtlasStore {
     }
 
     /** Keep only the current roster's derived resources; never mutate agents. */
-    public syncRoster(agents: readonly { team: Team; role: Role; bodyType?: BodyTypeId }[]): void {
+    public syncRoster(agents: readonly { team: Team; role: Role; bodyType?: BodyTypeId; look?: FactionLook }[]): void {
         this.nextKeys.clear();
         for (const agent of agents) {
-            const appearance = lookupSpriteAppearance(agent.team, agent.role, resolveBodyType(agent));
-            if (appearance) this.nextKeys.add(appearance.manifestKey);
+            const skinTeam = agent.look?.skinTeam ?? agent.team;
+            const appearance = lookupSpriteAppearance(skinTeam, agent.role, resolveBodyType(agent));
+            if (appearance) this.nextKeys.add(variantKey(appearance.manifestKey, agent.look?.hue ?? null));
         }
         for (const key of this.prefetchKeys) this.nextKeys.add(key);
         this.rosterKnown = true;
@@ -200,11 +202,12 @@ export class SpriteAtlasStore {
      * 預載下一個陣容的圖集（展示換場：退場／進場期間先載，單位在 IDLE 之後才生成，生成當幀不再解碼與烘焙）。
      * 傳空陣列＝解除預載（單位生成後由 syncRoster 依實際陣容接手）。同一時間只有一組預載，舊的不在新陣容裡就釋放。
      */
-    public prefetchRoster(entries: readonly { team: Team; role: Role; bodyType: BodyTypeId }[]): void {
+    public prefetchRoster(entries: readonly { team: Team; role: Role; bodyType: BodyTypeId; look?: FactionLook }[]): void {
         this.prefetchKeys.clear();
         for (const e of entries) {
-            const appearance = lookupSpriteAppearance(e.team, e.role, resolveBodyType(e));
-            if (appearance) this.prefetchKeys.add(appearance.manifestKey);
+            const skinTeam = e.look?.skinTeam ?? e.team;
+            const appearance = lookupSpriteAppearance(skinTeam, e.role, resolveBodyType(e));
+            if (appearance) this.prefetchKeys.add(variantKey(appearance.manifestKey, e.look?.hue ?? null));
         }
         if (this.prefetchKeys.size === 0) return;
         // 立刻納入 wantedKeys（下一次 syncRoster 之前 pumpQueue 就可能開始處理）
@@ -266,7 +269,8 @@ export class SpriteAtlasStore {
     private pumpQueue(): void {
         while (this.activeLoads < UNIT_SPRITE.maxConcurrentLoads && this.queue.length) {
             const job = this.queue.shift()!;
-            if (!this.manifest?.units[job.key] || (this.rosterKnown && !this.wantedKeys.has(job.key))) {
+            const { baseKey } = splitVariantKey(job.key);
+            if (!this.manifest?.units[baseKey] || (this.rosterKnown && !this.wantedKeys.has(job.key))) {
                 if (this.wantedKeys.has(job.key)) this.failedKeys.add(job.key);
                 this.loadingPromises.delete(job.key);
                 job.finish();
@@ -287,7 +291,8 @@ export class SpriteAtlasStore {
     }
 
     private async decodeAtlas(key: string): Promise<void> {
-        const unit = this.manifest!.units[key];
+        const { baseKey, hue } = splitVariantKey(key);
+        const unit = this.manifest!.units[baseKey];
         const imgPath = resolveAssetUrl(`assets/units/${unit.file}`);
         const img = await decodeAtlasImage(imgPath);
         // A roster may change while decoding. Do not bake or retain obsolete assets.
@@ -297,7 +302,7 @@ export class SpriteAtlasStore {
             this.warnOnce(`Failed to load unit atlas image at ${imgPath}`);
             return;
         }
-        this.atlases.set(key, this.bakeAtlas(img, getFactionSkinByAtlasKey(key)?.sprite.tint ?? null));
+        this.atlases.set(key, this.bakeAtlas(img, getFactionSkinByAtlasKey(baseKey)?.sprite.tint ?? null, hue));
         closeAtlasImage(img);
         this.revision++;
     }
@@ -307,7 +312,7 @@ export class SpriteAtlasStore {
      * 原圖與染色用的全尺寸暫存畫布烘完即釋放，不留在記憶體（2026-10-26：全尺寸從未被畫到螢幕上，
      * 10 張圖集的全尺寸副本與原圖佔約 240 MB，iPhone 長跑因此被系統回收分頁）。
      */
-    private bakeAtlas(sourceImg: AtlasImage, tint: { color: string; strength: number } | null): BakedAtlasEntry {
+    private bakeAtlas(sourceImg: AtlasImage, tint: { color: string; strength: number } | null, hue: number | null = null): BakedAtlasEntry {
         const w = 'naturalWidth' in sourceImg ? sourceImg.naturalWidth || sourceImg.width : sourceImg.width;
         const h = 'naturalHeight' in sourceImg ? sourceImg.naturalHeight || sourceImg.height : sourceImg.height;
 
@@ -316,6 +321,33 @@ export class SpriteAtlasStore {
 
         // 陣營皮膚染色槽（FACTION_SKINS.sprite.tint）：烘焙期一次性疊色，執行期零成本
         let src: AtlasImage | HTMLCanvasElement = sourceImg;
+        let retintedCanvas: HTMLCanvasElement | null = null;
+        if (hue !== null && typeof document !== 'undefined') {
+            retintedCanvas = document.createElement('canvas');
+            retintedCanvas.width = w;
+            retintedCanvas.height = h;
+            const rctx = retintedCanvas.getContext('2d', { willReadFrequently: true });
+            if (rctx) {
+                rctx.drawImage(sourceImg, 0, 0);
+                const CHUNK_ROWS = 256;
+                for (let y = 0; y < h; y += CHUNK_ROWS) {
+                    const rows = Math.min(CHUNK_ROWS, h - y);
+                    const imgData = rctx.getImageData(0, y, w, rows);
+                    const data = imgData.data;
+                    const len = data.length;
+                    for (let i = 0; i < len; i += 4) {
+                        if (data[i + 3] > 0) {
+                            const [nr, ng, nb] = retintRgb(data[i], data[i + 1], data[i + 2], hue);
+                            data[i] = nr;
+                            data[i + 1] = ng;
+                            data[i + 2] = nb;
+                        }
+                    }
+                    rctx.putImageData(imgData, 0, y);
+                }
+                src = retintedCanvas;
+            }
+        }
         let tinted: HTMLCanvasElement | null = null;
         if (tint && tint.strength > 0) {
             tinted = document.createElement('canvas');
@@ -323,7 +355,7 @@ export class SpriteAtlasStore {
             tinted.height = h;
             const tctx = tinted.getContext('2d');
             if (tctx) {
-                tctx.drawImage(sourceImg, 0, 0);
+                tctx.drawImage(src, 0, 0);
                 tctx.globalCompositeOperation = 'source-atop';
                 tctx.globalAlpha = tint.strength;
                 tctx.fillStyle = tint.color;
@@ -364,6 +396,10 @@ export class SpriteAtlasStore {
         }
 
         // 寬高設 0 立刻還回點陣記憶體；原圖由呼叫端丟掉參照後回收
+        if (retintedCanvas) {
+            retintedCanvas.width = 0;
+            retintedCanvas.height = 0;
+        }
         if (tinted) {
             tinted.width = 0;
             tinted.height = 0;
@@ -403,7 +439,8 @@ export class SpriteAtlasStore {
     }
 
     public getUnitDef(manifestKey: string): UnitAtlasDef | null {
-        return this.manifest?.units[manifestKey] ?? null;
+        const { baseKey } = splitVariantKey(manifestKey);
+        return this.manifest?.units[baseKey] ?? null;
     }
 
     public getAtlas(manifestKey: string, mipScale: number = UNIT_SPRITE.mipLevels[0]): CanvasImageSource | null {
