@@ -142,10 +142,10 @@ export type HexCoord = { q: number; r: number };
  * 總人數落在 SHOWCASE_SETUP 的範圍內。rand 回傳 [0, 1)。
  */
 export function rollShowcaseSetup(rand: () => number): BattleSetup {
-    const { TEAMS_CHANCE, MIN_UNITS, MAX_UNITS, ROYALE_MIN_FACTIONS } = GAME_APP_PARAM.SHOWCASE_SETUP;
+    const { TEAMS_CHANCE, TEAMS_MIN_PER_SIDE, MIN_UNITS, MAX_UNITS, ROYALE_MIN_FACTIONS } = GAME_APP_PARAM.SHOWCASE_SETUP;
     const between = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));
     if (rand() < TEAMS_CHANCE) {
-        return { factions: 2, unitsPerFaction: between(Math.ceil(MIN_UNITS / 2), Math.floor(MAX_UNITS / 2)) };
+        return { factions: 2, unitsPerFaction: between(TEAMS_MIN_PER_SIDE, Math.floor(MAX_UNITS / 2)) };
     }
     // 大逃殺先抽每陣營人數再抽陣營數：先抽陣營數的話，陣營一多就只剩每陣營 1 人，組合很單調
     const unitsPerFaction = between(1, Math.floor(MAX_UNITS / ROYALE_MIN_FACTIONS));

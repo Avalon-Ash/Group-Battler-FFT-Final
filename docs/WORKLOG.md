@@ -464,7 +464,7 @@
 - Flash 的 23 份盤點，查證後兩條是錯的（`tools/hooks`、`UnitShatter.ts` 都存在），另外漏了指向已刪分支這條。
 
 ### BF. 2026-11-03 展示模式隨機陣營×人數、標題依模式變化（主代理）
-- `rollShowcaseSetup`：一半機率雙陣營（4～10 人對打），其餘大逃殺（先抽每陣營人數再抽陣營數，否則陣營一多就只剩每陣營 1 人），總人數 8～20。常數 `GAME_APP_PARAM.SHOWCASE_SETUP`。
+- `rollShowcaseSetup`：一半機率雙陣營（每邊 5～10 人，五個職業才會全部露出），其餘大逃殺（先抽每陣營人數再抽陣營數，否則陣營一多就只剩每陣營 1 人），總人數 8～20。常數 `GAME_APP_PARAM.SHOWCASE_SETUP`。
 - 標題卡：`BATTLE ROYALE · 4 FACTIONS × 5` 玫瑰紅，`TEAM BATTLE · 6 VS 6` 青色。
 - 探針抓到兩個錯：抽設定時地圖還是上一局縮圈後的殘圖，總池很小被夾低（出現 2x1）；StrictMode 重跑 effect 把隨機值存成玩家設定，回手動沒還原。都已修。
 - 證據：瀏覽器連跑 12 局都在 8～20 人、標籤相符、回手動 2×5、0 個頁面錯誤；lint、1051 項測試、build、knip、smoke、e2e:ui、perf:guard 全過，基準沒有重錄。

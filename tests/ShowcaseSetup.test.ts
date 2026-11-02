@@ -28,6 +28,11 @@ describe('rollShowcaseSetup', () => {
         expect(royale.filter(r => r.unitsPerFaction === 1).length / royale.length).toBeLessThan(0.3);
     });
 
+    it('雙陣營每邊至少 5 人，五個職業才會全部露出', () => {
+        const teams = rolls.filter(r => r.factions === 2);
+        expect(Math.min(...teams.map(r => r.unitsPerFaction))).toBe(GAME_APP_PARAM.SHOWCASE_SETUP.TEAMS_MIN_PER_SIDE);
+    });
+
     it('rand 的邊界值不會超出範圍', () => {
         for (const v of [0, 0.999999]) {
             const r = rollShowcaseSetup(() => v);

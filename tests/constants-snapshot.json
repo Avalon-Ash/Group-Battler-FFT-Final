@@ -85,7 +85,8 @@
       "TEAMS_CHANCE": 0.5,
       "MIN_UNITS": 8,
       "MAX_UNITS": 20,
-      "ROYALE_MIN_FACTIONS": 3
+      "ROYALE_MIN_FACTIONS": 3,
+      "TEAMS_MIN_PER_SIDE": 5
     }
   },
   "DIRECTOR_PARAM": {
