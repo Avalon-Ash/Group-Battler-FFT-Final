@@ -60,6 +60,13 @@ export interface UnitManifest {
 interface BakedAtlasEntry {
     normalMips: Map<number, HTMLCanvasElement>;
     silhouetteMips: Map<number, HTMLCanvasElement>;
+    /** 剪影只看透明度、不看顏色：同一個基底圖集的換色變體共用一份（SharedSilhouette），釋放時依參照數歸還 */
+    baseKey: string;
+}
+
+interface SharedSilhouette {
+    mips: Map<number, HTMLCanvasElement>;
+    refs: number;
 }
 
 /**
@@ -127,6 +134,7 @@ function closeAtlasImage(img: AtlasImage | null): void {
 export class SpriteAtlasStore {
     private manifest: UnitManifest | null = null;
     private atlases: Map<string, BakedAtlasEntry> = new Map();
+    private sharedSilhouettes: Map<string, SharedSilhouette> = new Map();
     private loadingPromises: Map<string, Promise<void>> = new Map();
     private manifestPromise: Promise<UnitManifest | null>;
     private warnedAssets: Set<string> = new Set();
@@ -235,9 +243,18 @@ export class SpriteAtlasStore {
     private releaseAtlas(key: string): void {
         const entry = this.atlases.get(key);
         if (!entry) return;
-        for (const levels of [entry.normalMips, entry.silhouetteMips]) {
-            for (const canvas of levels.values()) canvas.width = canvas.height = 0;
-            levels.clear();
+        for (const canvas of entry.normalMips.values()) canvas.width = canvas.height = 0;
+        entry.normalMips.clear();
+        const shared = this.sharedSilhouettes.get(entry.baseKey);
+        if (shared && shared.mips === entry.silhouetteMips) {
+            if (--shared.refs <= 0) {
+                for (const canvas of shared.mips.values()) canvas.width = canvas.height = 0;
+                shared.mips.clear();
+                this.sharedSilhouettes.delete(entry.baseKey);
+            }
+        } else {
+            for (const canvas of entry.silhouetteMips.values()) canvas.width = canvas.height = 0;
+            entry.silhouetteMips.clear();
         }
         this.atlases.delete(key);
         for (const listener of this.releaseListeners) listener(key);
@@ -302,7 +319,7 @@ export class SpriteAtlasStore {
             this.warnOnce(`Failed to load unit atlas image at ${imgPath}`);
             return;
         }
-        this.atlases.set(key, this.bakeAtlas(img, getFactionSkinByAtlasKey(baseKey)?.sprite.tint ?? null, hue));
+        this.atlases.set(key, this.bakeAtlas(img, getFactionSkinByAtlasKey(baseKey)?.sprite.tint ?? null, hue, baseKey));
         closeAtlasImage(img);
         this.revision++;
     }
@@ -312,12 +329,14 @@ export class SpriteAtlasStore {
      * 原圖與染色用的全尺寸暫存畫布烘完即釋放，不留在記憶體（2026-10-26：全尺寸從未被畫到螢幕上，
      * 10 張圖集的全尺寸副本與原圖佔約 240 MB，iPhone 長跑因此被系統回收分頁）。
      */
-    private bakeAtlas(sourceImg: AtlasImage, tint: { color: string; strength: number } | null, hue: number | null = null): BakedAtlasEntry {
+    private bakeAtlas(sourceImg: AtlasImage, tint: { color: string; strength: number } | null, hue: number | null = null, baseKey: string = ''): BakedAtlasEntry {
         const w = 'naturalWidth' in sourceImg ? sourceImg.naturalWidth || sourceImg.width : sourceImg.width;
         const h = 'naturalHeight' in sourceImg ? sourceImg.naturalHeight || sourceImg.height : sourceImg.height;
 
         const normalMips = new Map<number, HTMLCanvasElement>();
-        const silhouetteMips = new Map<number, HTMLCanvasElement>();
+        const shared = this.sharedSilhouettes.get(baseKey);
+        const silhouetteMips = shared ? shared.mips : new Map<number, HTMLCanvasElement>();
+        if (shared) shared.refs++;
 
         // 陣營皮膚染色槽（FACTION_SKINS.sprite.tint）：烘焙期一次性疊色，執行期零成本
         let src: AtlasImage | HTMLCanvasElement = sourceImg;
@@ -381,7 +400,8 @@ export class SpriteAtlasStore {
             }
             normalMips.set(level, normCanvas);
 
-            // 白閃剪影：同層級的彩色圖直接 source-in 填白（不另建全尺寸剪影）
+            // 白閃剪影：同層級的彩色圖直接 source-in 填白（不另建全尺寸剪影）。同基底的變體已有就共用
+            if (shared) continue;
             const silCanvas = document.createElement('canvas');
             silCanvas.width = mw;
             silCanvas.height = mh;
@@ -404,7 +424,8 @@ export class SpriteAtlasStore {
             tinted.width = 0;
             tinted.height = 0;
         }
-        return { normalMips, silhouetteMips };
+        if (!shared && baseKey !== '') this.sharedSilhouettes.set(baseKey, { mips: silhouetteMips, refs: 1 });
+        return { normalMips, silhouetteMips, baseKey };
     }
 
     private warnOnce(msg: string): void {
