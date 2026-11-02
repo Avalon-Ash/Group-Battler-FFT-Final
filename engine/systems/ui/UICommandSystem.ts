@@ -230,7 +230,7 @@ export class UICommandSystem {
                     sideOverride = cmd.side;
                 }
 
-                const agent = this.engine.agentManager.addAgent(this.engine, cmd.team, q, r, hpOverride, roleOverride, cmd.bodyType, sideOverride);
+                const agent = this.engine.agentManager.addAgent(this.engine, cmd.team, q, r, hpOverride, roleOverride, cmd.bodyType, sideOverride, cmd.look);
                 if (agent) {
                     if (roleOverride) {
                         agent.role = roleOverride;

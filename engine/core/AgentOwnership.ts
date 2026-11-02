@@ -133,6 +133,12 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '狀態域：CCManager 施加、ControlSystem 遞減控制類、EffectSystem 遞減持續傷害與治療。PhysicsEngine 失去地面時強加 0.1s STUN（既有行為）。',
     },
+    look: {
+        group: 'visual',
+        kind: 'single',
+        owners: ['engine/systems/agentManager.ts'],
+        note: '陣營外觀（三個以上陣營的換色）。只在生成時寫入；渲染端一律經 getAgentSkin(agent) 讀。',
+    },
     aiMode: {
         group: 'ai',
         kind: 'single',

@@ -118,6 +118,12 @@ export type EffectSlots = Record<EffectKind, EffectSlot>;
 
 
 import type { Agent } from './engine/core/Agent';
+
+/** 單位的陣營外觀：用哪一隊的皮膚（圖集、棋座樣式），以及藍色系要換成什麼色相（null＝不換）。分配與換色規則在 data/units/factionTint.ts */
+export interface FactionLook {
+    skinTeam: Team;
+    hue: number | null;
+}
 import type { PartSpec } from './engine/renderers/vfxparts/PartSpec';
 import type { PartAnim } from './types/VFXSchema';
 import { MapConfig } from './engine/utils';
@@ -312,7 +318,7 @@ export type UICommand =
     | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | boolean | Team | undefined }
     | { type: 'RESET_GAME' }
     | { type: 'SET_TIME_SCALE'; timeScale: number }
-    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId; /** 陣營（Allegiance）；省略時等於 team。大逃殺每人一個 */ side?: number }
+    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId; /** 陣營（Allegiance）；省略時等於 team。大逃殺每人一個 */ side?: number; /** 陣營外觀（三個以上陣營的換色）；省略時等於 team 原色 */ look?: FactionLook }
     | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
     /** 玩家點選觀看的單位（單位檢查器）；導播關閉時擊殺播報只給它的陣營。null＝沒點 */
     | { type: 'SET_WATCH_AGENT'; agentId: string | null }
