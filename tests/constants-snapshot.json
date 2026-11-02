@@ -80,7 +80,14 @@
     "SPAWN_ATLAS_WAIT_MAX_MS": 2500,
     "RESULT_HOLD_MS": 2000,
     "UNIT_POLL_MS": 500,
-    "WARNING_MS": 2500
+    "WARNING_MS": 2500,
+    "SHOWCASE_SETUP": {
+      "TEAMS_CHANCE": 0.5,
+      "MIN_UNITS": 8,
+      "MAX_UNITS": 20,
+      "ROYALE_MIN_FACTIONS": 3,
+      "TEAMS_MIN_PER_SIDE": 5
+    }
   },
   "DIRECTOR_PARAM": {
     "ULT_ZOOM": 1.45,

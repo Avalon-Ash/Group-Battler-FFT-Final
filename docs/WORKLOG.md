@@ -463,6 +463,12 @@
 - 工具：刪 `tools/ui-e2e/drift-corpse-probe.mjs`（R7 一次性取證）；`parts-sheet`、`ult-battle-probe` 還用得到，入口改記在 `VFX_PIPELINE_MAP`。
 - Flash 的 23 份盤點，查證後兩條是錯的（`tools/hooks`、`UnitShatter.ts` 都存在），另外漏了指向已刪分支這條。
 
+### BF. 2026-11-03 展示模式隨機陣營×人數、標題依模式變化（主代理）
+- `rollShowcaseSetup`：一半機率雙陣營（每邊 5～10 人，五個職業才會全部露出），其餘大逃殺（先抽每陣營人數再抽陣營數，否則陣營一多就只剩每陣營 1 人），總人數 8～20。常數 `GAME_APP_PARAM.SHOWCASE_SETUP`。
+- 標題卡：`BATTLE ROYALE · 4 FACTIONS × 5` 玫瑰紅，`TEAM BATTLE · 6 VS 6` 青色。
+- 探針抓到兩個錯：抽設定時地圖還是上一局縮圈後的殘圖，總池很小被夾低（出現 2x1）；StrictMode 重跑 effect 把隨機值存成玩家設定，回手動沒還原。都已修。
+- 證據：瀏覽器連跑 12 局都在 8～20 人、標籤相符、回手動 2×5、0 個頁面錯誤；lint、1051 項測試、build、knip、smoke、e2e:ui、perf:guard 全過，基準沒有重錄。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

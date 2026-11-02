@@ -263,6 +263,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
 
                 {activeTab === 'GAMEPLAY' && (
                     <div className="animate-fade-in">
+                        <p className="mb-3 text-xs text-slate-400">展示模式每局隨機（雙陣營或大逃殺，最多 20 人）。這裡按套用只影響下一局，之後回到隨機；回到手動模式時用你的設定。</p>
                         <SchemaForm
                             fields={GAMEPLAY_SETTINGS_SCHEMA}
                             values={gameplaySettingsValues}

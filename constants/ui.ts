@@ -103,6 +103,14 @@ export const GAME_APP_PARAM = {
     SHOWCASE_MIN_H: 8,
     /** 展示地圖尺寸隨機幅度（格） */
     SHOWCASE_SIZE_RANGE: 4,
+    /** 展示模式每局隨機的陣營×人數：雙陣營的機率與每邊最少人數（5＝五個職業全部露出）、總人數範圍（人）、大逃殺最少幾個陣營。 */
+    SHOWCASE_SETUP: {
+        TEAMS_CHANCE: 0.5,
+        TEAMS_MIN_PER_SIDE: 5,
+        MIN_UNITS: 8,
+        MAX_UNITS: 20,
+        ROYALE_MIN_FACTIONS: 3,
+    },
     /** 展示進場時間（毫秒） */
     TRANSITION_IN_MS: 1500,
     /**

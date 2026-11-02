@@ -58,7 +58,8 @@ function App() {
       
       {state.isShowcaseMode && (
         <ShowcaseOverlay 
-            onEnter={handleEnterManualMode} 
+            onEnter={handleEnterManualMode}
+            battleSetup={state.battleSetup}
             timeScale={state.timeScale}
 
             setTimeScale={setters.setTimeScale} 
