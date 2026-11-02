@@ -9,7 +9,7 @@ Production preparation:
 1. Keep the approved raw/packed trial at `tools/ui-e2e/out/faction-animation-v01/`.
 2. Run `node tools/assets/blender/prepare_runtime_atlases.mjs` after any performance
    capture has finished. This reads the approved combined manifest from the retained
-   `codex/lionheart-warrior-skins` branch and the local packed atlases.
+   `archive/lionheart-skin-trials` tag and the local packed atlases.
 3. Review output in `tools/ui-e2e/out/faction-skins-runtime/` before copying to public.
 
 The converter preserves logical frame coordinates, reference height and foot anchors;

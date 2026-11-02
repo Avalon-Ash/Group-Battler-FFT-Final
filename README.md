@@ -47,7 +47,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 ### 技能資料庫（`SkillDbTab`）
 
-全域技能資料庫可即時編輯。支援 14 種控場類型、9 種元素屬性、多種彈道軌跡與範圍技能參數。對技能的任何調整將在下一場戰鬥中直接生效，不需重新建置場景。
+全域技能資料庫可即時編輯。支援 19 種控場類型、9 種元素屬性、多種彈道軌跡與範圍技能參數。對技能的任何調整將在下一場戰鬥中直接生效，不需重新建置場景。
 
 ### 時間流速控制（`PlaybackHUD`）
 
@@ -56,16 +56,17 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 ### 大逃殺縮圈（`ZoneSystem`）
 
 可在 `SystemMenu` 開啟縮圈模式（預設開啟）並設定每輪倒數秒數。  
+地塊站不下所有活人，或只剩少數人在很小的地上時進入背水一戰：地圖不再縮小，打到剩一方。陣營數 3 以上時，大招與主動技能跨職業與隊伍隨機抽，普攻照職業，血量差距減半。
 系統以 Flood-fill 從地圖邊界往內計算每格深度，倒數結束後最外層網格依序崩落。  
 站在崩落格上的單位隨地板墜入虛空出局，並觸發完整的死亡特效管線。  
 最終圈進入隨機格子模式，逐格縮減至設定的最小安全格數。
 
 ### AI 行為樹透明化（`BehaviorTreeTab`）
 
-戰鬥進行中點選任意單位，可即時查看該單位當前的行為樹執行狀態：
+戰鬥進行中點選任意單位，可即時查看 AI 的狀態拓樸：狀態機在幾個模式之間切換（接敵、交戰、逃離、被困、脫困、背水一戰…），每個模式一棵小樹。
 
-- 各節點執行狀態（SUCCESS / FAILURE / RUNNING）即時標示
-- 可直接觀察 AI 正在執行哪層決策邏輯
+- 顯示目前模式與最近的模式轉換，以及轉換的原因
+- 目前模式那棵小樹的節點執行狀態（SUCCESS / FAILURE / RUNNING）即時標示
 - 確認單位行為是否符合企劃意圖，而非「感覺上好像對了」
 
 ### 戰鬥 LOG 查核（`LogTab`）
@@ -78,7 +79,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 ### VFX 地圖（`VFXMapTab`）
 
-即時顯示所有視覺特效的區格分佈與生命週期狀態，可用於檢查 VFX 生成與區域覆蓋是否符合設計意圖。
+特效展示庫：零件的實際烘焙縮圖、登記特效依前綴分組（發射器數與用到的零件），以及狀態零件。內容全部讀現行資料。
 
 ---
 
@@ -94,6 +95,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   ├── core/
 │   │   └── Agent.ts         ← 單位實體（純資料：狀態、技能、AI 樹掛載點）
 │   ├── ai/
+│   │   ├── ModeMachine.ts       ← 狀態拓樸：依 data/ai_profiles.ts 的 AI_MODE_GRAPH 切模式
 │   │   ├── BTRegistry.ts        ← 行為樹的條件與動作節點實作
 │   │   ├── TargetingSystem.ts   ← 目標選擇與合法性判定
 │   │   └── Pathfinder.ts        ← A* 路徑搜尋
@@ -118,7 +120,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   │   ├── AnimationSystem.ts   ← 動畫狀態推導（tick 最末層；外觀欄位在 agent.view）
 │   │   ├── DirectorSystem.ts / CameraSystem.ts ← 導播決策 / 鏡頭執行
 │   │   ├── hud.ts               ← 浮動文字
-│   │   └── DesignExporter.ts    ← 戰鬥數據結構化輸出（企劃驗證用）
+│   │   └── DesignExporter.ts    ← 白皮書與座標規格下載
 │   ├── renderers/
 │   │   ├── RenderSpec.ts        ← 座標協議 SSOT：層序、sortBias、三種 Y、腳下高度、發射點／受擊點
 │   │   ├── RenderPipeline.ts    ← 渲染主管線：提交、深度排序、分層繪製
@@ -210,7 +212,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 | MAGE | 爆發法傷 | AOE、地面危機 |
 | SUPPORT | 輔助治療 | 治療、結界、沉默 |
 
-技能支援 14 種控場類型、9 種元素屬性、7 種彈道視覺形式。
+技能支援 19 種控場類型、9 種元素屬性、7 種彈道視覺形式。
 
 ---
 
@@ -224,6 +226,8 @@ npm test             # 單元測試
 npm run build        # 生產環境打包（dist/）
 npm run e2e:ui       # UI e2e（無頭 Edge）
 npm run perf:guard   # 渲染保真與效能回歸檢查（改渲染時必跑）
+npm run balance:sim  # 雙陣營批次模擬（技能與勝率）
+npm run balance:idle # AI 發呆、繞圈、職業勝率（--scenario=TEAMS|MELEE|ROYALE|TANK_ROYALE）
 npm run verify:coords # 執行期座標守門（加 --order 跑景深順序預言）
 npm run perf:frames  # 真實幀間隔（平穩戰鬥／特效壓力／展示，2560×1440，請放在高更新率主螢幕）
 ```

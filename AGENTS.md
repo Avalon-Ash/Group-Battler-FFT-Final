@@ -10,7 +10,7 @@
    - **Types**: `types.ts` is the master contract. VFX particle/decal schemas are in `types/VFXSchema.ts`. Check types here before implementing.
    - **Parameters**: `constants/*.ts` holds all physics, combat, color, and layout constants, one file per domain (`geometry`, `combat`, `palette`, `units`, `hud`, `terrain`, `vfx`, `ui`, `render`, `audio`). `constants.ts` only re-exports them: keep importing from `constants`, but add new constants to the matching domain file. Never hardcode numbers or colors in engine/renderer code.
    - **Unit appearance**: `data/units/appearance/` (`sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`) defines sprite atlas mappings, body types, and frame selection consumed by `SpriteUnitRenderer`. Renderers only consume these profiles; they never define visual config or colors.
-   - **Procedural VFX**: `data/vfx/materialConfig.ts` controls procedural material parameters (noise, ribbon, beam, grading); baked VFX part shapes live in `data/vfx/parts/partConfig.ts` (`VFX_PARTS`) with colours in `data/vfx/parts/vfxPalette.ts`.
+   - **Procedural VFX**: `data/vfx/materialConfig.ts` controls bake-time material parameters (terrain grain, obstacle weathering, pedestal tokens, hazard cracks); baked VFX part shapes live in `data/vfx/parts/partConfig.ts` (`VFX_PARTS`) with colours in `data/vfx/parts/vfxPalette.ts`.
    - **Agent entity**: `Agent` (`engine/core/Agent.ts`) is pure data. **Never add methods to `Agent`.** All logic lives in Systems.
    - **One writer per field**: each state field is written by exactly one system. Before writing a field, `git grep` for other writers. (A timer once had two writers — one adding, one subtracting — so it stayed at 0 and death animations never played.)
    - **Animation derivation**: visual/animation states are derived at the end of each tick in `AnimationSystem` (`engine/presentation/`).
@@ -49,7 +49,7 @@
 | **Renderers / VFX** | `engine/renderers/RenderSpec.ts`, `data/vfx/materialConfig.ts`, `VFX_PARAM` in `constants/vfx.ts` |
 | **Unit appearance** | `engine/renderers/RenderSpec.ts`, `data/units/factionSkin.ts`, `data/units/appearance/sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`, `engine/renderers/units/factions/SpriteUnitRenderer.ts` |
 | **Anything that positions, lifts or sorts a visual** (terrain, units, pedestals, cores, VFX, projectiles, HUD over units) | `engine/renderers/RenderSpec.ts` (layer order, sortBias, coordinate protocol), `engine/math/VisualMath.ts`, and the box header of every file you edit |
-| **AI / behavior trees** | `engine/behaviorTree.ts`, `engine/systems/ai.ts`, `engine/ai/`, `data/ai_profiles` |
+| **AI** (state topology: one small tree per mode) | `data/ai_profiles.ts` (`AI_MODE_GRAPH`), `engine/ai/ModeMachine.ts`, `engine/ai/BTRegistry.ts`, `engine/behaviorTree.ts`, `engine/systems/ai.ts` |
 | **Combat / skills / CC** | `engine/systems/combat/`, `data/skills/`, `skillDatabase.ts` |
 | **Movement / hex grid** | `engine/systems/movement/`, `engine/systems/grid/`, `engine/math/VisualMath.ts`, `engine/math/PointerProjector.ts` |
 

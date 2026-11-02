@@ -12,7 +12,7 @@ if (process.argv.includes('--help')) {
 }
 const out = resolve(process.argv[2] ?? 'tools/ui-e2e/out/faction-skins-runtime');
 mkdirSync(out, { recursive: true });
-const manifest = JSON.parse(execFileSync('git', ['show', 'codex/lionheart-warrior-skins:docs/art/faction-animation-v01/manifest.json'], { encoding: 'utf8' }));
+const manifest = JSON.parse(execFileSync('git', ['show', 'archive/lionheart-skin-trials:docs/art/faction-animation-v01/manifest.json'], { encoding: 'utf8' }));
 manifest.atlasScale = 0.5;
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 try {

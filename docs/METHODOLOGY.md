@@ -18,7 +18,7 @@
 
 ## 3. 一輪工作的流程
 - 程序放在按需載入的 skill（`.claude/skills/`），不放常駐文字：開新一輪與寫提示詞 → `agent-prompt`；審查、收尾、合約效果紀錄 → `review-round`；渲染實跑 → `render-verify`；重錄基準 → `rebaseline-fidelity`。
-- 本地 tag（`perf*-ckpt-*`、`ui-ckpt-*`、`audio-ckpt-*`、`art-ckpt-*`、`br-fix-final`、`docs-cleanup-final`）未推，可忽略。
+- 本機標籤只剩 `archive/*` 三個（已刪分支的存檔），其餘早已清掉。
 
 ## 4. 審查教訓
   1. **AI Studio 容器看不到實際畫面、跑不了 Playwright**——它宣稱「全綠」不代表畫面正常。凡改渲染／生命週期，必須本機實跑驗證（最小：`createServer`＋`playwright-core`＋`msedge` 開頁、讀 `window.__TACTICAL_ENGINE__`、必要時截一張圖）。

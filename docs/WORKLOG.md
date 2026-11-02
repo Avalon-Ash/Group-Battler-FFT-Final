@@ -456,6 +456,13 @@
 - 保真：`BTNode.id` 原本用 `Math.random`，節點數一變就移動表現流；VOID 又是鏡頭還沒從展示戰鬥收斂就擷取，所以 M1 模擬完全相同卻 VOID 失敗。id 改計數器、暖機改 8 次。重錄 VOID（只有鏡頭，五個場景的地塊高度與障礙物和主線相同）與 `battle_frozen`（單位位置）。
 - 證據：lint、1048 項測試、build、knip、smoke、e2e:ui、perf:guard 全過；瀏覽器實跑 10×1 三場 0 個頁面錯誤。
 
+### BE. 2026-11-02 本機清理與文件全量核對（主代理＋agy Flash 只讀盤點）
+- 刪分支 `docs/royale-balance-notes`、`feat/ai-topology`（都已合併）；清 `tools/ui-e2e/out`（176 MB 一次性輸出）與 `dist`；移除 6 個空的 `_wt_opt-*`。6 個有內容的 `_wt_*` 等使用者手動刪（HANDOFF §1）。
+- 刪文件：`BAL02_REPORT`、`R7_DRIFT_CORPSE_REPORT`、`ULT_VISUAL_CLAUDE_REPORT`、`ULT_VISUAL_MATRIX.csv`（結論在本檔 W、AG、T 節）；`PROJECT_CLEANUP_AUDIT01_*.csv`（凍結的清冊）；`BGM_CANDIDATES`（已由 `data/audio/music.ts`、`ASSET_LEDGER`、`CREDITS` 取代）；`CORE_PROJECTION_DESIGN`（已實作，規格在 `RenderSpec`、`VisualMath`、`PEDESTAL_CORE`）。
+- 修正：README（控場 19 種、AI 拓樸、VFX 展示庫、匯出器、背水一戰、大逃殺規則、平衡指令）；AGENTS（`materialConfig` 範圍、AI 位置）；PROJECT_MAP（戰鬥曲、AI 段落）；ASSET_NEEDS（冰塊與羊已烘焙）；ASSET_LEDGER（補 10 組女性圖集）；ART_STYLE_BIBLE（不存在的檔名）；`prepare_runtime_atlases.mjs` 與它的 README 指向已刪分支，改標籤。
+- 工具：刪 `tools/ui-e2e/drift-corpse-probe.mjs`（R7 一次性取證）；`parts-sheet`、`ult-battle-probe` 還用得到，入口改記在 `VFX_PIPELINE_MAP`。
+- Flash 的 23 份盤點，查證後兩條是錯的（`tools/hooks`、`UnitShatter.ts` 都存在），另外漏了指向已刪分支這條。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

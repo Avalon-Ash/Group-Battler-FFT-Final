@@ -132,10 +132,10 @@
 
 ## 10. 單位素材來源變更（2026-10-11 決策；取代 §8、§9 的「AI 旋轉圖」生產流程）
 
-AI 逐張生成旋轉圖（含單圖多視角）的正背面一致性（持握手、盾劍、髮型飄帶）無法保證，**改採 3D 預渲染管線**：CC0 已綁骨架角色包（KayKit Adventurers、Quaternius Universal）＋ Blender 離線渲染四向（SE／SW／NE／NW，不鏡射）與固定動作清單。細節見 `PILOT_3D_PLAN.md`。
+AI 逐張生成旋轉圖（含單圖多視角）的正背面一致性（持握手、盾劍、髮型飄帶）無法保證，**改採 3D 預渲染管線**：CC0 已綁骨架角色包（KayKit Adventurers、Quaternius Universal）＋ Blender 離線渲染四向（SE／SW／NE／NW，不鏡射）與固定動作清單。。
 
 - **保留**：§7 體型軸（`Team × Role × BodyType`）、§9 的四向資料結構與 `mirrorFrom` 後備、A2e 的隨機派發與編輯器、陣營識別（§2）、地形材質（§4，仍用 `terrain_grid.jpg`）。
-- **降級為風格參考（不入遊戲）**：`art/_superseded/`、`art/turn_*.jpg`、`IMAGE_PROMPT_PACK.md`，以及使用者自備的雙陣營五職業 10 張圖。
+- **降級為風格參考（不入遊戲）**：`art/_superseded/`、`art/turn_*.jpg`、舊的生圖提示詞，以及使用者自備的雙陣營五職業 10 張圖。
 - **待試驗後確認**：低多邊形卡通渲染已定案（§11）；Quaternius 女性素材因風格與 KayKit 差距過大已否決（DECISIONS §5 / HANDOFF §4），其他新模型標為「待評估」；動作格清單已於 §11.1 定案。
 
 ## 11. 3D 預渲染單位精靈管線規格（2026-10-11，取代 §8、§9 的「AI 逐張生圖」製作方式）

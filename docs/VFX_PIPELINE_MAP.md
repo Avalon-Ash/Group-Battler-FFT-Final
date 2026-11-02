@@ -67,6 +67,8 @@
 | `node tools/vfx/fx-shot.mjs --keys=<KEY>` | 單一特效／法陣／投射物截圖預覽 |
 | `node tools/vfx/ult-sheet.mjs --feel` | 奧義全畫面演出（起手／命中／餘韻）截圖總表 |
 | `node tools/vfx/vfx-coverage.mjs` | 特效覆蓋率與後端分派執行期探針 |
+| `node tools/vfx/parts-sheet.mjs` | 零件總表截圖（彩色＋灰階，ART_SPEC §11） |
+| `node tools/vfx/ult-battle-probe.mjs --suite=all` | 奧義實戰探針：跨地圖生效時刻、目標移開、同幀多招、打斷、中途重開 |
 | `npm run verify:coords` | 座標與景深協議驗證 |
 | `npx vitest run tests/VFXBackend.test.ts` | 特效後端與型別特性契約測試 |
 | `npx vitest run tests/UltSpec.test.ts` | 奧義時序與粒子規格測試 |

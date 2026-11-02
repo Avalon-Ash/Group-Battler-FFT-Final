@@ -1,7 +1,7 @@
 # ASSET_NEEDS.md — 下一階段美術素材盤點與規格需求書
 
 > **2026-10-29 狀態（以這段為準，下方是 10-19 的原始盤點）**
-> - §2 障礙物：WALL、TREE、ICE_CRYSTAL、OBSIDIAN_PILLAR、SANDSTONE 與 4 種地面裝飾已換成烘焙圖集（`public/assets/obstacles/`）。ICE 冰塊牢籠（`FrozenPainter.bakeIceBlock`）與 SHEEP 變形羊（`PolymorphPainter`）仍是程式繪製，目前沒有換圖計畫。
+> - §2 障礙物：WALL、TREE、ICE_CRYSTAL、OBSIDIAN_PILLAR、SANDSTONE 與 4 種地面裝飾已換成烘焙圖集（`public/assets/obstacles/`）。ICE 冰塊牢籠（`FrozenPainter`）與 SHEEP 變形羊（`PolymorphPainter`）已換成 Blender 烘焙圖集（`engine/renderers/units/CcBodyStore.ts`）；羊的風格和整體落差大，要重做（HANDOFF §2 F）。
 > - §3 單位：兩陣營 × 五職業 × 男女共 20 張圖集已上線（`public/assets/units/`，含專用男神官）。只剩 P3 的特殊體型（半身人、巨人、野獸），沒有排程。
 > - §4 特效：已改走零件烘焙管線（`data/vfx/parts/`、`engine/renderers/vfxparts/`），不再需要貼圖素材。
 > - §5 圖示：狀態圖示由 `engine/renderers/hud/GaugePainter.ts` 程式繪製；技能圖示目前 UI 沒有使用的位置。

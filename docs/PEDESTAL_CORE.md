@@ -12,7 +12,7 @@
 - 顏色在 `data/units/factionSkin.ts` 的 `skin.core`（`CoreSkin`），尺寸／高度／浮動／光暈強度在 `constants.ts` 的 `CORE_VISUAL`。貼圖槽 `core` 可換晶體本體（見 `docs/FACTION_SLOTS.md`）。
 - 職業字形改為**刻在棋座頂面**（`UnitFactory.drawEngravedGlyph`，`CLASS_GLYPH`），取代舊的懸浮職業圖示。
 
-## 2. 錨點 SSOT：投影中心 `VisualMath.projectionCenterAt`（`docs/CORE_PROJECTION_DESIGN.md`）
+## 2. 錨點 SSOT：投影中心 `VisualMath.projectionCenterAt`
 - 發射點（`getCoreAnchor`）、受擊點（`getUnitAnchor`）、投影成形後的核心寶石是**同一個點**：x、y ＝ `px + physics.x`、`py + physics.y`（沒有水平位移）；z ＝ 腳下地面 ＋ `physics.z` ＋ `projectionCenterHeight(體型)`。
 - `projectionCenterHeight` 從精靈資料推導（`data/units/appearance/projection.ts`：精靈目標高度 × 體型 `heightScale` × `centerFraction` ＋ `footHover`），模擬端不需要圖集；`tests/CoreProjection.test.ts` 比對它與圖集實際頭頂高度。
 - **含** `physics.z`：飛行單位從身體中心發射（2026-10 使用者要求，推翻原本「從地面核心發射」的決定）。

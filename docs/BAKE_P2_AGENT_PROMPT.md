@@ -1,6 +1,6 @@
 # 執行指令：地塊烘焙 Phase 2-A 原型（`?bake=1`）
 
-> 給 GPT（Codex App）。目標導向：自己拆步驟，只有下面列的停下條件才停。
+> 草稿：重啟時照派工表（`agent-prompt` skill）改寫給 agy Flash high 或 Claude，不派 Codex。目標導向：自己拆步驟，只有下面列的停下條件才停。
 > 背景：手機 1% low 約 13 FPS；CPU profile 中地塊／網格占 JS 時間 23～25%，是最大的一類，瓶頸是每幀的繪製呼叫數。已有的快取（`TerrainBlockCache` 逐格 sprite、零件、液面、障礙物、光暈文字）沒有減少呼叫數。本輪做一個**預設關閉**的原型，量出值不值得做成預設。
 
 ## 目標
