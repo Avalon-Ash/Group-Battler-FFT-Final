@@ -346,10 +346,10 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         // ★ 核心修正：只有在沒有逃跑目標、或目標本身也淪陷時，才重新尋路
-        const needsNewTarget = !a.targetHex || (() => {
-            if (!engine.map.isValid(a.targetHex!.q, a.targetHex!.r)) return true;
-            const tk = HexUtils.key(a.targetHex!);
-            const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex!.q, a.targetHex!.r)
+        const needsNewTarget = !a.escapeHex || (() => {
+            if (!engine.map.isValid(a.escapeHex!.q, a.escapeHex!.r)) return true;
+            const tk = HexUtils.key(a.escapeHex!);
+            const hazardAtTarget = engine.getSpatialHazardsAt(a.escapeHex!.q, a.escapeHex!.r)
                 .find(h => !sameSide(h, a));
             return engine.isWarningTile(tk) || (!!hazardAtTarget);
         })();
@@ -394,8 +394,8 @@ export const BTActions: Record<string, BTActionFn> = {
             );
             
             if (path && path.length > 0) {
-                a.targetHex = path[path.length - 1];
-                engine.log(a, 'DECISION', '生存：啟動路徑逃離', '', `找到安全路徑，目標：${HexUtils.key(a.targetHex)}`);
+                a.escapeHex = path[path.length - 1];
+                engine.log(a, 'DECISION', '生存：啟動路徑逃離', '', `找到安全路徑，目標：${HexUtils.key(a.escapeHex)}`);
             } else {
                 // 備援：無路徑時的鄰格評分 (Two-pass to prioritize safety)
                 const neighbors = HexUtils.neighbors(a);
@@ -429,19 +429,19 @@ export const BTActions: Record<string, BTActionFn> = {
                 }
 
                 if (bestNeighbor) {
-                    a.targetHex = bestNeighbor;
+                    a.escapeHex = bestNeighbor;
                     engine.log(a, 'DECISION', '生存：鄰格備援', '', `無路徑，強制移往鄰格 ${HexUtils.key(bestNeighbor)}`);
                 } else {
                     engine.log(a, 'DECISION', '生存：絕望', '', `無路徑且無可通行的鄰格！嘗試暴力衝刺至任意鄰位以打破死鎖。`);
                     // [PANIC] If totally stuck, just pick any logical non-collapsed neighbor even if blocked by unit
                     const anyNeighbor = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.hasObstacleHash(HexUtils.hash(n.q, n.r)));
                     if (anyNeighbor) {
-                        a.targetHex = anyNeighbor;
+                        a.escapeHex = anyNeighbor;
                     } else {
                         // Fully surrounded by walls or map edge — no escape route exists.
                         // Trigger last-stand mode and let BT fall through to CastPushPull.
                         a.aiState = AIState.LAST_STAND_PUSH;
-                        a.targetHex = null;
+                        a.escapeHex = null;
                         engine.log(a, 'DECISION', '生存：無路可退', '', '處於死亡網格且無處可躲，進入困獸之鬥模式');
                         return NodeState.FAILURE;
                     }
@@ -451,7 +451,7 @@ export const BTActions: Record<string, BTActionFn> = {
 
         a.actionState = ActionState.EVADING;
 
-        if (a.targetHex) {
+        if (a.escapeHex) {
             // [FIX] If casting a non-fatal skill, wait for it to finish before moving.
             // This prevents "twitching" (gliding while casting) and respects casting priority.
             if (a.castingSkillIdx !== -1) {
@@ -461,10 +461,10 @@ export const BTActions: Record<string, BTActionFn> = {
                 }
             }
 
-            const state = engine.moveAgentToHex(a, a.targetHex, 0, BT_RULES.ESCAPE_SPEED_MULTIPLIER, true);
+            const state = engine.moveAgentToHex(a, a.escapeHex, 0, BT_RULES.ESCAPE_SPEED_MULTIPLIER, true);
             if (state === NodeState.SUCCESS) {
-                engine.log(a, 'DECISION', '生存：脫離險境', '', `已抵達目標點 ${HexUtils.key(a.targetHex)}`);
-                a.targetHex = null;
+                engine.log(a, 'DECISION', '生存：脫離險境', '', `已抵達目標點 ${HexUtils.key(a.escapeHex)}`);
+                a.escapeHex = null;
                 // [FIX] Reduce cooldown significantly. 0.2s is enough to prevent jitter 
                 // but 1.0s was making them sit on dangerous tiles far too long.
                 a.escapeCooldown = BT_RULES.ESCAPE_RETRY_COOLDOWN; 
@@ -480,9 +480,9 @@ export const BTActions: Record<string, BTActionFn> = {
                 return NodeState.RUNNING;
             }
             if (state === NodeState.FAILURE) {
-                engine.log(a, 'DECISION', '生存：移動失敗', '', `無法移動至目標格 ${HexUtils.key(a.targetHex)}`);
+                engine.log(a, 'DECISION', '生存：移動失敗', '', `無法移動至目標格 ${HexUtils.key(a.escapeHex)}`);
                 // 移動失敗清掉目標下一幀重找，並回傳 FAILURE 讓 AI 有機會思考其他解法
-                a.targetHex = null;
+                a.escapeHex = null;
                 a.aiState = AIState.IDLE;
                 return NodeState.FAILURE; 
             }
@@ -663,14 +663,14 @@ export const BTActions: Record<string, BTActionFn> = {
         // 1. Path-Clearing Logic: Only trigger if in danger or evading
         if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine, {})) {
             let isTargetSafe = false;
-            if (a.targetHex) {
-                const targetKey = HexUtils.key(a.targetHex);
-                const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex.q, a.targetHex.r).find(h => !sameSide(h, a));
+            if (a.escapeHex) {
+                const targetKey = HexUtils.key(a.escapeHex);
+                const hazardAtTarget = engine.getSpatialHazardsAt(a.escapeHex.q, a.escapeHex.r).find(h => !sameSide(h, a));
                 isTargetSafe = !engine.isWarningTile(targetKey) && !hazardAtTarget;
             }
             if (isTargetSafe) {
                 // Get line towards safety
-                const line = HexUtils.line(a, a.targetHex);
+                const line = HexUtils.line(a, a.escapeHex);
                 for (const h of line) {
                     if (h.q === a.q && h.r === a.r) continue;
                     const occupant = engine.getAgentAt(h.q, h.r);

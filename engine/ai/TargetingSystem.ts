@@ -95,80 +95,15 @@ export class TargetingSystem {
             if (s && s.tag !== 'BASIC') return; 
         }
         
-        // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
-        if (!skipEscapeLogic && inDanger && a.escapeCooldown <= 0) {
-            // [FIX] 如果正在詠唱非普攻技能，不應隨意清除 target，避免技能失效
-            const isCastingSpecial = a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag !== 'BASIC';
-
-            // 被位移或在危險中時，若未在發動特殊技能，優先清理攻擊目標以轉入逃生狀態
-            if (!isCastingSpecial) {
-                if (!a.targetHex || spatial.isWarningTile(HexUtils.key(a.targetHex))) {
-                    a.target = null;
-                }
-            }
-            
-            // 如果已經有目標地塊且該地塊依然安全，則不需要重新搜尋
-            if (a.targetHex && !spatial.isWarningTile(HexUtils.key(a.targetHex))) {
-                // DANGER 外觀由 AnimationSystem 依 actionState === EVADING 推導，這裡不寫 visualStatus。
-                // [FIX] 不可 early return，必須繼續往下執行以鎖定敵人，供背水一戰使用
-            } else {
-                // 尋找距離自己最近、且不在 WARNING 清單內的安全地塊
-                let bestSafeHex: Hex | null = null;
-
-                if (pathfinder) {
-                    // [OPTIMIZATION] 使用 Pathfinder 尋找保證可到達的安全地塊
-                    const path = pathfinder.findPathToSafety(a, a, spatial, this);
-                    if (path && path.length > 0) {
-                        bestSafeHex = path[path.length - 1];
-                    }
-                } else {
-                    // Fallback: 舊版環狀掃描 (不保證可到達)
-                    let minSafeDist = Infinity;
-                    const mapConfig = spatial.getMapConfig();
-                    const centerQ = Math.floor((mapConfig.w - 1) / 2);
-                    const centerR = Math.floor((mapConfig.h - 1) / 2);
-
-                    for (let radius = 1; radius <= TARGET_RULES.SAFETY_SEARCH_RADIUS; radius++) {
-                        const ring = HexUtils.range(a, radius);
-                        for (const hex of ring) {
-                            if (spatial.isValid(hex.q, hex.r)) {
-                                const hexKey = HexUtils.key(hex);
-                                if (!spatial.isWarningTile(hexKey)) {
-                                    // [FIX] 飛行單位無視高度限制，地面單位使用動態跳躍高度
-                                    if (!canStepUp(a, spatial.getTerrainHeight(a.q, a.r), spatial.getTerrainHeight(hex.q, hex.r))) continue;
-
-                                    const distToCenter = HexUtils.dist(hex, {q: centerQ, r: centerR});
-                                    if (distToCenter < minSafeDist) {
-                                        minSafeDist = distToCenter;
-                                        bestSafeHex = hex;
-                                    }
-                                }
-                            }
-                        }
-                        if (bestSafeHex) break; 
-                    }
-                }
-
-                if (bestSafeHex) {
-                    a.targetHex = bestSafeHex;
-                } else {
-                    // [FIX] 如果找不到安全地塊，必須清空 targetHex，讓後續能觸發背水一戰
-                    a.targetHex = null;
-                }
-            }
-        } else if (!inDanger) {
-            // 如果不在危險區，且當前目標地塊是為了逃生而設的（沒有 target），則清空它
-            // [FIX] 但如果單位正在詠唱非目標指向性的技能 (以 targetHex 為主)，就絕對不能清空！
-            if (!a.target && a.targetHex && a.castingSkillIdx === -1) {
-                a.targetHex = null;
-            }
+        // 不在危險區且沒有目標時，上一招留下的地面落點已無意義（詠唱中除外，施法還要用它）
+        if (!inDanger && !a.target && a.targetHex && a.castingSkillIdx === -1) {
+            a.targetHex = null;
         }
 
         if (a.target && !this.isValidTarget(a.target, spatial)) a.target = null;
         
-        // [FIX] 即使在危險區且有逃生目標，也同時鎖定最近的敵人
-        // 這樣當逃生路線被堵死時，AI 才能立刻切換到戰鬥邏輯 (背水一戰)
-        // 移除原本的 early return: if (spatial.isWarningTile(myKey) && a.targetHex) return;
+        // 逃生目的地由 RETREAT 模式的 EscapeWarning 管（escapeHex）；這裡只選戰鬥目標，
+        // 逃生路線被堵死時才能立刻接戰。
 
         let maxScore = -Infinity;
         let bestTarget: Agent | null = null;

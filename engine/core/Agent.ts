@@ -53,7 +53,10 @@ export class Agent {
     public stuckTicks: number = 0;
     public facing: number = 1;
     public target: Agent | null = null;
+    /** 施法的地面落點／靠近隊友的格（戰鬥用） */
     public targetHex: Hex | null = null;
+    /** RETREAT 的逃生目的地；只由 EscapeWarning 寫入，和 targetHex 分開 */
+    public escapeHex: Hex | null = null;
     public _savedCombatTarget?: Agent | null = null;
     public aiState: AIState = AIState.IDLE;
     /** 狀態拓樸目前的節點（null＝還沒開始）與進入時間；只由 ModeMachine 寫入 */

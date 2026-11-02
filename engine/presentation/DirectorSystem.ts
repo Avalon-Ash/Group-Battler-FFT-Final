@@ -277,8 +277,8 @@ export class DirectorSystem {
         if (evaders.length > 0) {
             for (const a of evaders) {
                 this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), 1.0, DIRECTOR_PARAM.TARGET_RADIUS);
-                if (a.targetHex) {
-                    const destPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
+                if (a.escapeHex) {
+                    const destPx = HexUtils.toPx(a.escapeHex.q, a.escapeHex.r, engine.mapConfig);
                     this.targetGroup.add(destPx.x, destPx.y, DIRECTOR_PARAM.DEST_WEIGHT, DIRECTOR_PARAM.DEST_RADIUS);
                 }
             }
