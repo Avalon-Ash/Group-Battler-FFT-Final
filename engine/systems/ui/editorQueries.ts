@@ -114,6 +114,40 @@ export function querySpawnableHexes(engine: GameEngine): { q: number; r: number 
         });
 }
 
+export type HexCoord = { q: number; r: number };
+
+/**
+ * 三個以上陣營的開局站位：最遠點取樣選各陣營據點（第一個取 hexes 的第一格，呼叫端先洗牌），
+ * 陣營輪流取離自己據點最近的空格。回傳每個陣營的格子（格子不夠時後面的陣營會較少）。
+ */
+export function layoutFactionHexes(hexes: readonly HexCoord[], factions: number, unitsPerFaction: number): HexCoord[][] {
+    const anchors = hexes.slice(0, 1);
+    while (anchors.length < factions && anchors.length < hexes.length) {
+        let best = hexes[0];
+        let bestDist = -1;
+        for (const hex of hexes) {
+            const d = Math.min(...anchors.map(a => HexUtils.dist(a, hex)));
+            if (d > bestDist) {
+                bestDist = d;
+                best = hex;
+            }
+        }
+        anchors.push(best);
+    }
+    const nearest = anchors.map(a => [...hexes].sort((x, y) => HexUtils.dist(a, x) - HexUtils.dist(a, y)));
+    const used = new Set<string>();
+    const layout: HexCoord[][] = anchors.map(() => []);
+    for (let i = 0; i < unitsPerFaction; i++) {
+        for (let side = 0; side < anchors.length; side++) {
+            const hex = nearest[side].find(h => !used.has(`${h.q},${h.r}`));
+            if (!hex) continue;
+            used.add(`${hex.q},${hex.r}`);
+            layout[side].push(hex);
+        }
+    }
+    return layout;
+}
+
 /**
  * Converts screen/pointer coordinates into the corresponding Hex using Camera and GridCache.
  */
