@@ -4,37 +4,17 @@ import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup } from '../types';
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
-import { HexUtils } from '../engine/utils';
 import { random } from '../engine/math/rng';
-import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
+import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, HexCoord } from '../engine/systems/ui/editorQueries';
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 
 /** 展示陣容的一個位置：陣營、角色與體型在生成前就決定，圖集才能在轉場期間預載 */
 interface ShowcaseSlot { side: number; team: Team; role: Role; bodyType: BodyTypeId }
 const SHOWCASE_ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-type HexCoord = { q: number; r: number };
 
 /** 陣營用的外觀：只有藍、紅兩套皮膚，雙數陣營藍、單數紅（陣營 0／1 和 Team 數值相同） */
 const factionTeam = (side: number): Team => (side % 2 === 0 ? Team.BLUE : Team.RED);
-
-/** 各陣營的據點：最遠點取樣（第一個取洗牌後的第一格），讓陣營分散在地圖上 */
-function pickFactionAnchors(hexes: readonly HexCoord[], count: number): HexCoord[] {
-    const anchors = hexes.slice(0, 1);
-    while (anchors.length < count && anchors.length < hexes.length) {
-        let best = hexes[0];
-        let bestDist = -1;
-        for (const hex of hexes) {
-            const d = Math.min(...anchors.map(a => HexUtils.dist(a, hex)));
-            if (d > bestDist) {
-                bestDist = d;
-                best = hex;
-            }
-        }
-        anchors.push(best);
-    }
-    return anchors;
-}
 
 type DevWindow = Window & {
     __TACTICAL_ENGINE__?: GameEngine;
@@ -130,7 +110,7 @@ export const useGameApp = () => {
         for (let side = 0; side < setup.factions; side++) {
             const team = factionTeam(side);
             for (let i = 0; i < setup.unitsPerFaction; i++) {
-                plan.push({ side, team, role: SHOWCASE_ROLES[i % SHOWCASE_ROLES.length], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round) });
+                plan.push({ side, team, role: SHOWCASE_ROLES[factionRoleIndex(side, i, setup.unitsPerFaction, SHOWCASE_ROLES.length)], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round) });
             }
         }
         rosterRef.current = plan;
@@ -161,12 +141,12 @@ export const useGameApp = () => {
         const setup = plannedSetupRef.current;
         const slotsOf = (side: number) => rosterRef.current.filter(s => s.side === side);
         const place = (slot: ShowcaseSlot, hex: HexCoord, side?: number) => {
+            random(); // 每人保留一次取號（原本抽開局血量）：拿掉會讓之後的地圖亂數整串位移
             engine.bus.emit('UI_COMMAND', {
                 type: 'PLACE_AGENT',
                 team: slot.team,
                 q: hex.q,
                 r: hex.r,
-                hp: GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE,
                 role: slot.role,
                 bodyType: slot.bodyType,
                 side,
@@ -186,17 +166,13 @@ export const useGameApp = () => {
         } else {
             // 三個以上：各陣營一個據點，輪流取離自己據點最近的空格
             shuffle(validHexes);
-            const anchors = pickFactionAnchors(validHexes, setup.factions);
-            const nearest = anchors.map(a => [...validHexes].sort((x, y) => HexUtils.dist(a, x) - HexUtils.dist(a, y)));
-            const slots = anchors.map((_, side) => slotsOf(side));
-            const used = new Set<string>();
+            const layout = layoutFactionHexes(validHexes, setup.factions, setup.unitsPerFaction);
+            const slots = layout.map((_, side) => slotsOf(side));
             for (let i = 0; i < setup.unitsPerFaction; i++) {
-                for (let side = 0; side < anchors.length; side++) {
+                for (let side = 0; side < layout.length; side++) {
                     const slot = slots[side][i];
-                    const hex = nearest[side].find(h => !used.has(`${h.q},${h.r}`));
-                    if (!slot || !hex) continue;
-                    used.add(`${hex.q},${hex.r}`);
-                    place(slot, hex, side);
+                    const hex = layout[side][i];
+                    if (slot && hex) place(slot, hex, side);
                 }
             }
         }

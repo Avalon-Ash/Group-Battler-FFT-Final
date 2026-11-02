@@ -303,7 +303,17 @@ export const CONTROL_RULES = {
     FEAR_FALLBACK_SPEED_MULTIPLIER: 1.2,
 } as const;
 
+/** 大逃殺：陣營多到打混戰時，技能脫離職業與隊伍、血量差距減半（平衡依據 docs/AI_ROYALE_DESIGN.md §6）。 */
+export const ROYALE_RULES = {
+    /** 幾個陣營以上算大逃殺。 */
+    MIN_FACTIONS: 3,
+    /** 各職業血量與平均的差距保留多少。 */
+    HP_GAP_SCALE: 0.5,
+} as const;
+
 export const BATTLE_RULES = {
+    /** 出生：連通塊小於全部可出生格這個比例就算被圍死的小區塊，不在那裡出生。 */
+    SPAWN_MIN_REGION_RATIO: 0.2,
     /** 勝負已定時的時間流速倍率。 */
     FINISH_TIME_SCALE: 0.4,
     /** 五連殺門檻與播報等級（擊殺數）。 */
@@ -325,6 +335,4 @@ export const MOVEMENT_RULES = {
     LAST_STAND_ARRIVAL_RADIUS: 15,
     /** 背水一戰靠近中心時的速度增量係數（每平方秒）。 */
     LAST_STAND_NEAR_PULL_GAIN: 5,
-    /** 背水一戰外圈向心牽引加速度（像素／平方秒）。 */
-    LAST_STAND_PULL_FORCE: 400,
 } as const;

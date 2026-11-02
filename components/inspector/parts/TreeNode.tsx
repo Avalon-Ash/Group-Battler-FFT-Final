@@ -11,6 +11,14 @@ interface TreeNodeProps {
 }
 
 const BT_LABEL_MAP: Record<string, string> = {
+    'Engage Actions': '接敵',
+    'Fight Actions': '交戰',
+    'Strike Nearby': '順手攻擊',
+    'Advance': '朝敵人前進',
+    'Force Jump': '強制跳上鄰格',
+    'Finale': '背水一戰',
+    'Fight Back': '困獸之鬥',
+    'No Enemy': '場上沒有敵人',
     'Root': '根節點 (Root)',
     'Dead Check': '陣亡判定',
     'Is Dead?': '已陣亡？',

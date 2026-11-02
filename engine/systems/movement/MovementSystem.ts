@@ -1,4 +1,4 @@
-import { COMBAT_PARAM, MOVEMENT_RULES, GRID_OVERLAY } from '../../../constants';
+import { BT_RULES, COMBAT_PARAM, MOVEMENT_RULES, GRID_OVERLAY, PATH_RULES } from '../../../constants';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  MovementSystem — 單位移動路徑執行                      ║
 // ║  職責：路徑跟隨 / 等角 3D 座標插值 / 跳躍拋物線          ║
@@ -30,12 +30,12 @@ export class MovementSystem {
         this.stackingResolver = new StackingResolver();
     }
 
-    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
+    public getEffectiveRange(a: Hex & { jump?: number }, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
         return this.targeting.getEffectiveRange(a, targetQ, targetR, baseRange, spatial);
     }
 
     public updateTarget(a: Agent, spatial: SpatialProvider) {
-        this.targeting.updateTarget(a, spatial, this.pathfinder);
+        this.targeting.updateTarget(a, spatial);
     }
 
     public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider) {
@@ -46,6 +46,33 @@ export class MovementSystem {
         // 敵方危害與 SLOW 狀態的減速每 tick 重算（不寫進 Agent），取較慢的那個；moveSpeedMult 只代表 AI 要求的速度，由本檔寫入
         const hazardSpeedMult = getHazardSpeedMult(a, spatial.state.spatialHazards, spatial.getMapConfig());
         MotionEngine.updateMovement(a, dt, spatial, Math.min(hazardSpeedMult, slowSpeedMult(a)));
+    }
+
+    /** 現在逃跑的實際速度（格／秒）：敵方危害與 SLOW 會把 AI 要求的倍率壓低，重力場裡只剩三成。 */
+    public escapeSpeed(a: Agent, spatial: SpatialProvider & Pick<GameEngine, 'state'>): number {
+        const external = Math.min(getHazardSpeedMult(a, spatial.state.spatialHazards, spatial.getMapConfig()), slowSpeedMult(a));
+        return a.moveSpeed * Math.min(BT_RULES.ESCAPE_SPEED_MULTIPLIER, external);
+    }
+
+    /** 格子上有別人站著不動（對方也在走就不算擋：走到時多半已經空了）。 */
+    private isBlockedByStandingUnit(a: Agent, hex: Hex, spatial: SpatialProvider): boolean {
+        const occ = spatial.getAgentHash(HexUtils.hash(hex.q, hex.r));
+        return !!occ && occ !== a && occ.hp > 0 && !occ.isMoving;
+    }
+
+    /** 路徑的終點對 (target, range) 還算到位（遠程：終點在射程內就不必因目標動了一點而重算）。 */
+    private isRangedGoalStillValid(goal: Hex, targetHex: Hex, range: number, spatial: SpatialProvider): boolean {
+        if (range === 0) return goal.q === targetHex.q && goal.r === targetHex.r;
+        return HexUtils.dist(goal, targetHex) <= this.targeting.getEffectiveRange(goal, targetHex.q, targetHex.r, range, spatial);
+    }
+
+    /** 脫困：朝鄰格走一步，不檢查爬升（只有 UNSTICK 用；一般移動一律走尋路）。 */
+    public forceStep(a: Agent, cell: Hex): void {
+        a.path = [cell];
+        a.trajectory = a.path;
+        a.isMoving = true;
+        a.moveProgress = 0;
+        a.moveSpeedMult = 1.0;
     }
 
     /** 格子上有「別人」的活單位（自己不算）。 */
@@ -60,9 +87,9 @@ export class MovementSystem {
      * 目標沒動、或只動了一格但這格仍合法時不重算；失效才重新挑格。
      */
     private isAttackCellStillValid(a: Agent, goal: Hex, targetHex: Hex, range: number, spatial: SpatialProvider): boolean {
-        if (!isMeleeAttackCell(this.targeting, goal, targetHex.q, targetHex.r, range, spatial)) return false;
+        if (!isMeleeAttackCell(this.targeting, goal, targetHex.q, targetHex.r, range, spatial, a.jump)) return false;
         if (this.isOccupiedByOther(a, goal, spatial)) return false;
-        return !this.isOccupiedByOther(a, a.path[0], spatial);
+        return !this.isBlockedByStandingUnit(a, a.path[0], spatial);
     }
 
     public moveAgentToHex(a: Agent, targetHex: Hex, r: number, spatial: SpatialProvider, speedMult: number = 1.0, isEscaping: boolean = false): NodeState {
@@ -82,15 +109,18 @@ export class MovementSystem {
             // 地面近戰的路徑終點是「攻擊格」而非目標本人：改看該格是否仍是合法攻擊格
             const goalUnchanged = isGroundMeleeRange(a, r)
                 ? this.isAttackCellStillValid(a, currentGoal, targetHex, r, spatial)
-                : (currentGoal.q === targetHex.q && currentGoal.r === targetHex.r);
-            if (goalUnchanged) {
+                : this.isRangedGoalStillValid(currentGoal, targetHex, r, spatial);
+            // 目的地變了也不要每次決策都重算：路徑還能走就先走，隔一小段時間才換路
+            const mayKeepPath = goalUnchanged ||
+                (!isEscaping && spatial.battleTime < a.nextRepathAt && !this.isBlockedByStandingUnit(a, a.path[0], spatial));
+            if (mayKeepPath) {
                 // [FIX] 深度檢測：檢查快取的路徑是否因為網格消失或變成警告區域而斷裂
                 let pathValid = true;
                 for (const hex of a.path) {
                     const hexKey = HexUtils.key(hex);
                     const enemyHazards = spatial.getSpatialHazardsAt(hex.q, hex.r).filter(h => !sameSide(h, a));
                     const hasEnemyHazard = enemyHazards.length > 0;
-                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isWarningTile(hexKey) || hasEnemyHazard))) {
+                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isCollapsingSoon(hexKey) || hasEnemyHazard))) {
                         pathValid = false;
                         break;
                     }
@@ -105,6 +135,7 @@ export class MovementSystem {
         }
 
         // 3. 尋找新路徑
+        a.nextRepathAt = spatial.battleTime + PATH_RULES.REPATH_MIN_S;
         let path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, false, spatial, this.targeting, isEscaping);
         if (path.length === 0 && distToTarget > effRange) {
             // 如果被單位堵住，嘗試無視單位尋路（擠過去）
@@ -234,17 +265,7 @@ export class MovementSystem {
                  continue;
             }
 
-            // Calculate pull vector (only pull if not landed)
-            const dx = targetPx.x - a.px;
-            const dy = targetPx.y - a.py;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            
-            if (dist > 10) {
-                const force = MOVEMENT_RULES.LAST_STAND_PULL_FORCE; // Strong pull
-                a.physics.vx += (dx / dist) * force * dt;
-                a.physics.vy += (dy / dist) * force * dt;
-                a.hasLandedLastStand = false; // Reset if somehow forced out (though map prevents it)
-            }
+            a.hasLandedLastStand = false;
         }
     }
 }

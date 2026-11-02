@@ -2,10 +2,11 @@
 import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
-import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM } from "../../constants";
+import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
+import { canStepUp } from "../math/ClimbRule";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 import { sameSide } from '../core/Allegiance';
@@ -28,6 +29,67 @@ function restoreCombatTarget(a: Agent, engine: GameEngine): void {
     }
 }
 
+/** 離最近敵人的格距（沒有敵人回 Infinity） */
+function distToNearestEnemy(a: Agent, cell: Hex, engine: GameEngine): number {
+    let best = Infinity;
+    for (const o of engine.agents) {
+        if (sameSide(o, a) || !engine.movement.targeting.isValidTarget(o, engine)) continue;
+        best = Math.min(best, HexUtils.dist(cell, o));
+    }
+    return best;
+}
+
+function lockTarget(a: Agent, target: Agent, engine: GameEngine): void {
+    a.target = target;
+    a.targetLockUntil = engine.battleTime + TARGET_RULES.LOCK_S;
+}
+
+/** 現在站的地方基本攻擊打得到的最近敵人 */
+function enemyInReach(a: Agent, engine: GameEngine): Agent | null {
+    const basicRange = a.skills.find(s => s?.tag === 'BASIC')?.range ?? 0;
+    let best: Agent | null = null;
+    let bestDist = Infinity;
+    for (const o of engine.agents) {
+        if (sameSide(o, a) || !engine.movement.targeting.isValidTarget(o, engine)) continue;
+        const d = HexUtils.dist(a, o);
+        if (d < bestDist && d <= engine.getEffectiveRange(a, o.q, o.r, basicRange)) { bestDist = d; best = o; }
+    }
+    return best;
+}
+
+/**
+ * 站在警告格上還能留多久：塌陷前的時間，扣掉走到最近安全格的時間與餘裕。
+ * <= 0 就該動身；走不到安全格也回 0（交給 TRAPPED）。
+ */
+function secondsBeforeLeaving(a: Agent, engine: GameEngine): number {
+    const steps = engine.movement.pathfinder.stepsToSafety(a, engine);
+    if (steps === Infinity) return 0;
+    const travel = steps / engine.movement.escapeSpeed(a, engine);
+    return engine.zones.shrinkTimer - travel - BT_RULES.RETREAT_MARGIN_S;
+}
+
+/** 走得到的格子裡離敵人最近、而且比現在更近的格；同距離挑離自己近的。沒有這種格回 null。 */
+function bestAdvanceCell(a: Agent, engine: GameEngine): Hex | null {
+    let bestDist = distToNearestEnemy(a, a, engine);
+    if (bestDist === Infinity) return null;
+    let best: Hex | null = null;
+    let bestStep = Infinity;
+    for (const h of engine.movement.pathfinder.reachableCells(a, engine)) {
+        if (h.q === a.q && h.r === a.r) continue;
+        if (engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
+        if (engine.isCollapsingSoon(HexUtils.key(h))) continue;
+        if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => !sameSide(hz, a))) continue;
+        const d = distToNearestEnemy(a, h, engine);
+        const step = HexUtils.dist(a, h);
+        if (d < bestDist || (d === bestDist && best && step < bestStep)) {
+            bestDist = d;
+            bestStep = step;
+            best = h;
+        }
+    }
+    return best;
+}
+
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
@@ -40,7 +102,33 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "CanMove": (a) => a.effects.ROOT.remaining <= 0 && a.effects.STUN.remaining <= 0 && !a.banished && a.effects.FEAR.remaining <= 0,
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
+    "IsControlled": (a) => a.effects.STUN.remaining > 0 || a.effects.BANISH.remaining > 0 || a.effects.FEAR.remaining > 0,
+    "IsLastStand": (_, engine) => engine.state.isLastStand,
+    // 腳下有敵方 hazard、已經出界：馬上走。只是站在警告格上：算好時間，趕得及就先打。背水一戰不逃。
+    "WantsRetreat": (a, engine, args) => {
+        if (engine.state.isLastStand) return false;
+        if (BTConditions["IsEvading"](a, engine, args)) return true;
+        if (!BTConditions["IsInUrgentDanger"](a, engine, args)) return false;
+        if (!engine.map.isValid(a.q, a.r)) return true;
+        if (engine.getSpatialHazardsAt(a.q, a.r).some(h => !sameSide(h, a))) return true;
+        return secondsBeforeLeaving(a, engine) <= 0;
+    },
+    // 被困時才重試逃生：逃不掉就留在 TRAPPED，不要每次決策在兩個模式之間彈
+    "CanTryRetreat": (a, engine, args) => BTConditions["WantsRetreat"](a, engine, args) && !BTConditions["IsPinned"](a, engine, args),
     
+    "TargetInBasicRange": (a, engine) => {
+        if (!a.target || sameSide(a.target, a)) return false;
+        const basicRange = a.skills.find(s => s?.tag === 'BASIC')?.range ?? 0;
+        return HexUtils.dist(a, a.target) <= engine.getEffectiveRange(a, a.target.q, a.target.r, basicRange);
+    },
+    // 脫困判定：有敵人、打不到、而且走不到更近的地方（跳躍中也算還沒脫困）
+    "IsBoxedIn": (a, engine) => {
+        if (a.isMoving) return true;
+        if (distToNearestEnemy(a, a, engine) === Infinity) return false;
+        if (!BTConditions["CanMove"](a, engine, {})) return false;
+        return !enemyInReach(a, engine) && bestAdvanceCell(a, engine) === null;
+    },
+
     "HasTarget": (a, engine) => {
         restoreCombatTarget(a, engine);
 
@@ -117,7 +205,6 @@ export const BTConditions: Record<string, BTConditionFn> = {
 
     "HasEscapeRoute": (a, engine) => {
         // [ARCH] 前置檢查：避免 EscapeWarning 在無路況下無限循環
-        // 委託給 Pathfinder.canEscape 做 O(1) 鄰格掃描
         return engine.movement.pathfinder.canEscape(a, engine);
     },
 
@@ -151,13 +238,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (a.effects.STUN.remaining > 0 || a.banished || a.effects.FEAR.remaining > 0) return false;
         if (a.effects.SILENCE.remaining > 0 && s.tag !== 'BASIC') return false;
         
-        // [FIX] Survival Check: Don't even start a skill if it will likely lead to death via ground collapse
-        // 被釘住（逃不掉）時不套用此限制：反正走不了，原地出手勝過乾站到塌陷（成因 C）。
+        // 施法期間走不了：詠唱完還要趕得及逃才出手。被釘住（逃不掉）時不套用，原地出手勝過乾站到塌陷（成因 C）。
         if (engine.isWarningTile(HexUtils.key(a)) && !BTConditions["IsPinned"](a, engine, {})) {
-            const timeToCollapse = engine.zones.shrinkTimer;
-            const safetyBuffer = BT_RULES.COLLAPSE_CAST_BUFFER;
-            if (s.tag === 'BASIC') return false; // Never stand still for basics in a collapse zone
-            if ((s.cast + safetyBuffer) > timeToCollapse) return false;
+            if (s.cast > secondsBeforeLeaving(a, engine)) return false;
         }
 
         return true;
@@ -270,7 +353,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
  * 回傳 true = 這次靠近會讓我停在即將塌陷的格子上。
  */
 function approachEndsOnCollapse(a: Agent, engine: GameEngine, dest: Hex, range: number): boolean {
-    if (!engine.isWarningTile(HexUtils.key(dest)) &&
+    if (!engine.isCollapsingSoon(HexUtils.key(dest)) &&
         engine.getSpatialHazardsAt(dest.q, dest.r).every(h => sameSide(h, a))) {
         return false; // 目標腳下無任何危險，不必試算
     }
@@ -280,7 +363,7 @@ function approachEndsOnCollapse(a: Agent, engine: GameEngine, dest: Hex, range: 
     let path = pf.findPath(a, dest.q, dest.r, effRange, false, engine, tg, false);
     if (path.length === 0) path = pf.findPath(a, dest.q, dest.r, effRange, true, engine, tg, false);
     const stop: Hex = path.length > 0 ? path[path.length - 1] : { q: a.q, r: a.r };
-    return engine.isWarningTile(HexUtils.key(stop));
+    return engine.isCollapsingSoon(HexUtils.key(stop));
 }
 
 export const BTActions: Record<string, BTActionFn> = {
@@ -343,10 +426,10 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         // ★ 核心修正：只有在沒有逃跑目標、或目標本身也淪陷時，才重新尋路
-        const needsNewTarget = !a.targetHex || (() => {
-            if (!engine.map.isValid(a.targetHex!.q, a.targetHex!.r)) return true;
-            const tk = HexUtils.key(a.targetHex!);
-            const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex!.q, a.targetHex!.r)
+        const needsNewTarget = !a.escapeHex || (() => {
+            if (!engine.map.isValid(a.escapeHex!.q, a.escapeHex!.r)) return true;
+            const tk = HexUtils.key(a.escapeHex!);
+            const hazardAtTarget = engine.getSpatialHazardsAt(a.escapeHex!.q, a.escapeHex!.r)
                 .find(h => !sameSide(h, a));
             return engine.isWarningTile(tk) || (!!hazardAtTarget);
         })();
@@ -391,8 +474,8 @@ export const BTActions: Record<string, BTActionFn> = {
             );
             
             if (path && path.length > 0) {
-                a.targetHex = path[path.length - 1];
-                engine.log(a, 'DECISION', '生存：啟動路徑逃離', '', `找到安全路徑，目標：${HexUtils.key(a.targetHex)}`);
+                a.escapeHex = path[path.length - 1];
+                engine.log(a, 'DECISION', '生存：啟動路徑逃離', '', `找到安全路徑，目標：${HexUtils.key(a.escapeHex)}`);
             } else {
                 // 備援：無路徑時的鄰格評分 (Two-pass to prioritize safety)
                 const neighbors = HexUtils.neighbors(a);
@@ -426,19 +509,19 @@ export const BTActions: Record<string, BTActionFn> = {
                 }
 
                 if (bestNeighbor) {
-                    a.targetHex = bestNeighbor;
+                    a.escapeHex = bestNeighbor;
                     engine.log(a, 'DECISION', '生存：鄰格備援', '', `無路徑，強制移往鄰格 ${HexUtils.key(bestNeighbor)}`);
                 } else {
                     engine.log(a, 'DECISION', '生存：絕望', '', `無路徑且無可通行的鄰格！嘗試暴力衝刺至任意鄰位以打破死鎖。`);
                     // [PANIC] If totally stuck, just pick any logical non-collapsed neighbor even if blocked by unit
                     const anyNeighbor = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.hasObstacleHash(HexUtils.hash(n.q, n.r)));
                     if (anyNeighbor) {
-                        a.targetHex = anyNeighbor;
+                        a.escapeHex = anyNeighbor;
                     } else {
                         // Fully surrounded by walls or map edge — no escape route exists.
                         // Trigger last-stand mode and let BT fall through to CastPushPull.
                         a.aiState = AIState.LAST_STAND_PUSH;
-                        a.targetHex = null;
+                        a.escapeHex = null;
                         engine.log(a, 'DECISION', '生存：無路可退', '', '處於死亡網格且無處可躲，進入困獸之鬥模式');
                         return NodeState.FAILURE;
                     }
@@ -448,7 +531,7 @@ export const BTActions: Record<string, BTActionFn> = {
 
         a.actionState = ActionState.EVADING;
 
-        if (a.targetHex) {
+        if (a.escapeHex) {
             // [FIX] If casting a non-fatal skill, wait for it to finish before moving.
             // This prevents "twitching" (gliding while casting) and respects casting priority.
             if (a.castingSkillIdx !== -1) {
@@ -458,13 +541,10 @@ export const BTActions: Record<string, BTActionFn> = {
                 }
             }
 
-            const state = engine.moveAgentToHex(a, a.targetHex, 0, BT_RULES.ESCAPE_SPEED_MULTIPLIER, true);
+            const state = engine.moveAgentToHex(a, a.escapeHex, 0, BT_RULES.ESCAPE_SPEED_MULTIPLIER, true);
             if (state === NodeState.SUCCESS) {
-                engine.log(a, 'DECISION', '生存：脫離險境', '', `已抵達目標點 ${HexUtils.key(a.targetHex)}`);
-                a.targetHex = null;
-                // [FIX] Reduce cooldown significantly. 0.2s is enough to prevent jitter 
-                // but 1.0s was making them sit on dangerous tiles far too long.
-                a.escapeCooldown = BT_RULES.ESCAPE_RETRY_COOLDOWN; 
+                engine.log(a, 'DECISION', '生存：脫離險境', '', `已抵達目標點 ${HexUtils.key(a.escapeHex)}`);
+                a.escapeHex = null;
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
@@ -477,9 +557,9 @@ export const BTActions: Record<string, BTActionFn> = {
                 return NodeState.RUNNING;
             }
             if (state === NodeState.FAILURE) {
-                engine.log(a, 'DECISION', '生存：移動失敗', '', `無法移動至目標格 ${HexUtils.key(a.targetHex)}`);
+                engine.log(a, 'DECISION', '生存：移動失敗', '', `無法移動至目標格 ${HexUtils.key(a.escapeHex)}`);
                 // 移動失敗清掉目標下一幀重找，並回傳 FAILURE 讓 AI 有機會思考其他解法
-                a.targetHex = null;
+                a.escapeHex = null;
                 a.aiState = AIState.IDLE;
                 return NodeState.FAILURE; 
             }
@@ -531,7 +611,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const moveRange = (skill.range === 0) ? Math.max(1, skill.aoeRadius || 1) : skill.range;
             // 只有「停下來的格子會塌陷」才拒絕靠近；被困在塌陷格時（Survival 已放棄）直奔目標。
             if (approachEndsOnCollapse(a, engine, dest, moveRange)) {
-                if (engine.isWarningTile(HexUtils.key(a)) && a.target) {
+                if (engine.isCollapsingSoon(HexUtils.key(a)) && a.target) {
                     dest = { q: a.target.q, r: a.target.r };
                 } else {
                     return NodeState.FAILURE;
@@ -583,7 +663,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const dest = { q: a.target.q, r: a.target.r };
 
         // 只有「停下來的格子會塌陷」才不追；被困在塌陷格時直奔目標，不放棄追擊。
-        if (approachEndsOnCollapse(a, engine, dest, chaseRange) && !engine.isWarningTile(HexUtils.key(a))) {
+        if (approachEndsOnCollapse(a, engine, dest, chaseRange) && !engine.isCollapsingSoon(HexUtils.key(a))) {
             // 目標在塌陷區邊緣、我在安全格：已在射程內就原地待命（moveAgentToHex 會回 SUCCESS），否則交給 Reposition。
             const dist = HexUtils.dist(a, dest);
             if (dist > engine.getEffectiveRange(a, dest.q, dest.r, chaseRange) + COMBAT_PARAM.RANGE_TOLERANCE) return NodeState.FAILURE;
@@ -607,22 +687,22 @@ export const BTActions: Record<string, BTActionFn> = {
     "Reposition": (a, engine) => {
         restoreCombatTarget(a, engine);
         if (!a.target || !BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
-        if (engine.isWarningTile(HexUtils.key(a))) return NodeState.FAILURE; // 這是 Survival 的事
+        if (engine.isCollapsingSoon(HexUtils.key(a))) return NodeState.FAILURE; // 這是 RETREAT 的事
         const curDist = HexUtils.dist(a, a.target);
         let best: Hex | null = null;
         let bestDist = curDist;
         // 地面近戰高低差感知：站得到同層攻擊格就優先去那裡（鄰著目標但差一層時，單看格距永遠找不到「更近」的格）
         const basicRange = a.skills.find(s => s?.tag === 'BASIC')?.range ?? 0;
         const meleeAware = isGroundMeleeRange(a, basicRange) &&
-            !isMeleeAttackCell(engine.movement.targeting, a, a.target.q, a.target.r, basicRange, engine);
+            !isMeleeAttackCell(engine.movement.targeting, a, a.target.q, a.target.r, basicRange, engine, a.jump);
         let bestIsAttack = false;
         let bestStep = Infinity;
         for (const h of HexUtils.range(a, REPOSITION_RADIUS)) {
             if (h.q === a.q && h.r === a.r) continue;
             if (!engine.map.isValid(h.q, h.r) || engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
-            if (engine.isWarningTile(HexUtils.key(h))) continue;
+            if (engine.isCollapsingSoon(HexUtils.key(h))) continue;
             if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => !sameSide(hz, a))) continue;
-            if (meleeAware && isMeleeAttackCell(engine.movement.targeting, h, a.target.q, a.target.r, basicRange, engine)) {
+            if (meleeAware && isMeleeAttackCell(engine.movement.targeting, h, a.target.q, a.target.r, basicRange, engine, a.jump)) {
                 // 攻擊格之間挑離自己最近的；有任何攻擊格就勝過「只是格距更近」的格
                 const step = HexUtils.dist(a, h);
                 if (!bestIsAttack || step < bestStep) { bestIsAttack = true; bestStep = step; best = h; }
@@ -639,6 +719,65 @@ export const BTActions: Record<string, BTActionFn> = {
             a.actionState = ActionState.WALKING;
         }
         return state;
+    },
+    /** 順手打：目標在射程外時，普攻好了又有別的敵人打得到就換過去（下一次決策進 FIGHT）。 */
+    "StrikeNearby": (a, engine) => {
+        if (a.castingSkillIdx !== -1 || a.effects.TAUNT.remaining > 0) return NodeState.FAILURE;
+        if (BTConditions["TargetInBasicRange"](a, engine, {})) return NodeState.FAILURE;
+        const basicIdx = a.skills.findIndex(s => s?.tag === 'BASIC');
+        if (basicIdx < 0 || !BTConditions["SkillReady"](a, engine, { slot: basicIdx })) return NodeState.FAILURE;
+        const near = enemyInReach(a, engine);
+        if (!near) return NodeState.FAILURE;
+        lockTarget(a, near, engine);
+        if (a.isMoving) stopMovement(a);
+        return NodeState.RUNNING;
+    },
+    /**
+     * 前進：追擊和走位都不行時，走到走得到的格子裡離敵人最近的地方。
+     * 不能動、或已經有敵人打得到（在等冷卻）是正當的等待；其餘 FAILURE 交給 UNSTICK。
+     */
+    "Advance": (a, engine) => {
+        restoreCombatTarget(a, engine);
+        const near = enemyInReach(a, engine);
+        if (near || !BTConditions["CanMove"](a, engine, {})) {
+            if (near) lockTarget(a, near, engine);
+            a.aiState = AIState.WAITING;
+            a.actionState = ActionState.IDLE;
+            return NodeState.SUCCESS;
+        }
+        // 目標走不到：解除鎖定，下一次選敵才換得掉
+        a.targetLockUntil = 0;
+        const goal = bestAdvanceCell(a, engine);
+        if (!goal) return NodeState.FAILURE;
+        const state = engine.moveAgentToHex(a, goal, 0, 1.0);
+        if (state === NodeState.RUNNING) {
+            a.aiState = AIState.TRACKING;
+            a.actionState = ActionState.WALKING;
+        }
+        return state;
+    },
+    /** 脫困：爬升規則走不到任何敵人時，短暫等待後強制跳上離敵人最近的鄰格（只在這裡無視 canStepUp）。 */
+    "ForceJump": (a, engine) => {
+        if (a.isMoving) return NodeState.RUNNING;
+        restoreCombatTarget(a, engine);
+        if (!BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
+        a.aiState = AIState.WAITING;
+        a.actionState = ActionState.IDLE;
+        if (engine.battleTime - a.aiModeSince < BT_RULES.UNSTICK_WAIT_S) return NodeState.RUNNING;
+        // 只挑爬升規則擋住的格：其他鄰格尋路本來就走得到，跳過去只會來回彈
+        const fromH = engine.getTerrainHeight(a.q, a.r);
+        let best: Hex | null = null;
+        let bestDist = Infinity;
+        for (const n of HexUtils.neighbors(a)) {
+            if (!engine.isValid(n.q, n.r) || engine.isBlocked(n.q, n.r, a.id, a.movementType)) continue;
+            if (engine.isCollapsingSoon(HexUtils.key(n))) continue;
+            if (canStepUp(a, fromH, engine.getTerrainHeight(n.q, n.r))) continue;
+            const d = distToNearestEnemy(a, n, engine);
+            if (d < bestDist) { bestDist = d; best = n; }
+        }
+        if (!best) return NodeState.FAILURE;
+        engine.movement.forceStep(a, best);
+        return NodeState.RUNNING;
     },
     "CastPushPull": (a, engine) => {
         const savedTarget = a.target;
@@ -660,14 +799,14 @@ export const BTActions: Record<string, BTActionFn> = {
         // 1. Path-Clearing Logic: Only trigger if in danger or evading
         if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine, {})) {
             let isTargetSafe = false;
-            if (a.targetHex) {
-                const targetKey = HexUtils.key(a.targetHex);
-                const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex.q, a.targetHex.r).find(h => !sameSide(h, a));
+            if (a.escapeHex) {
+                const targetKey = HexUtils.key(a.escapeHex);
+                const hazardAtTarget = engine.getSpatialHazardsAt(a.escapeHex.q, a.escapeHex.r).find(h => !sameSide(h, a));
                 isTargetSafe = !engine.isWarningTile(targetKey) && !hazardAtTarget;
             }
             if (isTargetSafe) {
                 // Get line towards safety
-                const line = HexUtils.line(a, a.targetHex);
+                const line = HexUtils.line(a, a.escapeHex);
                 for (const h of line) {
                     if (h.q === a.q && h.r === a.r) continue;
                     const occupant = engine.getAgentAt(h.q, h.r);

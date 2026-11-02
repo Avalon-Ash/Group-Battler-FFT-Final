@@ -5,7 +5,7 @@ import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
 import { OBSTACLE_DB } from "../../data/obstacles";
-import { canStepUp } from "../math/ClimbRule";
+import { canStepUp, jumpLayers } from "../math/ClimbRule";
 import { isGroundMeleeRange } from "./MeleeAttack";
 import { sameSide } from '../core/Allegiance';
 
@@ -48,9 +48,10 @@ export class TargetingSystem {
     }
 
     /**
-     * 射程 SSOT：近戰將高度層數扣出水平射程（可為負）；遠程保留高地加成。
+     * 射程 SSOT：近戰在跳躍力以內的高低差照常打，超過才把層數扣出水平射程（可為負）；遠程保留高地加成。
+     * a 帶 jump 時用它判斷（單位，或代單位試算的格子）；只傳格子就照每層扣一格。
      */
-    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
+    public getEffectiveRange(a: Hex & { jump?: number }, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
         // baseRange 0 = 「精確抵達該格」（逃生、自身 PBAOE）：高低差加成不得讓 dist 1 的鄰格算成已抵達，
         // 否則 moveAgentToHex 會對相鄰的逃生格直接回 SUCCESS 而原地不動（大逃殺發呆成因 A，tests/AIIdlePriority.test.ts）。
         if (baseRange === 0) return 0;
@@ -59,7 +60,8 @@ export class TargetingSystem {
         const h2 = spatial.getTerrainHeight(targetQ, targetR);
         const deltaH = h1 - h2;
         if (baseRange <= COMBAT_PARAM.MELEE_RANGE) {
-            return baseRange - Math.round(Math.abs(deltaH) / BLOCK_HEIGHT);
+            const layers = Math.round(Math.abs(deltaH) / BLOCK_HEIGHT);
+            return a.jump !== undefined && layers <= jumpLayers({ jump: a.jump }) ? baseRange : baseRange - layers;
         }
         
         // [FIX] 高低差增減機制 (Height Advantage/Penalty)
@@ -83,11 +85,11 @@ export class TargetingSystem {
     /**
      * RTS 等級目標選取評分
      */
-    public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder, skipEscapeLogic: boolean = false) {
+    public updateTarget(a: Agent, spatial: SpatialProvider) {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
         const hazardsOnTile = spatial.getSpatialHazardsAt(a.q, a.r);
-        const inDanger = spatial.isWarningTile(myKey) || hazardsOnTile.some(h => !sameSide(h, a));
+        const inDanger = spatial.isCollapsingSoon(myKey) || hazardsOnTile.some(h => !sameSide(h, a));
 
         // 如果不在危險中，且正在詠唱非普攻技能，則鎖定目標不更新
         if (!inDanger && a.castingSkillIdx !== -1) {
@@ -95,80 +97,15 @@ export class TargetingSystem {
             if (s && s.tag !== 'BASIC') return; 
         }
         
-        // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
-        if (!skipEscapeLogic && inDanger && a.escapeCooldown <= 0) {
-            // [FIX] 如果正在詠唱非普攻技能，不應隨意清除 target，避免技能失效
-            const isCastingSpecial = a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag !== 'BASIC';
-
-            // 被位移或在危險中時，若未在發動特殊技能，優先清理攻擊目標以轉入逃生狀態
-            if (!isCastingSpecial) {
-                if (!a.targetHex || spatial.isWarningTile(HexUtils.key(a.targetHex))) {
-                    a.target = null;
-                }
-            }
-            
-            // 如果已經有目標地塊且該地塊依然安全，則不需要重新搜尋
-            if (a.targetHex && !spatial.isWarningTile(HexUtils.key(a.targetHex))) {
-                // DANGER 外觀由 AnimationSystem 依 actionState === EVADING 推導，這裡不寫 visualStatus。
-                // [FIX] 不可 early return，必須繼續往下執行以鎖定敵人，供背水一戰使用
-            } else {
-                // 尋找距離自己最近、且不在 WARNING 清單內的安全地塊
-                let bestSafeHex: Hex | null = null;
-
-                if (pathfinder) {
-                    // [OPTIMIZATION] 使用 Pathfinder 尋找保證可到達的安全地塊
-                    const path = pathfinder.findPathToSafety(a, a, spatial, this);
-                    if (path && path.length > 0) {
-                        bestSafeHex = path[path.length - 1];
-                    }
-                } else {
-                    // Fallback: 舊版環狀掃描 (不保證可到達)
-                    let minSafeDist = Infinity;
-                    const mapConfig = spatial.getMapConfig();
-                    const centerQ = Math.floor((mapConfig.w - 1) / 2);
-                    const centerR = Math.floor((mapConfig.h - 1) / 2);
-
-                    for (let radius = 1; radius <= TARGET_RULES.SAFETY_SEARCH_RADIUS; radius++) {
-                        const ring = HexUtils.range(a, radius);
-                        for (const hex of ring) {
-                            if (spatial.isValid(hex.q, hex.r)) {
-                                const hexKey = HexUtils.key(hex);
-                                if (!spatial.isWarningTile(hexKey)) {
-                                    // [FIX] 飛行單位無視高度限制，地面單位使用動態跳躍高度
-                                    if (!canStepUp(a, spatial.getTerrainHeight(a.q, a.r), spatial.getTerrainHeight(hex.q, hex.r))) continue;
-
-                                    const distToCenter = HexUtils.dist(hex, {q: centerQ, r: centerR});
-                                    if (distToCenter < minSafeDist) {
-                                        minSafeDist = distToCenter;
-                                        bestSafeHex = hex;
-                                    }
-                                }
-                            }
-                        }
-                        if (bestSafeHex) break; 
-                    }
-                }
-
-                if (bestSafeHex) {
-                    a.targetHex = bestSafeHex;
-                } else {
-                    // [FIX] 如果找不到安全地塊，必須清空 targetHex，讓後續能觸發背水一戰
-                    a.targetHex = null;
-                }
-            }
-        } else if (!inDanger) {
-            // 如果不在危險區，且當前目標地塊是為了逃生而設的（沒有 target），則清空它
-            // [FIX] 但如果單位正在詠唱非目標指向性的技能 (以 targetHex 為主)，就絕對不能清空！
-            if (!a.target && a.targetHex && a.castingSkillIdx === -1) {
-                a.targetHex = null;
-            }
+        // 不在危險區且沒有目標時，上一招留下的地面落點已無意義（詠唱中除外，施法還要用它）
+        if (!inDanger && !a.target && a.targetHex && a.castingSkillIdx === -1) {
+            a.targetHex = null;
         }
 
         if (a.target && !this.isValidTarget(a.target, spatial)) a.target = null;
         
-        // [FIX] 即使在危險區且有逃生目標，也同時鎖定最近的敵人
-        // 這樣當逃生路線被堵死時，AI 才能立刻切換到戰鬥邏輯 (背水一戰)
-        // 移除原本的 early return: if (spatial.isWarningTile(myKey) && a.targetHex) return;
+        // 逃生目的地由 RETREAT 模式的 EscapeWarning 管（escapeHex）；這裡只選戰鬥目標，
+        // 逃生路線被堵死時才能立刻接戰。
 
         let maxScore = -Infinity;
         let bestTarget: Agent | null = null;
@@ -184,6 +121,9 @@ export class TargetingSystem {
             }
         }
 
+        // 剛選定的目標鎖一小段時間：不然站在射程外時每次決策都重新評分，A* 成本一變就換人，路徑跟著抖
+        if (a.target && !inDanger && spatial.battleTime < a.targetLockUntil) return;
+
         const isSilenced = a.effects.SILENCE.remaining > 0;
         // 可用的突進（DASH）或拉取（PULL）技能：近戰打不到的目標交給它們，不扣分
         const hasGapCloser = !isSilenced && a.skills.some((s, i) => !!s && s.range > COMBAT_PARAM.MELEE_RANGE &&
@@ -192,13 +132,13 @@ export class TargetingSystem {
 
         for (const o of spatial.getAgents()) {
             if (!sameSide(o, a) && this.isValidTarget(o, spatial)) {
-                // 近戰（規則 A）普攻打不到的目標只扣分、不排除：追擊尋路會找同層攻擊格，
+                // 近戰普攻打不到的目標（高低差超過跳躍力）只扣分、不排除：追擊尋路會找同層攻擊格，
                 // 突進／拉取技能可用時完全不扣分，留給行為樹的 ACTIVE／ULT 槽先出手（使用者 2026-10-28）。
                 const basic = a.skills.find(s => s?.tag === 'BASIC');
                 const meleeBasic = !!basic && basic.range > 0 && basic.range <= COMBAT_PARAM.MELEE_RANGE && !hasGapCloser;
                 const noAttackTile = meleeBasic && !HexUtils.neighbors(o).some(n => {
                         if (!spatial.isValid(n.q, n.r)) return false;
-                        if (HexUtils.dist(n, o) > this.getEffectiveRange(n, o.q, o.r, basic.range, spatial)) return false;
+                        if (HexUtils.dist(n, o) > this.getEffectiveRange({ ...n, jump: a.jump }, o.q, o.r, basic.range, spatial)) return false;
                         const hash = HexUtils.hash(n.q, n.r);
                         if (!spatial.hasObstacleHash(hash)) return true;
                         const def = OBSTACLE_DB[spatial.getObstacleTypeHash(hash) || 'WALL'];
@@ -228,13 +168,13 @@ export class TargetingSystem {
 
                 // 5. [NEW] 背水一戰加分: 如果自己在危險區，優先攻擊也在危險區或邊緣的敵人
                 let survivalBonus = 0;
-                if (spatial.isWarningTile(myKey)) {
+                if (spatial.isCollapsingSoon(myKey)) {
                     survivalBonus += TARGET_RULES.SELF_WARNING_BONUS;
                     // 如果對方也在危險區，優先解決他
-                    if (spatial.isWarningTile(HexUtils.key(o))) survivalBonus += TARGET_RULES.TARGET_WARNING_BONUS;
+                    if (spatial.isCollapsingSoon(HexUtils.key(o))) survivalBonus += TARGET_RULES.TARGET_WARNING_BONUS;
                 } else {
-                    // 如果自己安全，盡量不要鎖定危險區內的敵人 (避免主動走入危險區)
-                    if (spatial.isWarningTile(HexUtils.key(o))) {
+                    // 如果自己安全，盡量不要鎖定快塌的格上的敵人 (避免主動走進去)
+                    if (spatial.isCollapsingSoon(HexUtils.key(o))) {
                         let effRange = 1;
                         const basicSkill = a.skills.find(s => s && s.tag === 'BASIC');
                         if (basicSkill) effRange = this.getEffectiveRange(a, o.q, o.r, basicSkill.range, spatial);
@@ -265,6 +205,7 @@ export class TargetingSystem {
                 }
             }
         }
+        if (bestTarget !== a.target) a.targetLockUntil = spatial.battleTime + TARGET_RULES.LOCK_S;
         a.target = bestTarget;
     }
 
@@ -411,8 +352,7 @@ export class TargetingSystem {
         }
 
         // 若當前無合適目標，重新搜尋
-        // calculateOptimalTarget 裡的 fallback 只應更新「攻擊目標」，不觸發逃生邏輯
-        this.updateTarget(source, spatial, undefined, true);
+        this.updateTarget(source, spatial);
         
         return { targetAgent: source.target, targetHex: null };
     }

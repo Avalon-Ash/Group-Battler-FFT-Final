@@ -97,10 +97,6 @@ export const GAME_APP_PARAM = {
     DEFAULT_MAP_W: 12,
     /** 編輯器預設地圖高（格） */
     DEFAULT_MAP_H: 8,
-    /** 自動配置生命下限（HP） */
-    SPAWN_HP_MIN: 600,
-    /** 自動配置生命隨機幅度（HP） */
-    SPAWN_HP_RANGE: 400,
     /** 展示地圖寬下限（格） */
     SHOWCASE_MIN_W: 10,
     /** 展示地圖高下限（格） */
@@ -152,6 +148,8 @@ export const MATRIX_RAIN_PARAM = {
 
 /** 具名參數：保持原值與運算次序。 */
 export const BT_VIEW_PARAM = {
+    /** 檢視器顯示最近幾筆模式轉換。 */
+    MODE_TRACE_SHOWN: 5,
     /** 行為樹初始縮放（倍） */
     DEFAULT_SCALE: 0.9,
     /** 自動縮放可用寬度（比例） */

@@ -4,7 +4,7 @@ import { Team, Role, NodeState } from '../types';
 import { BLOCK_HEIGHT } from '../constants';
 import { HexUtils } from '../engine/utils';
 import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
-import { STANDARD_AI_PROFILE, type BTDef } from '../data/ai_profiles';
+import { AI_MODE_GRAPH, type BTDef } from '../data/ai_profiles';
 
 /**
  * BR 發呆：每個成因一則回歸測試，外加行為樹優先序測試。
@@ -120,7 +120,8 @@ describe('AIIdlePriority', () => {
             const a = mk(Team.BLUE, -2, 0, Role.WARRIOR);
             const tower = mk(Team.RED, 0, 0, Role.WARRIOR);
             const reachable = mk(Team.RED, 2, 0, Role.WARRIOR);
-            engine.map.setHeight('0,0', BLOCK_HEIGHT);
+            a.jump = 1;
+            engine.map.setHeight('0,0', 2 * BLOCK_HEIGHT);
             a.target = tower;
             engine.updateTarget(a);
             expect(a.target).toBe(reachable);
@@ -166,9 +167,9 @@ describe('AIIdlePriority', () => {
     describe('成因 C：被困在塌陷格時原地戰鬥', () => {
         beforeEach(clearArea);
 
-        const surroundByWarning = (a: { q: number; r: number }) => {
-            engine.map.warningTiles.add(HexUtils.key(a));
-            for (const n of HexUtils.neighbors(a)) engine.map.warningTiles.add(HexUtils.key(n));
+        // 走得到的地方全是塌陷格才算無路可逃；只圍一圈的話，穿過去就安全了
+        const surroundByWarning = () => {
+            for (const key of engine.map.mapKeys) engine.map.warningTiles.add(key);
         };
 
         it('有安全鄰格可逃：SkillReady 仍拒絕在塌陷格站樁普攻', () => {
@@ -182,7 +183,7 @@ describe('AIIdlePriority', () => {
         it('四面全是塌陷格（無路可逃）：IsPinned 為真，SkillReady 放行普攻，BT 真的出手', () => {
             const a = mk(Team.BLUE, 0, 0, Role.WARRIOR);
             const e = mk(Team.RED, 1, 0, Role.WARRIOR);
-            surroundByWarning(a);
+            surroundByWarning();
             expect(BTConditions['IsPinned'](a, engine, {})).toBe(true);
             expect(BTConditions['SkillReady'](a, engine, { slot: 2 })).toBe(true);
             a.target = e;
@@ -235,17 +236,22 @@ describe('AIIdlePriority', () => {
         };
         const names = (d: BTDef | undefined) => (d?.children ?? []).map(c => c.name);
 
-        it('Root：死亡 > CC > Survival > Combat', () => {
-            expect(names(STANDARD_AI_PROFILE)).toEqual(['Dead Check', 'CC Check', 'Survival', 'Combat']);
+        it('全域邊：死亡 > 控場 > 逃生，順序就是優先序', () => {
+            const order = AI_MODE_GRAPH.edges.map(e => e.to);
+            expect(order.indexOf('DEAD')).toBeLessThan(order.indexOf('CONTROLLED'));
+            expect(order.indexOf('CONTROLLED')).toBeLessThan(order.indexOf('RETREAT'));
         });
 
-        it('Survival Tactics：逃跑 > 背水一戰推拉', () => {
-            expect(names(find(STANDARD_AI_PROFILE, 'Survival Tactics'))).toEqual(['Run!', 'Last Stand']);
+        it('逃不掉才推拉：RETREAT 失敗走 TRAPPED，TRAPPED 推拉優先於戰鬥', () => {
+            expect(AI_MODE_GRAPH.modes.RETREAT.onFailure).toBe('TRAPPED');
+            expect(names(AI_MODE_GRAPH.modes.TRAPPED.tree)).toEqual(['Last Stand', 'Fight Back']);
         });
 
-        it('Combat Actions：技能 > 追擊 > 走位 > 待命（Idle 一定最後）', () => {
-            expect(names(find(STANDARD_AI_PROFILE, 'Combat Actions'))).toEqual(['Skill Priority', 'Gap Close', 'Reposition', 'Idle']);
-            expect(names(find(STANDARD_AI_PROFILE, 'Skill Priority'))).toEqual(['Try Ultimate', 'Try Active', 'Try Basic']);
+        it('ENGAGE：順手打 > 技能 > 追擊 > 走位 > 前進，沒有 Idle；FIGHT 只出手不找路', () => {
+            const combat = AI_MODE_GRAPH.modes.ENGAGE.tree;
+            expect(names(find(combat, 'Engage Actions'))).toEqual(['Strike Nearby', 'Skill Priority', 'Stick To Target', 'Reposition', 'Advance']);
+            expect(names(find(AI_MODE_GRAPH.modes.FIGHT.tree, 'Fight Actions'))).toEqual(['Skill Priority', 'Stick To Target']);
+            expect(names(find(combat, 'Skill Priority'))).toEqual(['Try Ultimate', 'Try Active', 'Try Basic']);
         });
     });
 });

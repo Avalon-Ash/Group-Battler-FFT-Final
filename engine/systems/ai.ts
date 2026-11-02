@@ -1,17 +1,31 @@
 
 import { Agent, GameEngine } from "../game";
 import { BTNode, Selector, Sequence, Condition, Action } from "../behaviorTree";
-import { STANDARD_AI_PROFILE, BTDef } from "../../data/ai_profiles";
+import { AI_MODE_GRAPH, BTDef } from "../../data/ai_profiles";
+import { ModeMachine, type ModeEdge } from "../ai/ModeMachine";
 import { BTConditions, BTActions } from "../ai/BTRegistry";
-import { NodeState } from "../../types";
+import { NodeState, AIMode } from "../../types";
 
 export class AISystem {
     
-    // The new entry point using the Data-Driven Builder
-    public buildAI(a: Agent, engine: GameEngine): BTNode {
-        // In the future, we can load different profiles based on Agent Role
-        // e.g. const profile = AI_DB[a.role] || STANDARD_AI_PROFILE;
-        return this.parseNode(STANDARD_AI_PROFILE, engine);
+    // 單位的 AI 是一台狀態機（ModeMachine）；每個模式一棵小樹，圖是資料（AI_MODE_GRAPH）
+    public buildAI(_a: Agent, engine: GameEngine): BTNode {
+        const modes = (Object.keys(AI_MODE_GRAPH.modes) as AIMode[]).map(mode => ({
+            mode,
+            tree: this.parseNode(AI_MODE_GRAPH.modes[mode].tree, engine),
+            onFailure: AI_MODE_GRAPH.modes[mode].onFailure,
+        }));
+        const edges = AI_MODE_GRAPH.edges.map((e): ModeEdge => {
+            const key = (e.when ?? e.unless) as string;
+            const cond = BTConditions[key];
+            return {
+                from: e.from,
+                to: e.to,
+                why: e.when ? key : `!${key}`,
+                test: e.when ? (agent) => cond(agent, engine, {}) : (agent) => !cond(agent, engine, {}),
+            };
+        });
+        return new ModeMachine(AI_MODE_GRAPH.initial, modes, edges, () => engine.battleTime);
     }
 
     private parseNode(def: BTDef, engine: GameEngine): BTNode {

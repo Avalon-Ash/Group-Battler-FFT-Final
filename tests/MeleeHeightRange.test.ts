@@ -22,6 +22,21 @@ describe('R6 range SSOT', () => {
         }
     });
 
+    it('melee within the attacker jump ignores the height step, beyond it spends range per tier', () => {
+        const source = { q: 0, r: 0, jump: 2 };
+        for (const tiers of [0, 1, 2]) {
+            engine.map.setHeight('0,0', tiers * BLOCK_HEIGHT);
+            engine.map.setHeight('1,0', 0);
+            expect(engine.getEffectiveRange(source, 1, 0, 1)).toBe(1);
+            expect(engine.getEffectiveRange({ q: 1, r: 0, jump: 2 }, 0, 0, 1)).toBe(1);
+        }
+        engine.map.setHeight('0,0', 3 * BLOCK_HEIGHT);
+        expect(engine.getEffectiveRange(source, 1, 0, 1)).toBe(-2);
+        // 跳躍力 0 也算跨得過一層（與爬升規則同一個下限）
+        engine.map.setHeight('0,0', BLOCK_HEIGHT);
+        expect(engine.getEffectiveRange({ q: 0, r: 0, jump: 0 }, 1, 0, 1)).toBe(1);
+    });
+
     it('hover range agrees with the combat SSOT on both sides of a height step', () => {
         for (const key of engine.map.mapKeys) {
             const [q, r] = key.split(',').map(Number);
@@ -32,12 +47,12 @@ describe('R6 range SSOT', () => {
         if (!agent) throw new Error('addAgent failed');
         const strategy = new GridRenderStrategy();
         const skill = { ...agent.skills[2], range: 1 };
-        for (const height of [0, BLOCK_HEIGHT, 3 * BLOCK_HEIGHT]) {
+        for (const height of [0, BLOCK_HEIGHT, 3 * BLOCK_HEIGHT, (agent.jump + 1) * BLOCK_HEIGHT]) {
             engine.map.setHeight('0,0', height);
             for (const q of [1, 2, 3]) {
                 const expected = HexUtils.dist(agent, { q, r: 0 }) <= engine.getEffectiveRange(agent, q, 0, skill.range);
                 expect(strategy['checkIsRange'](q, 0, 0, skill, agent, engine)).toBe(expected);
-                expect(expected).toBe(height === 0 && q === 1);
+                expect(expected).toBe(height <= agent.jump * BLOCK_HEIGHT && q === 1);
             }
         }
     });

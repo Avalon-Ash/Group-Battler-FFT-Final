@@ -9,6 +9,7 @@ import { Hex, Camera, HexSpatialLookup } from '../../../types';
 import { GameEngine, Agent } from '../../game';
 import { PointerProjector } from '../../math/PointerProjector';
 import { HexUtils } from '../../utils';
+import { BATTLE_RULES } from '../../../constants';
 
 /** Current engine-owned zoom target, including inputs not yet smoothed on screen. */
 export function queryCameraTargetZoom(engine: GameEngine): number | undefined {
@@ -103,7 +104,7 @@ export function queryMapKeys(engine: GameEngine | null | undefined): string[] {
 export function querySpawnableHexes(engine: GameEngine): { q: number; r: number }[] {
     if (!engine) return [];
     const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
-    return queryMapKeys(engine)
+    return dropSpawnPockets(queryMapKeys(engine)
         .map((k: string) => {
             const [q, r] = k.split(',').map(Number);
             return { q, r };
@@ -111,7 +112,70 @@ export function querySpawnableHexes(engine: GameEngine): { q: number; r: number 
         .filter((hex) => {
             if (queryHasObstacle(engine, hex.q, hex.r)) return false;
             return HexUtils.dist({ q: 0, r: 0 }, hex) < radius;
-        });
+        }));
+}
+
+/** 被障礙物圍死的小區塊不能出生：單位整場走不出去也打不到人。順序不變，沒有小區塊時結果和輸入相同。 */
+function dropSpawnPockets(cells: HexCoord[]): HexCoord[] {
+    const open = new Set(cells.map(c => HexUtils.hash(c.q, c.r)));
+    const seen = new Set<number>();
+    const pockets = new Set<number>();
+    for (const start of open) {
+        if (seen.has(start)) continue;
+        seen.add(start);
+        const region = [start];
+        for (let head = 0; head < region.length; head++) {
+            for (const n of HexUtils.neighbors(HexUtils.unhash(region[head]))) {
+                const h = HexUtils.hash(n.q, n.r);
+                if (open.has(h) && !seen.has(h)) { seen.add(h); region.push(h); }
+            }
+        }
+        if (region.length < cells.length * BATTLE_RULES.SPAWN_MIN_REGION_RATIO) region.forEach(h => pockets.add(h));
+    }
+    return cells.filter(c => !pockets.has(HexUtils.hash(c.q, c.r)));
+}
+
+export type HexCoord = { q: number; r: number };
+
+/**
+ * 開局陣容第 side 陣營第 i 人用第幾個職業：每陣營人數夠排滿一輪時各陣營自己從頭排（標準 5v5），
+ * 不夠時全場接續排，否則每陣營 1 人會全部是第一個職業。
+ */
+export function factionRoleIndex(side: number, i: number, unitsPerFaction: number, roleCount: number): number {
+    const index = unitsPerFaction >= roleCount ? i : side * unitsPerFaction + i;
+    return index % roleCount;
+}
+
+/**
+ * 三個以上陣營的開局站位：最遠點取樣選各陣營據點（第一個取 hexes 的第一格，呼叫端先洗牌），
+ * 陣營輪流取離自己據點最近的空格。回傳每個陣營的格子（格子不夠時後面的陣營會較少）。
+ */
+export function layoutFactionHexes(hexes: readonly HexCoord[], factions: number, unitsPerFaction: number): HexCoord[][] {
+    const anchors = hexes.slice(0, 1);
+    while (anchors.length < factions && anchors.length < hexes.length) {
+        let best = hexes[0];
+        let bestDist = -1;
+        for (const hex of hexes) {
+            const d = Math.min(...anchors.map(a => HexUtils.dist(a, hex)));
+            if (d > bestDist) {
+                bestDist = d;
+                best = hex;
+            }
+        }
+        anchors.push(best);
+    }
+    const nearest = anchors.map(a => [...hexes].sort((x, y) => HexUtils.dist(a, x) - HexUtils.dist(a, y)));
+    const used = new Set<string>();
+    const layout: HexCoord[][] = anchors.map(() => []);
+    for (let i = 0; i < unitsPerFaction; i++) {
+        for (let side = 0; side < anchors.length; side++) {
+            const hex = nearest[side].find(h => !used.has(`${h.q},${h.r}`));
+            if (!hex) continue;
+            used.add(`${hex.q},${hex.r}`);
+            layout[side].push(hex);
+        }
+    }
+    return layout;
 }
 
 /**

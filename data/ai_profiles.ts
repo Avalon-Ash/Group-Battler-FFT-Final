@@ -1,5 +1,5 @@
 
-import { AIState } from "../types";
+import { AIState, AIMode } from "../types";
 
 /** 行為樹節點參數。鍵集合由 BTRegistry 實際使用者決定，新增鍵請同步擴充此型別。 */
 export interface BTArgs {
@@ -17,117 +17,129 @@ export interface BTDef {
     args?: BTArgs;
 }
 
+/** 狀態拓樸的一條邊：when 成立（或 unless 不成立）就轉移；同一時間依陣列順序取第一條，順序就是優先序。 */
+export interface AIModeEdgeDef {
+    from: readonly AIMode[] | '*';
+    to: AIMode;
+    when?: string;
+    unless?: string;
+}
+
+export interface AIModeDef {
+    tree: BTDef;
+    /** 小樹回 FAILURE 時，同一次決策內改走這個模式 */
+    onFailure?: AIMode;
+}
+
+const LAST_STAND_PUSH: BTDef = {
+    type: 'SEQUENCE',
+    name: 'Last Stand',
+    children: [
+        { type: 'CONDITION', name: 'Has Push/Pull?', key: 'HasPushPullSkill' },
+        { type: 'ACTION', name: 'Push Away!', key: 'CastPushPull' }
+    ]
+};
+
+const SKILL_PRIORITY: BTDef = {
+    type: 'SELECTOR',
+    name: 'Skill Priority',
+    children: [
+        // Slot 0 (Ult), Slot 1 (Active), Slot 2 (Basic)
+        createSkillRoutine(0, "Ultimate"),
+        createSkillRoutine(1, "Active"),
+        createSkillRoutine(2, "Basic")
+    ]
+};
+
+// 目標在普攻射程外：順手打得到別人就打；否則技能 → 追擊 → 走位 → 前進，全失敗轉 UNSTICK
+const ENGAGE_TREE: BTDef = {
+    type: 'SELECTOR',
+    name: 'Engage Actions',
+    children: [
+        { type: 'ACTION', name: 'Strike Nearby', key: 'StrikeNearby' },
+        SKILL_PRIORITY,
+        // 追擊只拒絕「停下來的格子會塌陷」；被拒絕時走位，往目標挪但不踩塌陷格
+        { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } },
+        { type: 'ACTION', name: 'Reposition', key: 'Reposition' },
+        { type: 'ACTION', name: 'Advance', key: 'Advance' }
+    ]
+};
+
+// 目標在普攻射程內：只管出手；技能都在冷卻時追擊節點回 SUCCESS（就位等冷卻），不找路
+const FIGHT_TREE: BTDef = {
+    type: 'SELECTOR',
+    name: 'Fight Actions',
+    children: [
+        SKILL_PRIORITY,
+        { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } }
+    ]
+};
+
 /**
- * 優先序（SELECTOR 由上到下，第一個 SUCCESS/RUNNING 勝出；同層不比權重，順序就是優先序）：
- *   1. Dead / CC                       —— 不能行動
- *   2. Survival: Run!                  —— 站在塌陷格／敵方 hazard 上且「走得動、有路」：先逃
- *   3. Survival: Last Stand            —— 逃不掉：有推拉技能就用
- *   4. Combat: Skill Priority          —— 逃不掉（IsPinned）或本來就安全：Ult > Active > Basic，
- *                                         被釘住時 SkillReady 不再因塌陷格拒絕出手（原地戰鬥）
- *   5. Combat: Gap Close               —— 追擊（只拒絕「停下來的格子會塌陷」）
- *   6. Combat: Reposition              —— 追擊被拒：往更靠近目標的安全格挪
- *   7. Combat: Idle                    —— 以上全無事可做才待命
+ * AI 狀態拓樸：節點是模式，每個模式一棵小樹；模式之間只能走這裡列出的邊。
+ *   DEAD／CONTROLLED —— 不能行動（全域，任何模式都會切過來）
+ *   ACQUIRE          —— 沒有目標（場上沒有敵人）：等
+ *   ENGAGE           —— 目標在普攻射程外：接敵
+ *   FIGHT            —— 目標在普攻射程內：出手
+ *   RETREAT          —— 站在塌陷格／敵方 hazard 上：逃；逃不掉轉 TRAPPED
+ *   TRAPPED          —— 逃不掉：有推拉技能就用，否則原地戰鬥（SkillReady 不再因塌陷拒絕）
+ *   UNSTICK          —— 打不到也走不到更近的地方：短暫等待後強制跳上鄰格
+ *   FINALE           —— 背水一戰：地圖不再縮小，不逃，打到剩一方
  * 任何「移動」節點在 CanMove 為假（root/stun/放逐/恐懼）時必須失敗，不能回 RUNNING。
  */
-export const STANDARD_AI_PROFILE: BTDef = {
-    type: 'SELECTOR',
-    name: 'Root',
-    children: [
-        // 1. High Priority Status Checks
-        {
-            type: 'SEQUENCE',
-            name: 'Dead Check',
-            children: [
-                { type: 'CONDITION', name: 'Is Dead?', key: 'IsDead' },
-                { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } }
-            ]
+export const AI_MODE_GRAPH: {
+    initial: AIMode;
+    modes: Record<AIMode, AIModeDef>;
+    edges: readonly AIModeEdgeDef[];
+} = {
+    initial: 'ACQUIRE',
+    modes: {
+        DEAD: { tree: { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } } },
+        CONTROLLED: { tree: { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } } },
+        ACQUIRE: { tree: { type: 'ACTION', name: 'No Enemy', key: 'Wait', args: { state: AIState.IDLE } } },
+        ENGAGE: { tree: ENGAGE_TREE, onFailure: 'UNSTICK' },
+        FIGHT: { tree: FIGHT_TREE, onFailure: 'ENGAGE' },
+        RETREAT: { tree: { type: 'ACTION', name: 'Run!', key: 'EscapeWarning' }, onFailure: 'TRAPPED' },
+        TRAPPED: {
+            tree: {
+                type: 'SELECTOR',
+                name: 'Trapped Tactics',
+                children: [
+                    LAST_STAND_PUSH,
+                    {
+                        type: 'SEQUENCE',
+                        name: 'Fight Back',
+                        children: [{ type: 'CONDITION', name: 'Scan Target', key: 'HasTarget' }, ENGAGE_TREE]
+                    }
+                ]
+            }
         },
-        {
-            type: 'SEQUENCE',
-            name: 'CC Check',
-            children: [
-                {
-                    type: 'SELECTOR', name: 'Any CC?',
-                    children: [
-                        { type: 'CONDITION', name: 'Stunned?', key: 'IsStunned' },
-                        { type: 'CONDITION', name: 'Banished?', key: 'IsBanished' },
-                        { type: 'CONDITION', name: 'Feared?', key: 'IsFeared' }
-                    ]
-                },
-                { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } }
-            ]
+        UNSTICK: { tree: { type: 'ACTION', name: 'Force Jump', key: 'ForceJump' } },
+        FINALE: {
+            tree: {
+                type: 'SEQUENCE',
+                name: 'Finale',
+                children: [{ type: 'CONDITION', name: 'Scan Target', key: 'HasTarget' }, ENGAGE_TREE]
+            },
+            onFailure: 'UNSTICK'
         },
-        // [NEW] Survival: Escape Warning Zone (Interceptor)
-        {
-            type: 'SEQUENCE',
-            name: 'Survival',
-            children: [
-                {
-                    type: 'SELECTOR',
-                    name: 'Trigger?',
-                    children: [
-                        { type: 'CONDITION', name: 'Urgent Danger?', key: 'IsInUrgentDanger' },
-                        { type: 'CONDITION', name: 'Already Evading?', key: 'IsEvading' }
-                    ]
-                },
-                {
-                    type: 'SELECTOR',
-                    name: 'Survival Tactics',
-                    children: [
-                        // A. Try to run
-                        { type: 'ACTION', name: 'Run!', key: 'EscapeWarning' },
-                        // B. Last Stand: If trapped, try to push enemies away
-                        {
-                            type: 'SEQUENCE',
-                            name: 'Last Stand',
-                            children: [
-                                { type: 'CONDITION', name: 'Has Push/Pull?', key: 'HasPushPullSkill' },
-                                { type: 'ACTION', name: 'Push Away!', key: 'CastPushPull' }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        // 2. Combat Loop
-        {
-            type: 'SEQUENCE',
-            name: 'Combat',
-            children: [
-                { type: 'CONDITION', name: 'Scan Target', key: 'HasTarget' },
-                {
-                    type: 'SELECTOR',
-                    name: 'Combat Actions',
-                    children: [
-                        {
-                            type: 'SELECTOR',
-                            name: 'Skill Priority',
-                            children: [
-                                // Slot 0 (Ult), Slot 1 (Active), Slot 2 (Basic)
-                                createSkillRoutine(0, "Ultimate"),
-                                createSkillRoutine(1, "Active"),
-                                createSkillRoutine(2, "Basic")
-                            ]
-                        },
-                        // [FIX] Gap Close Fallback: If skills are on CD, ensure we stay close to target
-                        {
-                            type: 'SEQUENCE',
-                            name: 'Gap Close',
-                            children: [
-                                // Try to chase using Basic Attack range as reference (Slot 2)
-                                { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } } 
-                            ]
-                        },
-                        // Reposition: chase refused (e.g. the only approach ends on a collapsing tile) -> edge toward the
-                        // target over safe ground instead of standing still.
-                        { type: 'ACTION', name: 'Reposition', key: 'Reposition' },
-                        // Last resort only: nothing above could do anything useful.
-                        { type: 'ACTION', name: 'Idle', key: 'Idle' }
-                    ]
-                }
-            ]
-        }
-    ]
+    },
+    edges: [
+        { from: '*', to: 'DEAD', when: 'IsDead' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'RETREAT', 'TRAPPED', 'UNSTICK', 'FINALE'], to: 'CONTROLLED', when: 'IsControlled' },
+        { from: ['DEAD'], to: 'ACQUIRE', when: 'IsAlive' },
+        { from: ['CONTROLLED'], to: 'ACQUIRE', unless: 'IsControlled' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'RETREAT', 'TRAPPED'], to: 'FINALE', when: 'IsLastStand' },
+        { from: ['FINALE'], to: 'ACQUIRE', unless: 'IsLastStand' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'UNSTICK'], to: 'RETREAT', when: 'WantsRetreat' },
+        { from: ['TRAPPED'], to: 'RETREAT', when: 'CanTryRetreat' },
+        { from: ['RETREAT', 'TRAPPED'], to: 'ACQUIRE', unless: 'WantsRetreat' },
+        { from: ['UNSTICK'], to: 'ACQUIRE', unless: 'IsBoxedIn' },
+        { from: ['ENGAGE', 'FIGHT'], to: 'ACQUIRE', unless: 'HasTarget' },
+        { from: ['ACQUIRE'], to: 'ENGAGE', when: 'HasTarget' },
+        { from: ['ENGAGE'], to: 'FIGHT', when: 'TargetInBasicRange' },
+        { from: ['FIGHT'], to: 'ENGAGE', unless: 'TargetInBasicRange' },
+    ],
 };
 
 // Helper to generate the repetitive skill check logic structure

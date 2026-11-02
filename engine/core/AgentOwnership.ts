@@ -68,6 +68,20 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         owners: ['engine/systems/movement/MovementSystem.ts', 'engine/systems/movement/MotionEngine.ts'],
         note: '落點預覽與投射物讀它；stopMovement 不動它。',
     },
+    targetLockUntil: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: ['engine/ai/TargetingSystem.ts', 'engine/ai/BTRegistry.ts'],
+        lifecycle: ['engine/core/AgentLifecycle.ts'],
+        note: '選定目標時由 TargetingSystem 設定；順手攻擊換目標、走不到目標時由 BTRegistry 設定或解除。',
+    },
+    nextRepathAt: {
+        group: 'locomotion',
+        kind: 'single',
+        owners: ['engine/systems/movement/MovementSystem.ts'],
+        lifecycle: ['engine/core/AgentLifecycle.ts'],
+        note: '尋路節流；路徑失效不受限。',
+    },
     moveSpeedMult: {
         group: 'locomotion',
         kind: 'single',
@@ -119,17 +133,17 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '狀態域：CCManager 施加、ControlSystem 遞減控制類、EffectSystem 遞減持續傷害與治療。PhysicsEngine 失去地面時強加 0.1s STUN（既有行為）。',
     },
+    aiMode: {
+        group: 'ai',
+        kind: 'single',
+        owners: ['engine/ai/ModeMachine.ts'],
+        note: '狀態拓樸的目前節點：只由 ModeMachine 依 AI_MODE_GRAPH 的邊轉換，小樹不能改；重置時由 AgentLifecycle 清回 null。',
+    },
     aiState: {
         group: 'ai',
         kind: 'single',
         owners: ['engine/ai/BTRegistry.ts'],
         note: 'AI 行為狀態只由 BT 節點寫入。施法中的 CASTING_* 不再存進來，改由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b）。',
-    },
-    escapeCooldown: {
-        group: 'ai',
-        kind: 'domain',
-        owners: ['engine/ai/BTRegistry.ts', 'engine/systems/status/CooldownSystem.ts'],
-        note: '逃生冷卻：BT（EscapeWarning）設定、CooldownSystem 遞減（P10 自 game.ts 移入），TargetingSystem 只讀。',
     },
     _interruptCooldown: {
         group: 'casting',

@@ -13,9 +13,14 @@ export interface Climber {
     movementType: MovementType;
 }
 
+/** 單位跨得過的高低差層數。 */
+export function jumpLayers(climber: Pick<Climber, 'jump'>): number {
+    return Math.max(1, climber.jump);
+}
+
 /** 單位一步最多能爬的高度（世界單位）。 */
 function getJumpLimit(climber: Pick<Climber, 'jump'>): number {
-    return Math.max(1, climber.jump) * BLOCK_HEIGHT;
+    return jumpLayers(climber) * BLOCK_HEIGHT;
 }
 
 /** 從高度 fromH 走到 toH 是否合法（只檢查向上攀爬）。 */

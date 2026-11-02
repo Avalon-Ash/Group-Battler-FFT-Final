@@ -12,7 +12,7 @@ import { Role, Team, Skill, BodyTypeId, AnimState, ActionState } from "../../typ
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { RagdollFactory } from "./unit/RagdollFactory";
-import { AGENT_CONSTANTS } from "../../constants";
+import { AGENT_CONSTANTS, ROYALE_RULES } from "../../constants";
 import { random } from "../math/rng";
 import { pickBodyType } from "../../data/units/appearance/bodyTypes";
 import { unitEventPos } from "../events/EventPos";
@@ -31,6 +31,14 @@ export class AgentManager {
         agent.bt = engine.ai.buildAI(agent, engine);
         agent.animState = AnimState.IDLE;
         if (resetAction) agent.actionState = ActionState.IDLE;
+    }
+
+    /** 這場的開局血量：大逃殺時各職業與平均的差距減半；其他玩法回 undefined（用職業血量）。 */
+    public static spawnHp(role: Role, engine: Pick<GameEngine, 'battleSetup'>): number | undefined {
+        if (engine.battleSetup.factions < ROYALE_RULES.MIN_FACTIONS) return undefined;
+        const all = Object.values(UNIT_DB).map(u => u.maxHp);
+        const mean = all.reduce((x, y) => x + y, 0) / all.length;
+        return Math.round(mean + (UNIT_DB[role].maxHp - mean) * ROYALE_RULES.HP_GAP_SCALE);
     }
 
     public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
@@ -67,14 +75,18 @@ export class AgentManager {
         }
         
         a.bodyType = bodyTypeOverride ?? pickBodyType(a.id, AgentManager.matchSalt);
-        AgentManager.applyRoleStats(a, hpOverride, false);
+        AgentManager.applyRoleStats(a, hpOverride ?? AgentManager.spawnHp(a.role, engine), false);
 
         const validSkills = engine.skillDB.filter(s => s.role === a.role && (s.team === undefined || s.team === team));
         const rndS = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(random() * ar.length)].id : null;
-        
+        // 大逃殺的大招與主動從所有職業、隊伍抽（普攻仍照職業）。獨自一人的陣營不抽要靠隊友才有用的自傷補血。
+        const { factions, unitsPerFaction } = engine.battleSetup;
+        const slotSkills = factions < ROYALE_RULES.MIN_FACTIONS ? validSkills : engine.skillDB.filter(s =>
+            unitsPerFaction > 1 || (s.effectType !== 'SELF_DAMAGE' && s.effectType2 !== 'SELF_DAMAGE'));
+
         a.skillIds = [
-            rndS(validSkills.filter(s => s.tag === 'ULT')),
-            rndS(validSkills.filter(s => s.tag === 'ACTIVE')),
+            rndS(slotSkills.filter(s => s.tag === 'ULT')),
+            rndS(slotSkills.filter(s => s.tag === 'ACTIVE')),
             rndS(validSkills.filter(s => s.tag === 'BASIC'))
         ];
         

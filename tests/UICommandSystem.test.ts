@@ -3,7 +3,7 @@ import { GameEngine } from '../engine/game';
 import { Role, Team } from '../types';
 import { UI_SETTINGS } from '../constants';
 import { Agent } from '../engine/core/Agent';
-import { querySpawnableHexes, queryHasObstacle } from '../engine/systems/ui/editorQueries';
+import { querySpawnableHexes, queryHasObstacle, factionRoleIndex } from '../engine/systems/ui/editorQueries';
 import { selectBattleSetupView } from '../engine/systems/ui/selectors';
 import { HexUtils } from '../engine/utils';
 
@@ -66,6 +66,15 @@ describe('UICommandSystem', () => {
 
             engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 4, unitsPerFaction: 999 } });
             expect(engine.battleSetup).toEqual({ factions: 4, unitsPerFaction: Math.floor(pool / 4) });
+        });
+
+        it('factionRoleIndex: small factions share one role cycle, full factions restart per faction', () => {
+            const royale = Array.from({ length: 10 }, (_, side) => factionRoleIndex(side, 0, 1, 5));
+            expect(royale).toEqual([0, 1, 2, 3, 4, 0, 1, 2, 3, 4]);
+            const teams = [0, 1].map((side) => Array.from({ length: 5 }, (_, i) => factionRoleIndex(side, i, 5, 5)));
+            expect(teams).toEqual([[0, 1, 2, 3, 4], [0, 1, 2, 3, 4]]);
+            const threes = Array.from({ length: 3 }, (_, i) => factionRoleIndex(1, i, 3, 5));
+            expect(threes).toEqual([3, 4, 0]);
         });
 
         it('spawnable hexes exclude obstacles and the outer ring', () => {

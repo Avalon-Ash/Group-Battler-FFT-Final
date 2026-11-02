@@ -30,7 +30,7 @@
 
 ## 5. AI、選敵與尋路
 
-- `AISystem` 將標準 AI 資料樹建成 Selector、Sequence、Condition 與 Action，行為實作由 registry 提供；目前建樹入口使用標準 profile。（`engine/systems/ai.ts`、`engine/behaviorTree.ts`、`engine/ai/BTRegistry.ts`、`data/ai_profiles.ts`）
+- `AISystem` 依 `AI_MODE_GRAPH` 建出 `ModeMachine`：模式之間只能走圖上的邊，每個模式一棵小樹；小樹建成 Selector、Sequence、Condition 與 Action，行為實作由 registry 提供；目前建樹入口使用標準 profile。（`engine/systems/ai.ts`、`engine/behaviorTree.ts`、`engine/ai/BTRegistry.ts`、`data/ai_profiles.ts`）
 - `TargetingSystem` 檢查存活、放逐、出界、地圖有效性及技能敵意，並計算地形影響後的射程；選敵參數集中於 AI 常數。（`engine/ai/TargetingSystem.ts`、`constants/ai.ts`）
 - `Pathfinder` 使用優先佇列、成本與前驅記錄搜尋，透過 `SpatialProvider` 查詢地圖、障礙與單位，爬升判斷使用共用規則。（`engine/ai/Pathfinder.ts`、`engine/math/ClimbRule.ts`、`types.ts`）
 

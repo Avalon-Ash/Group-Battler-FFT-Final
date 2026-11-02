@@ -54,9 +54,9 @@ afterEach(() => {
 
 describe('zone shrink warnings', () => {
     it('alerts only newly warned occupants and keeps warnings stable between transitions', () => {
-        const engine = setup(hexagon(2), 1);
-        const outer = new Agent('outer', Team.BLUE, 2, 0, engine.mapConfig);
-        const inner = new Agent('inner', Team.BLUE, 1, 0, engine.mapConfig);
+        const engine = setup(hexagon(3), 1);
+        const outer = new Agent('outer', Team.BLUE, 3, 0, engine.mapConfig);
+        const inner = new Agent('inner', Team.BLUE, 2, 0, engine.mapConfig);
         engine.agents = [outer, inner];
         engine.zones.update(0, engine);
         expect(outer.forceAiUpdate).toBe(true);
@@ -81,7 +81,8 @@ describe('zone shrink warnings', () => {
     });
 
     it('keeps a final target for the whole interval and alerts its occupant once', () => {
-        const engine = setup(['0,0', '1,0', '2,0'], 3);
+        // 一條長廊：只能一次塌一格。比 LAST_STAND_FEW_TILES 長，才不會直接進背水一戰
+        const engine = setup(Array.from({ length: 9 }, (_, q) => `${q},0`), 3);
         setRandomSource(() => 0);
         const a = new Agent('a', Team.BLUE, 0, 0, engine.mapConfig);
         engine.agents = [a];
@@ -94,6 +95,41 @@ describe('zone shrink warnings', () => {
             expect(a.forceAiUpdate).toBe(false);
             expect(engine.map.warningTiles).toEqual(new Set(['0,0']));
         }
+    });
+});
+
+describe('Last Stand trigger', () => {
+    const mk = (engine: GameEngine, id: string, q: number, r: number) => new Agent(id, Team.BLUE, q, r, engine.mapConfig);
+
+    it('stays off while the tiles hold everyone and more than a few are alive', () => {
+        const engine = setup(hexagon(2), 1);
+        engine.agents = [mk(engine, 'a', 0, 0), mk(engine, 'b', 1, 0), mk(engine, 'c', 2, 0), mk(engine, 'd', 0, 1)];
+        engine.zones.update(0, engine);
+        expect(engine.state.isLastStand).toBe(false);
+    });
+
+    it('starts when the tiles no longer hold everyone, clears warnings and stops shrinking', () => {
+        const engine = setup(hexagon(1), 0);
+        engine.agents = hexagon(1).map((key, i) => {
+            const [q, r] = key.split(',').map(Number);
+            return mk(engine, `u${i}`, q, r);
+        });
+        const lastStand = vi.fn();
+        engine.bus.on('LAST_STAND_TRIGGERED', lastStand);
+        engine.zones.update(0, engine);
+        expect(engine.state.isLastStand).toBe(true);
+        expect(engine.state.finalHex).toEqual({ q: 0, r: 0 });
+        expect(engine.map.warningTiles.size).toBe(0);
+        for (let i = 0; i < 5; i++) engine.zones.update(1, engine);
+        expect(engine.map.mapKeys.size).toBe(7);
+        expect(lastStand).toHaveBeenCalledTimes(1);
+    });
+
+    it('starts with few alive on a small map even though the tiles would hold them', () => {
+        const engine = setup(hexagon(1), 0);
+        engine.agents = [mk(engine, 'a', 0, 0), mk(engine, 'b', 1, 0), mk(engine, 'c', 0, 1)];
+        engine.zones.update(0, engine);
+        expect(engine.state.isLastStand).toBe(true);
     });
 });
 

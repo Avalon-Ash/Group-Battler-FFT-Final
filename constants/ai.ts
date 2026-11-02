@@ -1,5 +1,13 @@
 // AI 行為樹、選敵與尋路參數 SSOT。
 
+/** AI 狀態拓樸（ModeMachine） */
+export const AI_MODE_RULES = {
+    /** 每個單位保留的轉換紀錄筆數。 */
+    TRACE_LENGTH: 10,
+    /** 一次 AI 決策內最多走幾條邊。 */
+    MAX_HOPS_PER_TICK: 6,
+} as const;
+
 export const BT_RULES = {
     /** 擊退預測步頻（次／秒）。 */
     PREDICTION_TICKS_PER_SEC: 30,
@@ -15,8 +23,12 @@ export const BT_RULES = {
     ENEMY_OCCUPANCY_PENALTY: 5,
     /** 逃生移動速度倍率。 */
     ESCAPE_SPEED_MULTIPLIER: 1.8,
-    /** 逃生重試間隔（秒）。 */
-    ESCAPE_RETRY_COOLDOWN: 0.2,
+    /** 警告格剩這麼多時間以內才算不能走進去（秒）。 */
+    WARNING_ENTER_MIN_S: 3,
+    /** 站在警告格上：算好走到安全格的時間後，再多留這麼多才動身（秒）。 */
+    RETREAT_MARGIN_S: 2,
+    /** 脫困：確定走不到敵人後，等多久才強制跳上鄰格（秒）。 */
+    UNSTICK_WAIT_S: 0.5,
     /** 低血追擊的目標生命比例門檻。 */
     LOW_HP_THRESHOLD: 0.25,
     /** 低血目標追擊速度倍率。 */
@@ -26,6 +38,8 @@ export const BT_RULES = {
 } as const;
 
 export const TARGET_RULES = {
+    /** 選定目標後鎖定多久才重新評分（秒）。 */
+    LOCK_S: 2,
     /** 射程劣勢判定的高度差（像素）。 */
     LOW_GROUND_THRESHOLD: -4,
     /** 安全格後備搜尋半徑上限（格）。 */
@@ -61,6 +75,8 @@ export const TARGET_RULES = {
 } as const;
 
 export const PATH_RULES = {
+    /** 目的地變了但路徑還能走時，至少隔多久才重新尋路（秒）。 */
+    REPATH_MIN_S: 0.25,
     /** 六角格鄰格數（格）。 */
     HEX_NEIGHBOR_COUNT: 6,
     /** 一般尋路警告格成本（分）。 */
@@ -77,13 +93,5 @@ export const PATH_RULES = {
     SAFETY_WARNING_COST: 30,
     /** 搜尋安全格時單位佔格成本（分）。 */
     SAFETY_OCCUPANCY_COST: 50,
-    /** 飛行逃生遠離起點的啟發式權重（分／格）。 */
-    FLYING_DISTANCE_BIAS: 0.1,
 } as const;
 
-export const BT_NODE_RULES = {
-    /** 節點隨機識別碼的進位基數。 */
-    ID_RADIX: 36,
-    /** 節點隨機識別碼截取長度（字元）。 */
-    ID_LENGTH: 6,
-} as const;
