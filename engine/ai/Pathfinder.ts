@@ -121,7 +121,7 @@ export class Pathfinder {
 
                 // 大逃殺警告區域懲罰 (AI 求生邏輯)
                 const nKey = HexUtils.key(nHex);
-                if (targeting.isWarningTile(nKey, spatial)) {
+                if (isEscaping ? spatial.isWarningTile(nKey) : spatial.isCollapsingSoon(nKey)) {
                     if (!isEscaping) {
                         // [FIX] Allow passing through warning tiles with high penalty instead of blocking
                         moveCost += PATH_RULES.WARNING_COST;
@@ -206,8 +206,10 @@ export class Pathfinder {
 
         let iterations = 0;
         let bestH = -1;
-        let bestDepth = -1;
-        const currentShrink = spatial.getCurrentShrinkLevel();
+        const escapeClaims = new Set<number>();
+        for (const o of spatial.getAgents()) {
+            if (o !== agent && o.hp > 0 && o.escapeHex) escapeClaims.add(HexUtils.hash(o.escapeHex.q, o.escapeHex.r));
+        }
         const MAX_ITER = 1000; 
 
         while (this._pq.length > 0 && iterations < MAX_ITER) {
@@ -228,20 +230,12 @@ export class Pathfinder {
                 }
 
                 if (canLand) {
-                    const depth = spatial.getTileDepth(currentHex.q, currentHex.r);
-                    // Goal: Reach at least 2 layers deep into safety if possible
-                    const targetSafetyDepth = currentShrink + 2; 
-
-                    if (depth > bestDepth) {
-                        bestDepth = depth;
-                        bestH = current.hash;
-                    }
-
-                    // If we reached the target safety depth, we are satisfied
-                    if (depth >= targetSafetyDepth) break;
-
-                    // If we found ANY safety and we've searched enough, we can stop
-                    if (bestH !== -1 && iterations > PATH_RULES.SAFETY_EARLY_EXIT_ITERATIONS) break;
+                    // 最近的安全格。別人站著或正要逃去的格先記著，繼續找一下有沒有空的。
+                    const occ = spatial.getAgentHash(current.hash);
+                    const taken = (!!occ && occ !== agent && occ.hp > 0) || escapeClaims.has(current.hash);
+                    if (!taken) { bestH = current.hash; break; }
+                    if (bestH === -1) bestH = current.hash;
+                    if (iterations > PATH_RULES.SAFETY_EARLY_EXIT_ITERATIONS) break;
                 }
             }
 
@@ -299,21 +293,7 @@ export class Pathfinder {
                     this._cameFrom.set(neighborH, current.hash);
                     this._gScore.set(neighborH, tentativeG);
                     
-                    // [PROACTIVE ESCAPE] Use global knowledge of safe center and depth
-                    // This prevents brute-force BFS that might stray into long paths
-                    const distToCenter = HexUtils.dist(nHex, { q: 0, r: 0 });
-                    
-                    let heuristic = distToCenter * 0.5; // Favor items near center
-                    if (nDepth !== -1) {
-                        heuristic -= nDepth * 2.0; // Strongly favor moving inward (higher depth)
-                    }
-
-                    // Special bias for flying units to keep them moving if they catch a loop
-                    if (agent.movementType === MovementType.FLYING) {
-                        heuristic -= HexUtils.dist(nHex, start) * PATH_RULES.FLYING_DISTANCE_BIAS;
-                    }
-                    
-                    this.pqPush(neighborH, tentativeG + heuristic);
+                    this.pqPush(neighborH, tentativeG);
                 }
             }
         }
@@ -391,15 +371,42 @@ export class Pathfinder {
         return path.reverse();
     }
 
+    /** 走到最近安全格（非警告、無敵方 hazard）要幾步；走不到回 Infinity。照爬升規則與障礙物，不管其他單位。 */
+    public stepsToSafety(agent: Agent, spatial: SpatialProvider): number {
+        const isSafe = (h: number) => {
+            const c = HexUtils.unhash(h);
+            return !spatial.isWarningTile(HexUtils.key(c)) && !spatial.getSpatialHazardsAt(c.q, c.r).some(z => !sameSide(z, agent));
+        };
+        let found = Infinity;
+        this.floodReachable(agent, spatial, (h, steps) => {
+            if (!isSafe(h)) return false;
+            found = steps;
+            return true;
+        });
+        return found;
+    }
+
     /**
      * 單位走得到的所有格子（照爬升規則與障礙物，不管其他單位，因為單位會移動）。
      * 不連通的低窪地或高台就靠這個認出來。
      */
     public reachableCells(agent: Agent, spatial: SpatialProvider): Hex[] {
+        const cells: Hex[] = [];
+        this.floodReachable(agent, spatial, h => {
+            cells.push(HexUtils.unhash(h));
+            return false;
+        });
+        return cells;
+    }
+
+    /** 由近到遠走訪走得到的格子；visit 回 true 就停。 */
+    private floodReachable(agent: Agent, spatial: SpatialProvider, visit: (hash: number, steps: number) => boolean, blockedByUnits: boolean = false): void {
         const startH = HexUtils.hash(agent.q, agent.r);
         const seen = new Set<number>([startH]);
         const queue: number[] = [startH];
+        const steps: number[] = [0];
         for (let head = 0; head < queue.length; head++) {
+            if (visit(queue[head], steps[head])) return;
             const currentHex = HexUtils.unhash(queue[head]);
             const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);
             for (let i = 0; i < PATH_RULES.HEX_NEIGHBOR_COUNT; i++) {
@@ -409,46 +416,35 @@ export class Pathfinder {
                     const def = OBSTACLE_DB[spatial.getObstacleTypeHash(neighborH) || 'WALL'];
                     if (agent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
                 }
+                if (blockedByUnits) {
+                    const occ = spatial.getAgentHash(neighborH);
+                    if (occ && occ.hp > 0 && occ !== agent) continue;
+                }
                 if (agent.movementType !== MovementType.FLYING) {
                     const n = HexUtils.unhash(neighborH);
                     if (!canStepUp(agent, h1, spatial.getTerrainHeight(n.q, n.r))) continue;
                 }
                 seen.add(neighborH);
                 queue.push(neighborH);
+                steps.push(steps[head] + 1);
             }
         }
-        return queue.map(h => HexUtils.unhash(h));
     }
 
     /**
-     * [ARCH] canEscape：O(1) 前置判斷，避免 findPathToSafety 在無路況下做無用的完整搜索
-     * 快速判斷單位當前位置是否有任何一格可通行的安全鄰格。
-     * 不做完整 A*，只掃描 6 個鄰格，O(1) 複雜度。
-     * 用於 BTCondition HasEscapeRoute 的前置判斷。
+     * 現在走得到空著的安全格嗎（別人站著的格走不過去）。
+     * 不能只看鄰格：警告圈有兩層厚、或最近的安全格被人佔了時，往裡走兩步就安全，
+     * 只看鄰格會判成「無路可逃」，單位就站在原地等塌陷。
      */
     public canEscape(agent: Agent, spatial: SpatialProvider): boolean {
-        for (let i = 0; i < PATH_RULES.HEX_NEIGHBOR_COUNT; i++) {
-            const neighborH = HexUtils.hash(agent.q, agent.r) + NEIGHBOR_HASH_OFFSETS[i];
-            if (!spatial.isValidHash(neighborH)) continue;
-
-            // 障礙物檢查
-            if (spatial.hasObstacleHash(neighborH)) {
-                const type = spatial.getObstacleTypeHash(neighborH);
-                const def = OBSTACLE_DB[type || 'WALL'];
-                if (agent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
-            }
-
-            // 單位佔用檢查（逃生不能走有人的格）
-            const occ = spatial.getAgentHash(neighborH);
-            if (occ && occ.hp > 0 && occ !== agent) continue;
-
-            const nHex = HexUtils.unhash(neighborH);
-            const nKey = HexUtils.key(nHex);
-
-            // 安全格定義：非警告格 + 無敵方 Hazard
-            const hazard = spatial.getSpatialHazardsAt(nHex.q, nHex.r).find(h => !sameSide(h, agent));
-            if (!spatial.isWarningTile(nKey) && !hazard) return true;
-        }
-        return false;
+        const startH = HexUtils.hash(agent.q, agent.r);
+        let found = false;
+        this.floodReachable(agent, spatial, h => {
+            if (h === startH) return false;
+            const c = HexUtils.unhash(h);
+            found = !spatial.isWarningTile(HexUtils.key(c)) && !spatial.getSpatialHazardsAt(c.q, c.r).some(z => !sameSide(z, agent));
+            return found;
+        }, true);
+        return found;
     }
 }

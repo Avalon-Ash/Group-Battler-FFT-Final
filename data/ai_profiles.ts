@@ -84,6 +84,7 @@ const FIGHT_TREE: BTDef = {
  *   RETREAT          —— 站在塌陷格／敵方 hazard 上：逃；逃不掉轉 TRAPPED
  *   TRAPPED          —— 逃不掉：有推拉技能就用，否則原地戰鬥（SkillReady 不再因塌陷拒絕）
  *   UNSTICK          —— 打不到也走不到更近的地方：短暫等待後強制跳上鄰格
+ *   FINALE           —— 背水一戰：地圖不再縮小，不逃，打到剩一方
  * 任何「移動」節點在 CanMove 為假（root/stun/放逐/恐懼）時必須失敗，不能回 RUNNING。
  */
 export const AI_MODE_GRAPH: {
@@ -114,13 +115,24 @@ export const AI_MODE_GRAPH: {
             }
         },
         UNSTICK: { tree: { type: 'ACTION', name: 'Force Jump', key: 'ForceJump' } },
+        FINALE: {
+            tree: {
+                type: 'SEQUENCE',
+                name: 'Finale',
+                children: [{ type: 'CONDITION', name: 'Scan Target', key: 'HasTarget' }, ENGAGE_TREE]
+            },
+            onFailure: 'UNSTICK'
+        },
     },
     edges: [
         { from: '*', to: 'DEAD', when: 'IsDead' },
-        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'RETREAT', 'TRAPPED', 'UNSTICK'], to: 'CONTROLLED', when: 'IsControlled' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'RETREAT', 'TRAPPED', 'UNSTICK', 'FINALE'], to: 'CONTROLLED', when: 'IsControlled' },
         { from: ['DEAD'], to: 'ACQUIRE', when: 'IsAlive' },
         { from: ['CONTROLLED'], to: 'ACQUIRE', unless: 'IsControlled' },
-        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'TRAPPED', 'UNSTICK'], to: 'RETREAT', when: 'WantsRetreat' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'RETREAT', 'TRAPPED'], to: 'FINALE', when: 'IsLastStand' },
+        { from: ['FINALE'], to: 'ACQUIRE', unless: 'IsLastStand' },
+        { from: ['ACQUIRE', 'ENGAGE', 'FIGHT', 'UNSTICK'], to: 'RETREAT', when: 'WantsRetreat' },
+        { from: ['TRAPPED'], to: 'RETREAT', when: 'CanTryRetreat' },
         { from: ['RETREAT', 'TRAPPED'], to: 'ACQUIRE', unless: 'WantsRetreat' },
         { from: ['UNSTICK'], to: 'ACQUIRE', unless: 'IsBoxedIn' },
         { from: ['ENGAGE', 'FIGHT'], to: 'ACQUIRE', unless: 'HasTarget' },

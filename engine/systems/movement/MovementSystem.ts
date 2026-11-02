@@ -1,4 +1,4 @@
-import { COMBAT_PARAM, MOVEMENT_RULES, GRID_OVERLAY, PATH_RULES } from '../../../constants';
+import { BT_RULES, COMBAT_PARAM, MOVEMENT_RULES, GRID_OVERLAY, PATH_RULES } from '../../../constants';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  MovementSystem — 單位移動路徑執行                      ║
 // ║  職責：路徑跟隨 / 等角 3D 座標插值 / 跳躍拋物線          ║
@@ -46,6 +46,12 @@ export class MovementSystem {
         // 敵方危害與 SLOW 狀態的減速每 tick 重算（不寫進 Agent），取較慢的那個；moveSpeedMult 只代表 AI 要求的速度，由本檔寫入
         const hazardSpeedMult = getHazardSpeedMult(a, spatial.state.spatialHazards, spatial.getMapConfig());
         MotionEngine.updateMovement(a, dt, spatial, Math.min(hazardSpeedMult, slowSpeedMult(a)));
+    }
+
+    /** 現在逃跑的實際速度（格／秒）：敵方危害與 SLOW 會把 AI 要求的倍率壓低，重力場裡只剩三成。 */
+    public escapeSpeed(a: Agent, spatial: SpatialProvider & Pick<GameEngine, 'state'>): number {
+        const external = Math.min(getHazardSpeedMult(a, spatial.state.spatialHazards, spatial.getMapConfig()), slowSpeedMult(a));
+        return a.moveSpeed * Math.min(BT_RULES.ESCAPE_SPEED_MULTIPLIER, external);
     }
 
     /** 格子上有別人站著不動（對方也在走就不算擋：走到時多半已經空了）。 */
@@ -114,7 +120,7 @@ export class MovementSystem {
                     const hexKey = HexUtils.key(hex);
                     const enemyHazards = spatial.getSpatialHazardsAt(hex.q, hex.r).filter(h => !sameSide(h, a));
                     const hasEnemyHazard = enemyHazards.length > 0;
-                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isWarningTile(hexKey) || hasEnemyHazard))) {
+                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isCollapsingSoon(hexKey) || hasEnemyHazard))) {
                         pathValid = false;
                         break;
                     }
@@ -259,17 +265,7 @@ export class MovementSystem {
                  continue;
             }
 
-            // Calculate pull vector (only pull if not landed)
-            const dx = targetPx.x - a.px;
-            const dy = targetPx.y - a.py;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            
-            if (dist > 10) {
-                const force = MOVEMENT_RULES.LAST_STAND_PULL_FORCE; // Strong pull
-                a.physics.vx += (dx / dist) * force * dt;
-                a.physics.vy += (dy / dist) * force * dt;
-                a.hasLandedLastStand = false; // Reset if somehow forced out (though map prevents it)
-            }
+            a.hasLandedLastStand = false;
         }
     }
 }

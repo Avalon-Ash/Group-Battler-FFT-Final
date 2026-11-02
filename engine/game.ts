@@ -19,7 +19,7 @@ import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, BattleSetup, ActionState, SpatialHazard, SpatialProvider, Point } from "../types";
 import { HexUtils, MapConfig } from "./utils";
-import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS, UI_SETTINGS } from "../constants";
+import { AUDIO, BT_RULES, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS, UI_SETTINGS } from "../constants";
 import { Agent } from "./core/Agent";
 import { resetAgent, saveAgentState } from "./core/AgentLifecycle";
 import { MovementSystem } from "./systems/movement";
@@ -176,6 +176,9 @@ export class GameEngine implements SpatialProvider {
     public getMapConfig(): MapConfig { return this.mapConfig; }
     public getAgents(): Agent[] { return this.agents; }
     public isWarningTile(key: string): boolean { return this.map.warningTiles.has(key); }
+    public isCollapsingSoon(key: string): boolean {
+        return this.map.warningTiles.has(key) && this.zones.shrinkTimer <= BT_RULES.WARNING_ENTER_MIN_S;
+    }
     public getSpatialHazardsAt(q: number, r: number): SpatialHazard[] {
         return this.state.spatialHazards.filter(h => h.cells.some(c => c.q === q && c.r === r));
     }

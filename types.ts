@@ -148,6 +148,8 @@ export interface SpatialProvider {
     updateAgentPosition(agent: Agent, q: number, r: number): void;
     getAgents(): Agent[];
     isWarningTile(key: string): boolean;
+    /** 警告格而且快塌了（剩 BT_RULES.WARNING_ENTER_MIN_S 以內）：不要走進去或停在上面。 */
+    isCollapsingSoon(key: string): boolean;
     getTileDepth(q: number, r: number): number;
     getCurrentShrinkLevel(): number;
     readonly isLastStand: boolean;
@@ -252,7 +254,7 @@ export interface CameraImpact {
 }
 
 /** AI 模式：狀態拓樸的節點（data/ai_profiles.ts 的 AI_MODE_GRAPH）。只由 ModeMachine 寫入 */
-export type AIMode = 'DEAD' | 'CONTROLLED' | 'ACQUIRE' | 'ENGAGE' | 'FIGHT' | 'RETREAT' | 'TRAPPED' | 'UNSTICK';
+export type AIMode = 'DEAD' | 'CONTROLLED' | 'ACQUIRE' | 'ENGAGE' | 'FIGHT' | 'RETREAT' | 'TRAPPED' | 'UNSTICK' | 'FINALE';
 
 /**
  * 開局陣營設定：factions 個陣營、每陣營 unitsPerFaction 人（每陣營 1 人＝大逃殺）。

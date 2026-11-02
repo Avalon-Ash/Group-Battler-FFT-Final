@@ -23,6 +23,10 @@ export const BT_RULES = {
     ENEMY_OCCUPANCY_PENALTY: 5,
     /** 逃生移動速度倍率。 */
     ESCAPE_SPEED_MULTIPLIER: 1.8,
+    /** 警告格剩這麼多時間以內才算不能走進去（秒）。 */
+    WARNING_ENTER_MIN_S: 3,
+    /** 站在警告格上：算好走到安全格的時間後，再多留這麼多才動身（秒）。 */
+    RETREAT_MARGIN_S: 2,
     /** 脫困：確定走不到敵人後，等多久才強制跳上鄰格（秒）。 */
     UNSTICK_WAIT_S: 0.5,
     /** 低血追擊的目標生命比例門檻。 */
@@ -89,8 +93,6 @@ export const PATH_RULES = {
     SAFETY_WARNING_COST: 30,
     /** 搜尋安全格時單位佔格成本（分）。 */
     SAFETY_OCCUPANCY_COST: 50,
-    /** 飛行逃生遠離起點的啟發式權重（分／格）。 */
-    FLYING_DISTANCE_BIAS: 0.1,
 } as const;
 
 export const BT_NODE_RULES = {

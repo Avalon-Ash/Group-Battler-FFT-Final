@@ -89,7 +89,7 @@ export class TargetingSystem {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
         const hazardsOnTile = spatial.getSpatialHazardsAt(a.q, a.r);
-        const inDanger = spatial.isWarningTile(myKey) || hazardsOnTile.some(h => !sameSide(h, a));
+        const inDanger = spatial.isCollapsingSoon(myKey) || hazardsOnTile.some(h => !sameSide(h, a));
 
         // 如果不在危險中，且正在詠唱非普攻技能，則鎖定目標不更新
         if (!inDanger && a.castingSkillIdx !== -1) {
@@ -168,13 +168,13 @@ export class TargetingSystem {
 
                 // 5. [NEW] 背水一戰加分: 如果自己在危險區，優先攻擊也在危險區或邊緣的敵人
                 let survivalBonus = 0;
-                if (spatial.isWarningTile(myKey)) {
+                if (spatial.isCollapsingSoon(myKey)) {
                     survivalBonus += TARGET_RULES.SELF_WARNING_BONUS;
                     // 如果對方也在危險區，優先解決他
-                    if (spatial.isWarningTile(HexUtils.key(o))) survivalBonus += TARGET_RULES.TARGET_WARNING_BONUS;
+                    if (spatial.isCollapsingSoon(HexUtils.key(o))) survivalBonus += TARGET_RULES.TARGET_WARNING_BONUS;
                 } else {
-                    // 如果自己安全，盡量不要鎖定危險區內的敵人 (避免主動走入危險區)
-                    if (spatial.isWarningTile(HexUtils.key(o))) {
+                    // 如果自己安全，盡量不要鎖定快塌的格上的敵人 (避免主動走進去)
+                    if (spatial.isCollapsingSoon(HexUtils.key(o))) {
                         let effRange = 1;
                         const basicSkill = a.skills.find(s => s && s.tag === 'BASIC');
                         if (basicSkill) effRange = this.getEffectiveRange(a, o.q, o.r, basicSkill.range, spatial);

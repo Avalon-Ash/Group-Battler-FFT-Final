@@ -50,7 +50,8 @@ export class ZoneSystem {
                 engine.log(null, 'SYSTEM', '縮圈初始化', null, `地圖網格深度: ${this.maxDepth}, 初始安全層級: ${this.safeRadius}, 間隔: ${engine.zoneConfig.shrinkInterval}s`);
             }
 
-            if (engine.map.mapKeys.size > 1) {
+            // 背水一戰開始後地圖不再變小：剩下的就在這塊地上打完
+            if (engine.map.mapKeys.size > 1 && !engine.state.isLastStand) {
                 this.shrinkTimer -= dt;
                 const isTickSecond = Math.floor(this.shrinkTimer + ZONE.TIME_EPSILON) !== Math.floor(this.shrinkTimer + dt + ZONE.TIME_EPSILON);
                 if (this.warningLevel !== this.currentShrinkLevel) {
@@ -129,19 +130,10 @@ export class ZoneSystem {
                         engine.mapVersion++; 
                         engine.bus.emit('ZONE_SHRUNK', { radius: this.safeRadius });
                         engine.log(null, 'SYSTEM', '地形潰縮', null, `剩餘安全網格: ${engine.map.mapKeys.size}`);
-
-                        // --- LAST STAND TRIGGER ---
-                        if (engine.map.mapKeys.size === 1 && !engine.state.isLastStand) {
-                            engine.state.isLastStand = true;
-                            const finalHexKey = Array.from(engine.map.mapKeys)[0];
-                            const [fq, fr] = finalHexKey.split(',').map(Number);
-                            engine.state.finalHex = { q: fq, r: fr };
-                            engine.bus.emit('LAST_STAND_TRIGGERED', { q: fq, r: fr });
-                            engine.log(null, 'SYSTEM', '背水一戰', null, '最後安全區域確立：全防禦瓦解，治癒禁絕，絕對穿透開啟！');
-                        }
                     }
                 }
             }
+            this.checkLastStand(engine);
         } else {
             // If disabled, ensure we are not initialized so it can restart later
             if (this.initialized) {
@@ -199,6 +191,40 @@ export class ZoneSystem {
         this.collapsingTiles.clear();
         this.warningLevel = null;
         this.layerShrink = false;
+    }
+
+    /**
+     * 地塊站不下所有活著的單位，或只剩少數人在很小的地上：再縮只是逼人擠格子掉下去，
+     * 改成背水一戰打完（使用者 2026-11-01）。人一死條件就可能成立，所以每個 tick 都看，不只縮圈時。
+     */
+    private checkLastStand(engine: GameEngine): void {
+        if (engine.state.isLastStand) return;
+        const tiles = engine.map.mapKeys.size;
+        const alive = engine.agents.filter(a => a.hp > 0 && !a.outOfBounds).length;
+        if (tiles === 0) return;
+        const fewLeft = alive > 0 && alive <= ZONE.LAST_STAND_FEW_ALIVE && tiles <= ZONE.LAST_STAND_FEW_TILES;
+        if (tiles > 1 && !fewLeft && (alive === 0 || tiles > alive)) return;
+        engine.state.isLastStand = true;
+        engine.map.warningTiles.clear();
+        const { q: fq, r: fr } = this.chooseLastStandHex(engine);
+        engine.state.finalHex = { q: fq, r: fr };
+        engine.bus.emit('LAST_STAND_TRIGGERED', { q: fq, r: fr });
+        engine.log(null, 'SYSTEM', '背水一戰', null, '地圖不再縮小，打到剩一方為止');
+    }
+
+    /** 最深、離中心最近的格（同分取鍵值最小，結果固定）。 */
+    private chooseLastStandHex(engine: GameEngine): { q: number; r: number } {
+        const depths = this.depthsFor(engine.map.mapKeys);
+        const center = { q: 0, r: 0 };
+        const ranked = Array.from(engine.map.mapKeys).sort((a, b) => {
+            const [aq, ar] = a.split(',').map(Number);
+            const [bq, br] = b.split(',').map(Number);
+            return (depths.get(b) ?? 0) - (depths.get(a) ?? 0) ||
+                HexUtils.dist({ q: aq, r: ar }, center) - HexUtils.dist({ q: bq, r: br }, center) ||
+                a.localeCompare(b);
+        });
+        const [q, r] = ranked[0].split(',').map(Number);
+        return { q, r };
     }
 
     private rebuildWarnings(engine: GameEngine): void {

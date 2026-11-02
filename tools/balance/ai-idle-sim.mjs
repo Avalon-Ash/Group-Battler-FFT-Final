@@ -134,6 +134,11 @@ try {
         if (curMatch && curMatch.active && !a.fullyDead && !a.deadLogged) {
             if (text === 'RING_OUT') {
                 curMatch.ringOutDeaths[a.id] = (curMatch.ringOutDeaths[a.id] ?? 0) + 1;
+                // 掉下去的當下在做什麼：判斷是逃太晚、被控制、還是沒地方去
+                const why = [a.aiMode, a.isMoving ? 'moving' : 'still', a.castingSkillIdx !== -1 ? 'casting' : null,
+                    ['STUN', 'ROOT', 'FEAR'].filter((k) => a.effects[k].remaining > 0).join('+') || null,
+                    engineCtx.map.mapKeys.size <= 7 ? 'tiles<=7' : null].filter(Boolean).join('|');
+                ringOutBy[why] = (ringOutBy[why] ?? 0) + 1;
             } else {
                 curMatch.combatDeaths[a.id] = (curMatch.combatDeaths[a.id] ?? 0) + 1;
             }
@@ -146,6 +151,7 @@ try {
     let totalTicks = 0;
     const battleTimes = [];
     const allIdleStreaks = [];
+    const ringOutBy = {};
     const lastProgress = new Map();
 
     const finalizeStreak = (tracker, battleIndex) => {
@@ -760,6 +766,7 @@ try {
     console.log(`PERROLE ${JSON.stringify(perRole)}`);
     console.log(`IDLEDETAIL ${JSON.stringify(idleDetail)}`);
     console.log(`FINAL ${JSON.stringify(finalSummary)} avgEndTiles=${(fs.endTilesSum / BATTLES).toFixed(1)}`);
+    console.log(`RINGOUT ${JSON.stringify(Object.entries(ringOutBy).sort((x, y) => y[1] - x[1]).slice(0, 12))}`);
     console.log(`STREAKS per battle: >=1s ${(streaks.over1 / BATTLES).toFixed(2)}, >=3s ${(streaks.over3 / BATTLES).toFixed(2)} ${JSON.stringify(streaks.over3ByReason)}`);
     console.log(`SKILLS_TOP ${JSON.stringify(skillTable.slice(0, 6))}`);
     console.log(`SKILLS_BOTTOM ${JSON.stringify(skillTable.slice(-6))}`);

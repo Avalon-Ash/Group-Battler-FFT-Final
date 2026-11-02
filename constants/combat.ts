@@ -327,6 +327,4 @@ export const MOVEMENT_RULES = {
     LAST_STAND_ARRIVAL_RADIUS: 15,
     /** 背水一戰靠近中心時的速度增量係數（每平方秒）。 */
     LAST_STAND_NEAR_PULL_GAIN: 5,
-    /** 背水一戰外圈向心牽引加速度（像素／平方秒）。 */
-    LAST_STAND_PULL_FORCE: 400,
 } as const;

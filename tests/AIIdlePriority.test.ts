@@ -167,9 +167,9 @@ describe('AIIdlePriority', () => {
     describe('成因 C：被困在塌陷格時原地戰鬥', () => {
         beforeEach(clearArea);
 
-        const surroundByWarning = (a: { q: number; r: number }) => {
-            engine.map.warningTiles.add(HexUtils.key(a));
-            for (const n of HexUtils.neighbors(a)) engine.map.warningTiles.add(HexUtils.key(n));
+        // 走得到的地方全是塌陷格才算無路可逃；只圍一圈的話，穿過去就安全了
+        const surroundByWarning = () => {
+            for (const key of engine.map.mapKeys) engine.map.warningTiles.add(key);
         };
 
         it('有安全鄰格可逃：SkillReady 仍拒絕在塌陷格站樁普攻', () => {
@@ -183,7 +183,7 @@ describe('AIIdlePriority', () => {
         it('四面全是塌陷格（無路可逃）：IsPinned 為真，SkillReady 放行普攻，BT 真的出手', () => {
             const a = mk(Team.BLUE, 0, 0, Role.WARRIOR);
             const e = mk(Team.RED, 1, 0, Role.WARRIOR);
-            surroundByWarning(a);
+            surroundByWarning();
             expect(BTConditions['IsPinned'](a, engine, {})).toBe(true);
             expect(BTConditions['SkillReady'](a, engine, { slot: 2 })).toBe(true);
             a.target = e;
