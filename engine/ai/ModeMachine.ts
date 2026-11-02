@@ -37,6 +37,11 @@ export class ModeMachine extends BTNode {
 
     private readonly onFailure: Map<AIMode, AIMode>;
 
+    /** 檢視器用：這個模式的小樹。 */
+    treeOf(mode: AIMode | null): BTNode | null {
+        return mode ? this.trees.get(mode) ?? null : null;
+    }
+
     private enter(a: Agent, to: AIMode, why: string): void {
         const trace = a.aiModeTrace;
         trace.push({ t: this.clock(), from: a.aiMode, to, why });

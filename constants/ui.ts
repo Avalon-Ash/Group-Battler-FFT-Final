@@ -148,6 +148,8 @@ export const MATRIX_RAIN_PARAM = {
 
 /** 具名參數：保持原值與運算次序。 */
 export const BT_VIEW_PARAM = {
+    /** 檢視器顯示最近幾筆模式轉換。 */
+    MODE_TRACE_SHOWN: 5,
     /** 行為樹初始縮放（倍） */
     DEFAULT_SCALE: 0.9,
     /** 自動縮放可用寬度（比例） */

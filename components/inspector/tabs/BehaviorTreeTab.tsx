@@ -6,6 +6,22 @@ import { TreeNode } from '../parts/TreeNode';
 import { useDraggable } from '../../../hooks/useDraggable';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import { BT_VIEW_PARAM, UI_Z } from '../../../constants';
+import { ModeMachine } from '../../../engine/ai/ModeMachine';
+import type { AIMode } from '../../../types';
+
+const MODE_LABEL: Record<AIMode, string> = {
+    DEAD: '陣亡',
+    CONTROLLED: '受控',
+    ACQUIRE: '找目標',
+    ENGAGE: '接敵',
+    FIGHT: '交戰',
+    RETREAT: '逃離',
+    TRAPPED: '被困',
+    UNSTICK: '脫困',
+    FINALE: '背水一戰',
+};
+
+const MODE_TRACE_SHOWN = BT_VIEW_PARAM.MODE_TRACE_SHOWN;
 
 interface BehaviorTreeTabProps {
     agent: Agent;
@@ -134,7 +150,24 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
         >
             <div ref={btContentRef} className="inline-block min-w-max pt-4 pb-20">
                 {agent.bt ? (
-                    <TreeNode node={agent.bt} version={version} now={Date.now()} />
+                    <>
+                        {/* 狀態拓樸：顯示目前模式與最近的轉換，下面只畫這個模式的小樹 */}
+                        {agent.aiMode && (
+                            <div className="mb-4 text-center font-mono text-xs text-slate-300">
+                                <div className="text-sm font-bold text-cyan-300">{MODE_LABEL[agent.aiMode]}</div>
+                                <div className="mt-1 text-slate-500">
+                                    {agent.aiModeTrace.slice(-MODE_TRACE_SHOWN).map((e, i) => (
+                                        <span key={i} className="mr-2">{e.to ? MODE_LABEL[e.to] : ''}({e.why})</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <TreeNode
+                            node={(agent.bt instanceof ModeMachine && agent.bt.treeOf(agent.aiMode)) || agent.bt}
+                            version={version}
+                            now={Date.now()}
+                        />
+                    </>
                 ) : (
                     <div className="flex flex-col items-center justify-center pt-10 opacity-50">
                         <span className="text-slate-400 font-mono text-xs">NO SIGNAL...</span>
