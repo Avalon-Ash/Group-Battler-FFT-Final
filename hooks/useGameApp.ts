@@ -5,7 +5,7 @@ import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup } from 
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { random } from '../engine/math/rng';
-import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, HexCoord } from '../engine/systems/ui/editorQueries';
+import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, rollShowcaseSetup, HexCoord } from '../engine/systems/ui/editorQueries';
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 
@@ -96,6 +96,8 @@ export const useGameApp = () => {
     const rosterRef = useRef<ShowcaseSlot[]>([]);
     const rosterRoundRef = useRef(0);
     const plannedSetupRef = useRef<BattleSetup>({ ...initialEngine.battleSetup });
+    // 玩家自己的陣營設定：展示模式每局隨機會蓋掉 engine.battleSetup，回到手動時要還原
+    const manualSetupRef = useRef<BattleSetup>({ ...initialEngine.battleSetup });
     const showcaseModeRef = useRef(true);
     const spawnWaitRef = useRef<number | null>(null);
 
@@ -103,9 +105,9 @@ export const useGameApp = () => {
      * 決定下一批展示單位的角色與體型。體型用確定性雜湊（pickBodyType，不消耗 random()），
      * 生成指令帶上它，所以 SpriteAtlasStore 能在單位出現之前就預載對應圖集。
      */
-    const planShowcaseRoster = useCallback((): ShowcaseSlot[] => {
+    const planShowcaseRoster = useCallback((nextSetup?: BattleSetup): ShowcaseSlot[] => {
         const round = ++rosterRoundRef.current;
-        const setup = { ...engineRef.current.battleSetup };
+        const setup = { ...(nextSetup ?? engineRef.current.battleSetup) };
         const plan: ShowcaseSlot[] = [];
         for (let side = 0; side < setup.factions; side++) {
             const team = factionTeam(side);
@@ -211,6 +213,8 @@ export const useGameApp = () => {
     }, []);
 
     useEffect(() => {
+        // 只在「從手動切進展示」那一刻記下玩家設定。StrictMode 會重跑 effect，不比對就會把隨機值存進來。
+        if (session.isShowcaseMode && !showcaseModeRef.current) manualSetupRef.current = { ...engineRef.current.battleSetup };
         showcaseModeRef.current = session.isShowcaseMode;
     }, [session.isShowcaseMode]);
 
@@ -218,6 +222,8 @@ export const useGameApp = () => {
     useEffect(() => {
         const engine = engineRef.current;
         const handleApply = () => {
+            // 玩家明確按了套用：這是他要的設定（展示模式只影響這一局，下一局回到隨機）
+            manualSetupRef.current = { ...engine.battleSetup };
             rosterRef.current = [];
             engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
             engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
@@ -246,12 +252,15 @@ export const useGameApp = () => {
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
+                // 陣營設定等換完地圖才寫入：現在的地圖是上一局縮圈後的殘圖，總池很小，會被夾低
+                const nextSetup = rollShowcaseSetup(random);
                 // 舊陣容已清空：此刻起預載下一批圖集（退場＋進場約 2.7 秒內載完，單位生成時不用再解碼）
-                spriteAtlasStore.prefetchRoster(planShowcaseRoster());
+                spriteAtlasStore.prefetchRoster(planShowcaseRoster(nextSetup));
                 setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
                 setTimeout(() => {
-                    setupShowcaseMap(); 
-                    setSession(prev => ({ ...prev, transitionPhase: 'IN' })); 
+                    setupShowcaseMap();
+                    engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: nextSetup });
+                    setSession(prev => ({ ...prev, transitionPhase: 'IN' }));
                     setTimeout(() => {
                         setSession(prev => ({ ...prev, transitionPhase: 'IDLE' }));
                         // 不在 IDLE 邊界那一幀生成：等圖集載好、且已過幾個畫面（逾時照樣生成）
@@ -282,7 +291,8 @@ export const useGameApp = () => {
     useEffect(() => { 
         if (session.isShowcaseMode) {
             setupShowcaseMap(); 
-            spawnShowcaseUnits(); 
+            engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: rollShowcaseSetup(random) });
+            spawnShowcaseUnits();
         }
     }, []);
 
@@ -309,6 +319,7 @@ export const useGameApp = () => {
         const engine = engineRef.current;
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true });
+        engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { ...manualSetupRef.current } });
         setSession(prev => ({ ...prev, isShowcaseMode: false, isPlaying: false, winner: null, unitCount: 0 }));
         setEditor(prev => ({ 
             ...prev, 

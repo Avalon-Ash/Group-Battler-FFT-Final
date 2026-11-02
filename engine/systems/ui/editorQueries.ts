@@ -5,11 +5,11 @@
  * Safe to call with null/undefined engine or renderer references, returning sensible fallbacks.
  */
 
-import { Hex, Camera, HexSpatialLookup } from '../../../types';
+import { BattleSetup, Hex, Camera, HexSpatialLookup } from '../../../types';
 import { GameEngine, Agent } from '../../game';
 import { PointerProjector } from '../../math/PointerProjector';
 import { HexUtils } from '../../utils';
-import { BATTLE_RULES } from '../../../constants';
+import { BATTLE_RULES, GAME_APP_PARAM } from '../../../constants';
 
 /** Current engine-owned zoom target, including inputs not yet smoothed on screen. */
 export function queryCameraTargetZoom(engine: GameEngine): number | undefined {
@@ -136,6 +136,22 @@ function dropSpawnPockets(cells: HexCoord[]): HexCoord[] {
 }
 
 export type HexCoord = { q: number; r: number };
+
+/**
+ * 展示模式這一局的陣營×人數：一半機率雙陣營，其餘大逃殺（三個以上陣營）；
+ * 總人數落在 SHOWCASE_SETUP 的範圍內。rand 回傳 [0, 1)。
+ */
+export function rollShowcaseSetup(rand: () => number): BattleSetup {
+    const { TEAMS_CHANCE, MIN_UNITS, MAX_UNITS, ROYALE_MIN_FACTIONS } = GAME_APP_PARAM.SHOWCASE_SETUP;
+    const between = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));
+    if (rand() < TEAMS_CHANCE) {
+        return { factions: 2, unitsPerFaction: between(Math.ceil(MIN_UNITS / 2), Math.floor(MAX_UNITS / 2)) };
+    }
+    // 大逃殺先抽每陣營人數再抽陣營數：先抽陣營數的話，陣營一多就只剩每陣營 1 人，組合很單調
+    const unitsPerFaction = between(1, Math.floor(MAX_UNITS / ROYALE_MIN_FACTIONS));
+    const minFactions = Math.max(ROYALE_MIN_FACTIONS, Math.ceil(MIN_UNITS / unitsPerFaction));
+    return { factions: between(minFactions, Math.floor(MAX_UNITS / unitsPerFaction)), unitsPerFaction };
+}
 
 /**
  * 開局陣容第 side 陣營第 i 人用第幾個職業：每陣營人數夠排滿一輪時各陣營自己從頭排（標準 5v5），

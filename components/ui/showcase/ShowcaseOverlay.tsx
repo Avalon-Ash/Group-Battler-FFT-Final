@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useMatrixRain } from './useMatrixRain';
 import { Icons } from '../icons';
 import { GameEngine } from '../../../engine/game';
-import { UI_Z, UI_PANEL_PARAM } from '../../../constants';
+import { UI_Z, UI_PANEL_PARAM, ROYALE_RULES } from '../../../constants';
+import type { BattleSetup } from '../../../types';
 import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { useWindowStore } from '../../../hooks/useWindowStore';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
@@ -11,6 +12,8 @@ import { formatRgba } from '../../../data/ui/tokens';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
+    /** 場上這一局的陣營設定：標題卡依它標示雙陣營或大逃殺 */
+    battleSetup?: BattleSetup;
     timeScale?: number;
     setTimeScale?: (v: number) => void;
     engine?: GameEngine; 
@@ -18,8 +21,14 @@ interface ShowcaseOverlayProps {
     setShowDirectorMonitor?: (v: boolean) => void;
 }
 
-export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => {
+export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battleSetup }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const isRoyale = !!battleSetup && battleSetup.factions >= ROYALE_RULES.MIN_FACTIONS;
+    const modeLabel = !battleSetup
+        ? 'SYSTEM READY'
+        : isRoyale
+            ? `BATTLE ROYALE · ${battleSetup.factions} FACTIONS × ${battleSetup.unitsPerFaction}`
+            : `TEAM BATTLE · ${battleSetup.unitsPerFaction} VS ${battleSetup.unitsPerFaction}`;
     const config = useShowcaseConfig();
     const layout = useShowcaseLayout();
     // 窄螢幕上任何展示模式視窗（設定、音訊…）開著時收起標題卡，讓出空間
@@ -91,12 +100,12 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
                     
                     <div className={`relative flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left flex-1' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}>
                         
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-500/30 text-[10px] text-cyan-400 font-mono tracking-widest mb-4 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse box-shadow-[0_0_5px_cyan]"></span>
-                            <span>SYSTEM READY</span>
+                        <div data-testid="showcase-mode-tag" className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-mono tracking-widest mb-4 ${isRoyale ? 'bg-rose-950/40 border-rose-500/40 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isRoyale ? 'bg-rose-400' : 'bg-cyan-400'}`}></span>
+                            <span>{modeLabel}</span>
                         </div>
 
-                        <h1 className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-500 font-mono tracking-tighter drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] ${isCompact ? 'text-5xl' : 'text-7xl md:text-8xl'}`}>
+                        <h1 className={`font-black text-transparent bg-clip-text bg-gradient-to-b font-mono tracking-tighter ${isRoyale ? 'from-white via-rose-100 to-rose-500 drop-shadow-[0_0_30px_rgba(244,63,94,0.5)]' : 'from-white via-cyan-100 to-cyan-500 drop-shadow-[0_0_30px_rgba(6,182,212,0.5)]'} ${isCompact ? 'text-5xl' : 'text-7xl md:text-8xl'}`}>
                             TACTICAL.OS
                         </h1>
                         
