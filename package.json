@@ -22,6 +22,7 @@
     "perf:mobile": "node tools/ui-e2e/perf-mobile-emu.mjs",
     "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts",
     "knip": "knip",
+    "balance:idle": "node tools/balance/ai-idle-sim.mjs",
     "balance:sim": "node tools/balance/batch-sim.mjs",
     "balance:report": "node tools/balance/report.mjs"
   },
