@@ -1,5 +1,13 @@
 // AI 行為樹、選敵與尋路參數 SSOT。
 
+/** AI 狀態拓樸（ModeMachine） */
+export const AI_MODE_RULES = {
+    /** 每個單位保留的轉換紀錄筆數。 */
+    TRACE_LENGTH: 10,
+    /** 一次 AI 決策內最多走幾條邊。 */
+    MAX_HOPS_PER_TICK: 6,
+} as const;
+
 export const BT_RULES = {
     /** 擊退預測步頻（次／秒）。 */
     PREDICTION_TICKS_PER_SEC: 30,

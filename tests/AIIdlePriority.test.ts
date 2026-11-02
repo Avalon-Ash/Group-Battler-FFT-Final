@@ -4,7 +4,7 @@ import { Team, Role, NodeState } from '../types';
 import { BLOCK_HEIGHT } from '../constants';
 import { HexUtils } from '../engine/utils';
 import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
-import { STANDARD_AI_PROFILE, type BTDef } from '../data/ai_profiles';
+import { AI_MODE_GRAPH, type BTDef } from '../data/ai_profiles';
 
 /**
  * BR 發呆：每個成因一則回歸測試，外加行為樹優先序測試。
@@ -235,17 +235,21 @@ describe('AIIdlePriority', () => {
         };
         const names = (d: BTDef | undefined) => (d?.children ?? []).map(c => c.name);
 
-        it('Root：死亡 > CC > Survival > Combat', () => {
-            expect(names(STANDARD_AI_PROFILE)).toEqual(['Dead Check', 'CC Check', 'Survival', 'Combat']);
+        it('全域邊：死亡 > 控場 > 逃生，順序就是優先序', () => {
+            const order = AI_MODE_GRAPH.edges.map(e => e.to);
+            expect(order.indexOf('DEAD')).toBeLessThan(order.indexOf('CONTROLLED'));
+            expect(order.indexOf('CONTROLLED')).toBeLessThan(order.indexOf('RETREAT'));
         });
 
-        it('Survival Tactics：逃跑 > 背水一戰推拉', () => {
-            expect(names(find(STANDARD_AI_PROFILE, 'Survival Tactics'))).toEqual(['Run!', 'Last Stand']);
+        it('逃不掉才推拉：RETREAT 失敗走 TRAPPED，TRAPPED 推拉優先於戰鬥', () => {
+            expect(AI_MODE_GRAPH.modes.RETREAT.onFailure).toBe('TRAPPED');
+            expect(names(AI_MODE_GRAPH.modes.TRAPPED.tree)).toEqual(['Last Stand', 'Combat']);
         });
 
         it('Combat Actions：技能 > 追擊 > 走位 > 待命（Idle 一定最後）', () => {
-            expect(names(find(STANDARD_AI_PROFILE, 'Combat Actions'))).toEqual(['Skill Priority', 'Gap Close', 'Reposition', 'Idle']);
-            expect(names(find(STANDARD_AI_PROFILE, 'Skill Priority'))).toEqual(['Try Ultimate', 'Try Active', 'Try Basic']);
+            const combat = AI_MODE_GRAPH.modes.COMBAT.tree;
+            expect(names(find(combat, 'Combat Actions'))).toEqual(['Skill Priority', 'Gap Close', 'Reposition', 'Idle']);
+            expect(names(find(combat, 'Skill Priority'))).toEqual(['Try Ultimate', 'Try Active', 'Try Basic']);
         });
     });
 });

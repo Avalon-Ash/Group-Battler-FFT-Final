@@ -2468,5 +2468,9 @@
   },
   "SILHOUETTE_MASK": {
     "COLUMN_DEPTH": 400
+  },
+  "AI_MODE_RULES": {
+    "TRACE_LENGTH": 10,
+    "MAX_HOPS_PER_TICK": 6
   }
 }

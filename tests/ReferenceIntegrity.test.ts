@@ -19,7 +19,7 @@ import { BEAM_STYLES } from '../data/vfx/beam_styles';
 import { FACTION_VISUALS } from '../data/vfx/faction_visuals';
 import { AOE_BREAK, aoeBreakFxId, castBreakFxId } from '../data/vfx/registry/cast_break';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
-import { STANDARD_AI_PROFILE, BTDef } from '../data/ai_profiles';
+import { AI_MODE_GRAPH, BTDef } from '../data/ai_profiles';
 import { BTConditions, BTActions } from '../engine/ai/BTRegistry';
 import { SCENE_DB } from '../data/scenes';
 import { OBSTACLE_DB } from '../data/obstacles';
@@ -260,7 +260,7 @@ describe('AI behavior tree keys', () => {
         for (const c of def.children ?? []) walk(c, out);
         return out;
     }
-    const nodes = walk(STANDARD_AI_PROFILE);
+    const nodes = Object.values(AI_MODE_GRAPH.modes).flatMap(m => walk(m.tree));
 
     it('every CONDITION/ACTION node key is registered', () => {
         const bad = nodes.filter(n =>

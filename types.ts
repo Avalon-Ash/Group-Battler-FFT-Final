@@ -250,6 +250,9 @@ export interface CameraImpact {
     targetId?: string;
 }
 
+/** AI 模式：狀態拓樸的節點（data/ai_profiles.ts 的 AI_MODE_GRAPH）。只由 ModeMachine 寫入 */
+export type AIMode = 'DEAD' | 'CONTROLLED' | 'RETREAT' | 'TRAPPED' | 'COMBAT';
+
 /**
  * 開局陣營設定：factions 個陣營、每陣營 unitsPerFaction 人（每陣營 1 人＝大逃殺）。
  * 唯一寫入者 UICommandSystem（SET_BATTLE_SETUP）；下一次開局才生效，APPLY_BATTLE_SETUP 立即重開。

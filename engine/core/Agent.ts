@@ -4,6 +4,7 @@
 
 import { Skill, Hex, BodyTypeId, EffectSlots, SpecialVisualStatus, AgentView } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
+import type { AIMode } from "../../types";
 import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
 import { BTNode } from "../behaviorTree";
@@ -55,6 +56,10 @@ export class Agent {
     public targetHex: Hex | null = null;
     public _savedCombatTarget?: Agent | null = null;
     public aiState: AIState = AIState.IDLE;
+    /** 狀態拓樸目前的節點（null＝還沒開始）與進入時間；只由 ModeMachine 寫入 */
+    public aiMode: AIMode | null = null;
+    public aiModeSince: number = 0;
+    public aiModeTrace: { t: number; from: AIMode | null; to: AIMode; why: string }[] = [];
     public bt: BTNode | null = null;
     
     public aiUpdateTimer: number = 0;

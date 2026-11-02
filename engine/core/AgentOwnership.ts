@@ -119,6 +119,12 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '狀態域：CCManager 施加、ControlSystem 遞減控制類、EffectSystem 遞減持續傷害與治療。PhysicsEngine 失去地面時強加 0.1s STUN（既有行為）。',
     },
+    aiMode: {
+        group: 'ai',
+        kind: 'single',
+        owners: ['engine/ai/ModeMachine.ts'],
+        note: '狀態拓樸的目前節點：只由 ModeMachine 依 AI_MODE_GRAPH 的邊轉換，小樹不能改；重置時由 AgentLifecycle 清回 null。',
+    },
     aiState: {
         group: 'ai',
         kind: 'single',

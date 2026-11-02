@@ -40,6 +40,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "CanMove": (a) => a.effects.ROOT.remaining <= 0 && a.effects.STUN.remaining <= 0 && !a.banished && a.effects.FEAR.remaining <= 0,
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
+    "IsControlled": (a) => a.effects.STUN.remaining > 0 || a.effects.BANISH.remaining > 0 || a.effects.FEAR.remaining > 0,
+    "WantsRetreat": (a, engine, args) =>
+        BTConditions["IsInUrgentDanger"](a, engine, args) || BTConditions["IsEvading"](a, engine, args),
     
     "HasTarget": (a, engine) => {
         restoreCombatTarget(a, engine);
