@@ -5,7 +5,7 @@ import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup } from 
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { random } from '../engine/math/rng';
-import { querySpawnableHexes, layoutFactionHexes, HexCoord } from '../engine/systems/ui/editorQueries';
+import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, HexCoord } from '../engine/systems/ui/editorQueries';
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 
@@ -110,7 +110,7 @@ export const useGameApp = () => {
         for (let side = 0; side < setup.factions; side++) {
             const team = factionTeam(side);
             for (let i = 0; i < setup.unitsPerFaction; i++) {
-                plan.push({ side, team, role: SHOWCASE_ROLES[i % SHOWCASE_ROLES.length], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round) });
+                plan.push({ side, team, role: SHOWCASE_ROLES[factionRoleIndex(side, i, setup.unitsPerFaction, SHOWCASE_ROLES.length)], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round) });
             }
         }
         rosterRef.current = plan;

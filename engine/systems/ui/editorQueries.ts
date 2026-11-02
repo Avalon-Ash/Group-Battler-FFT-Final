@@ -117,6 +117,15 @@ export function querySpawnableHexes(engine: GameEngine): { q: number; r: number 
 export type HexCoord = { q: number; r: number };
 
 /**
+ * 開局陣容第 side 陣營第 i 人用第幾個職業：每陣營人數夠排滿一輪時各陣營自己從頭排（標準 5v5），
+ * 不夠時全場接續排，否則每陣營 1 人會全部是第一個職業。
+ */
+export function factionRoleIndex(side: number, i: number, unitsPerFaction: number, roleCount: number): number {
+    const index = unitsPerFaction >= roleCount ? i : side * unitsPerFaction + i;
+    return index % roleCount;
+}
+
+/**
  * 三個以上陣營的開局站位：最遠點取樣選各陣營據點（第一個取 hexes 的第一格，呼叫端先洗牌），
  * 陣營輪流取離自己據點最近的空格。回傳每個陣營的格子（格子不夠時後面的陣營會較少）。
  */
