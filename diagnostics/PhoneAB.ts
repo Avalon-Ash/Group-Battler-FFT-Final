@@ -1,24 +1,21 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  PhoneAB — 實機效能 A/B（渲染優化輪的臨時診斷，用完刪除） ║
-// ║  職責：手機開 ?perf&mute&phoneab，自動逐項關掉一種繪製或  ║
-// ║        DOM 效果，最後列出每項的幀時間。                  ║
+// ║  職責：手機開 ?perf&mute&phoneab，自動逐項改一種繪製方式， ║
+// ║        最後列出每項的幀時間。第三輪只拆貼地特效。        ║
 // ║  只在網址有 phoneab 時由 index.tsx 動態載入，平常不下載。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { GameEngine } from '../engine/game';
-import { RenderDispatcher } from '../engine/renderers/RenderDispatcher';
-import { RenderOpType, type RenderOp } from '../engine/renderers/RenderList';
 import { RenderStats } from '../engine/renderers/RenderStats';
 import { setPinnedTier, type QualityTier } from '../engine/renderers/RenderQuality';
 import { TerrainRenderer } from '../engine/renderers/grid/TerrainRenderer';
-import { GridOverlays } from '../engine/renderers/grid/GridOverlays';
 import { GroundDrapeLayer } from '../engine/renderers/GroundDrape';
+import { HexGeometry } from '../engine/graphics/utils/HexGeometry';
+import { ISO_SCALE_Y } from '../constants';
 import { SCENE_DB } from '../data/scenes';
-import { Role, Team, type UICommand } from '../types';
+import { Role, Team, type HexLayout, type UICommand } from '../types';
 
 const DEFAULT_SEGMENT_S = 14;
-const ATLAS_SIZE = 4096;
-const ATLAS_PAD = 2;
 const SETTLE_S = 1;
 const CAST_EVERY_S = 4;
 const IMMORTAL_HP = 999999;
@@ -28,152 +25,159 @@ const SLOW_FRAME_SHARE = 0.05;
 const FIXTURE_RADIUS = 4;
 const SETUP_WAIT_MS = 800;
 const ASSET_POLL_MS = 200;
+const REFRESH_EVERY_FRAMES = 3;
+const HALF_RES = 0.5;
 const ULT_PAIRS = [['mb_u1', 'rr_u2'], ['wb_u4', 'sb_u4'], ['tr_u4', 'mr_u4'], ['rb_u2', 'wr_u5']];
 
 interface Segment {
     id: string;
     label: string;
-    battle: boolean;
-    tier?: QualityTier;
-    skip?: 'block' | 'detail' | 'overlay' | 'drape';
-    atlas?: boolean;
-    bake?: boolean;
-    /** 每隔幾秒重烘一次：模擬鏡頭縮放、地塊塌落造成的重烘 */
-    bakeEveryS?: number;
-    /** 烘焙圖解析度倍率：模擬地圖比畫面大的世界座標圖層 */
-    bakeScale?: number;
-    director?: boolean;
+    noDrape?: boolean;
+    noClip?: boolean;
+    rectClip?: boolean;
+    path2dClip?: boolean;
+    noBlend?: boolean;
+    refreshEvery?: number;
+    offscreenScale?: number;
+    noBlit?: boolean;
+    noPlanes?: boolean;
 }
 
 const SEGMENTS: Segment[] = [
-    { id: 'base', label: '現況', battle: true },
-    { id: 'no_block', label: '不貼地塊圖', battle: true, skip: 'block' },
-    { id: 'no_detail', label: '不畫地表細節', battle: true, skip: 'detail' },
-    { id: 'no_overlay', label: '不畫疊層', battle: true, skip: 'overlay' },
-    { id: 'no_drape', label: '不畫貼地特效', battle: true, skip: 'drape' },
-    { id: 'atlas', label: '地塊共用大圖', battle: true, atlas: true },
-    { id: 'bake', label: '整片烘成一張', battle: true, bake: true },
-    { id: 'bake_tier1', label: '一張＋解析度×2', battle: true, bake: true, tier: 1 },
-    { id: 'bake_big', label: '一張＋大圖×2', battle: true, bake: true, bakeScale: 2 },
-    { id: 'bake_often', label: '一張＋每秒重烘', battle: true, bake: true, bakeEveryS: 1 },
-    { id: 'director', label: '現況＋導播鏡頭', battle: true, director: true },
-    { id: 'base2', label: '現況（再一次）', battle: true },
+    { id: 'base', label: '現況' },
+    { id: 'no_drape', label: '不畫貼地特效', noDrape: true },
+    { id: 'no_clip', label: '不裁切', noClip: true },
+    { id: 'rect_clip', label: '改矩形裁切', rectClip: true },
+    { id: 'path2d', label: '裁切用 Path2D', path2dClip: true },
+    { id: 'no_blend', label: '不用 screen 混色', noBlend: true },
+    { id: 'every3', label: '離屏每 3 幀更新', refreshEvery: REFRESH_EVERY_FRAMES },
+    { id: 'half_res', label: '離屏半解析度', offscreenScale: HALF_RES },
+    { id: 'no_blit', label: '只畫離屏不貼回', noBlit: true },
+    { id: 'no_planes', label: '不畫詠唱環', noPlanes: true },
+    { id: 'base2', label: '現況（再一次）' },
 ];
 
-interface Row { label: string; fps: number; low: number; ms: number; js: number; miss: number; }
+interface Row { label: string; fps: number; low: number; ms: number; js: number; clips: number; blits: number; offMp: number; entries: number; }
 
 let active: Segment = SEGMENTS[0];
+let frame = 0;
+let mainCtx: CanvasRenderingContext2D | null = null;
+let hexArgs: { x: number; y: number; r: number; layout: HexLayout } | null = null;
+const hexPaths = new Map<string, Path2D>();
+const counters = { clips: 0, blits: 0, offPixels: 0, frames: 0 };
 
-// 測「來源畫布切換」的成本：地塊 sprite 複製到同一張大圖再貼
-const atlasCanvas = document.createElement('canvas');
-atlasCanvas.width = ATLAS_SIZE;
-atlasCanvas.height = ATLAS_SIZE;
-const atlasCtx = atlasCanvas.getContext('2d');
-const atlasSlots = new WeakMap<HTMLCanvasElement, { x: number; y: number }>();
-let shelfX = 0;
-let shelfY = 0;
-let shelfH = 0;
-
-function atlasSlot(source: HTMLCanvasElement): { x: number; y: number } | null {
-    const hit = atlasSlots.get(source);
-    if (hit) return hit;
-    if (!atlasCtx) return null;
-    if (shelfX + source.width + ATLAS_PAD > ATLAS_SIZE) { shelfX = 0; shelfY += shelfH + ATLAS_PAD; shelfH = 0; }
-    if (shelfY + source.height > ATLAS_SIZE) return null;
-    const slot = { x: shelfX, y: shelfY };
-    inBlock = false; // 複製進大圖這次不經過大圖替換
-    atlasCtx.drawImage(source, slot.x, slot.y);
-    inBlock = true;
-    atlasSlots.set(source, slot);
-    shelfX += source.width + ATLAS_PAD;
-    shelfH = Math.max(shelfH, source.height);
-    return slot;
+interface DrapeEntryView { drawnW: number; drawnH: number; drawnStamp: number; }
+interface DrapeInternals {
+    ensureRendered(ctx: CanvasRenderingContext2D, e: DrapeEntryView, layout: HexLayout, battleTime: number): boolean;
+    drawPlaneOnTile(...args: unknown[]): void;
+    stamp: number;
+    size: number;
 }
-
-let inBlock = false;
-let bakeCanvas: HTMLCanvasElement | null = null;
-let bakeCtx: CanvasRenderingContext2D | null = null;
-let bakeFramesLeft = 0;
-let firstBlockOfFrame = false;
-let lastBakeS = 0;
 
 function installGates(): void {
     const beginFrame = TerrainRenderer.beginFrame;
     TerrainRenderer.beginFrame = function (transitioning: boolean) {
-        firstBlockOfFrame = true;
-        if (bakeFramesLeft > 0) bakeFramesLeft--;
-        const now = performance.now() / 1000;
-        if (active.bakeEveryS && now - lastBakeS >= active.bakeEveryS) {
-            lastBakeS = now;
-            bakeFramesLeft = 1;
-        }
+        frame++;
+        counters.frames++;
         beginFrame.call(TerrainRenderer, transitioning);
     };
 
-    const drawBlock = TerrainRenderer.drawBlock;
-    TerrainRenderer.drawBlock = function (ctx, ...rest) {
-        if (active.skip === 'block') return;
-        if (active.bake) {
-            const scale = active.bakeScale ?? 1;
-            if (!bakeCanvas || bakeCanvas.width !== ctx.canvas.width * scale || bakeCanvas.height !== ctx.canvas.height * scale) {
-                bakeCanvas = document.createElement('canvas');
-                bakeCanvas.width = ctx.canvas.width * scale;
-                bakeCanvas.height = ctx.canvas.height * scale;
-                bakeCtx = bakeCanvas.getContext('2d');
-                bakeFramesLeft = 2;
-            }
-            if (bakeFramesLeft > 0 && bakeCtx) {
-                if (firstBlockOfFrame) { bakeCtx.setTransform(1, 0, 0, 1, 0, 0); bakeCtx.clearRect(0, 0, bakeCanvas.width, bakeCanvas.height); firstBlockOfFrame = false; }
+    const proto = GroundDrapeLayer.prototype as unknown as DrapeInternals;
+    const drawOnTile = GroundDrapeLayer.prototype.drawOnTile;
+    GroundDrapeLayer.prototype.drawOnTile = function (ctx, ...rest) {
+        if (active.noDrape) return;
+        mainCtx = ctx;
+        drawOnTile.call(this, ctx, ...rest);
+        mainCtx = null;
+    };
+
+    const ensureRendered = proto.ensureRendered;
+    proto.ensureRendered = function (this: DrapeInternals, ctx, e, layout, battleTime) {
+        if (e.drawnStamp !== this.stamp && active.refreshEvery && frame % active.refreshEvery !== 0 && e.drawnW > 0) {
+            e.drawnStamp = this.stamp;
+            return true;
+        }
+        const fresh = e.drawnStamp !== this.stamp;
+        const keepMain = mainCtx;
+        mainCtx = null; // 畫離屏這段不算主畫布
+        const scale = active.offscreenScale ?? 1;
+        const target = scale === 1 ? ctx : ({
+            getTransform: () => {
                 const t = ctx.getTransform();
-                bakeCtx.setTransform(t.a * scale, t.b * scale, t.c * scale, t.d * scale, t.e * scale, t.f * scale);
-                drawBlock.call(TerrainRenderer, bakeCtx, ...rest);
-                drawBlock.call(TerrainRenderer, ctx, ...rest);
-                return;
-            }
-            if (firstBlockOfFrame) {
-                firstBlockOfFrame = false;
-                ctx.save();
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.drawImage(bakeCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
-                ctx.restore();
-            }
+                return { a: t.a * scale, b: t.b * scale };
+            },
+        } as unknown as CanvasRenderingContext2D);
+        const result = ensureRendered.call(this, target, e, layout, battleTime);
+        mainCtx = keepMain;
+        if (fresh) counters.offPixels += e.drawnW * e.drawnH;
+        return result;
+    };
+
+    const drawPlane = proto.drawPlaneOnTile;
+    proto.drawPlaneOnTile = function (this: DrapeInternals, ...args: unknown[]) {
+        if (!active.noPlanes) drawPlane.apply(this, args);
+    };
+
+    const traceHex = HexGeometry.traceHex;
+    HexGeometry.traceHex = function (ctx, x, y, radius, applyIso, layout) {
+        if (mainCtx && ctx === mainCtx && layout && (active.rectClip || active.path2dClip || active.noClip)) {
+            hexArgs = { x, y, r: radius, layout };
             return;
         }
-        inBlock = true;
-        drawBlock.call(TerrainRenderer, ctx, ...rest);
-        inBlock = false;
+        traceHex.call(HexGeometry, ctx, x, y, radius, applyIso, layout);
     };
 
-    const drawDetail = TerrainRenderer.drawTerrainDetail;
-    TerrainRenderer.drawTerrainDetail = function (...args) {
-        if (active.skip !== 'detail') drawDetail.apply(TerrainRenderer, args);
-    };
-
-    const drawOverlays = GridOverlays.drawOverlays;
-    GridOverlays.drawOverlays = function (...args) {
-        if (active.skip !== 'overlay') drawOverlays.apply(GridOverlays, args);
-    };
-
-    const drawOnTile = GroundDrapeLayer.prototype.drawOnTile;
-    GroundDrapeLayer.prototype.drawOnTile = function (...args) {
-        if (active.skip !== 'drape') drawOnTile.apply(this, args);
-    };
-
-    const proto = CanvasRenderingContext2D.prototype;
-    const drawImage = proto.drawImage as (this: CanvasRenderingContext2D, ...args: unknown[]) => void;
-    proto.drawImage = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
-        const source = args[0];
-        if (active.atlas && inBlock && source instanceof HTMLCanvasElement && args.length <= 5) {
-            const slot = atlasSlot(source);
-            if (slot) {
-                const w = args.length === 5 ? args[3] : source.width;
-                const h = args.length === 5 ? args[4] : source.height;
-                drawImage.call(this, atlasCanvas, slot.x, slot.y, source.width, source.height, args[1], args[2], w, h);
+    const ctxProto = CanvasRenderingContext2D.prototype;
+    const clip = ctxProto.clip as (this: CanvasRenderingContext2D, ...args: unknown[]) => void;
+    ctxProto.clip = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
+        if (this === mainCtx) {
+            counters.clips++;
+            const hex = hexArgs;
+            hexArgs = null;
+            if (active.noClip) return;
+            if (hex && active.rectClip) {
+                this.beginPath();
+                this.rect(hex.x - hex.r, hex.y - hex.r * ISO_SCALE_Y, hex.r * 2, hex.r * 2 * ISO_SCALE_Y);
+                clip.call(this);
+                return;
+            }
+            if (hex && active.path2dClip) {
+                const key = `${hex.r}:${hex.layout}`;
+                let path = hexPaths.get(key);
+                if (!path) {
+                    path = new Path2D();
+                    HexGeometry.getVertices(hex.r, true, hex.layout).forEach((v, i) => (i === 0 ? path!.moveTo(v.x, v.y) : path!.lineTo(v.x, v.y)));
+                    path.closePath();
+                    hexPaths.set(key, path);
+                }
+                this.translate(hex.x, hex.y);
+                clip.call(this, path);
+                this.translate(-hex.x, -hex.y);
                 return;
             }
         }
+        clip.apply(this, args);
+    } as typeof ctxProto.clip;
+
+    const gco = Object.getOwnPropertyDescriptor(ctxProto, 'globalCompositeOperation');
+    if (gco?.set && gco.get) {
+        const set = gco.set;
+        Object.defineProperty(ctxProto, 'globalCompositeOperation', {
+            get: gco.get,
+            set(this: CanvasRenderingContext2D, value: GlobalCompositeOperation) {
+                if (!(active.noBlend && this === mainCtx)) set.call(this, value);
+            },
+        });
+    }
+
+    const drawImage = ctxProto.drawImage as (this: CanvasRenderingContext2D, ...args: unknown[]) => void;
+    ctxProto.drawImage = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
+        if (this === mainCtx) {
+            counters.blits++;
+            if (active.noBlit) return;
+        }
         drawImage.apply(this, args);
-    } as typeof proto.drawImage;
+    } as typeof ctxProto.drawImage;
 }
 
 function setUpBattle(e: GameEngine): void {
@@ -218,31 +222,43 @@ function runSegment(e: GameEngine, seconds: number): Promise<Row> {
     return new Promise((resolve) => {
         const frames: number[] = [];
         const js: number[] = [];
+        const entries: number[] = [];
         const start = performance.now();
-        const missStart = TerrainRenderer.store.getStats().misses;
+        const drape = (e.renderer as unknown as { pipeline?: { groundDrape?: DrapeInternals } }).pipeline?.groundDrape;
         let last: number | null = null;
         let nextCast = 0;
         let pair = 0;
+        let counting = false;
         const loop = (now: number) => {
             const elapsed = (now - start) / 1000;
             if (last !== null && elapsed > SETTLE_S) {
+                if (!counting) {
+                    counting = true;
+                    counters.clips = 0;
+                    counters.blits = 0;
+                    counters.offPixels = 0;
+                    counters.frames = 0;
+                }
                 frames.push(now - last);
                 js.push(RenderStats.getJsTotalMs());
+                entries.push(drape?.size ?? 0);
             }
             last = now;
-            if (active.battle) {
-                for (const a of e.agents) if (a.hp > 0 && a.hp < HEAL_BELOW_HP) a.hp = IMMORTAL_HP;
-                if (elapsed >= nextCast) {
-                    castPair(e, ULT_PAIRS[pair++ % ULT_PAIRS.length]);
-                    nextCast += CAST_EVERY_S;
-                }
+            for (const a of e.agents) if (a.hp > 0 && a.hp < HEAL_BELOW_HP) a.hp = IMMORTAL_HP;
+            if (elapsed >= nextCast) {
+                castPair(e, ULT_PAIRS[pair++ % ULT_PAIRS.length]);
+                nextCast += CAST_EVERY_S;
             }
             if (elapsed >= seconds) {
                 const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / Math.max(1, values.length);
                 const sorted = [...frames].sort((x, y) => x - y);
                 const slow = sorted.slice(-Math.max(1, Math.ceil(sorted.length * SLOW_FRAME_SHARE)));
                 const ms = mean(frames);
-                resolve({ label: active.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js), miss: TerrainRenderer.store.getStats().misses - missStart });
+                const n = Math.max(1, counters.frames);
+                resolve({
+                    label: active.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js),
+                    clips: counters.clips / n, blits: counters.blits / n, offMp: counters.offPixels / n / 1e6, entries: mean(entries),
+                });
                 return;
             }
             requestAnimationFrame(loop);
@@ -253,7 +269,7 @@ function runSegment(e: GameEngine, seconds: number): Promise<Row> {
 
 function panel(): HTMLDivElement {
     const el = document.createElement('div');
-    el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#000;color:#fff;font:13px/1.5 monospace;padding:8px;white-space:pre';
+    el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#000;color:#fff;font:12px/1.5 monospace;padding:8px;white-space:pre';
     document.body.appendChild(el);
     return el;
 }
@@ -274,23 +290,17 @@ export async function runPhoneAB(): Promise<void> {
 
     installGates();
     const status = panel();
+    document.querySelector<HTMLElement>('[data-testid="showcase-enter-btn"]')?.click();
+    await wait(SETUP_WAIT_MS);
+    setUpBattle(e);
+    setPinnedTier(BASE_TIER);
     const rows: Row[] = [];
-    let inBattle = false;
     for (let i = 0; i < SEGMENTS.length; i++) {
         active = SEGMENTS[i];
-        status.textContent = `A/B 量測中 ${i + 1}/${SEGMENTS.length}：${active.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
-        if (active.battle && !inBattle) {
-            document.querySelector<HTMLElement>('[data-testid="showcase-enter-btn"]')?.click();
-            await wait(SETUP_WAIT_MS);
-            setUpBattle(e);
-            inBattle = true;
-        }
-        e.bus.emit('UI_COMMAND', { type: 'SET_DIRECTOR_ENABLED', enabled: !!active.director });
-        bakeCanvas = null;
-        setPinnedTier(active.tier ?? BASE_TIER);
+        status.textContent = `第三輪量測中 ${i + 1}/${SEGMENTS.length}：${active.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
         rows.push(await runSegment(e, seconds));
     }
     setPinnedTier(null);
-    const lines = rows.map((r) => `${r.label.padEnd(12, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(6)} ${r.js.toFixed(1).padStart(5)} ${String(r.miss).padStart(4)}`);
-    status.textContent = ['跑完了，請截圖這張表', `${'項目'.padEnd(12, '　')}   FPS   低5% 每幀ms  JSms 重烘`, ...lines, `${navigator.userAgent.slice(0, 60)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight}`].join('\n');
+    const lines = rows.map((r) => `${r.label.padEnd(10, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(5)} ${r.clips.toFixed(0).padStart(4)} ${r.blits.toFixed(0).padStart(4)} ${r.offMp.toFixed(1).padStart(4)}`);
+    status.textContent = ['第三輪跑完了，請截圖這張表', `${'項目'.padEnd(10, '　')}   FPS  低5%  每幀 裁切 貼回 離屏MP`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight} 特效數 ${rows[0].entries.toFixed(1)}`].join('\n');
 }
