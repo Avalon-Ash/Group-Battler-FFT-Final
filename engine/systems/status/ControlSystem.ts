@@ -4,7 +4,7 @@ import { Agent, GameEngine } from "../../game";
 import { HexUtils } from "../../utils";
 import { random } from "../../math/rng";
 import { stopMovement } from "../movement/MotionCommands";
-import { EFFECT_KINDS } from "../../core/Effects";
+import { EFFECT_KINDS, isIncapacitated } from "../../core/Effects";
 import { DR_CATEGORY_KINDS } from "../../../data/status/effect_defs";
 import type { DRCategory } from "../../../data/status/effect_defs";
 
@@ -97,7 +97,7 @@ export class ControlSystem {
         }
 
         // State Logic: Root and Fear combined
-        if (agent.effects.ROOT.remaining > 0 || agent.effects.STUN.remaining > 0) {
+        if (agent.effects.ROOT.remaining > 0 || isIncapacitated(agent)) {
             if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
         }
 

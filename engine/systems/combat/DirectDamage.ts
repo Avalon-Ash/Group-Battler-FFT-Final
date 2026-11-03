@@ -29,6 +29,8 @@ export function absorbWithShield(agent: Agent, amount: number): number {
  * bypassShield = true 為真實傷害（例：墜落傷害；技能傷害的護盾已在 DamageCalculator 扣過）。
  */
 export function applyDirectDamage(agent: Agent, amount: number, bypassShield: boolean = false, sourceId: string | null = null, channel: DamageChannel = 'DIRECT'): DirectDamageResult {
+    // 無敵擋持續傷害、危害區和撞擊；真實傷害（墜落、反噬、已結算的技能傷害）照扣
+    if (!bypassShield && agent.effects.INVINCIBLE.remaining > 0) return { absorbed: 0, dealt: 0, channel };
     const absorbed = bypassShield ? 0 : absorbWithShield(agent, amount);
     const remaining = amount - absorbed;
 

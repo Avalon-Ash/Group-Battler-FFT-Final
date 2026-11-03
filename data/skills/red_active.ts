@@ -210,7 +210,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 6, cast: 0.5, cd: 9.0, cost: 0, gain: 40, 
         type: 'SINGLE', power: -500, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
         effectType: 'SELF_DAMAGE', effectVal: 140,
-        ccForce: 10, ccDur: 2.5,
+        ccType: 'HOT', ccForce: 10, ccDur: 2.5,
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     }
 ];
