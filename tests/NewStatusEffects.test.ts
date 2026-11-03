@@ -20,6 +20,7 @@ import { applyDirectDamage } from '../engine/systems/combat/DirectDamage';
 import { DamageCalculator } from '../engine/systems/combat/DamageCalculator';
 import { setRandomSource, resetRandomSource } from '../engine/math/rng';
 import { COMBAT_PARAM } from '../constants';
+import { flatSkill } from './helpers/flatSkill';
 
 const HP = 500;
 
@@ -191,7 +192,7 @@ describe('New Status Effects (SK2)', () => {
             attacker.hp = 100; // 殘血以便吸收回復
 
             // 技能自帶 30% VAMP
-            const vampSkill: Skill = {
+            const vampSkill: Skill = flatSkill<Skill>({
                 id: 'test_vamp_skill',
                 name: '吸血打擊',
                 tag: 'ACTIVE',
@@ -207,7 +208,7 @@ describe('New Status Effects (SK2)', () => {
                 element: 'PHYSICAL',
                 effectType: 'VAMP',
                 effectVal: 0.3,
-            };
+            });
 
             // 攻擊者擁有 25% LIFESTEAL 增益
             CCManager.applyCC(attacker, attacker, {} as Skill, 'LIFESTEAL', 4.0, 25, undefined, engine);

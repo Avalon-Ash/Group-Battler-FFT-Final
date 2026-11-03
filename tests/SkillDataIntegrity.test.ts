@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import type { Skill } from '../types';
+import { readFlatFields } from '../data/skills/flatView';
 
 export interface SkillWithCcSelf extends Skill {
     ccSelf?: boolean;
@@ -65,11 +66,11 @@ export function collectSkillIntegrityViolations(skills: readonly Skill[] = DEFAU
     const violations: IntegrityViolation[] = [];
 
     for (const raw of skills) {
-        const s = raw as SkillWithCcSelf;
+        const flat = readFlatFields(raw);
 
         const ccSlots = [
-            { type: s.ccType, dur: s.ccDur, force: s.ccForce, self: s.ccSelf, slot: 'cc' },
-            { type: s.ccType2, dur: s.ccDur2, force: s.ccForce2, self: s.ccSelf2, slot: 'cc2' },
+            { type: flat.ccType, dur: flat.ccDur, force: flat.ccForce, self: flat.ccSelf, slot: 'cc' },
+            { type: flat.ccType2, dur: flat.ccDur2, force: flat.ccForce2, self: flat.ccSelf2, slot: 'cc2' },
         ];
 
         for (const c of ccSlots) {
@@ -77,96 +78,96 @@ export function collectSkillIntegrityViolations(skills: readonly Skill[] = DEFAU
 
             if (DUR_CC.has(c.type) && !(c.dur !== undefined && c.dur > 0)) {
                 violations.push({
-                    id: s.id,
+                    id: raw.id,
                     rule: 'CC_NO_DURATION',
-                    sig: `${s.id}:CC_NO_DURATION:${c.slot}:${c.type}`,
-                    msg: `${s.id} (${c.slot}): ${c.type} requires ccDur > 0`,
+                    sig: `${raw.id}:CC_NO_DURATION:${c.slot}:${c.type}`,
+                    msg: `${raw.id} (${c.slot}): ${c.type} requires ccDur > 0`,
                 });
             }
 
             if (FORCE_CC.has(c.type) && !(c.force !== undefined && c.force > 0)) {
                 violations.push({
-                    id: s.id,
+                    id: raw.id,
                     rule: 'CC_NO_FORCE',
-                    sig: `${s.id}:CC_NO_FORCE:${c.slot}:${c.type}`,
-                    msg: `${s.id} (${c.slot}): ${c.type} requires ccForce > 0`,
+                    sig: `${raw.id}:CC_NO_FORCE:${c.slot}:${c.type}`,
+                    msg: `${raw.id} (${c.slot}): ${c.type} requires ccForce > 0`,
                 });
             }
 
             if (['HASTE', 'REFLECT', 'LIFESTEAL'].includes(c.type) && c.force !== undefined && c.force > 100) {
                 violations.push({
-                    id: s.id,
+                    id: raw.id,
                     rule: 'CC_FORCE_LIMIT_EXCEEDED',
-                    sig: `${s.id}:CC_FORCE_LIMIT_EXCEEDED:${c.slot}:${c.type}`,
-                    msg: `${s.id} (${c.slot}): ${c.type} force ${c.force} > 100`,
+                    sig: `${raw.id}:CC_FORCE_LIMIT_EXCEEDED:${c.slot}:${c.type}`,
+                    msg: `${raw.id} (${c.slot}): ${c.type} force ${c.force} > 100`,
                 });
             }
 
-            if (s.power > 0 && BUFF_CC.has(c.type) && !c.self) {
+            if (raw.power > 0 && BUFF_CC.has(c.type) && !c.self) {
                 violations.push({
-                    id: s.id,
+                    id: raw.id,
                     rule: 'DAMAGE_BUFF_NOT_SELF',
-                    sig: `${s.id}:DAMAGE_BUFF_NOT_SELF:${c.slot}:${c.type}`,
-                    msg: `${s.id} (${c.slot}): ${c.type} on damage skill (power ${s.power}) must have ccSelf=true`,
+                    sig: `${raw.id}:DAMAGE_BUFF_NOT_SELF:${c.slot}:${c.type}`,
+                    msg: `${raw.id} (${c.slot}): ${c.type} on damage skill (power ${raw.power}) must have ccSelf=true`,
                 });
             }
 
-            if (s.power < 0 && DEBUFF_CC.has(c.type)) {
+            if (raw.power < 0 && DEBUFF_CC.has(c.type)) {
                 violations.push({
-                    id: s.id,
+                    id: raw.id,
                     rule: 'HEAL_HAS_DEBUFF',
-                    sig: `${s.id}:HEAL_HAS_DEBUFF:${c.slot}:${c.type}`,
-                    msg: `${s.id} (${c.slot}): ${c.type} debuff on heal skill (power ${s.power})`,
+                    sig: `${raw.id}:HEAL_HAS_DEBUFF:${c.slot}:${c.type}`,
+                    msg: `${raw.id} (${c.slot}): ${c.type} debuff on heal skill (power ${raw.power})`,
                 });
             }
         }
 
-        if (s.effectType === 'VAMP' && !(s.power > 0)) {
+        if (flat.effectType === 'VAMP' && !(raw.power > 0)) {
             violations.push({
-                id: s.id,
+                id: raw.id,
                 rule: 'VAMP_NO_POWER',
-                sig: `${s.id}:VAMP_NO_POWER:fx1`,
-                msg: `${s.id}: VAMP on effectType requires power > 0, got ${s.power}`,
+                sig: `${raw.id}:VAMP_NO_POWER:fx1`,
+                msg: `${raw.id}: VAMP on effectType requires power > 0, got ${raw.power}`,
             });
         }
-        if (s.effectType2 === 'VAMP' && !(s.power > 0)) {
+        if (flat.effectType2 === 'VAMP' && !(raw.power > 0)) {
             violations.push({
-                id: s.id,
+                id: raw.id,
                 rule: 'VAMP_NO_POWER',
-                sig: `${s.id}:VAMP_NO_POWER:fx2`,
-                msg: `${s.id}: VAMP on effectType2 requires power > 0, got ${s.power}`,
+                sig: `${raw.id}:VAMP_NO_POWER:fx2`,
+                msg: `${raw.id}: VAMP on effectType2 requires power > 0, got ${raw.power}`,
             });
         }
 
-        if (s.type === 'AOE' && !(s.aoeRadius !== undefined && s.aoeRadius > 0)) {
+        if (raw.type === 'AOE' && !(raw.aoeRadius !== undefined && raw.aoeRadius > 0)) {
             violations.push({
-                id: s.id,
+                id: raw.id,
                 rule: 'AOE_NO_RADIUS',
-                sig: `${s.id}:AOE_NO_RADIUS`,
-                msg: `${s.id}: AOE skill requires aoeRadius > 0`,
+                sig: `${raw.id}:AOE_NO_RADIUS`,
+                msg: `${raw.id}: AOE skill requires aoeRadius > 0`,
             });
         }
 
-        if (!s.element) {
+        if (!raw.element) {
             violations.push({
-                id: s.id,
+                id: raw.id,
                 rule: 'NO_ELEMENT',
-                sig: `${s.id}:NO_ELEMENT`,
-                msg: `${s.id}: missing element`,
+                sig: `${raw.id}:NO_ELEMENT`,
+                msg: `${raw.id}: missing element`,
             });
         }
 
-        if (!s.desc || s.desc.trim().length === 0) {
+        if (!raw.desc || raw.desc.trim().length === 0) {
             violations.push({
-                id: s.id,
+                id: raw.id,
                 rule: 'NO_DESC',
-                sig: `${s.id}:NO_DESC`,
-                msg: `${s.id}: missing desc`,
+                sig: `${raw.id}:NO_DESC`,
+                msg: `${raw.id}: missing desc`,
             });
         }
 
-        const desc = s.desc ?? '';
-        const rawEffects: (string | undefined)[] = [s.ccType, s.ccType2, s.effectType, s.effectType2];
+        const desc = raw.desc ?? '';
+        const rawEffects: (string | undefined)[] = [flat.ccType, flat.ccType2, flat.effectType, flat.effectType2];
         const activeEffects = new Set<string>(
             rawEffects.filter((x): x is string => Boolean(x) && x !== 'NONE')
         );
@@ -175,10 +176,10 @@ export function collectSkillIntegrityViolations(skills: readonly Skill[] = DEFAU
                 const matched = effects.some((e) => activeEffects.has(e));
                 if (!matched) {
                     violations.push({
-                        id: s.id,
+                        id: raw.id,
                         rule: 'DESC_KEYWORD_MISMATCH',
-                        sig: `${s.id}:DESC_KEYWORD_MISMATCH:${kw}`,
-                        msg: `${s.id}: desc mentions '${kw}' but has none of [${effects.join(', ')}]`,
+                        sig: `${raw.id}:DESC_KEYWORD_MISMATCH:${kw}`,
+                        msg: `${raw.id}: desc mentions '${kw}' but has none of [${effects.join(', ')}]`,
                     });
                 }
             }

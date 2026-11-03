@@ -4,6 +4,7 @@ import { saveAgentState } from '../engine/core/AgentLifecycle';
 import { UNIT_DB } from '../data/units';
 import { ROYALE_RULES } from '../constants';
 import { Role, Team } from '../types';
+import { readFlatFields } from '../data/skills/flatView';
 
 describe('大逃殺開局規則', () => {
     let engine: GameEngine;
@@ -63,8 +64,8 @@ describe('大逃殺開局規則', () => {
             expect(active?.tag).toBe('ACTIVE');
             expect(basic?.role).toBe(Role.WARRIOR);
             for (const s of [ult, active]) {
-                expect(s?.effectType).not.toBe('SELF_DAMAGE');
-                expect(s?.effectType2).not.toBe('SELF_DAMAGE');
+                expect(readFlatFields(s!).effectType).not.toBe('SELF_DAMAGE');
+                expect(readFlatFields(s!).effectType2).not.toBe('SELF_DAMAGE');
             }
             engine.clear();
             engine = new GameEngine();

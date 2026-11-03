@@ -2,8 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { ACTIVE_VISUALS } from '../data/vfx/active_visuals';
 import { SKILL_SEQUENCES } from '../data/vfx/SkillSequences';
+import type { Skill } from '../types';
+import { readFlatFields } from '../data/skills/flatView';
 
-const isDash = (s: { effectType?: string; effectType2?: string }) => s.effectType === 'DASH' || s.effectType2 === 'DASH';
+const isDash = (s: Skill) => {
+    const flat = readFlatFields(s);
+    return flat.effectType === 'DASH' || flat.effectType2 === 'DASH';
+};
 
 describe('dash skill visuals', () => {
     const dashSkills = DEFAULT_SKILL_DB.filter(isDash);

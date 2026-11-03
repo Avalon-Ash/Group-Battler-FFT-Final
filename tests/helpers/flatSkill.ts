@@ -5,7 +5,7 @@ export type FlatSpec<T> = T & FlatSkillFields;
 
 export function flatSkill<T extends object>(spec: FlatSpec<T>): Omit<T, keyof FlatSkillFields> & SkillActionLists {
     const flat: FlatSkillFields = {};
-    const rest: Record<string, unknown> = { ...spec };
+    const rest = { ...spec } as Record<string, unknown>;
     for (const key of FLAT_SKILL_FIELDS) {
         if (key in rest) {
             Object.assign(flat, { [key]: rest[key] });

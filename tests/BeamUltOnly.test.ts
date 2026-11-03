@@ -12,6 +12,7 @@ import { BASIC_VISUALS } from '../data/vfx/basic_visuals';
 import { ACTIVE_VISUALS } from '../data/vfx/active_visuals';
 import { GameEngine } from '../engine/game';
 import { Role, Team, type GameEvent } from '../types';
+import { readFlatFields } from '../data/skills/flatView';
 
 describe('BeamUltOnly', () => {
     it('普攻與主動技只有突刺、衝刺可以畫光束', () => {
@@ -35,7 +36,7 @@ describe('BeamUltOnly', () => {
         const engine = new GameEngine();
         engine.map.obstacles.clear();
         engine.map.obstaclesHash.clear();
-        const friendly = skill.power < 0 || skill.ccType === 'SHIELD';
+        const friendly = skill.power < 0 || readFlatFields(skill).ccType === 'SHIELD';
         const casterTeam = skill.team === 1 ? Team.RED : Team.BLUE;
         const otherTeam = casterTeam === Team.RED ? Team.BLUE : Team.RED;
         engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: casterTeam, q: -2, r: 0, hp: 5000, role: Role.MAGE });

@@ -6,6 +6,8 @@ import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { Role, Skill, Team } from '../types';
 import type { MapConfig } from '../engine/utils';
+import { flatSkill } from './helpers/flatSkill';
+import type { FlatSkillFields } from '../data/skills/flatView';
 
 const MAP: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
 
@@ -16,8 +18,8 @@ function makeAgent(team: Team, role: Role = Role.WARRIOR): Agent {
     return a;
 }
 
-function makeSkill(overrides: Partial<Skill>): Skill {
-    return { ...DEFAULT_SKILL_DB[0], ccType: undefined, ccType2: undefined, effectType: undefined, effectType2: undefined, ...overrides };
+function makeSkill(overrides: Partial<Skill> & FlatSkillFields): Skill {
+    return flatSkill({ ...DEFAULT_SKILL_DB[0], onCast: undefined, onImpact: undefined, onHit: undefined, onEnd: undefined, intents: undefined, ...overrides });
 }
 
 describe('DamageCalculator.calculate (deterministic paths)', () => {

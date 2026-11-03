@@ -13,6 +13,7 @@ import { Team, Role } from '../types';
 import type { Skill } from '../types';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
 import { ProjectileSystem } from '../engine/systems/combat/ProjectileSystem';
+import { flatSkill } from './helpers/flatSkill';
 
 const HP = 200;
 
@@ -35,7 +36,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
         return a;
     }
 
-    const aoeShieldSkill: Skill = {
+    const aoeShieldSkill: Skill = flatSkill<Skill>({
         id: 'test_aoe_shield',
         name: '六稜護盾測試',
         tag: 'ACTIVE',
@@ -53,7 +54,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
         ccType: 'SHIELD',
         ccForce: 100,
         ccSelf: true,
-    };
+    });
 
     it('AOE 傷害技帶自我護盾打中 3 個敵人時，施法者只獲得 1 次護盾且敵方承受傷害', () => {
         const caster = spawn(Team.RED, 0, 0);
@@ -88,7 +89,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
         const e1 = spawn(Team.BLUE, 1, 0);
         const e2 = spawn(Team.BLUE, -1, 0);
 
-        const aoeTauntShieldSkill: Skill = {
+        const aoeTauntShieldSkill: Skill = flatSkill<Skill>({
             id: 'test_aoe_taunt_shield',
             name: '挑釁護盾測試',
             tag: 'ACTIVE',
@@ -108,7 +109,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
             ccType2: 'SHIELD',
             ccForce2: 150,
             ccSelf2: true,
-        };
+        });
 
         executor.executeInstantSkill(caster, aoeTauntShieldSkill, engine);
 
@@ -128,7 +129,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
         const target = spawn(Team.BLUE, 2, 0);
         caster.target = target;
 
-        const projSkill: Skill = {
+        const projSkill: Skill = flatSkill<Skill>({
             id: 'test_proj_shield',
             name: '投射物護盾測試',
             tag: 'ACTIVE',
@@ -146,7 +147,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
             ccType: 'SHIELD',
             ccForce: 80,
             ccSelf: true,
-        };
+        });
 
         const projSystem = new ProjectileSystem();
         projSystem.spawnProjectile(caster, projSkill, engine);
@@ -170,7 +171,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
         const enemy = spawn(Team.BLUE, 1, 0);
         caster.target = enemy;
 
-        const damageWithNoSelfBuff: Skill = {
+        const damageWithNoSelfBuff: Skill = flatSkill<Skill>({
             id: 'test_no_self_buff',
             name: '無自我標記傷害技',
             tag: 'BASIC',
@@ -187,7 +188,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
             ccType: 'SHIELD',
             ccForce: 100,
             // 故意不設 ccSelf: true
-        };
+        });
 
         executor.executeInstantSkill(caster, damageWithNoSelfBuff, engine);
 

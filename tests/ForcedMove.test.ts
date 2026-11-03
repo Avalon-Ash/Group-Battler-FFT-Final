@@ -10,6 +10,7 @@ import { CCManager } from '../engine/systems/combat/CCManager';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
 import { resolveForcedMove, planDashPath, computeImpactDamage } from '../engine/systems/combat/ForcedMove';
 import { canStepUp } from '../engine/math/ClimbRule';
+import { actionsFromFlat, readFlatFields } from '../data/skills/flatView';
 
 // 強制位移（擊退／拉扯／突進）遵守地形高度，撞牆吃撞擊傷害（Tactics Ogre 式）。
 // 一律沿 r = 0 這一排的 +q 方向推：q = -2 … 4。
@@ -189,7 +190,7 @@ describe('ForcedMove', () => {
         setHeight(1, 3);
         const caster = spawn(Team.RED, -2);
         const enemy = spawn(Team.BLUE, 3);
-        const dash: Skill = { ...skill, effectType: 'DASH', range: 6, power: 0, type: 'SINGLE' };
+        const dash: Skill = { ...skill, ...actionsFromFlat({ ...readFlatFields(skill), effectType: 'DASH' }, skill), range: 6, power: 0, type: 'SINGLE' };
         caster.target = enemy;
         caster.targetHex = { q: 3, r: 0 };
         new SkillExecutor().executeInstantSkill(caster, dash, engine);

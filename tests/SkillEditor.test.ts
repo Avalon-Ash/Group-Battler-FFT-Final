@@ -20,6 +20,7 @@ import {
     SKILL_CC_TYPE_OPTIONS,
     SKILL_EFFECT_TYPE_OPTIONS,
 } from '../data/ui/skillEditor';
+import { readFlatFields } from '../data/skills/flatView';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { GameEngine } from '../engine/game';
 import { Team, Skill } from '../types';
@@ -62,8 +63,8 @@ function restoreDbSnapshots(snapshots: SkillPropertySnapshot[]): void {
 }
 
 describe('SkillEditor Field Validation Rules', () => {
-    it('covers all 31 editable fields', () => {
-        expect(SKILL_EDITABLE_FIELDS.length).toBe(31);
+    it('covers all 33 editable fields', () => {
+        expect(SKILL_EDITABLE_FIELDS.length).toBe(33);
         for (const f of SKILL_EDITABLE_FIELDS) {
             expect(isSkillEditableField(f)).toBe(true);
         }
@@ -464,16 +465,16 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
 
     it('rejects invalid enum values (GRAVITY, DANGER)', () => {
         const skill = engine.skillDB.find(s => s.id === 'mb_u1')!;
-        const origCc = skill.ccType;
+        const origCc = readFlatFields(skill).ccType;
         const origVisual = skill.specialVisualStatus;
 
         engine.bus.emit('UI_COMMAND', {
             type: 'UPDATE_SKILL',
             skillId: 'mb_u1',
-            field: 'ccType',
+            field: 'ccType' as keyof Skill,
             value: 'GRAVITY',
         });
-        expect(skill.ccType).toBe(origCc);
+        expect(readFlatFields(skill).ccType).toBe(origCc);
 
         engine.bus.emit('UI_COMMAND', {
             type: 'UPDATE_SKILL',
@@ -486,14 +487,14 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
 
     it('rejects string ccSelf', () => {
         const skill = engine.skillDB.find(s => s.id === 'mb_u1')!;
-        const origSelf = skill.ccSelf;
+        const origSelf = readFlatFields(skill).ccSelf;
         engine.bus.emit('UI_COMMAND', {
             type: 'UPDATE_SKILL',
             skillId: 'mb_u1',
-            field: 'ccSelf',
+            field: 'ccSelf' as keyof Skill,
             value: 'false',
         });
-        expect(skill.ccSelf).toBe(origSelf);
+        expect(readFlatFields(skill).ccSelf).toBe(origSelf);
     });
 
     it('rejects undefined on required fields but accepts on optional fields', () => {

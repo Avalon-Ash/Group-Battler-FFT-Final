@@ -8,6 +8,8 @@ import { BLOCK_HEIGHT, MAX_TERRAIN_TIER, PHYSICS, AFTERIMAGE } from '../constant
 import { dashTo, lungeToward } from '../engine/systems/movement/MotionCommands';
 import { VisualMath } from '../engine/math/VisualMath';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
+import { flatSkill } from './helpers/flatSkill';
+import type { FlatSkillFields } from '../data/skills/flatView';
 
 const HP = 200;
 
@@ -222,7 +224,7 @@ describe('DashMotion (DM2)', () => {
     });
 
     describe('Melee Lunge (DM3)', () => {
-        const makeSkill = (overrides: Partial<Skill> = {}): Skill => ({
+        const makeSkill = (overrides: Partial<Skill> & FlatSkillFields = {}): Skill => flatSkill<Skill>({
             id: 'test_skill',
             name: 'Test Skill',
             desc: 'Test',

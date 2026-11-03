@@ -7,16 +7,18 @@ import { Team, Role } from '../types';
 import type { Skill } from '../types';
 import type { Agent } from '../engine/core/Agent';
 import { CCManager } from '../engine/systems/combat/CCManager';
+import { flatSkill } from './helpers/flatSkill';
+import type { FlatSkillFields } from '../data/skills/flatView';
 
 const TICK = 0.05;
 const TICKS = 6;
 
-function ccSkill(overrides: Partial<Skill>): Skill {
-    return {
+function ccSkill(overrides: Partial<Skill> & FlatSkillFields): Skill {
+    return flatSkill<Skill>({
         id: 'TEST_CC', tag: 'ACTIVE', role: Role.MAGE, name: 'test', range: 9, cast: 0, cd: 0,
         cost: 0, gain: 0, type: 'SINGLE', power: 0, color: '#ffffff',
         ...overrides,
-    };
+    });
 }
 
 describe('visualStatus ownership (P1a)', () => {
