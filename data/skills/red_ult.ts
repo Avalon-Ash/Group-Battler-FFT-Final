@@ -59,7 +59,6 @@ export const RED_ULT: Skill[] = [
         type: 'SINGLE', power: 1000, color: '#ea580c',
         visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_RED_RAGNAROK_ERUPTION', element: 'FIRE',
-        onImpact: [{ action: 'HAZARD', kind: 'FIRE', duration: 5 }],
     },
     {
         id: 'wr_u2', role: Role.WARRIOR, team: Team.RED, tag: 'ULT',
@@ -110,7 +109,7 @@ export const RED_ULT: Skill[] = [
         type: 'SINGLE', power: 1000, color: '#000000',
         visual: 'BOLT', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_RED_RAILGUN', element: 'FIRE',
-        onImpact: [{ action: 'HAZARD', kind: 'FIRE', duration: 5 }],
+        targetPreference: 'HIGHEST_HP',
         onHit: [{ action: 'EXECUTE', value: 2.2 }, { action: 'PIERCE', value: 1 }],
     },
     {
@@ -142,7 +141,8 @@ export const RED_ULT: Skill[] = [
         range: 10, cast: 1.5, cd: 5.0, cost: 75, gain: 0,
         type: 'SINGLE', power: 1800, color: '#7f1d1d',
         visual: 'BOLT', projectileSpeed: 0,
-        visualHitEffect: 'FX_ULT_RED_HEADHUNTER', element: 'BLOOD'
+        visualHitEffect: 'FX_ULT_RED_HEADHUNTER', element: 'BLOOD',
+        targetPreference: 'HIGHEST_HP',
     },
     {
         id: 'rr_u5', role: Role.RANGER, team: Team.RED, tag: 'ULT',
@@ -174,7 +174,8 @@ export const RED_ULT: Skill[] = [
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
         type: 'SINGLE', power: 1350, color: '#be123c',
         visual: 'BEAM', projectileSpeed: 0,
-        visualHitEffect: 'FX_ULT_RED_DEATH_FINGER', element: 'BLOOD'
+        visualHitEffect: 'FX_ULT_RED_DEATH_FINGER', element: 'BLOOD',
+        targetPreference: 'HIGHEST_HP',
     },
     {
         id: 'mr_u3', role: Role.MAGE, team: Team.RED, tag: 'ULT',
@@ -183,7 +184,7 @@ export const RED_ULT: Skill[] = [
         type: 'SINGLE', power: 900, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
         specialVisualStatus: 'STASIS',
         visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID',
-        onImpact: [{ action: 'HAZARD', kind: 'GRAVITY', duration: 3 }],
+        targetPreference: 'HIGHEST_HP',
         onHit: [{ action: 'STATUS', status: 'BANISH', duration: 3 }],
     },
     {
@@ -234,7 +235,6 @@ export const RED_ULT: Skill[] = [
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
         type: 'SINGLE', power: 0, color: '#c084fc', visual: 'BEAM', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID',
-        onImpact: [{ action: 'HAZARD', kind: 'GRAVITY', duration: 5 }],
         onHit: [{ action: 'STATUS', status: 'BANISH', duration: 5 }],
     },
     {

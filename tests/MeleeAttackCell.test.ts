@@ -48,6 +48,8 @@ describe('MeleeAttackCell', () => {
         const a = mk(Team.BLUE, -3, 0, Role.WARRIOR);
         const e = mk(Team.RED, 0, 0, Role.WARRIOR);
         a.jump = 1;
+        a.skillIds = a.skillIds.slice(0, 3); // 沒有機動技：這裡驗的是走到同層攻擊格
+        a.skills = a.skills.slice(0, 3);
         // 高台比跳躍力高一層，低處的鄰格打不到；只有 (2,0) 這條坡走得上去
         const ledge = [{ q: 0, r: 0 }, { q: 1, r: 0 }, { q: 1, r: -1 }];
         for (const h of ledge) engine.map.setHeight(HexUtils.key(h), 2 * BLOCK_HEIGHT);

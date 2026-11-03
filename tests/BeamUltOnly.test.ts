@@ -18,7 +18,7 @@ describe('BeamUltOnly', () => {
     it('普攻與主動技只有突刺、衝刺可以畫光束', () => {
         const offenders: string[] = [];
         for (const skill of DEFAULT_SKILL_DB) {
-            if (skill.tag !== 'BASIC' && skill.tag !== 'ACTIVE') continue;
+            if (skill.tag === 'ULT') continue;
             const beams = (SKILL_SEQUENCES[skill.id]?.actions ?? []).filter((a) => a.type === 'BEAM');
             if (beams.length === 0) continue;
             const archetype = skill.tag === 'BASIC' ? BASIC_VISUALS[skill.id]?.archetype : ACTIVE_VISUALS[skill.id]?.archetype;
@@ -29,7 +29,7 @@ describe('BeamUltOnly', () => {
     });
 
     // 原本是雷射的 12 招改成真投射物：出手時發射、抵達後才結算；治療與護盾打在友軍身上
-    const CONVERTED = ['rb_b3', 'mb_b2', 'mb_b5', 'sb_b1', 'sb_b3', 'sb_b5', 'mr_b2', 'sr_b1', 'sr_b4', 'tb_a4', 'mb_a2', 'sr_a1'];
+    const CONVERTED = ['rb_b3', 'mb_b2', 'mb_b5', 'sb_b1', 'sb_b3', 'sb_b5', 'mr_b2', 'sr_b1', 'sr_b4', 'tb_m1', 'mb_a2', 'sr_a1'];
     it.each(CONVERTED)('%s：真實引擎中先 PROJECTILE_SPAWN，PROJECTILE_HIT 時才對目標結算', (id) => {
         const skill = DEFAULT_SKILL_DB.find((s) => s.id === id)!;
         expect(skill.projectileSpeed ?? 0).toBeGreaterThan(0);

@@ -433,7 +433,7 @@ describe('機動槽：AI 照技能宣告的條件施放', () => {
     });
 
     it('突進：目標在射程內才放，放完貼身', () => {
-        const r = scene(gap, 4);
+        const r = scene(gap, 3);
         expect(r.casts).toBeGreaterThan(0);
         expect(HexUtils.dist(r.unit, r.enemy)).toBe(1);
     });
@@ -556,12 +556,12 @@ describe('補位與調整的技能資料', () => {
     });
     it.each([
         ['wb_a2', { range: 1, power: 175, onHit: [st('VULNERABLE', 4), st('SLOW', 2.5, 0.4)] }],
-        ['wb_a5', { hits: { count: 3, interval: 0.1 }, onHit: [{ action: 'MANA_BURN', value: 35 }] }],
+        ['wb_a5', { onHit: [{ action: 'MANA_BURN', value: 35 }] }],
         ['wr_a3', { range: 0, type: 'AOE', aoeRadius: 2, onHit: [{ action: 'VAMP', value: 0.5 }, st('VULNERABLE', 3.5)] }],
         ['tb_a1', { range: 0, type: 'SINGLE', power: 0, onEnd: [st('SHIELD', undefined, 450), st('HASTE', 3.5, 35)] }],
         ['tb_a4', { range: 0, type: 'AOE', aoeRadius: 2, onHit: [st('BLIND', 2.5), st('SLOW', 3, 0.5)] }],
         ['tr_a1', { range: 0, type: 'AOE', aoeRadius: 2, onHit: [st('VULNERABLE', 3.5), st('DOT', 4, 35)] }],
-        ['rb_a3', { range: 7, power: 180, hits: { count: 3, interval: 0.1 }, onHit: [st('BLIND', 2.5), st('SLOW', 2, 0.4)] }],
+        ['rb_a3', { range: 7, power: 180, onHit: [st('BLIND', 2.5), st('SLOW', 2, 0.4)] }],
         ['rr_a2', { range: 7, power: 190, onHit: [st('VULNERABLE', 4), st('DOT', 3, 25)] }],
         ['rr_a3', { range: 7, power: 140, onHit: [st('ROOT', 2.8), st('DOT', 3, 25)] }],
         ['tb_b1', { onHit: [st('SLOW', 1.5, 0.35)] }],
@@ -569,7 +569,7 @@ describe('補位與調整的技能資料', () => {
         ['rb_b4', { onHit: [st('SLOW', 1.5, 0.4)] }],
         ['rr_b1', { onHit: [st('VULNERABLE', 1.5)] }],
         ['mb_u2', { aoeRadius: 3 }],
-        ['mb_u3', { power: 200, activation: { minTargets: 2 } }],
+        ['mb_u3', { power: 0, activation: { minTargets: 2 } }],
         ['tb_u3', { power: 450, onEnd: [st('SHIELD', undefined, 500)] }],
         ['tb_u4', { range: 5, type: 'AOE', aoeRadius: 2, power: 520, onCast: [{ action: 'DASH' }], onHit: [st('STUN', 2)], intents: ['GAP_CLOSE'] }],
     ] as [string, Partial<Skill>][])('%s', (id, want) => {

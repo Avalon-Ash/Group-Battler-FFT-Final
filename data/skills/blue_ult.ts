@@ -1,4 +1,3 @@
-
 import { Role, Skill, Team } from '../../types';
 
 // 🔵 BLUE ULT: Cost 100, CD 5s
@@ -26,20 +25,23 @@ export const BLUE_ULT: Skill[] = [
         id: 'tb_u3', role: Role.TANK, team: Team.BLUE, tag: 'ULT',
         name: '絕對防禦', desc: '天降神盾',
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
-        type: 'AOE', aoeRadius: 4, power: 650, color: '#3b82f6',
+        type: 'AOE', aoeRadius: 4, power: 450, color: '#3b82f6',
         visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_BLUE_AEGIS_IMPACT', element: 'PHYSICAL',
         onHit: [{ action: 'STATUS', status: 'KNOCKBACK', force: 4 }],
+        onEnd: [{ action: 'STATUS', status: 'SHIELD', force: 500 }],
         intents: ['PEEL'],
     },
     {
         id: 'tb_u4', role: Role.TANK, team: Team.BLUE, tag: 'ULT',
-        name: '泰坦降臨', desc: '巨型重擊',
-        range: 1, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
-        type: 'SINGLE', power: 120, color: '#fcd34d',
+        name: '泰坦降臨', desc: '躍入敵陣重擊',
+        range: 5, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
+        type: 'AOE', aoeRadius: 2, power: 520, color: '#fcd34d',
         visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_BLUE_TITAN_SMASH', element: 'PHYSICAL',
-        onHit: [{ action: 'STATUS', status: 'STUN', duration: 2.5 }],
+        onCast: [{ action: 'DASH' }],
+        onHit: [{ action: 'STATUS', status: 'STUN', duration: 2 }],
+        intents: ['GAP_CLOSE'],
     },
     {
         id: 'tb_u5', role: Role.TANK, team: Team.BLUE, tag: 'ULT',
@@ -78,6 +80,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'SINGLE', power: 600, color: '#facc15',
         visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_BLUE_EXCALIBUR', element: 'HOLY',
+        targetPreference: 'HIGHEST_HP',
         onHit: [{ action: 'EXECUTE', value: 2.5 }],
     },
     {
@@ -111,7 +114,6 @@ export const BLUE_ULT: Skill[] = [
         element: 'ICE',
         visualHitEffect: 'FX_ULT_BLUE_GLACIAL_BURST',
         visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW',
-        onImpact: [{ action: 'HAZARD', kind: 'ICE', duration: 2.5 }],
         onHit: [{ action: 'STATUS', status: 'STUN', duration: 2.5 }],
     },
     {
@@ -129,7 +131,8 @@ export const BLUE_ULT: Skill[] = [
         range: 20, cast: 2.0, cd: 5.0, cost: 100, gain: 0,
         type: 'SINGLE', power: 1200, color: '#22d3ee',
         visual: 'SMASH', projectileSpeed: 0,
-        visualHitEffect: 'FX_ULT_BLUE_ORBITAL_BEAM', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ULT_BLUE_ORBITAL_BEAM', element: 'LIGHTNING',
+        targetPreference: 'HIGHEST_HP',
     },
     {
         id: 'rb_u4', role: Role.RANGER, team: Team.BLUE, tag: 'ULT',
@@ -168,7 +171,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'mb_u2', role: Role.MAGE, team: Team.BLUE, tag: 'ULT',
         name: '絕對零度', desc: '大範圍凍結',
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
-        type: 'AOE', aoeRadius: 4, power: 450, color: '#bfdbfe',
+        type: 'AOE', aoeRadius: 3, power: 450, color: '#bfdbfe',
         visual: 'SMASH', projectileSpeed: 0,
         element: 'ICE',
         visualHitEffect: 'FX_ULT_BLUE_GLACIAL_BURST',
@@ -177,12 +180,13 @@ export const BLUE_ULT: Skill[] = [
     },
     {
         id: 'mb_u3', role: Role.MAGE, team: Team.BLUE, tag: 'ULT',
-        name: '時間停止', desc: '全場靜止',
+        name: '時間停止', desc: '全場靜止，至少兩人才放',
         range: 0, cast: 1.5, cd: 5.0, cost: 85, gain: 0,
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fef08a',
         visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_BLUE_TIMESTOP', element: 'ARCANE',
         onHit: [{ action: 'STATUS', status: 'STUN', duration: 3.2 }],
+        activation: { minTargets: 2 },
     },
     {
         id: 'mb_u4', role: Role.MAGE, team: Team.BLUE, tag: 'ULT',

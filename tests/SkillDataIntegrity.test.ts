@@ -258,8 +258,8 @@ export const SK0_BASELINE_VIOLATIONS: readonly string[] = [
 ];
 
 describe('SkillDataIntegrity (SK3)', () => {
-    it('skills count is exactly 150', () => {
-        expect(DEFAULT_SKILL_DB.length).toBe(150);
+    it('skills count is exactly 170', () => {
+        expect(DEFAULT_SKILL_DB.length).toBe(170);
     });
 
     it('violations ratchet: zero violations permitted across all skills (SK3)', () => {

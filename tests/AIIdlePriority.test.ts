@@ -107,6 +107,7 @@ describe('AIIdlePriority', () => {
             const tower = mk(Team.RED, 0, 0, Role.WARRIOR);
             const reachable = mk(Team.RED, -3, 3, Role.WARRIOR);
             a.jump = 1;
+            a.skills = a.skills.slice(0, 3); // 沒有機動技：這裡驗的是走路搆不到的情況
             for (const h of [tower, ...HexUtils.neighbors(tower)]) {
                 engine.map.setHeight(HexUtils.key(h), 3 * BLOCK_HEIGHT);
             }
@@ -121,6 +122,7 @@ describe('AIIdlePriority', () => {
             const tower = mk(Team.RED, 0, 0, Role.WARRIOR);
             const reachable = mk(Team.RED, 2, 0, Role.WARRIOR);
             a.jump = 1;
+            a.skills = a.skills.slice(0, 3); // 沒有機動技：這裡驗的是走路搆不到的情況
             engine.map.setHeight('0,0', 2 * BLOCK_HEIGHT);
             a.target = tower;
             engine.updateTarget(a);

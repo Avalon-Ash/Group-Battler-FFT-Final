@@ -14,13 +14,11 @@ export const RED_BASIC: Skill[] = [
     },
     {
         id: 'tr_b2', role: Role.TANK, team: Team.RED, tag: 'BASIC',
-        name: '血腥肉鉤', desc: '微量牽引',
-        range: 1, cast: 0.5, cd: 1.7, cost: 0, gain: 15,
-        type: 'SINGLE', power: 40, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0,
+        name: '血鏈抽擊', desc: '中距緩速',
+        range: 2, cast: 0.5, cd: 1.7, cost: 0, gain: 15,
+        type: 'SINGLE', power: 75, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD',
-        onImpact: [{ action: 'HAZARD', kind: 'GRAVITY', duration: 5 }],
-        onHit: [{ action: 'STATUS', status: 'PULL', force: 1 }],
-        intents: ['HOOK'],
+        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.35 }],
     },
     {
         id: 'tr_b3', role: Role.TANK, team: Team.RED, tag: 'BASIC',
@@ -44,7 +42,6 @@ export const RED_BASIC: Skill[] = [
         range: 1, cast: 0.5, cd: 1.0, cost: 0, gain: 30,
         type: 'SINGLE', power: 69, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD',
-        onImpact: [{ action: 'HAZARD', kind: 'POISON', duration: 3 }],
         onHit: [{ action: 'STATUS', status: 'DOT', duration: 3, force: 8 }],
     },
 
@@ -55,7 +52,6 @@ export const RED_BASIC: Skill[] = [
         range: 1, cast: 0.4, cd: 0.8, cost: 0, gain: 25,
         type: 'SINGLE', power: 94, color: '#dc2626', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD',
-        onImpact: [{ action: 'HAZARD', kind: 'POISON', duration: 3 }],
         onHit: [{ action: 'STATUS', status: 'DOT', duration: 3, force: 20 }],
     },
     {
@@ -92,12 +88,11 @@ export const RED_BASIC: Skill[] = [
     // --- RANGER ---
     {
         id: 'rr_b1', role: Role.RANGER, team: Team.RED, tag: 'BASIC',
-        name: '破城重弩', desc: '重型射擊',
+        name: '破城重弩', desc: '破甲重弩',
         range: 6, cast: 0.8, cd: 1.2, cost: 0, gain: 35,
         type: 'SINGLE', power: 90, color: '#ea580c', visual: 'BOMB', projectileSpeed: 1100,
         visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT', element: 'FIRE',
-        onHit: [{ action: 'STATUS', status: 'KNOCKBACK', force: 1 }],
-        intents: ['PEEL'],
+        onHit: [{ action: 'STATUS', status: 'VULNERABLE', duration: 1.5 }],
     },
     {
         id: 'rr_b2', role: Role.RANGER, team: Team.RED, tag: 'BASIC',

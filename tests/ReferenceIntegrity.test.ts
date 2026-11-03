@@ -195,9 +195,9 @@ describe('skills', () => {
 
     it('skill id encodes role, team and tag (SkillSequences derives faction and slot from it)', () => {
         const ROLE_LETTER: Record<string, Role> = { t: Role.TANK, w: Role.WARRIOR, r: Role.RANGER, m: Role.MAGE, s: Role.SUPPORT };
-        const TAG_LETTER: Record<string, string> = { b: 'BASIC', a: 'ACTIVE', u: 'ULT' };
+        const TAG_LETTER: Record<string, string> = { b: 'BASIC', a: 'ACTIVE', u: 'ULT', m: 'MOBILITY' };
         const bad = DEFAULT_SKILL_DB.filter(s => {
-            const m = /^([twrms])([br])_([bau])[1-5]$/.exec(s.id);
+            const m = /^([twrms])([br])_([baum])[1-5]$/.exec(s.id);
             return !m || s.role !== ROLE_LETTER[m[1]] || s.tag !== TAG_LETTER[m[3]] || s.team !== (m[2] === 'b' ? Team.BLUE : Team.RED);
         }).map(s => s.id);
         expect(bad).toEqual([]);
@@ -215,8 +215,8 @@ describe('skills', () => {
     it('per-skill visual configs and sequences reference existing skills and cover every skill', () => {
         const tables: Record<string, Record<string, unknown>> = { BASIC: BASIC_VISUALS, ACTIVE: ACTIVE_VISUALS, ULT: ULT_VISUALS };
         const orphans = Object.entries(tables).flatMap(([tag, t]) => Object.keys(t)
-            .filter(k => !DEFAULT_SKILL_DB.some(s => s.id === k && s.tag === tag)).map(k => `${tag}: ${k}`));
-        const uncovered = DEFAULT_SKILL_DB.filter(s => !tables[s.tag][s.id] || !SKILL_SEQUENCES[s.id]).map(s => s.id);
+            .filter(k => !DEFAULT_SKILL_DB.some(s => s.id === k && (s.tag === tag || (tag === 'ACTIVE' && s.tag === 'MOBILITY')))).map(k => `${tag}: ${k}`));
+        const uncovered = DEFAULT_SKILL_DB.filter(s => !(s.tag === 'MOBILITY' ? ACTIVE_VISUALS : tables[s.tag])[s.id] || !SKILL_SEQUENCES[s.id]).map(s => s.id);
         const seqOrphans = Object.keys(SKILL_SEQUENCES).filter(k => !idSet.has(k));
         expect({ orphans, uncovered, seqOrphans }).toEqual({ orphans: [], uncovered: [], seqOrphans: [] });
     });

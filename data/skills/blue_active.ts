@@ -1,4 +1,3 @@
-
 import { Role, Skill, Team } from '../../types';
 
 // 🔵 BLUE ACTIVE: 秩序/科技風格 (Tech/Holy)
@@ -6,13 +5,11 @@ export const BLUE_ACTIVE: Skill[] = [
     // --- TANK ---
     {
         id: 'tb_a1', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE',
-        name: '六稜壁障', desc: '自身護盾與擊退',
-        range: 0, cast: 0.4, cd: 9.0, cost: 40, gain: 0,
-        type: 'AOE', aoeRadius: 1, power: 80, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0,
+        name: '六稜壁障', desc: '展開重型護盾並獲得短暫加速',
+        range: 0, cast: 0.3, cd: 8.5, cost: 35, gain: 0,
+        type: 'SINGLE', power: 0, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ACTIVE_BLUE_AEGIS_WARD', element: 'LIGHTNING',
-        onHit: [{ action: 'STATUS', status: 'KNOCKBACK', force: 3 }],
-        onEnd: [{ action: 'STATUS', status: 'SHIELD', force: 400 }],
-        intents: ['PEEL'],
+        onEnd: [{ action: 'STATUS', status: 'SHIELD', force: 450 }, { action: 'STATUS', status: 'HASTE', duration: 3.5, force: 35 }],
     },
     {
         id: 'tb_a2', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE',
@@ -32,12 +29,11 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     {
         id: 'tb_a4', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE',
-        name: '聖鎖牽引', desc: '單體牽引',
-        range: 5, cast: 0.6, cd: 7.0, cost: 35, gain: 0,
-        type: 'SINGLE', power: 110, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 2000,
-        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', visualProjectileEffect: 'PROJ_BLUE_CHAIN_HOOK', element: 'LIGHTNING',
-        onHit: [{ action: 'STATUS', status: 'PULL', force: 3 }, { action: 'STATUS', status: 'TAUNT', duration: 2 }],
-        intents: ['HOOK'],
+        name: '聖光震懾', desc: '釋放聖威降低周圍敵人移速並致盲',
+        range: 0, cast: 0.4, cd: 8.0, cost: 35, gain: 0,
+        type: 'AOE', aoeRadius: 2, power: 120, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0,
+        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', element: 'LIGHTNING',
+        onHit: [{ action: 'STATUS', status: 'BLIND', duration: 2.5 }, { action: 'STATUS', status: 'SLOW', duration: 3, force: 0.5 }],
     },
     {
         id: 'tb_a5', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE',
@@ -58,15 +54,11 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     {
         id: 'wb_a2', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE',
-        name: '疾光突襲', desc: '突進並暈眩',
-        range: 6, cast: 0.2, cd: 7.0, cost: 30, gain: 0, // Buff Range 4->6, CD 9->8, Cast 0.1->0.2
-        type: 'SINGLE', power: 140, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0,
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL',
-
-        onHit: [{ action: 'STATUS', status: 'STUN', duration: 1.2 }],
-        onCast: [{ action: 'DASH' }],
-        intents: ['GAP_CLOSE'],
-
+        name: '聖印裂甲', desc: '重劈敵人使其陷入易傷並緩速',
+        range: 1, cast: 0.3, cd: 6.5, cost: 30, gain: 0,
+        type: 'SINGLE', power: 175, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0,
+        visualHitEffect: 'FX_ACTIVE_BLUE_HOLY_SMITE', element: 'HOLY',
+        onHit: [{ action: 'STATUS', status: 'VULNERABLE', duration: 4 }, { action: 'STATUS', status: 'SLOW', duration: 2.5, force: 0.4 }],
     },
     {
         id: 'wb_a3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE',
@@ -86,12 +78,11 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     {
         id: 'wb_a5', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE',
-        name: '斷罪一擊', desc: '擊退斬擊',
-        range: 1, cast: 0.4, cd: 6.0, cost: 30, gain: 0,
-        type: 'SINGLE', power: 180, color: '#93c5fd', visual: 'SLASH', projectileSpeed: 0,
+        name: '斷罪重斬', desc: '聖光重斬並燃燒目標魔力',
+        range: 1, cast: 0.3, cd: 6.0, cost: 30, gain: 0,
+        type: 'SINGLE', power: 195, color: '#93c5fd', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ACTIVE_BLUE_JUDGMENT_SLASH', element: 'PHYSICAL',
-        onHit: [{ action: 'STATUS', status: 'KNOCKBACK', force: 3 }],
-        intents: ['PEEL'],
+        onHit: [{ action: 'MANA_BURN', value: 35 }],
     },
 
     // --- RANGER ---
@@ -115,13 +106,11 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     {
         id: 'rb_a3', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE',
-        name: '疾影射擊', desc: '位移射擊',
-        range: 7, cast: 0.2, cd: 7.0, cost: 35, gain: 0,
-        type: 'SINGLE', power: 160, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 2500,
-        onCast: [{ action: 'RETREAT', tiles: 2 }],
-        intents: ['ESCAPE'],
+        name: '電光矢', desc: '射出帶電箭矢致盲並緩速目標',
+        range: 7, cast: 0.3, cd: 7.0, cost: 35, gain: 0,
+        type: 'SINGLE', power: 180, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 2500,
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'LIGHTNING',
-        onHit: [{ action: 'STATUS', status: 'BLIND', duration: 2.5 }],
+        onHit: [{ action: 'STATUS', status: 'BLIND', duration: 2.5 }, { action: 'STATUS', status: 'SLOW', duration: 2, force: 0.4 }],
     },
     {
         id: 'rb_a4', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE',
@@ -137,7 +126,6 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 8, cast: 1.0, cd: 9.0, cost: 50, gain: 0,
         type: 'AOE', aoeRadius: 2, power: 150, color: '#93c5fd', visual: 'ARROW', projectileSpeed: 1200,
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL',
-
         onImpact: [{ action: 'HAZARD', kind: 'POISON', duration: 3 }],
         onHit: [{ action: 'STATUS', status: 'DOT', duration: 3, force: 30 }],
     },

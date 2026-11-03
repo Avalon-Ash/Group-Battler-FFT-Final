@@ -1,4 +1,3 @@
-
 import { Skill, Role, Team } from '../../types';
 
 // 🔵 BLUE BASIC: 25 VARIATIONS
@@ -7,12 +6,11 @@ export const BLUE_BASIC: Skill[] = [
     // --- TANK ---
     {
         id: 'tb_b1', role: Role.TANK, team: Team.BLUE, tag: 'BASIC',
-        name: '鎮壓打擊', desc: '盾擊擊退',
+        name: '鎮壓打擊', desc: '盾擊緩速',
         range: 1, cast: 0.5, cd: 1.0, cost: 0, gain: 25,
         type: 'SINGLE', power: 70, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL',
-        onHit: [{ action: 'STATUS', status: 'KNOCKBACK', force: 2 }],
-        intents: ['PEEL'],
+        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.35 }],
     },
     {
         id: 'tb_b2', role: Role.TANK, team: Team.BLUE, tag: 'BASIC',
@@ -111,12 +109,11 @@ export const BLUE_BASIC: Skill[] = [
     },
     {
         id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC',
-        name: '震盪箭', desc: '擊退射擊',
+        name: '震盪箭', desc: '震盪緩速',
         range: 4, cast: 0.8, cd: 1.5, cost: 0, gain: 35, // Nerf Range 5->4
         type: 'SINGLE', power: 70, color: '#fbbf24', visual: 'BOLT', projectileSpeed: 1300,
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'LIGHTNING',
-        onHit: [{ action: 'STATUS', status: 'KNOCKBACK', force: 2 }],
-        intents: ['PEEL'],
+        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.4 }],
     },
     {
         id: 'rb_b5', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC',

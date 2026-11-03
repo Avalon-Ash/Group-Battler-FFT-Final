@@ -43,7 +43,7 @@ import { Team } from "../../types";
 import { DEFAULT_SKILL_DB } from "../../skillDatabase";
 import { ULT_VISUALS, ultImpactDelay } from "./ult_visuals";
 import { hitOffsets } from "../../engine/math/HitCadence";
-import { ACTIVE_VISUALS } from "./active_visuals";
+import { ACTIVE_VISUALS, ActiveVisualDef } from "./active_visuals";
 import { BASIC_VISUALS } from "./basic_visuals";
 import { FACTION_VISUALS } from "./faction_visuals";
 import { ULT_SEQUENCE } from "./ult_visuals";
@@ -58,6 +58,65 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
     const isRed = prefix.endsWith('r');
     // 技能沒有指定特效時的陣營預設
     const hitFx = FACTION_VISUALS[isRed ? Team.RED : Team.BLUE].defaultHitEffect;
+
+    const buildActiveOrMobilitySeq = (id: string, config: ActiveVisualDef) => {
+        const actions: VFXAction[] = [];
+        const specificHit = config.impactFx || hitFx;
+        // 有投射物的主動技：主特效在投射物抵達時由 HIT_FX 播（visualHitEffect），序列只放出手預兆
+        // 無投射物的主動技：HIT_FX 只播陣營預設小打擊（SkillExecutor 的 ownHit），主特效 impactFx 只有這裡播，不可去重拿掉
+        const skill = DEFAULT_SKILL_DB.find(sk => sk.id === id);
+        const isProjectile = (skill?.projectileSpeed ?? 0) > 0;
+
+        // Faction-Specific Flavor
+        if (isRed) {
+            if (role === 'WARRIOR' || role === 'TANK') {
+                actions.push({ type: 'PARTICLE', id: 'FX_COVENANT_BLOOD_SPIKE', scale: 0.6, delay: 0 });
+            } else if (role === 'MAGE') {
+                actions.push({ type: 'PARTICLE', id: 'FX_COVENANT_RIFT', scale: 0.5, delay: 0 });
+            }
+        } else {
+            if (role === 'MAGE' || role === 'RANGER') {
+                actions.push({ type: 'PARTICLE', id: 'FX_IMPERIAL_SCAN', scale: 0.7, delay: 0 });
+            } else if (role === 'SUPPORT') {
+                actions.push({ type: 'PARTICLE', id: 'FX_IMPERIAL_HALO', scale: 0.8, delay: 0 });
+            } else {
+                actions.push({ type: 'GRID_PULSE', color: primary, scale: 0.6, delay: 0 });
+            }
+        }
+
+        switch (isProjectile ? 'PROJECTILE_SALVO' : config.archetype) {
+            case 'BURST_AOE':
+                actions.push({ type: 'PARTICLE', id: specificHit, color: config.secondaryColor, scale: config.scale || 1.0 });
+                actions.push({ type: 'SHAKE', shakeIntensity: 0.25 });
+                actions.push({ type: 'GRID_PULSE', color: config.color, scale: 1.2, delay: 0.1 });
+                break;
+            case 'DASH_ASSAULT':
+                actions.push({ type: 'BEAM', style: config.beamStyle ?? 'SLASH_CONNECT', color: config.color, duration: 0.2, scale: 1.5 });
+                if (config.impactFx) actions.push({ type: 'PARTICLE', id: config.impactFx, color: config.secondaryColor, scale: 1.2, delay: 0.1 });
+                actions.push({ type: 'SHAKE', shakeIntensity: 0.3 });
+                break;
+            case 'BUFF_AURA':
+                actions.push({ type: 'PARTICLE', id: specificHit, color: config.color, scale: config.scale || 1.0, duration: 1.0 });
+                actions.push({ type: 'GRID_PULSE', color: config.secondaryColor, scale: 0.8, delay: 0.0 });
+                break;
+            case 'DEBUFF_RAY':
+                actions.push({ type: 'BEAM', style: config.beamStyle ?? 'GENERIC_BEAM', color: config.color, duration: 0.5 });
+                if (config.impactFx) actions.push({ type: 'PARTICLE', id: config.impactFx, color: config.secondaryColor, scale: 0.8, delay: 0.1 });
+                break;
+            case 'GROUND_SLAM':
+                actions.push({ type: 'PARTICLE', id: specificHit, color: config.color, scale: 1.3 });
+                actions.push({ type: 'SHAKE', shakeIntensity: 0.4 });
+                actions.push({ type: 'GRID_PULSE', color: config.secondaryColor, scale: 1.5, delay: 0.05 });
+                break;
+            case 'PROJECTILE_SALVO':
+                break; // 投射物與命中特效由 ProjectileSystem／HIT_FX 處理
+            default: // SIMPLE_IMPACT
+                actions.push({ type: 'PARTICLE', id: specificHit, color: config.secondaryColor, scale: config.scale || 0.8 });
+                actions.push({ type: 'SHAKE', shakeIntensity: 0.15 });
+                break;
+        }
+        sequences[id] = { id, actions };
+    };
 
     for (let i = 1; i <= 5; i++) {
         // --- 1. BASIC SKILLS (Enhanced with New Archetypes) ---
@@ -126,62 +185,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
         const activeConfig = ACTIVE_VISUALS[activeId];
 
         if (activeConfig) {
-            const actions: VFXAction[] = [];
-            const specificHit = activeConfig.impactFx || hitFx;
-            // 有投射物的主動技：主特效在投射物抵達時由 HIT_FX 播（visualHitEffect），序列只放出手預兆
-            // 無投射物的主動技：HIT_FX 只播陣營預設小打擊（SkillExecutor 的 ownHit），主特效 impactFx 只有這裡播，不可去重拿掉
-            const activeSkill = DEFAULT_SKILL_DB.find(sk => sk.id === activeId);
-            const isProjectile = (activeSkill?.projectileSpeed ?? 0) > 0;
-
-            // Faction-Specific Flavor
-            if (isRed) {
-                if (role === 'WARRIOR' || role === 'TANK') {
-                    actions.push({ type: 'PARTICLE', id: 'FX_COVENANT_BLOOD_SPIKE', scale: 0.6, delay: 0 });
-                } else if (role === 'MAGE') {
-                    actions.push({ type: 'PARTICLE', id: 'FX_COVENANT_RIFT', scale: 0.5, delay: 0 });
-                }
-            } else {
-                if (role === 'MAGE' || role === 'RANGER') {
-                    actions.push({ type: 'PARTICLE', id: 'FX_IMPERIAL_SCAN', scale: 0.7, delay: 0 });
-                } else if (role === 'SUPPORT') {
-                    actions.push({ type: 'PARTICLE', id: 'FX_IMPERIAL_HALO', scale: 0.8, delay: 0 });
-                } else {
-                    actions.push({ type: 'GRID_PULSE', color: primary, scale: 0.6, delay: 0 });
-                }
-            }
-
-            switch (isProjectile ? 'PROJECTILE_SALVO' : activeConfig.archetype) {
-                case 'BURST_AOE':
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 1.0 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.25 });
-                    actions.push({ type: 'GRID_PULSE', color: activeConfig.color, scale: 1.2, delay: 0.1 });
-                    break;
-                case 'DASH_ASSAULT':
-                    actions.push({ type: 'BEAM', style: activeConfig.beamStyle ?? 'SLASH_CONNECT', color: activeConfig.color, duration: 0.2, scale: 1.5 });
-                    if (activeConfig.impactFx) actions.push({ type: 'PARTICLE', id: activeConfig.impactFx, color: activeConfig.secondaryColor, scale: 1.2, delay: 0.1 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.3 });
-                    break;
-                case 'BUFF_AURA':
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: activeConfig.scale || 1.0, duration: 1.0 });
-                    actions.push({ type: 'GRID_PULSE', color: activeConfig.secondaryColor, scale: 0.8, delay: 0.0 });
-                    break;
-                case 'DEBUFF_RAY':
-                    actions.push({ type: 'BEAM', style: activeConfig.beamStyle ?? 'GENERIC_BEAM', color: activeConfig.color, duration: 0.5 });
-                    if (activeConfig.impactFx) actions.push({ type: 'PARTICLE', id: activeConfig.impactFx, color: activeConfig.secondaryColor, scale: 0.8, delay: 0.1 });
-                    break;
-                case 'GROUND_SLAM':
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: 1.3 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.4 });
-                    actions.push({ type: 'GRID_PULSE', color: activeConfig.secondaryColor, scale: 1.5, delay: 0.05 });
-                    break;
-                case 'PROJECTILE_SALVO':
-                    break; // 投射物與命中特效由 ProjectileSystem／HIT_FX 處理
-                default: // SIMPLE_IMPACT
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 0.8 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.15 });
-                    break;
-            }
-            sequences[activeId] = { id: activeId, actions };
+            buildActiveOrMobilitySeq(activeId, activeConfig);
         } else {
             // Fallback for missing configs
             const activeSkill = DEFAULT_SKILL_DB.find(s => s.id === activeId);
@@ -194,6 +198,15 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                         { type: 'SHAKE', shakeIntensity: 0.15 }
                     ]
                 };
+            }
+        }
+
+        // --- MOBILITY SKILLS ---
+        if (i <= 2) {
+            const mobId = `${prefix}_m${i}`;
+            const mobConfig = ACTIVE_VISUALS[mobId];
+            if (mobConfig) {
+                buildActiveOrMobilitySeq(mobId, mobConfig);
             }
         }
 
