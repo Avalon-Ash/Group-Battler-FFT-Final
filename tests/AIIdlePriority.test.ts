@@ -249,8 +249,8 @@ describe('AIIdlePriority', () => {
 
         it('ENGAGE：順手打 > 技能 > 追擊 > 走位 > 前進，沒有 Idle；FIGHT 只出手不找路', () => {
             const combat = AI_MODE_GRAPH.modes.ENGAGE.tree;
-            expect(names(find(combat, 'Engage Actions'))).toEqual(['Strike Nearby', 'Skill Priority', 'Stick To Target', 'Reposition', 'Advance']);
-            expect(names(find(AI_MODE_GRAPH.modes.FIGHT.tree, 'Fight Actions'))).toEqual(['Skill Priority', 'Stick To Target']);
+            expect(names(find(combat, 'Engage Actions'))).toEqual(['Mobility', 'Strike Nearby', 'Skill Priority', 'Stick To Target', 'Reposition', 'Advance']);
+            expect(names(find(AI_MODE_GRAPH.modes.FIGHT.tree, 'Fight Actions'))).toEqual(['Mobility', 'Skill Priority', 'Stick To Target']);
             expect(names(find(combat, 'Skill Priority'))).toEqual(['Try Ultimate', 'Try Active', 'Try Basic']);
         });
     });

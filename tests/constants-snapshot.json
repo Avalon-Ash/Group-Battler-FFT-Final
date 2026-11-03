@@ -804,7 +804,14 @@
     "PHASE_PER_PX": 0.01,
     "LAUNCH_FADE_T": 0.5
   },
+  "SKILL_SLOTS": {
+    "ULT": 0,
+    "ACTIVE": 1,
+    "BASIC": 2,
+    "MOBILITY": 3
+  },
   "FORCED_MOVE": {
+    "MIN_ONE_TILE_FORCE": 2,
     "INITIAL_STEP_DOT": -2,
     "IMPACT_BASE_PCT": 0.05,
     "IMPACT_PER_HEIGHT_PCT": 0.05,

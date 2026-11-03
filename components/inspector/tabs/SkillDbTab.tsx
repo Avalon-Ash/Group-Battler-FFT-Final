@@ -8,7 +8,7 @@ import { SkillIcon } from '../parts/SkillIcon';
 import { SkillNumberInput } from '../parts/SkillNumberInput';
 import { readSkillField, type SkillEditableField } from '../../../data/ui/skillEditor';
 
-type DbTypeTab = 'ALL' | 'BASIC' | 'ACTIVE' | 'ULT';
+type DbTypeTab = 'ALL' | 'BASIC' | 'ACTIVE' | 'ULT' | 'MOBILITY';
 
 interface SkillDbTabProps {
     engine: GameEngine;
@@ -51,7 +51,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
                 <div className="flex flex-col gap-3">
                     {/* Type Tabs */}
                     <div className="flex bg-black/40 p-1 gap-1 rounded-xl border border-white/5">
-                        {['ALL', 'BASIC', 'ACTIVE', 'ULT'].map(t => (
+                        {['ALL', 'BASIC', 'ACTIVE', 'ULT', 'MOBILITY'].map(t => (
                             <button 
                                 key={t}
                                 onClick={() => setDbTypeTab(t as DbTypeTab)} 

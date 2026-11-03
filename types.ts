@@ -48,7 +48,7 @@ export interface AgentView {
 
 export interface Skill {
     id: string;
-    tag: 'BASIC' | 'ACTIVE' | 'ULT';
+    tag: 'BASIC' | 'ACTIVE' | 'ULT' | 'MOBILITY';
     role: Role;
     team?: Team; 
     name: string;
@@ -76,6 +76,10 @@ export interface Skill {
     intents?: readonly SkillIntent[];
     /** 對誰有效；沒寫就看 power（engine/core/SkillQueries.ts skillTeams） */
     teams?: SkillTeams;
+    /** 什麼情況才值得放（AI 判斷） */
+    activation?: SkillActivation;
+    /** 單體技能要打誰。HIGHEST_HP：血最多的敵人，避免高傷大招打在殘血上浪費 */
+    targetPreference?: 'HIGHEST_HP';
     projectileSpeed?: number; 
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
     visualHitEffect?: string;
@@ -94,6 +98,15 @@ export type SkillStatus = 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HO
 export type SkillIntent = 'GAP_CLOSE' | 'HOOK' | 'PEEL' | 'ESCAPE';
 
 export type SkillTeams = 'ENEMY' | 'ALLY' | 'ANY';
+
+export interface SkillActivation {
+    /** 有敵人在這個距離內才放；單體技能會打最近的那個（逃生、推開） */
+    enemyWithin?: number;
+    /** 目標在射程內而且比這個距離遠才放（貼身時突進、拉人都沒有效果） */
+    targetBeyond?: number;
+    /** 以自己為中心的範圍技，範圍內至少要有這麼多敵人 */
+    minTargets?: number;
+}
 
 export interface StatusAction {
     action: 'STATUS';

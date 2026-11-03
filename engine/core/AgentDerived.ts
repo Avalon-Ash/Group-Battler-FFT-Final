@@ -15,7 +15,7 @@ export function castingAiState(a: Pick<Agent, 'castingSkillIdx' | 'skills'>): AI
     if (a.castingSkillIdx < 0) return null;
     const tag = a.skills[a.castingSkillIdx]?.tag;
     if (tag === 'ULT') return AIState.CASTING_ULT;
-    if (tag === 'ACTIVE') return AIState.CASTING_ACTIVE;
+    if (tag === 'ACTIVE' || tag === 'MOBILITY') return AIState.CASTING_ACTIVE;
     return AIState.CASTING_BASIC;
 }
 

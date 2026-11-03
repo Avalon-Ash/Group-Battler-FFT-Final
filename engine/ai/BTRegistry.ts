@@ -96,6 +96,10 @@ function bestAdvanceCell(a: Agent, engine: GameEngine): Hex | null {
 
 const PUSH_PULL: ReadonlySet<SkillIntent> = new Set<SkillIntent>(['HOOK', 'PEEL']);
 
+function isThreat(a: Agent, e: Agent, within: number): boolean {
+    return !sameSide(e, a) && e.hp > 0 && !e.banished && !e.outOfBounds && HexUtils.dist(a, e) <= within;
+}
+
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
@@ -238,6 +242,21 @@ export const BTConditions: Record<string, BTConditionFn> = {
         return true;
     },
     
+    "ActivationMet": (a, engine, args) => {
+        const s = a.skills[args.slot];
+        if (!s) return false;
+        const need = s.activation;
+        if (!need) return true;
+        if (need.targetBeyond !== undefined) {
+            if (!a.target || a.target.hp <= 0) return false;
+            const dist = HexUtils.dist(a, a.target);
+            if (dist <= need.targetBeyond) return false;
+            if (dist > engine.getEffectiveRange(a, a.target.q, a.target.r, s.range) + COMBAT_PARAM.RANGE_TOLERANCE) return false;
+        }
+        if (need.enemyWithin !== undefined && !engine.agents.some((e) => isThreat(a, e, need.enemyWithin as number))) return false;
+        return true;
+    },
+
     "FindOptimalTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];

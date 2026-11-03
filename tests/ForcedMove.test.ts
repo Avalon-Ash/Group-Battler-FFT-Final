@@ -29,7 +29,7 @@ describe('ForcedMove', () => {
         a.maxHp = HP;
         a.hp = HP;
         a.shield = 0;
-        a.weight = opts.weight ?? 1;
+        a.weight = opts.weight ?? 0;
         a.jump = opts.jump ?? 1;
         if (opts.flying) a.movementType = MovementType.FLYING;
         return a;

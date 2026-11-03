@@ -8,13 +8,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GameEngine, type Agent } from '../engine/game';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
 import { CombatSystem } from '../engine/systems/combat/CombatSystem';
+import { CCManager } from '../engine/systems/combat/CCManager';
 import { runImpactActions } from '../engine/systems/combat/SkillActions';
 import { HexUtils } from '../engine/utils';
 import { resetRandomSource, setRandomSource } from '../engine/math/rng';
 import { isActionBlocked } from '../engine/core/Effects';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { Role, Team } from '../types';
-import type { EffectKind, HitAction, Skill } from '../types';
+import { ACTIVE_VISUALS } from '../data/vfx/active_visuals';
+import type { EffectKind, EndAction, HitAction, Skill } from '../types';
 
 const HP = 100000;
 
@@ -25,12 +27,12 @@ function makeSkill(over: Partial<Skill>): Skill {
     };
 }
 
-function arena() {
+function arena(targetQ = 1) {
     const engine = new GameEngine();
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();
-    const spawn = (team: Team, q: number, r = 0) => {
-        const a = engine.agentManager.addAgent(engine, team, q, r, HP, Role.WARRIOR);
+    const spawn = (team: Team, q: number, r = 0, role = Role.WARRIOR) => {
+        const a = engine.agentManager.addAgent(engine, team, q, r, HP, role);
         if (!a) throw new Error(`cannot spawn at ${q},${r}`);
         a.maxHp = HP; a.hp = HP; a.shield = 0; a.spawnTimer = 0;
         return a;
@@ -42,7 +44,7 @@ function arena() {
         exec.resolveHit(source, target, skill, undefined, engine, false);
         return before - target.hp;
     };
-    return { engine, spawn, hit, exec, source: spawn(Team.BLUE, 0, 0), target: spawn(Team.RED, 1, 0) };
+    return { engine, spawn, hit, exec, source: spawn(Team.BLUE, 0, 0), target: spawn(Team.RED, targetQ, 0) };
 }
 
 const withHit = (onHit: readonly HitAction[], over: Partial<Skill> = {}) => makeSkill({ onHit, ...over });
@@ -381,6 +383,213 @@ describe('陷阱：敵人走進來才觸發', () => {
     });
 });
 
+describe('強制位移：力道 2 以上一定推得動，職業決定少幾格', () => {
+    const push = (role: Role, force: number) => {
+        const w = arena();
+        const unit = w.spawn(Team.RED, 2, 0, role);
+        const before = { q: unit.q, r: unit.r };
+        CCManager.applyCC(w.source, unit, makeSkill({}), 'KNOCKBACK', 0, force, undefined, w.engine);
+        return HexUtils.dist(before, unit);
+    };
+    it.each([
+        [Role.MAGE, 3, 3], [Role.RANGER, 3, 3], [Role.SUPPORT, 3, 3], [Role.WARRIOR, 3, 2], [Role.TANK, 3, 1],
+        [Role.WARRIOR, 2, 1], [Role.TANK, 2, 1], [Role.MAGE, 2, 2],
+        [Role.TANK, 1, 0], [Role.WARRIOR, 1, 0], [Role.MAGE, 1, 1],
+    ])('%s 被力道 %i 推 %i 格', (role, force, tiles) => {
+        expect(push(role, force)).toBe(tiles);
+    });
+});
+
+describe('機動槽：AI 照技能宣告的條件施放', () => {
+    /** 只有機動技的單位，對著不動的敵人跑一段時間 */
+    const scene = (skill: Skill, q: number, rooted?: (unit: Agent) => void) => {
+        const w = arena(q);
+        const basic = makeSkill({ id: 'm_basic', tag: 'BASIC', range: 1, power: 1, cd: 99 });
+        w.engine.skillDB = [...w.engine.skillDB, skill, basic];
+        const unit = w.source;
+        const enemy = w.target;
+        unit.skillIds = [null, null, basic.id, skill.id];
+        enemy.skillIds = [null, null, null, null];
+        w.engine.play();
+        for (const a of [unit, enemy]) {
+            a.spawnTimer = 0;
+            a.moveSpeed = 0;
+        }
+        rooted?.(unit);
+        let casts = 0;
+        for (let t = 0; t < 1.5; t += 1 / 30) {
+            w.engine.tick(1 / 30);
+            if (unit.castingSkillIdx === 3) casts++;
+        }
+        return { unit, enemy, casts };
+    };
+    const gap = makeSkill({
+        id: 'm_gap', tag: 'MOBILITY', range: 5, cast: 0.2, cd: 30, power: 10, onCast: [{ action: 'DASH' }],
+        activation: { targetBeyond: 1 }, intents: ['GAP_CLOSE'],
+    });
+    const escape = makeSkill({
+        id: 'm_esc', tag: 'MOBILITY', range: 4, cast: 0.2, cd: 30, power: 10, onCast: [{ action: 'RETREAT', tiles: 3 }],
+        activation: { enemyWithin: 2 }, intents: ['ESCAPE'],
+    });
+
+    it('突進：目標在射程內才放，放完貼身', () => {
+        const r = scene(gap, 4);
+        expect(r.casts).toBeGreaterThan(0);
+        expect(HexUtils.dist(r.unit, r.enemy)).toBe(1);
+    });
+    it('突進：貼身不放（對照組）', () => {
+        expect(scene(gap, 1).casts).toBe(0);
+    });
+    it('逃生：敵人靠近才放，放完拉開距離', () => {
+        const r = scene(escape, 1);
+        expect(r.casts).toBeGreaterThan(0);
+        expect(HexUtils.dist(r.unit, r.enemy)).toBeGreaterThan(1);
+    });
+    it('逃生：沒人靠近不放（對照組）', () => {
+        expect(scene(escape, 4).casts).toBe(0);
+    });
+    it('定身時不能放位移技', () => {
+        expect(scene(escape, 1, (u) => { u.effects.ROOT.remaining = 99; }).casts).toBe(0);
+    });
+});
+
+describe('技能自己宣告要打誰', () => {
+    it('HIGHEST_HP：打血最多的，不打眼前殘血的', () => {
+        const w = arena();
+        const big = w.spawn(Team.RED, 3, 0);
+        w.target.hp = 100;
+        big.hp = HP;
+        w.source.target = w.target;
+        const skill = makeSkill({ range: 9, power: 1000, targetPreference: 'HIGHEST_HP' });
+        expect(w.engine.calculateOptimalTarget(w.source, skill).targetAgent).toBe(big);
+    });
+    it('對照組：沒宣告就黏著現在的目標', () => {
+        const w = arena();
+        const big = w.spawn(Team.RED, 3, 0);
+        w.target.hp = 100;
+        big.hp = HP;
+        w.source.target = w.target;
+        w.source.targetLockUntil = 999;
+        const skill = makeSkill({ range: 9, power: 1000 });
+        expect(w.engine.calculateOptimalTarget(w.source, skill).targetAgent).toBe(w.target);
+    });
+    it('minTargets：範圍內人不夠不放', () => {
+        const skill = makeSkill({ range: 0, type: 'AOE', aoeRadius: 5, power: 100, activation: { minTargets: 2 } });
+        const one = arena();
+        expect(one.engine.calculateOptimalTarget(one.source, skill).targetHex).toBeNull();
+        const two = arena();
+        two.spawn(Team.RED, 2, 0);
+        expect(two.engine.calculateOptimalTarget(two.source, skill).targetHex).not.toBeNull();
+    });
+});
+
+describe('機動技能池', () => {
+    const mobility = DEFAULT_SKILL_DB.filter((s) => s.tag === 'MOBILITY');
+    const HARD: readonly string[] = ['STUN', 'POLYMORPH', 'FEAR', 'BANISH', 'ROOT'];
+
+    it.each(Object.values(Role).flatMap((role) => [Team.BLUE, Team.RED].map((team) => [role, team] as const)))('%s 隊伍 %s 有兩招', (role, team) => {
+        expect(mobility.filter((s) => s.role === role && s.team === team).length).toBe(2);
+    });
+    it('不花魔力、回 10 魔、有意圖與施放條件、不帶硬控、有視覺', () => {
+        expect(mobility.length).toBe(20);
+        for (const s of mobility) {
+            expect(s.cost, s.id).toBe(0);
+            expect(s.gain, s.id).toBe(10);
+            expect(s.intents?.length, s.id).toBeGreaterThan(0);
+            expect(s.activation, s.id).toBeDefined();
+            for (const a of [...(s.onHit ?? []), ...(s.onEnd ?? [])]) {
+                if (a.action === 'STATUS') expect(HARD, s.id).not.toContain(a.status);
+            }
+            expect(ACTIVE_VISUALS[s.id], s.id).toBeDefined();
+        }
+    });
+    it('單位開局就有自己職業的機動技，大逃殺也一樣', () => {
+        for (const factions of [2, 4]) {
+            const engine = new GameEngine();
+            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions, unitsPerFaction: 1 } });
+            const a = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, HP, Role.MAGE);
+            const s = DEFAULT_SKILL_DB.find((x) => x.id === a?.skillIds[3]);
+            expect(s?.tag).toBe('MOBILITY');
+            expect(s?.role).toBe(Role.MAGE);
+        }
+    });
+
+    const exp = (id: string, want: Partial<Skill>) => [id, want] as [string, Partial<Skill>];
+    const st = (status: string, duration?: number, force?: number) => ({ action: 'STATUS', status, ...(duration !== undefined ? { duration } : {}), ...(force !== undefined ? { force } : {}) });
+    const gapBeyond = { targetBeyond: 1 };
+    const near = { enemyWithin: 2 };
+    const touching = { enemyWithin: 1 };
+    it.each([
+        exp('wb_m1', { range: 5, cd: 6.5, onCast: [{ action: 'DASH' }], onHit: [st('SLOW', 1.5, 0.4)] as HitAction[], intents: ['GAP_CLOSE'], activation: gapBeyond }),
+        exp('wb_m2', { range: 4, cd: 7.5, onHit: [st('PULL', undefined, 3)] as HitAction[], intents: ['HOOK'], activation: gapBeyond }),
+        exp('wr_m1', { range: 5, cd: 7, type: 'AOE', aoeRadius: 1, onCast: [{ action: 'DASH' }], intents: ['GAP_CLOSE'], activation: gapBeyond }),
+        exp('wr_m2', { range: 4, cd: 7.5, onHit: [st('PULL', undefined, 3)] as HitAction[], intents: ['HOOK'], activation: gapBeyond }),
+        exp('tb_m1', { range: 5, cd: 8, onHit: [st('PULL', undefined, 4), st('TAUNT', 1.5)] as HitAction[], intents: ['HOOK'], activation: gapBeyond }),
+        exp('tb_m2', { range: 0, cd: 7.5, type: 'AOE', aoeRadius: 1, onHit: [st('KNOCKBACK', undefined, 3)] as HitAction[], intents: ['PEEL'], activation: touching }),
+        exp('tr_m1', { range: 6, cd: 8, onHit: [st('PULL', undefined, 4)] as HitAction[], intents: ['HOOK'], activation: gapBeyond }),
+        exp('tr_m2', { range: 0, cd: 7.5, type: 'AOE', aoeRadius: 1, onHit: [st('KNOCKBACK', undefined, 3)] as HitAction[], intents: ['PEEL'], activation: touching }),
+        exp('rb_m1', { range: 4, cd: 7.5, onCast: [{ action: 'RETREAT', tiles: 3 }], onHit: [st('BLIND', 1.8)] as HitAction[], intents: ['ESCAPE'], activation: near }),
+        exp('rb_m2', { range: 4, cd: 7, onHit: [st('KNOCKBACK', undefined, 3)] as HitAction[], intents: ['PEEL'], activation: near }),
+        exp('rr_m1', { range: 4, cd: 7.5, onCast: [{ action: 'RETREAT', tiles: 3 }], onHit: [st('SLOW', 1.8, 0.4)] as HitAction[], intents: ['ESCAPE'], activation: near }),
+        exp('rr_m2', { range: 4, cd: 7, onHit: [st('KNOCKBACK', undefined, 3)] as HitAction[], intents: ['PEEL'], activation: near }),
+        exp('mb_m1', { range: 3, cd: 8.5, onCast: [{ action: 'RETREAT', tiles: 3 }], onHit: [st('SLOW', 1.5, 0.5)] as HitAction[], intents: ['ESCAPE'], activation: near }),
+        exp('mb_m2', { range: 0, cd: 8, type: 'AOE', aoeRadius: 1, onHit: [st('KNOCKBACK', undefined, 3), st('SLOW', 2, 0.5)] as HitAction[], intents: ['PEEL'], activation: touching }),
+        exp('mr_m1', { range: 3, cd: 8.5, onCast: [{ action: 'RETREAT', tiles: 3 }], onHit: [st('SLOW', 1.5, 0.5)] as HitAction[], intents: ['ESCAPE'], activation: near }),
+        exp('mr_m2', { range: 0, cd: 8, type: 'AOE', aoeRadius: 1, onHit: [st('KNOCKBACK', undefined, 3), st('SLOW', 2, 0.5)] as HitAction[], intents: ['PEEL'], activation: touching }),
+        exp('sb_m1', { range: 0, cd: 8.5, type: 'AOE', aoeRadius: 1, onHit: [st('KNOCKBACK', undefined, 3)] as HitAction[], onEnd: [st('HASTE', 3, 35)] as EndAction[], intents: ['PEEL'], activation: touching }),
+        exp('sb_m2', { range: 3, cd: 8.5, onCast: [{ action: 'RETREAT', tiles: 2 }], onEnd: [st('SHIELD', undefined, 180)] as EndAction[], intents: ['ESCAPE'], activation: near }),
+        exp('sr_m1', { range: 0, cd: 8.5, type: 'AOE', aoeRadius: 1, onHit: [st('KNOCKBACK', undefined, 3)] as HitAction[], onEnd: [st('HASTE', 3, 35)] as EndAction[], intents: ['PEEL'], activation: touching }),
+        exp('sr_m2', { range: 3, cd: 8.5, onCast: [{ action: 'RETREAT', tiles: 2 }], onEnd: [st('SHIELD', undefined, 180)] as EndAction[], intents: ['ESCAPE'], activation: near }),
+    ])('%s', (id, want) => {
+        expect(skillById(id)).toMatchObject(want);
+    });
+});
+
+describe('補位與調整的技能資料', () => {
+    const st = (status: string, duration?: number, force?: number) => ({ action: 'STATUS', status, ...(duration !== undefined ? { duration } : {}), ...(force !== undefined ? { force } : {}) });
+    it('主動技仍然每職業每隊 5 招', () => {
+        for (const role of Object.values(Role)) {
+            for (const team of [Team.BLUE, Team.RED]) {
+                expect(DEFAULT_SKILL_DB.filter((s) => s.tag === 'ACTIVE' && s.role === role && s.team === team).length).toBe(5);
+            }
+        }
+    });
+    it.each([
+        ['wb_a2', { range: 1, power: 175, onHit: [st('VULNERABLE', 4), st('SLOW', 2.5, 0.4)] }],
+        ['wb_a5', { hits: { count: 3, interval: 0.1 }, onHit: [{ action: 'MANA_BURN', value: 35 }] }],
+        ['wr_a3', { range: 0, type: 'AOE', aoeRadius: 2, onHit: [{ action: 'VAMP', value: 0.5 }, st('VULNERABLE', 3.5)] }],
+        ['tb_a1', { range: 0, type: 'SINGLE', power: 0, onEnd: [st('SHIELD', undefined, 450), st('HASTE', 3.5, 35)] }],
+        ['tb_a4', { range: 0, type: 'AOE', aoeRadius: 2, onHit: [st('BLIND', 2.5), st('SLOW', 3, 0.5)] }],
+        ['tr_a1', { range: 0, type: 'AOE', aoeRadius: 2, onHit: [st('VULNERABLE', 3.5), st('DOT', 4, 35)] }],
+        ['rb_a3', { range: 7, power: 180, hits: { count: 3, interval: 0.1 }, onHit: [st('BLIND', 2.5), st('SLOW', 2, 0.4)] }],
+        ['rr_a2', { range: 7, power: 190, onHit: [st('VULNERABLE', 4), st('DOT', 3, 25)] }],
+        ['rr_a3', { range: 7, power: 140, onHit: [st('ROOT', 2.8), st('DOT', 3, 25)] }],
+        ['tb_b1', { onHit: [st('SLOW', 1.5, 0.35)] }],
+        ['tr_b2', { range: 2, power: 75, onHit: [st('SLOW', 1.5, 0.35)] }],
+        ['rb_b4', { onHit: [st('SLOW', 1.5, 0.4)] }],
+        ['rr_b1', { onHit: [st('VULNERABLE', 1.5)] }],
+        ['mb_u2', { aoeRadius: 3 }],
+        ['mb_u3', { power: 200, activation: { minTargets: 2 } }],
+        ['tb_u3', { power: 450, onEnd: [st('SHIELD', undefined, 500)] }],
+        ['tb_u4', { range: 5, type: 'AOE', aoeRadius: 2, power: 520, onCast: [{ action: 'DASH' }], onHit: [st('STUN', 2)], intents: ['GAP_CLOSE'] }],
+    ] as [string, Partial<Skill>][])('%s', (id, want) => {
+        expect(skillById(id)).toMatchObject(want);
+    });
+    it('移走位移的技能不再有位移', () => {
+        for (const id of ['wb_a2', 'wr_a3', 'tb_a1', 'tb_a4', 'tr_a1', 'rb_a3', 'rr_a2', 'tb_b1', 'tr_b2', 'rb_b4', 'rr_b1']) {
+            expect(skillById(id).onCast, id).toBeUndefined();
+            expect(skillById(id).intents, id).toBeUndefined();
+        }
+    });
+    it.each(['tr_b2', 'tr_b5', 'wr_b1', 'mr_a3', 'rb_u1', 'wr_u1', 'rr_u1', 'mr_u3', 'sr_u3'])('單體技能 %s 不留危害區', (id) => {
+        expect(skillById(id).type).toBe('SINGLE');
+        expect(skillById(id).onImpact).toBeUndefined();
+    });
+    it.each(['rb_u3', 'mr_u2', 'rr_u1', 'rr_u4', 'wb_u3', 'mr_u3'])('單體大招 %s 打血最多的敵人', (id) => {
+        expect(skillById(id).targetPreference).toBe('HIGHEST_HP');
+    });
+});
+
 describe('第二包的技能資料', () => {
     const chain = (id: string, action: HitAction) => expect(skillById(id).onHit).toContainEqual(action);
     it.each([
@@ -404,7 +613,6 @@ describe('第二包的技能資料', () => {
     it.each([
         ['wb_u5', { action: 'BLINK' }, 'GAP_CLOSE'],
         ['wb_u1', { action: 'BLINK' }, 'GAP_CLOSE'],
-        ['rb_a3', { action: 'RETREAT', tiles: 2 }, 'ESCAPE'],
     ] as const)('%s 出手動作與意圖', (id, action, intent) => {
         expect(skillById(id).onCast).toContainEqual(action);
         expect(skillById(id).intents).toContain(intent);

@@ -39,6 +39,7 @@ const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
 export const TAG_MAP: Record<string, { label: string; color: string }> = {
     'ULT':    { label: '奧義大絕', color: 'text-purple-400' },
     'ACTIVE': { label: '戰術主動', color: 'text-cyan-400' },
+    'MOBILITY': { label: '機動', color: 'text-emerald-400' },
     'BASIC':  { label: '基礎普攻', color: 'text-slate-400' }
 };
 

@@ -40,12 +40,12 @@ export class Agent {
     public weight: number = 1;
     public movementType: MovementType = MovementType.GROUND;
 
-    public skillIds: (string | null)[] = [null, null, null];
+    public skillIds: (string | null)[] = [null, null, null, null];
     public skills: (Skill | null)[] = [];
     public castingSkillIdx: number = -1;
     public castTimer: number = 0;
     public castingAnimationTimer: number = 0;
-    public curCDs: number[] = [0, 0, 0];
+    public curCDs: number[] = [0, 0, 0, 0];
     public currentTelegraph: {q: number, r: number}[] | null = null;
 
     public isMoving: boolean = false;

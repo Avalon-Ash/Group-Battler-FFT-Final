@@ -1,6 +1,7 @@
 
 import { UnitStats } from "../types";
 import { Role, MovementType } from "../engine/types/Enums";
+/** weight：抵銷幾格強制位移的力道（engine/systems/combat/CCManager.ts calculateKnockback） */
 export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }> = {
     [Role.TANK]: {
         role: Role.TANK,
@@ -8,7 +9,7 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
         maxMp: 100,
         moveSpeed: 1.1, 
         jump: 2, 
-        weight: 10, // 抗擊退
+        weight: 2, // 抗擊退
         movementType: MovementType.GROUND
     },
     [Role.WARRIOR]: {
@@ -17,7 +18,7 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
         maxMp: 100,
         moveSpeed: 1.8, // Buff: 極速追擊，這是反制風箏的關鍵
         jump: 4, // Buff: 超高跳躍，可以直接跳上大部分地形追殺飛行單位
-        weight: 5,
+        weight: 1,
         movementType: MovementType.GROUND
     },
     [Role.RANGER]: {
@@ -26,7 +27,7 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
         maxMp: 100,
         moveSpeed: 1.3, 
         jump: 3, 
-        weight: 2,
+        weight: 0,
         movementType: MovementType.GROUND
     },
     [Role.MAGE]: {
@@ -35,7 +36,7 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
         maxMp: 100,
         moveSpeed: 0.95, // Nerf: 飛行單位移動較慢
         jump: 1,
-        weight: 1, // 極易被擊飛
+        weight: 0, // 極易被擊飛
         movementType: MovementType.FLYING 
     },
     [Role.SUPPORT]: {
@@ -44,7 +45,7 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
         maxMp: 100,
         moveSpeed: 1.1,
         jump: 2,
-        weight: 2,
+        weight: 0,
         movementType: MovementType.GROUND
     }
 };

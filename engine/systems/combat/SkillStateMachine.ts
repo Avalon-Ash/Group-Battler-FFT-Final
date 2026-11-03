@@ -35,7 +35,7 @@ export function skillPhase(a: Agent, idx: number): SkillPhase {
     return (a.curCDs[idx] || 0) > 0 ? 'COOLDOWN' : 'READY';
 }
 
-export type ActivationBlock = 'NO_SKILL' | 'DEAD' | 'CONTROLLED' | 'SILENCED' | 'BUSY' | 'RECOVERY' | 'COOLDOWN' | 'MANA';
+export type ActivationBlock = 'NO_SKILL' | 'DEAD' | 'CONTROLLED' | 'SILENCED' | 'ROOTED' | 'BUSY' | 'RECOVERY' | 'COOLDOWN' | 'MANA';
 
 /** 這招不能放的原因；null＝可以。已在前搖的那一招視為可以繼續 */
 export function activationBlock(a: Agent, idx: number): ActivationBlock | null {
@@ -44,6 +44,8 @@ export function activationBlock(a: Agent, idx: number): ActivationBlock | null {
     if (a.hp <= 0) return 'DEAD';
     if (isActionBlocked(a, 'CAST')) return 'CONTROLLED';
     if (skill.tag !== 'BASIC' && isActionBlocked(a, 'SKILL')) return 'SILENCED';
+    // 突進、瞬移、後撤都是自己移動，被定身時不能放
+    if (skill.onCast?.length && isActionBlocked(a, 'MOVE')) return 'ROOTED';
     if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return 'BUSY';
     if (a._castCompleteCooldown > 0 || a._interruptCooldown > 0) return 'RECOVERY';
     if (a.castingSkillIdx !== idx) {

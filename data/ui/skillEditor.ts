@@ -26,7 +26,7 @@ export function isSkillEditableField(field: string): field is SkillEditableField
 // =========================================================================
 // 共用 Enum 選項（純資料來源，受 types.ts 型別約束）
 // =========================================================================
-export const SKILL_TAG_OPTIONS = ['BASIC', 'ACTIVE', 'ULT'] as const satisfies readonly Skill['tag'][];
+export const SKILL_TAG_OPTIONS = ['BASIC', 'ACTIVE', 'ULT', 'MOBILITY'] as const satisfies readonly Skill['tag'][];
 export const SKILL_TYPE_OPTIONS = ['SINGLE', 'AOE'] as const satisfies readonly Skill['type'][];
 export const SKILL_VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH'] as const satisfies readonly NonNullable<Skill['visual']>[];
 export const SKILL_ELEMENT_OPTIONS = ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'HOLY', 'VOID', 'POISON', 'ARCANE', 'BLOOD'] as const satisfies readonly NonNullable<Skill['element']>[];

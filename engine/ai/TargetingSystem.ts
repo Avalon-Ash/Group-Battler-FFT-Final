@@ -248,7 +248,8 @@ export class TargetingSystem {
 
             // A. 對敵傷害或對敵控制 PBAOE (power > 0 或含有敵方 CC)
             if (skill.type === 'AOE' && isHostileSkill(skill)) {
-                const hasEnemyInRange = enemies.some(e => HexUtils.dist(source, e) <= aoeRadius);
+                const inArea = enemies.filter(e => HexUtils.dist(source, e) <= aoeRadius).length;
+                const hasEnemyInRange = inArea >= (skill.activation?.minTargets ?? 1);
                 if (hasEnemyInRange) {
                     return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
                 }
@@ -361,6 +362,8 @@ export class TargetingSystem {
             // 友軍目標技能無合法友軍時，回傳 null（不可回傳敵軍，亦不可空放）
             return { targetAgent: null, targetHex: null };
         } else if (skill.type === 'SINGLE') {
+            const declared = this.declaredTarget(source, skill, enemies, spatial);
+            if (declared) return { targetAgent: declared, targetHex: null };
             // 普通敵方目標黏著邏輯
             if (validStickyTarget && source.target) {
                 const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
@@ -374,6 +377,24 @@ export class TargetingSystem {
         this.updateTarget(source, spatial);
         
         return { targetAgent: source.target, targetHex: null };
+    }
+
+    /** 技能自己宣告要打誰：逃生、推開打最近的威脅；單體大招打血最多的 */
+    private declaredTarget(source: Agent, skill: Skill, enemies: readonly Agent[], spatial: SpatialProvider): Agent | null {
+        const within = skill.activation?.enemyWithin;
+        if (within === undefined && skill.targetPreference !== 'HIGHEST_HP') return null;
+        let best: Agent | null = null;
+        let bestScore = -Infinity;
+        for (const e of enemies) {
+            const dist = HexUtils.dist(source, e);
+            if (dist > this.getEffectiveRange(source, e.q, e.r, skill.range, spatial) + COMBAT_PARAM.RANGE_TOLERANCE) continue;
+            const score = within !== undefined ? -dist : e.hp;
+            if (score > bestScore) {
+                bestScore = score;
+                best = e;
+            }
+        }
+        return best;
     }
 
     public getImpactArea(_source: Agent, targetHex: Hex, skill: Skill, spatial: ImpactAreaContext): Hex[] {

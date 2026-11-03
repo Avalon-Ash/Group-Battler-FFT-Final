@@ -89,7 +89,9 @@ export class AgentManager {
         a.skillIds = [
             rndS(slotSkills.filter(s => s.tag === 'ULT')),
             rndS(slotSkills.filter(s => s.tag === 'ACTIVE')),
-            rndS(validSkills.filter(s => s.tag === 'BASIC'))
+            rndS(validSkills.filter(s => s.tag === 'BASIC')),
+            // 機動技一定是自己職業的，大逃殺也一樣：它是職業定位
+            rndS(validSkills.filter(s => s.tag === 'MOBILITY'))
         ];
         
         const visual = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];

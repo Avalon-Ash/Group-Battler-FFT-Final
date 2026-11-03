@@ -198,11 +198,11 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
             expect(enemy.drStacks.stun).toBe(1);
         });
 
-        it('位移每段都套（拉向中心，一段一格；戰士 weight 5，力道 5 = 1 格），SLOW 每段刷新', () => {
+        it('位移每段都套（拉向中心，一段一格；戰士 weight 1，力道 2 = 1 格），SLOW 每段刷新', () => {
             const caster = spawn(Team.BLUE, 0, 0);
             const enemy = spawn(Team.RED, 3, 0);
             const skill = aoeSkill({
-                aoeRadius: 3, power: 90, ccType: 'PULL', ccForce: 5, ccType2: 'SLOW', ccForce2: 0.65, ccDur2: 0.3,
+                aoeRadius: 3, power: 90, ccType: 'PULL', ccForce: 2, ccType2: 'SLOW', ccForce2: 0.65, ccDur2: 0.3,
                 hits: { count: 3, interval: 0.2 },
             });
             const dist = () => HexUtils.dist(enemy, { q: 0, r: 0 });

@@ -263,7 +263,7 @@ export class SkillExecutor {
                     // [FIX] SSOT Grid Anchor Locking for Hit VFX
 
                     // 打擊特效：普攻與投射物主動技用技能自己的（奧義與無投射物的主動技由 SkillSequences 播主特效，這裡只播陣營預設小打擊）
-                    const ownHit = skill.tag === 'BASIC' || (skill.tag === 'ACTIVE' && (skill.projectileSpeed ?? 0) > 0);
+                    const ownHit = skill.tag === 'BASIC' || (skill.tag !== 'ULT' && (skill.projectileSpeed ?? 0) > 0);
                     const hitFX = (ownHit && skill.visualHitEffect) || FACTION_VISUALS[source.team].defaultHitEffect;
 
                     // Decoupled Event: Emit HIT_FX for visual pipeline

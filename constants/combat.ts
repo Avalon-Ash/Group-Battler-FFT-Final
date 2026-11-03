@@ -112,6 +112,8 @@ export const PHYSICS = {
  * 3×0.05 + 2×0.05 = 25 傷害；撞單位時雙方各吃一半。
  */
 export const FORCED_MOVE = {
+    /** 力道到這個值，再重的單位也至少推動 1 格。 */
+    MIN_ONE_TILE_FORCE: 2,
     /** 鄰格方向內積比較的初始下界（無單位）。 */
     INITIAL_STEP_DOT: -2,
     /** 每個「沒走完的格」造成的傷害（maxHp 比例） */
@@ -210,6 +212,14 @@ export const AGENT_CONSTANTS = {
 };
 
 /** 施法中斷後禁止立刻重新詠唱的秒數（_interruptCooldown，施法域唯一寫入）。 */
+/** 單位的技能槽（skillIds、curCDs、skills 的索引）。機動槽加在最後，舊的索引不變。 */
+export const SKILL_SLOTS = {
+    ULT: 0,
+    ACTIVE: 1,
+    BASIC: 2,
+    MOBILITY: 3,
+} as const;
+
 export const CAST_LOCKOUT = {
     /** 一般中斷：避免同一 tick 重複記錄／重施。 */
     INTERRUPT: 0.1,

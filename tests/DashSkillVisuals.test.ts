@@ -11,7 +11,8 @@ const isDash = (s: Skill) => {
 };
 
 describe('dash skill visuals', () => {
-    const dashSkills = DEFAULT_SKILL_DB.filter(isDash);
+    // 奧義的視覺走 ULT_VISUALS，不用主動技的原型
+    const dashSkills = DEFAULT_SKILL_DB.filter((s) => isDash(s) && s.tag !== 'ULT');
 
     it('there are dash skills to check', () => {
         expect(dashSkills.length).toBeGreaterThanOrEqual(2);

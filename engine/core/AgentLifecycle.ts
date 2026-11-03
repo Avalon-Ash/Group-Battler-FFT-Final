@@ -46,7 +46,7 @@ export function resetAgent(agent: Agent, config: MapConfig): void {
     agent.castingSkillIdx = -1;
     agent.castTimer = 0;
     agent.castingAnimationTimer = 0;
-    agent.curCDs = [0, 0, 0];
+    agent.curCDs = [0, 0, 0, 0];
     agent.currentTelegraph = null;
 
     agent.isMoving = false;
