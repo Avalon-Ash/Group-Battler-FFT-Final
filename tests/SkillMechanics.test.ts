@@ -331,9 +331,10 @@ describe('出手動作：不管瞬發、投射物、天降都會生效', () => {
     });
     it('DASH：投射物技能也會衝', () => {
         const w = arena();
-        const far = w.spawn(Team.RED, 4, 0);
-        cast(w, w.source, far, makeSkill({ projectileSpeed: 300, onCast: [{ action: 'DASH' }] }));
-        expect(HexUtils.dist(w.source, far)).toBe(1);
+        const shooter = w.spawn(Team.BLUE, 0, 2);
+        const far = w.spawn(Team.RED, 4, 2);
+        cast(w, shooter, far, makeSkill({ projectileSpeed: 300, onCast: [{ action: 'DASH' }] }));
+        expect(HexUtils.dist(shooter, far)).toBe(1);
     });
 });
 
