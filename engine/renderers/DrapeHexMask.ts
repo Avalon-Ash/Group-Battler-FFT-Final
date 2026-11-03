@@ -30,6 +30,30 @@ interface MaskTile {
 }
 
 const tiles = new Map<HexLayout, MaskTile>();
+const sheets = new Map<HexLayout, HTMLCanvasElement>();
+
+/** A/B：true＝貼一張預烘大圖，false＝重複單元的 pattern 填色 */
+export const hexMaskOptions = { useSheet: false };
+
+/** 重複單元鋪成的大張遮罩：貼一次 drawImage，不必每層都做 pattern 填色 */
+function bakeSheet(layout: HexLayout, tile: MaskTile): HTMLCanvasElement | null {
+    const cols = Math.ceil(GROUND_DRAPE.HEX_MASK_SHEET_WORLD_W / tile.worldW);
+    const rows = Math.ceil(GROUND_DRAPE.HEX_MASK_SHEET_WORLD_H / tile.worldH);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(cols * tile.worldW);
+    canvas.height = Math.ceil(rows * tile.worldH);
+    const sctx = canvas.getContext('2d');
+    if (!sctx) return null;
+    const sx = canvas.width / (cols * tile.worldW);
+    const sy = canvas.height / (rows * tile.worldH);
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+            sctx.drawImage(tile.canvas, c * tile.worldW * sx, r * tile.worldH * sy, tile.worldW * sx, tile.worldH * sy);
+        }
+    }
+    sheets.set(layout, canvas);
+    return canvas;
+}
 
 /** 同色格的矩形週期：FLAT 是 (q+2, r−1) 與 (q, r+3)，POINTY 是 (q+3, r) 與 (q−1, r+2) */
 function periodOf(layout: HexLayout): { w: number; h: number } {
@@ -72,6 +96,19 @@ export function applyHexMask(lctx: CanvasRenderingContext2D, layout: HexLayout, 
         tile = bake(layout, lctx);
         if (!tile) return false;
         tiles.set(layout, tile);
+    }
+    if (hexMaskOptions.useSheet) {
+        const sheet = sheets.get(layout) ?? bakeSheet(layout, tile);
+        if (!sheet) return false;
+        // 目前畫布左上角在世界座標對應的週期內位置（對齊到一個週期內，大圖才一定蓋得到）
+        const wx = -originX / scale;
+        const wy = -originY / scale;
+        const ax = ((wx % tile.worldW) + tile.worldW) % tile.worldW;
+        const ay = ((wy % tile.worldH) + tile.worldH) % tile.worldH;
+        lctx.globalCompositeOperation = 'destination-in';
+        lctx.drawImage(sheet, ax, ay, w / scale, h / scale, 0, 0, w, h);
+        lctx.globalCompositeOperation = 'source-over';
+        return true;
     }
     const sx = scale * tile.worldW / tile.canvas.width;
     const sy = scale * tile.worldH / tile.canvas.height;

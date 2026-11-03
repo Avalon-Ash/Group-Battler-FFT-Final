@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  PhoneAB — 實機效能 A/B（渲染優化輪的臨時診斷，用完刪除） ║
 // ║  職責：手機開 ?perf&mute&phoneab，自動逐項改一種繪製方式， ║
-// ║        最後列出每項的幀時間。第四輪驗證預烘遮罩。        ║
+// ║        最後列出每項的幀時間。第五輪比較合成一張。        ║
 // ║  只在網址有 phoneab 時由 index.tsx 動態載入，平常不下載。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -10,6 +10,7 @@ import { RenderStats } from '../engine/renderers/RenderStats';
 import { setPinnedTier, type QualityTier } from '../engine/renderers/RenderQuality';
 import { TerrainRenderer } from '../engine/renderers/grid/TerrainRenderer';
 import { GroundDrapeLayer } from '../engine/renderers/GroundDrape';
+import { hexMaskOptions } from '../engine/renderers/DrapeHexMask';
 import { HexGeometry } from '../engine/graphics/utils/HexGeometry';
 import { ISO_SCALE_Y } from '../constants';
 import { SCENE_DB } from '../data/scenes';
@@ -42,16 +43,20 @@ interface Segment {
     noBlit?: boolean;
     noPlanes?: boolean;
     hexMask?: boolean;
+    sharedPlane?: boolean;
+    sheet?: boolean;
 }
 
 const SEGMENTS: Segment[] = [
+    { id: 'warm', label: '暖機' },
+    { id: 'sheet1', label: '合成＋大圖 1', hexMask: true, sharedPlane: true, sheet: true },
     { id: 'base1', label: '現況 1' },
-    { id: 'mask1', label: '預烘遮罩 1', hexMask: true },
+    { id: 'plane1', label: '合成＋圖案 1', hexMask: true, sharedPlane: true },
+    { id: 'sheet2', label: '合成＋大圖 2', hexMask: true, sharedPlane: true, sheet: true },
     { id: 'base2', label: '現況 2' },
-    { id: 'mask2', label: '預烘遮罩 2', hexMask: true },
-    { id: 'base3', label: '現況 3' },
-    { id: 'mask3', label: '預烘遮罩 3', hexMask: true },
-    { id: 'mask_half', label: '遮罩＋離屏半解析', hexMask: true, offscreenScale: HALF_RES },
+    { id: 'plane2', label: '合成＋圖案 2', hexMask: true, sharedPlane: true },
+    { id: 'sheet3', label: '合成＋大圖 3', hexMask: true, sharedPlane: true, sheet: true },
+    { id: 'layers', label: '逐特效遮罩', hexMask: true },
     { id: 'rect', label: '矩形裁切（對照）', rectClip: true },
 ];
 
@@ -296,11 +301,14 @@ export async function runPhoneAB(): Promise<void> {
     for (let i = 0; i < SEGMENTS.length; i++) {
         active = SEGMENTS[i];
         GroundDrapeLayer.hexMask = !!active.hexMask;
-        status.textContent = `第四輪量測中 ${i + 1}/${SEGMENTS.length}：${active.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
+        GroundDrapeLayer.sharedPlane = !!active.sharedPlane;
+        hexMaskOptions.useSheet = !!active.sheet;
+        status.textContent = `第五輪量測中 ${i + 1}/${SEGMENTS.length}：${active.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
         rows.push(await runSegment(e, seconds));
     }
     setPinnedTier(null);
     GroundDrapeLayer.hexMask = false;
+    GroundDrapeLayer.sharedPlane = false;
     const lines = rows.map((r) => `${r.label.padEnd(10, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(5)} ${r.clips.toFixed(0).padStart(4)} ${r.blits.toFixed(0).padStart(4)} ${r.offMp.toFixed(1).padStart(4)}`);
-    status.textContent = ['第四輪跑完了，請截圖這張表', `${'項目'.padEnd(10, '　')}   FPS  低5%  每幀 裁切 貼回 離屏MP`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight} 特效數 ${rows[0].entries.toFixed(1)}`].join('\n');
+    status.textContent = ['第五輪跑完了，請截圖這張表', `${'項目'.padEnd(10, '　')}   FPS  低5%  每幀 裁切 貼回 離屏MP`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight} 特效數 ${rows[0].entries.toFixed(1)}`].join('\n');
 }

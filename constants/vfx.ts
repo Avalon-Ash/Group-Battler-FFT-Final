@@ -106,6 +106,9 @@ export const GROUND_DRAPE = {
     HEX_MASK_BAKE_SCALE: 4,
     /** 烘遮罩時涵蓋的格座標範圍（±格數）：要蓋滿一個重複週期 */
     HEX_MASK_LATTICE_REACH: 6,
+    /** 大張遮罩的世界座標涵蓋範圍（px）：要大於最大地圖 */
+    HEX_MASK_SHEET_WORLD_W: 2400,
+    HEX_MASK_SHEET_WORLD_H: 1600,
     /** 遮罩不透明部分的填色（只用到 alpha） */
     HEX_MASK_FILL: '#ffffff',
     /** 離屏畫布單邊上限（裝置像素）；超過時降低離屏解析度 */
