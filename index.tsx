@@ -15,3 +15,8 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// 實機 A/B（渲染優化輪的臨時診斷）：只有網址帶 phoneab 才載入
+if (new URLSearchParams(location.search).has('phoneab')) {
+  void import('./diagnostics/PhoneAB').then((m) => m.runPhoneAB());
+}

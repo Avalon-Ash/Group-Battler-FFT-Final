@@ -26,7 +26,7 @@ export const useGameApp = () => {
     // [ARCH] Use a lazy initializer for the ref to avoid 'new GameEngine()' on every render
     const [initialEngine] = useState(() => {
         const eng = new GameEngine();
-        if (import.meta.env.DEV && typeof window !== 'undefined') {
+        if ((import.meta.env.DEV || new URLSearchParams(location.search).has('phoneab')) && typeof window !== 'undefined') {
             (window as DevWindow).__TACTICAL_ENGINE__ = eng;
         }
         return eng;
@@ -43,7 +43,7 @@ export const useGameApp = () => {
             clearTimeout(pendingDestroyRef.current);
             pendingDestroyRef.current = null;
         }
-        if (import.meta.env.DEV && typeof window !== 'undefined') {
+        if ((import.meta.env.DEV || new URLSearchParams(location.search).has('phoneab')) && typeof window !== 'undefined') {
             const devWindow = window as DevWindow;
             devWindow.__TACTICAL_ENGINE__ = currentEngine;
         }
@@ -51,7 +51,7 @@ export const useGameApp = () => {
             pendingDestroyRef.current = setTimeout(() => {
                 pendingDestroyRef.current = null;
                 currentEngine.destroy();
-                if (import.meta.env.DEV && typeof window !== 'undefined') {
+                if ((import.meta.env.DEV || new URLSearchParams(location.search).has('phoneab')) && typeof window !== 'undefined') {
                     const devWindow = window as DevWindow;
                     if (devWindow.__TACTICAL_ENGINE__ === currentEngine) {
                         delete devWindow.__TACTICAL_ENGINE__;
