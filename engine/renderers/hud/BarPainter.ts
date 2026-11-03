@@ -8,7 +8,7 @@
 import { Agent } from "../../game";
 import { HUD_COLORS, HUD_BAR, RENDER_HOTSPOT_CACHE } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
-import { getFactionSkin } from "../../../data/units/factionSkin";
+import { getAgentSkin } from "../../../data/units/factionTint";
 import { isGlowSpritesEnabled } from "../RenderQuality";
 import { createCanvas } from "../../graphics/CanvasUtils";
 
@@ -98,7 +98,7 @@ export const BarPainter = {
         const startX = x - totalW / 2;
         const startY = y - B.TOP_OFFSET;
         const glowOn = isGlowSpritesEnabled();
-        const hudSkin = getFactionSkin(agent.team).hud;
+        const hudSkin = getAgentSkin(agent).hud;
 
         // 外框：深色玻璃底＋邊框；選取時以陣營色加一圈寬的半透明描邊當光暈
         ctx.beginPath();

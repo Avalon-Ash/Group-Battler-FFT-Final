@@ -11,7 +11,7 @@ export const UnitShadowPainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, t: number, isSilhouette: boolean, layout: HexLayout) {
         if (isSilhouette) return;
 
-        const assets = SpriteManager.getUnitImages(agent.role, agent.team, resolveBodyType(agent), layout);
+        const assets = SpriteManager.getUnitImages(agent.role, agent.look ?? agent.team, resolveBodyType(agent), layout);
         const surfaceY = py;
         
         // SSOT: Use centralized shadow bias

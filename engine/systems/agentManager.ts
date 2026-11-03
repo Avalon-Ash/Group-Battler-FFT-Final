@@ -8,7 +8,7 @@
 
 import { GameEngine } from "../game";           // GameEngine 仍從 game.ts 取（避免循環依賴）
 import { Agent } from "../core/Agent";
-import { Role, Team, Skill, BodyTypeId, AnimState, ActionState } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
+import { Role, Team, Skill, BodyTypeId, AnimState, ActionState, FactionLook } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { RagdollFactory } from "./unit/RagdollFactory";
@@ -60,12 +60,13 @@ export class AgentManager {
         }
     }
 
-    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role, bodyTypeOverride?: BodyTypeId, sideOverride?: number): Agent | null {
+    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role, bodyTypeOverride?: BodyTypeId, sideOverride?: number, lookOverride?: FactionLook): Agent | null {
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
         const id = engine.nextId(team === Team.BLUE ? 'BLU' : 'RED');
         const a = new Agent(id, team, q, r, engine.mapConfig);
         if (sideOverride !== undefined) a.side = sideOverride;
+        if (lookOverride) a.look = lookOverride;
         
         if (roleOverride) {
             a.role = roleOverride;

@@ -1,16 +1,18 @@
 /// <reference types="vite/client" />
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup } from '../types';
+import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup, FactionLook } from '../types';
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { random } from '../engine/math/rng';
 import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, rollShowcaseSetup, HexCoord } from '../engine/systems/ui/editorQueries';
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
+import { pickFactionLooks, plainLook } from '../data/units/factionTint';
+import { AgentManager } from '../engine/systems/agentManager';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 
 /** 展示陣容的一個位置：陣營、角色與體型在生成前就決定，圖集才能在轉場期間預載 */
-interface ShowcaseSlot { side: number; team: Team; role: Role; bodyType: BodyTypeId }
+interface ShowcaseSlot { side: number; team: Team; role: Role; bodyType: BodyTypeId; look: FactionLook }
 const SHOWCASE_ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
 
 /** 陣營用的外觀：只有藍、紅兩套皮膚，雙數陣營藍、單數紅（陣營 0／1 和 Team 數值相同） */
@@ -109,10 +111,13 @@ export const useGameApp = () => {
         const round = ++rosterRoundRef.current;
         const setup = { ...(nextSetup ?? engineRef.current.battleSetup) };
         const plan: ShowcaseSlot[] = [];
+        // 三個以上陣營：每局重新分配外觀色（兩個陣營回傳 null＝原色）。種子用 matchSalt＋局數，不消耗 random()
+        const looks = pickFactionLooks(setup.factions, `${AgentManager.matchSalt}-${round}`);
         for (let side = 0; side < setup.factions; side++) {
             const team = factionTeam(side);
+            const look = looks?.[side] ?? plainLook(team);
             for (let i = 0; i < setup.unitsPerFaction; i++) {
-                plan.push({ side, team, role: SHOWCASE_ROLES[factionRoleIndex(side, i, setup.unitsPerFaction, SHOWCASE_ROLES.length)], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round) });
+                plan.push({ side, team, role: SHOWCASE_ROLES[factionRoleIndex(side, i, setup.unitsPerFaction, SHOWCASE_ROLES.length)], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round), look });
             }
         }
         rosterRef.current = plan;
@@ -152,6 +157,7 @@ export const useGameApp = () => {
                 role: slot.role,
                 bodyType: slot.bodyType,
                 side,
+                look: slot.look,
             });
         };
 

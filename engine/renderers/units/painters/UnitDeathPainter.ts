@@ -1,6 +1,6 @@
 import { Agent } from "../../../../types";
 import { UNIT_SPRITE, UNIT_SCALE } from "../../../../constants";
-import { getFactionSkin } from "../../../../data/units/factionSkin";
+import { getAgentSkin } from "../../../../data/units/factionTint";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { DEFAULT_FRAME_COUNTS } from "../../../../data/units/appearance/selectSpriteFrame";
 import { VisualMath } from "../../../math/VisualMath";
@@ -72,7 +72,7 @@ export class UnitDeathPainter {
         if (SpriteUnitRenderer.canRender(agent)) {
             SpriteUnitRenderer.draw(ctx, agent, t, false);
         } else {
-            ctx.fillStyle = getFactionSkin(agent.team).fallbackBodyColor;
+            ctx.fillStyle = getAgentSkin(agent).fallbackBodyColor;
             ctx.beginPath();
             ctx.arc(0, 0, UNIT_SPRITE.fallbackRadius, 0, Math.PI * 2);
             ctx.fill();

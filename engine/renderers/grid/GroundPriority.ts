@@ -5,7 +5,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 import { GRID_OVERLAY } from '../../../constants';
 import type { Agent, Hex, Skill } from '../../../types';
-import { getFactionSkin } from '../../../data/units/factionSkin';
+import { getAgentSkin } from '../../../data/units/factionTint';
 
 export const GroundFlag = { Warning: 1, LastStand: 2, Cast: 4, Hazard: 8, Status: 16, Zone: 32, Light: 64, Range: 128 } as const;
 export interface GroundLayers {
@@ -85,7 +85,7 @@ class GroundPriorityTable {
     at(q: number, r: number): GroundLayers { return resolveGroundLayers(this.flagsAt(q, r)); }
     addCast(q: number, r: number, agent: Agent): void {
         const i = this.index(q, r);
-        if (i >= 0 && this.colors[i] === undefined) this.colors[i] = getFactionSkin(agent.team).fallbackBodyColor;
+        if (i >= 0 && this.colors[i] === undefined) this.colors[i] = getAgentSkin(agent).fallbackBodyColor;
     }
     castColorAt(q: number, r: number): string | undefined { return this.colors[this.index(q, r)]; }
 }

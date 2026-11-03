@@ -1,6 +1,6 @@
 
 import { VFXSystem } from "../../vfx";
-import { getFactionSkin } from "../../../../data/units/factionSkin";
+import { getAgentSkin } from "../../../../data/units/factionTint";
 import { Agent } from "../../../core/Agent";
 import { VFX_BUDGET, DEATH_VFX, UNIT_SHATTER } from "../../../../constants";
 import { getQualityTier } from "../../../renderers/RenderQuality";
@@ -16,7 +16,7 @@ export const UnitShatter = {
      */
     spawn(system: VFXSystem | undefined, agent: Agent, groundZ: number, impactX: number = 0, impactY: number = 0) {
         if (!system) return;
-        const death = getFactionSkin(agent.team).death;
+        const death = getAgentSkin(agent).death;
         const ramps = death.ramps;
 
         const ox = agent.px;

@@ -2,7 +2,7 @@
 // [ENTITY] 純資料容器，不放任何方法。
 // 生命週期（存檔／重置）在 AgentLifecycle.ts；其他邏輯請移至對應 System。
 
-import { Skill, Hex, BodyTypeId, EffectSlots, SpecialVisualStatus, AgentView } from "../../types";
+import { Skill, Hex, BodyTypeId, EffectSlots, SpecialVisualStatus, AgentView, FactionLook } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import type { AIMode } from "../../types";
 import { RagdollBone } from "../types/ragdoll";
@@ -25,6 +25,8 @@ export class Agent {
     public px: number;
     public py: number;
     public bodyType?: BodyTypeId;
+    /** 陣營外觀（換色版本）。生成時由 agentManager 寫入；三個陣營以下等於 { skinTeam: team, hue: null } */
+    public look: FactionLook;
 
     public hp: number = 100;
     public maxHp: number = 100;
@@ -119,6 +121,7 @@ export class Agent {
         this.id = id;
         this.team = team;
         this.side = team;
+        this.look = { skinTeam: team, hue: null };
         this.role = Role.WARRIOR;
         this.q = q;
         this.r = r;

@@ -16,6 +16,7 @@ import { spriteAtlasStore, selectMipLevel, UnitFrameDef } from '../SpriteAtlasSt
 import { resolveBodyType, BODY_TYPE_PROFILE } from '../../../../data/units/appearance/bodyTypes';
 import { lookupSpriteAppearance } from '../../../../data/units/appearance/sprite';
 import { selectSpriteFrame } from '../../../../data/units/appearance/selectSpriteFrame';
+import { variantKey } from '../../../../data/units/factionTint';
 
 /** 受擊抖動頻率（弧度／秒） */
 const HIT_SHAKE_FREQ = 80;
@@ -97,9 +98,10 @@ export const SpriteUnitRenderer = {
         if (!spriteAtlasStore.isReady()) return null;
         const bodyType = resolveBodyType(agent);
         const bodyProfile = BODY_TYPE_PROFILE[bodyType];
-        const appearance = lookupSpriteAppearance(agent.team, agent.role, bodyType);
+        const skinTeam = agent.look?.skinTeam ?? agent.team;
+        const appearance = lookupSpriteAppearance(skinTeam, agent.role, bodyType);
         if (!appearance) return null;
-        const unitDef = spriteAtlasStore.getUnitDef(appearance.manifestKey);
+        const unitDef = spriteAtlasStore.getUnitDef(variantKey(appearance.manifestKey, agent.look?.hue ?? null));
         if (!unitDef) return null;
         const manifest = spriteAtlasStore.getManifest();
         const refHeight = manifest?.referenceHeightPx ?? UNIT_SPRITE.referenceHeightPx;
@@ -114,9 +116,10 @@ export const SpriteUnitRenderer = {
     canRender(agent: Agent): boolean {
         if (!spriteAtlasStore.isReady()) return false;
         const bodyType = resolveBodyType(agent);
-        const appearance = lookupSpriteAppearance(agent.team, agent.role, bodyType);
+        const skinTeam = agent.look?.skinTeam ?? agent.team;
+        const appearance = lookupSpriteAppearance(skinTeam, agent.role, bodyType);
         if (!appearance) return false;
-        return spriteAtlasStore.isReady(appearance.manifestKey);
+        return spriteAtlasStore.isReady(variantKey(appearance.manifestKey, agent.look?.hue ?? null));
     },
 
     /**
@@ -126,10 +129,11 @@ export const SpriteUnitRenderer = {
     resolveFrame(agent: Agent, t: number, out: ResolvedSpriteFrame): boolean {
         const bodyType = resolveBodyType(agent);
         const bodyProfile = BODY_TYPE_PROFILE[bodyType];
-        const appearance = lookupSpriteAppearance(agent.team, agent.role, bodyType);
+        const skinTeam = agent.look?.skinTeam ?? agent.team;
+        const appearance = lookupSpriteAppearance(skinTeam, agent.role, bodyType);
         if (!appearance) return false;
 
-        const manifestKey = appearance.manifestKey;
+        const manifestKey = variantKey(appearance.manifestKey, agent.look?.hue ?? null);
         const unitDef = spriteAtlasStore.getUnitDef(manifestKey);
         if (!unitDef) return false;
 

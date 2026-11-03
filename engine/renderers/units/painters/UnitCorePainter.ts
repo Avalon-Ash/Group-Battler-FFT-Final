@@ -16,7 +16,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../../core/Agent";
-import { BodyTypeId, HexLayout, Role, Team } from "../../../../types";
+import { BodyTypeId, HexLayout, Role, Team, FactionLook } from "../../../../types";
 import { CORE_VISUAL, UNIT_SCALE, UNIT_SPRITE } from "../../../../constants";
 import { SpriteManager } from "../../../sprites";
 import { resolveBodyType } from "../../../../data/units/appearance/bodyTypes";
@@ -85,7 +85,7 @@ export const UnitCorePainter = {
             // 投影跟著受擊晃動（UnitBodyPainter 以 visualOffset 平移身體）
             ctx.translate(agent.view.visualOffset.x * projected, agent.view.visualOffset.y * projected);
         }
-        UnitCorePainter.drawCore(ctx, agent.team, agent.role, body, layout, t, {
+        UnitCorePainter.drawCore(ctx, agent.look ?? agent.team, agent.role, body, layout, t, {
             casting: agent.castingSkillIdx !== -1,
             alpha: weight,
             phase: agent.q * PHASE_Q_MUL + agent.r * PHASE_R_MUL,
@@ -99,10 +99,10 @@ export const UnitCorePainter = {
 
     drawCore(
         ctx: CanvasRenderingContext2D,
-        team: Team, role: Role, body: BodyTypeId, layout: HexLayout,
+        teamOrLook: Team | FactionLook, role: Role, body: BodyTypeId, layout: HexLayout,
         t: number, opts: CoreDrawOptions
     ): void {
-        const { core } = SpriteManager.getUnitImages(role, team, body, layout);
+        const { core } = SpriteManager.getUnitImages(role, teamOrLook, body, layout);
         const k = opts.projected ?? 0;
         const lift = opts.lift ?? CORE_VISUAL.hoverHeight;
         // 投影成形後寶石不再上下浮動（它藏在角色裡，浮動由角色本身的待機起伏負責）

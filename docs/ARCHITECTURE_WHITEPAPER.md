@@ -44,7 +44,7 @@
 
 - 縮圈先逐層移除，到達 minRadius 或整層移除將清空地圖時改為外圈逐格塌陷；實際移除本輪已警告的格子，保留最後安全格。（`engine/systems/ZoneSystem.ts`）
 - 塌陷先處理格上單位，呼叫致命命令、清除放逐旗標、死亡處理及虛空掉落，再裁剪危害格、送出 `TILE_COLLAPSED` 並移除地形。（`engine/systems/ZoneSystem.ts`、`engine/systems/combat/DirectDamage.ts`、`engine/systems/status/ControlSystem.ts`）
-- 剩下最後安全格時設定 `isLastStand` 與 `finalHex`，發出終局通知；傷害計算停用治療、致盲落空、坦克格擋及護盾吸收，並增加傷害，並非保證任意攻擊都立即致死。（`engine/systems/ZoneSystem.ts`、`engine/systems/combat/DamageCalculator.ts`）
+- 最後一圈開始倒數（警告格數＝地塊數−1）時設定 `isLastStand` 與 `finalHex`，發出終局通知，倒數結束照常塌陷；傷害計算停用治療、致盲落空、坦克格擋及護盾吸收，並增加傷害，並非保證任意攻擊都立即致死。（`engine/systems/ZoneSystem.ts`、`engine/systems/combat/DamageCalculator.ts`）
 
 ## 8. 特效與詠唱預警
 
