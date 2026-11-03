@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { tileMaskColor } from '../engine/renderers/DrapeHexMask';
 import { HexMath } from '../engine/math/HexMath';
@@ -6,6 +7,14 @@ import { HexUtils } from '../engine/utils';
 /**
  * 逐格貼回只靠矩形外框，所以相鄰格一定要在不同色層：只要有一對同色，就會蓋到鄰格。
  */
+describe('GroundDrape stays free of per-tile path clips', () => {
+    // iPhone 14 Pro：每幀約 80 次六角路徑裁切就讓 5v5 奧義從 60 掉到約 35 FPS（WORKLOG §2 BH）
+    it('never traces a hexagon on the main canvas', () => {
+        const source = readFileSync('engine/renderers/GroundDrape.ts', 'utf8');
+        expect(source).not.toMatch(/traceHex|HexGeometry/);
+    });
+});
+
 describe('DrapeHexMask colouring', () => {
     it('never gives two neighbouring tiles the same colour', () => {
         for (let q = -8; q <= 8; q++) {
