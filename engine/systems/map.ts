@@ -12,6 +12,8 @@ import { MapSpatial } from "./map/MapSpatial";
 import { VisualMath } from "../math/VisualMath";
 import { PhysicsEngine } from "../physics/PhysicsEngine";
 export class MapSystem {
+    /** 整張地圖重建的次數（換地圖、重新生成）；縮圈塌陷不算，那只動 engine.mapVersion */
+    public generation = 0;
     public agentMap: Map<number, Agent> = new Map();
     public mapKeys: Set<string> = new Set();
     public warningTiles: Set<string> = new Set();

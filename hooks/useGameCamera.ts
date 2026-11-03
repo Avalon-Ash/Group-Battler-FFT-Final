@@ -62,7 +62,8 @@ export const useGameCamera = (engine: GameEngine) => {
             zoom: camera.current.zoom,
         });
 
-    }, [engine.mapConfig, engine.mapVersion]);
+    // 只在換地圖時重新置中：mapVersion 連縮圈塌陷都會變，鏡頭會每次塌陷就瞬間跳回全圖
+    }, [engine.mapConfig, engine.map.generation]);
 
     const zoom = useCallback((factor: number) => {
         if (!Number.isFinite(factor) || factor <= 0) return;

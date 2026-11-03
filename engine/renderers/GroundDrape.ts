@@ -67,6 +67,26 @@ interface DrapeEntry {
     layerStamps: number[];
 }
 
+/** 預烘遮罩的三色層與來源圖（DrapeEntry 與 DrapePlane 共用同一套合成） */
+type MaskHolder = Pick<DrapeEntry, 'canvas' | 'drawnW' | 'drawnH' | 'drawnScale' | 'layers' | 'layerCtxs' | 'layerStamps'>;
+
+/** 同一種混合模式的貼頂面特效合成的一張圖：不管場上幾個特效，每幀都只有這張加三色層 */
+interface DrapePlane extends MaskHolder {
+    blend: GlobalCompositeOperation;
+    cctx: CanvasRenderingContext2D | null;
+    /** 這張圖左上角的世界座標（足跡平面，不含高度與漂浮） */
+    minX: number;
+    minY: number;
+    /** 本幀登記到這張圖的特效與其涵蓋範圍聯集 */
+    members: DrapeEntry[];
+    maxX: number;
+    maxY: number;
+    peakW: number;
+    peakH: number;
+    /** 這格已經貼過了（一格只貼一次，涵蓋它的特效都已合在圖裡） */
+    lastTile: number;
+}
+
 function createEntry(): DrapeEntry {
     return {
         p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, offscreen: false,
@@ -78,7 +98,12 @@ function createEntry(): DrapeEntry {
 export class GroundDrapeLayer {
     /** 用預烘六角遮罩取代逐格路徑裁切（實機 A/B 期間可切換） */
     public static hexMask = false;
+    /** 貼頂面特效依混合模式合成一張圖，每幀成本不隨特效數量增加（實機 A/B 期間可切換；需要 hexMask） */
+    public static sharedPlane = false;
     private readonly entries: DrapeEntry[] = [];
+    private readonly planes = new Map<GlobalCompositeOperation, DrapePlane>();
+    private planesStamp = -1;
+    private tileToken = 0;
     private count = 0;
     private stamp = 0;
 
@@ -92,6 +117,19 @@ export class GroundDrapeLayer {
     /** 整理離屏畫布：整個週期沒用到的釋放；容量超過需求 CANVAS_SHRINK_RATIO 倍的縮到需求大小 */
     private trimCanvases(): void {
         const step = GROUND_DRAPE.CANVAS_GROW_STEP_PX;
+        for (const plane of this.planes.values()) {
+            if (plane.peakW === 0 && plane.canvas) {
+                for (const c of [plane.canvas, ...plane.layers]) {
+                    if (c) { c.width = 0; c.height = 0; }
+                }
+                plane.canvas = null;
+                plane.cctx = null;
+                plane.layers = [null, null, null];
+                plane.layerCtxs = [null, null, null];
+            }
+            plane.peakW = 0;
+            plane.peakH = 0;
+        }
         for (const e of this.entries) {
             const c = e.canvas;
             if (c) {
@@ -194,6 +232,9 @@ export class GroundDrapeLayer {
         const topY = snapY - op.th;
         const bob = op.ty - op.y;
         const masked = GroundDrapeLayer.hexMask;
+        const shared = masked && GroundDrapeLayer.sharedPlane;
+        if (shared) this.renderPlanes(ctx, layout, battleTime);
+        const tile = ++this.tileToken;
         let clipped = false;
         let planes = 0;
         for (let i = 0; i < this.count; i++) {
@@ -205,6 +246,14 @@ export class GroundDrapeLayer {
             const reach = e.reach + hexR;
             if (dx * dx + dy * dy > reach * reach) continue;
             if (!Number.isNaN(e.planeZ)) { planes++; continue; } // 懸空平面另一趟畫（不能套到頂面裁切）
+            if (shared) {
+                const plane = this.planes.get(this.blendOf(e));
+                if (plane && plane.lastTile !== tile) {
+                    plane.lastTile = tile;
+                    this.blitPlane(ctx, plane, op, snapX, topY, hexR, layout);
+                }
+                continue;
+            }
 
             // 裁切路徑每格只設一次：同一格被多個特效蓋到時共用（路徑與裁切是這裡最貴的部分）
             if (!clipped && !masked) {
@@ -262,10 +311,108 @@ export class GroundDrapeLayer {
         ctx.restore();
     }
 
+    private blendOf(e: DrapeEntry): GlobalCompositeOperation {
+        return e.p?.blendMode || GROUND_DRAPE.PAINTER_BLEND;
+    }
+
+    /** 本幀第一次畫地塊時，把所有貼頂面特效依混合模式合成各一張圖 */
+    private renderPlanes(ctx: CanvasRenderingContext2D, layout: HexLayout, battleTime: number): void {
+        if (this.planesStamp === this.stamp) return;
+        this.planesStamp = this.stamp;
+        for (const plane of this.planes.values()) {
+            plane.members.length = 0;
+            plane.minX = plane.minY = Infinity;
+            plane.maxX = plane.maxY = -Infinity;
+            plane.drawnW = 0;
+            plane.lastTile = -1;
+        }
+        for (let i = 0; i < this.count; i++) {
+            const e = this.entries[i];
+            if ((!e.p && !e.painter) || !Number.isNaN(e.planeZ)) continue;
+            const blend = this.blendOf(e);
+            let plane = this.planes.get(blend);
+            if (!plane) {
+                plane = {
+                    blend, canvas: null, cctx: null, drawnW: 0, drawnH: 0, drawnScale: 1, minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity,
+                    members: [], peakW: 0, peakH: 0, lastTile: -1, layers: [null, null, null], layerCtxs: [null, null, null], layerStamps: [-1, -1, -1],
+                };
+                this.planes.set(blend, plane);
+            }
+            plane.members.push(e);
+            plane.minX = Math.min(plane.minX, e.x - e.extW);
+            plane.maxX = Math.max(plane.maxX, e.x + e.extW);
+            plane.minY = Math.min(plane.minY, e.footY - e.extH);
+            plane.maxY = Math.max(plane.maxY, e.footY + e.extH);
+        }
+
+        const tf = ctx.getTransform();
+        const deviceScale = Math.hypot(tf.a, tf.b) || 1;
+        const maxPx = GROUND_DRAPE.MAX_CANVAS_PX;
+        const step = GROUND_DRAPE.CANVAS_GROW_STEP_PX;
+        for (const plane of this.planes.values()) {
+            if (plane.members.length === 0) continue;
+            const worldW = plane.maxX - plane.minX;
+            const worldH = plane.maxY - plane.minY;
+            const s = Math.min(deviceScale, maxPx / worldW, maxPx / worldH);
+            const w = Math.ceil(worldW * s);
+            const h = Math.ceil(worldH * s);
+            if (!plane.canvas) {
+                plane.canvas = document.createElement('canvas');
+                plane.cctx = plane.canvas.getContext('2d');
+            }
+            const octx = plane.cctx;
+            if (!octx) continue;
+            if (plane.canvas.width < w) plane.canvas.width = Math.ceil(w / step) * step;
+            if (plane.canvas.height < h) plane.canvas.height = Math.ceil(h / step) * step;
+            plane.peakW = Math.max(plane.peakW, w);
+            plane.peakH = Math.max(plane.peakH, h);
+            octx.setTransform(1, 0, 0, 1, 0, 0);
+            octx.imageSmoothingEnabled = true;
+            octx.imageSmoothingQuality = RENDER_QUALITY.IMAGE_SMOOTHING;
+            octx.globalAlpha = 1;
+            octx.globalCompositeOperation = 'source-over';
+            octx.clearRect(0, 0, w, h);
+            for (const e of plane.members) {
+                octx.setTransform(s, 0, 0, s, (Math.round(e.x) - plane.minX) * s, (Math.round(e.footY) - plane.minY) * s);
+                octx.globalAlpha = 1;
+                octx.globalCompositeOperation = plane.blend;
+                if (e.p) ParticleRenderer.drawSingleParticle(octx, e.p, 0, 0, e.progress, layout, battleTime);
+                else if (e.painter && e.painterAgent) e.painter(octx, e.painterAgent, battleTime, layout);
+            }
+            octx.setTransform(1, 0, 0, 1, 0, 0);
+            plane.drawnW = w;
+            plane.drawnH = h;
+            plane.drawnScale = s;
+        }
+    }
+
+    /** 合成圖貼到這一格：來源矩形以格子在足跡平面的位置取，貼到該格頂面 */
+    private blitPlane(ctx: CanvasRenderingContext2D, plane: DrapePlane, op: RenderOp, snapX: number, topY: number, hexR: number, layout: HexLayout): void {
+        if (plane.drawnW === 0) return;
+        const s = plane.drawnScale;
+        const layer = this.maskedLayer(plane, op, layout, (op.tx - plane.minX) * s, (op.y - plane.minY) * s);
+        if (!layer) return;
+        const pad = GROUND_DRAPE.CLIP_EXPAND_PX + 1;
+        const halfW = hexR + pad;
+        const halfH = hexR * ISO_SCALE_Y + pad;
+        // 世界座標的格子外框，裁到合成圖範圍內；世界與頂面只差一個平移
+        const wx0 = Math.max(op.tx - halfW, plane.minX);
+        const wy0 = Math.max(op.y - halfH, plane.minY);
+        const wx1 = Math.min(op.tx + halfW, plane.minX + plane.drawnW / s);
+        const wy1 = Math.min(op.y + halfH, plane.minY + plane.drawnH / s);
+        if (wx1 <= wx0 || wy1 <= wy0) return;
+        const prev = ctx.globalCompositeOperation;
+        ctx.globalCompositeOperation = plane.blend;
+        ctx.drawImage(layer, (wx0 - plane.minX) * s, (wy0 - plane.minY) * s, (wx1 - wx0) * s, (wy1 - wy0) * s, snapX + (wx0 - op.tx), topY + (wy0 - op.y), wx1 - wx0, wy1 - wy0);
+        ctx.globalCompositeOperation = prev;
+    }
+
     /** 離屏畫布貼到目前裁切區：只複製與該格外框相交的部分 */
     private blit(ctx: CanvasRenderingContext2D, e: DrapeEntry, ox: number, oy: number, hexX: number, hexTopY: number, hexR: number, layout: HexLayout, battleTime: number, maskOp: RenderOp | null): void {
         if (!this.ensureRendered(ctx, e, layout, battleTime)) return;
-        const canvas = maskOp ? this.ensureLayer(e, maskOp, layout) : e.canvas;
+        const canvas = maskOp
+            ? this.maskedLayer(e, maskOp, layout, e.drawnW / 2 + (maskOp.tx - e.x) * e.drawnScale, e.drawnH / 2 + (maskOp.y - e.footY) * e.drawnScale)
+            : e.canvas;
         if (!canvas) return;
         const s = e.drawnScale;
         const w = e.drawnW, h = e.drawnH;
@@ -287,7 +434,7 @@ export class GroundDrapeLayer {
      * 本幀第一次需要這一色時，把離屏圖複製一份並套上預烘遮罩。格子與特效的相對位置和格高無關，
      * 所以同一層能給所有同色格用；矩形外框只碰得到相鄰格，而相鄰格在這層是透明的。
      */
-    private ensureLayer(e: DrapeEntry, op: RenderOp, layout: HexLayout): HTMLCanvasElement | null {
+    private maskedLayer(e: MaskHolder, op: RenderOp, layout: HexLayout, originX: number, originY: number): HTMLCanvasElement | null {
         const source = e.canvas;
         if (!source) return null;
         const k = tileMaskColor(op.tq, op.tr);
@@ -303,14 +450,12 @@ export class GroundDrapeLayer {
         if (!lctx) return null;
         if (layer.width < source.width) layer.width = source.width;
         if (layer.height < source.height) layer.height = source.height;
-        const w = e.drawnW, h = e.drawnH, s = e.drawnScale;
+        const w = e.drawnW, h = e.drawnH;
         lctx.setTransform(1, 0, 0, 1, 0, 0);
         lctx.globalCompositeOperation = 'source-over';
         lctx.clearRect(0, 0, w, h);
         lctx.drawImage(source, 0, 0, w, h, 0, 0, w, h);
-        const originX = w / 2 + (op.tx - e.x) * s;
-        const originY = h / 2 + (op.y - e.footY) * s;
-        return applyHexMask(lctx, layout, originX, originY, s, w, h) ? layer : null;
+        return applyHexMask(lctx, layout, originX, originY, e.drawnScale, w, h) ? layer : null;
     }
 
     /** 本幀第一次需要時，把特效以目前裝置縮放畫進自己的離屏畫布（之後同一幀的其他格直接複製） */

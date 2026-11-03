@@ -178,6 +178,26 @@ describe('Last Stand trigger', () => {
     });
 });
 
+describe('map generation counter', () => {
+    it('does not change when the zone collapses tiles, so the camera keeps framing the fight', () => {
+        const engine = setup(hexagon(2), 0);
+        const before = engine.map.generation;
+        const versionBefore = engine.mapVersion;
+        engine.zones.update(0, engine);
+        engine.zones.update(1, engine);
+        expect(engine.map.mapKeys.size).toBe(7);
+        expect(engine.mapVersion).toBeGreaterThan(versionBefore);
+        expect(engine.map.generation).toBe(before);
+    });
+
+    it('changes when the map is rebuilt', () => {
+        const engine = new GameEngine();
+        const before = engine.map.generation;
+        engine.map.rebuildMap(engine);
+        expect(engine.map.generation).toBe(before + 1);
+    });
+});
+
 describe('zone shrink termination and final topology', () => {
     it.each([0, 1, 3, 10])('retains one tile and triggers Last Stand once for minRadius=%s', minRadius => {
         const keys = hexagon(3);
