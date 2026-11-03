@@ -38,6 +38,10 @@ interface Segment {
     skip?: 'block' | 'detail' | 'overlay' | 'drape';
     atlas?: boolean;
     bake?: boolean;
+    /** 每隔幾秒重烘一次：模擬鏡頭縮放、地塊塌落造成的重烘 */
+    bakeEveryS?: number;
+    /** 烘焙圖解析度倍率：模擬地圖比畫面大的世界座標圖層 */
+    bakeScale?: number;
     director?: boolean;
 }
 
@@ -50,6 +54,8 @@ const SEGMENTS: Segment[] = [
     { id: 'atlas', label: '地塊共用大圖', battle: true, atlas: true },
     { id: 'bake', label: '整片烘成一張', battle: true, bake: true },
     { id: 'bake_tier1', label: '一張＋解析度×2', battle: true, bake: true, tier: 1 },
+    { id: 'bake_big', label: '一張＋大圖×2', battle: true, bake: true, bakeScale: 2 },
+    { id: 'bake_often', label: '一張＋每秒重烘', battle: true, bake: true, bakeEveryS: 1 },
     { id: 'director', label: '現況＋導播鏡頭', battle: true, director: true },
     { id: 'base2', label: '現況（再一次）', battle: true },
 ];
@@ -89,12 +95,18 @@ let bakeCanvas: HTMLCanvasElement | null = null;
 let bakeCtx: CanvasRenderingContext2D | null = null;
 let bakeFramesLeft = 0;
 let firstBlockOfFrame = false;
+let lastBakeS = 0;
 
 function installGates(): void {
     const beginFrame = TerrainRenderer.beginFrame;
     TerrainRenderer.beginFrame = function (transitioning: boolean) {
         firstBlockOfFrame = true;
         if (bakeFramesLeft > 0) bakeFramesLeft--;
+        const now = performance.now() / 1000;
+        if (active.bakeEveryS && now - lastBakeS >= active.bakeEveryS) {
+            lastBakeS = now;
+            bakeFramesLeft = 1;
+        }
         beginFrame.call(TerrainRenderer, transitioning);
     };
 
@@ -102,16 +114,18 @@ function installGates(): void {
     TerrainRenderer.drawBlock = function (ctx, ...rest) {
         if (active.skip === 'block') return;
         if (active.bake) {
-            if (!bakeCanvas || bakeCanvas.width !== ctx.canvas.width || bakeCanvas.height !== ctx.canvas.height) {
+            const scale = active.bakeScale ?? 1;
+            if (!bakeCanvas || bakeCanvas.width !== ctx.canvas.width * scale || bakeCanvas.height !== ctx.canvas.height * scale) {
                 bakeCanvas = document.createElement('canvas');
-                bakeCanvas.width = ctx.canvas.width;
-                bakeCanvas.height = ctx.canvas.height;
+                bakeCanvas.width = ctx.canvas.width * scale;
+                bakeCanvas.height = ctx.canvas.height * scale;
                 bakeCtx = bakeCanvas.getContext('2d');
                 bakeFramesLeft = 2;
             }
             if (bakeFramesLeft > 0 && bakeCtx) {
                 if (firstBlockOfFrame) { bakeCtx.setTransform(1, 0, 0, 1, 0, 0); bakeCtx.clearRect(0, 0, bakeCanvas.width, bakeCanvas.height); firstBlockOfFrame = false; }
-                bakeCtx.setTransform(ctx.getTransform());
+                const t = ctx.getTransform();
+                bakeCtx.setTransform(t.a * scale, t.b * scale, t.c * scale, t.d * scale, t.e * scale, t.f * scale);
                 drawBlock.call(TerrainRenderer, bakeCtx, ...rest);
                 drawBlock.call(TerrainRenderer, ctx, ...rest);
                 return;
@@ -120,7 +134,7 @@ function installGates(): void {
                 firstBlockOfFrame = false;
                 ctx.save();
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.drawImage(bakeCanvas, 0, 0);
+                ctx.drawImage(bakeCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
                 ctx.restore();
             }
             return;
