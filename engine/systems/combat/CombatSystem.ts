@@ -1,4 +1,5 @@
 import { COMBAT_PARAM, CAST_RULES } from '../../../constants';
+import { isIncapacitated } from "../../core/Effects";
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CombatSystem — 戰鬥系統 Orchestrator                   ║
 // ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
@@ -39,7 +40,7 @@ export class CombatSystem {
     }
 
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
-        const isHardCC = a.effects.STUN.remaining > 0 || a.banished || a.effects.FEAR.remaining > 0 || a.hp <= 0;
+        const isHardCC = isIncapacitated(a) || a.banished || a.effects.FEAR.remaining > 0 || a.hp <= 0;
         if (isHardCC) return NodeState.FAILURE;
         
         if (a._castCompleteCooldown > 0) return NodeState.FAILURE;

@@ -69,6 +69,11 @@ export function resetEffectSlots(slots: EffectSlots): void {
     }
 }
 
+/** 完全不能行動的硬控（暈眩、變羊）。恐懼和放逐另外判斷：恐懼會跑，放逐離場 */
+export function isIncapacitated(agent: { effects: EffectSlots }): boolean {
+    return agent.effects.STUN.remaining > 0 || agent.effects.POLYMORPH.remaining > 0;
+}
+
 export function isEffectActive(agent: { effects: EffectSlots }, kind: EffectKind): boolean {
     return agent.effects[kind].remaining > 0;
 }

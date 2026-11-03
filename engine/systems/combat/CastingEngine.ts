@@ -7,6 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../../game";
+import { isIncapacitated } from "../../core/Effects";
 import { CAST_LOCKOUT, CAST_RULES } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
 import { EventPool } from "../../events/GameEventPool";
@@ -18,7 +19,7 @@ export class CastingEngine {
 
     public updateCasting(a: Agent, dt: number, engine: GameEngine, onComplete: (a: Agent) => void) {
         // 1. 硬控場檢查 (Interrupt Priority)
-        const isHardCC = a.effects.STUN.remaining > 0 || a.banished || a.effects.FEAR.remaining > 0 || a.hp <= 0;
+        const isHardCC = isIncapacitated(a) || a.banished || a.effects.FEAR.remaining > 0 || a.hp <= 0;
         
         if (isHardCC) {
             this.handleInterruption(a, engine);

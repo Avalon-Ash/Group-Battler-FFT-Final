@@ -4,6 +4,7 @@ import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types"
 import { HexUtils } from "../utils";
 import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
+import { isIncapacitated } from "../core/Effects";
 import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
 import { canStepUp } from "../math/ClimbRule";
@@ -93,16 +94,16 @@ function bestAdvanceCell(a: Agent, engine: GameEngine): Hex | null {
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
-    "IsStunned": (a) => a.effects.STUN.remaining > 0,
+    "IsStunned": (a) => isIncapacitated(a),
     "IsBanished": (a) => a.effects.BANISH.remaining > 0,
     "IsSilenced": (a) => a.effects.SILENCE.remaining > 0,
     "IsFeared": (a) => a.effects.FEAR.remaining > 0, 
     // 能否自行移動：被定身（root）／暈眩／放逐／恐懼時，任何「移動」節點都必須失敗，
     // 否則 Survival 的 Run! 會永遠 RUNNING，單位被釘在原地卻也不出手（大逃殺發呆成因 B，tests/AIIdlePriority.test.ts）。
-    "CanMove": (a) => a.effects.ROOT.remaining <= 0 && a.effects.STUN.remaining <= 0 && !a.banished && a.effects.FEAR.remaining <= 0,
+    "CanMove": (a) => a.effects.ROOT.remaining <= 0 && !isIncapacitated(a) && !a.banished && a.effects.FEAR.remaining <= 0,
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
-    "IsControlled": (a) => a.effects.STUN.remaining > 0 || a.effects.BANISH.remaining > 0 || a.effects.FEAR.remaining > 0,
+    "IsControlled": (a) => isIncapacitated(a) || a.effects.BANISH.remaining > 0 || a.effects.FEAR.remaining > 0,
     // 最後一格落定才進 FINALE；最後一圈倒數時照原來的判斷逃、搶格子
     "IsLastStand": (_, engine) => engine.isFinalTileOnly,
     // 腳下有敵方 hazard、已經出界：馬上走。只是站在警告格上：算好時間，趕得及就先打。最後一格落定後不逃。
@@ -236,7 +237,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (isOnCD || a.mp < s.cost) return false;
         if (a._castCompleteCooldown > 0) return false;
         if (a._interruptCooldown > 0) return false;
-        if (a.effects.STUN.remaining > 0 || a.banished || a.effects.FEAR.remaining > 0) return false;
+        if (isIncapacitated(a) || a.banished || a.effects.FEAR.remaining > 0) return false;
         if (a.effects.SILENCE.remaining > 0 && s.tag !== 'BASIC') return false;
         
         // 施法期間走不了：詠唱完還要趕得及逃才出手。被釘住（逃不掉）時不套用，原地出手勝過乾站到塌陷（成因 C）。
