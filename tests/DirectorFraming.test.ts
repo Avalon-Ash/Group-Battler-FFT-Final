@@ -23,7 +23,7 @@ function cameraXFor(focus: 'blue' | 'red'): { x: number; blueX: number; redX: nu
 }
 
 describe('DirectorSystem framing follows the director target', () => {
-    it('panorama centre leans toward whichever unit is the director target', () => {
+    it('the centre leans toward whichever unit is the director target', () => {
         const onBlue = cameraXFor('blue');
         const onRed = cameraXFor('red');
         const mid = (onBlue.blueX + onBlue.redX) / 2;

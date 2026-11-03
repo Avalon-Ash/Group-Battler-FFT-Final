@@ -128,14 +128,8 @@ export const useGameLoop = (
                         canvasRef.current.height = physicalH;
                         canvasRef.current.style.width = `${logicalW}px`;
                         canvasRef.current.style.height = `${logicalH}px`;
+                        // 邏輯尺寸沒變，鏡頭不動（這裡重新置中會讓自動畫質一切換鏡頭就跳回全圖）
                         engine.bus.emit('UI_COMMAND', { type: 'SET_VIEWPORT', width: logicalW, height: logicalH });
-
-                        if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
-                        resizeTimerRef.current = window.setTimeout(() => {
-                            if (isMountedRef.current) {
-                                resizeCallbackRef.current(logicalW, logicalH);
-                            }
-                        }, GAME_LOOP_PARAM.RESIZE_DEBOUNCE_MS);
                     }
                 }
             }

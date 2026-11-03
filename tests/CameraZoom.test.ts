@@ -52,9 +52,12 @@ describe('R6 camera zoom ownership', () => {
         camera.applyZoom(NaN);
         expect(camera.getTargetZoom()).toBe(UI_SETTINGS.CAMERA_ZOOM.max);
         const group = new CameraTargetGroup();
-        group.add(0, 0, 1, 1);
+        group.want('near', 0, 0, 1, 1);
+        group.advance(10);
         expect(group.solve(1000, 1000).zoom).toBe(UI_SETTINGS.CAMERA_ZOOM.directorMax);
-        group.add(100000, 100000, 1, 1);
+        group.want('near', 0, 0, 1, 1);
+        group.want('far', 100000, 100000, 1, 1);
+        group.advance(10);
         expect(group.solve(1000, 1000).zoom).toBe(UI_SETTINGS.CAMERA_ZOOM.directorMin);
     });
 });
