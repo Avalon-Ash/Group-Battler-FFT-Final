@@ -15,6 +15,14 @@ describe('GroundDrape stays free of per-tile path clips', () => {
     });
 });
 
+describe('DrapeHexMask positions the shared pattern through the canvas transform', () => {
+    // iPhone Safari：改共用 pattern 的變換，單位帶著詠唱環移動時遮罩對不上格子（WORKLOG §2 BI）
+    it('never mutates the pattern', () => {
+        const source = readFileSync('engine/renderers/DrapeHexMask.ts', 'utf8');
+        expect(source).not.toMatch(/pattern\.setTransform\(/);
+    });
+});
+
 describe('DrapeHexMask colouring', () => {
     it('never gives two neighbouring tiles the same colour', () => {
         for (let q = -8; q <= 8; q++) {

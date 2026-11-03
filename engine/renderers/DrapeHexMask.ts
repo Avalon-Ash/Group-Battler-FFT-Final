@@ -7,6 +7,8 @@
 // ║  [ARCH] iPhone 實測：每幀約 80 次六角路徑裁切就佔掉約三成  ║
 // ║  幀時間；矩形與貼圖幾乎不花時間（WORKLOG §2 BH）。遮罩用  ║
 // ║  pattern 填色，實機比貼一張預烘大圖快（60 對 32 FPS）。   ║
+// ║  位移與縮放走畫布變換，不用 pattern.setTransform：iPhone   ║
+// ║  Safari 上環一移動遮罩就對不上格子（WORKLOG §2 BI）。     ║
 // ║  規則見 engine/renderers/RenderSpec.ts §9。               ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -76,10 +78,11 @@ export function applyHexMask(lctx: CanvasRenderingContext2D, layout: HexLayout, 
     }
     const sx = scale * tile.worldW / tile.canvas.width;
     const sy = scale * tile.worldH / tile.canvas.height;
-    tile.pattern.setTransform(new DOMMatrix([sx, 0, 0, sy, originX, originY]));
     lctx.globalCompositeOperation = 'destination-in';
     lctx.fillStyle = tile.pattern;
-    lctx.fillRect(0, 0, w, h);
+    lctx.setTransform(sx, 0, 0, sy, originX, originY);
+    lctx.fillRect(-originX / sx, -originY / sy, w / sx, h / sy);
+    lctx.setTransform(1, 0, 0, 1, 0, 0);
     lctx.globalCompositeOperation = 'source-over';
     return true;
 }
