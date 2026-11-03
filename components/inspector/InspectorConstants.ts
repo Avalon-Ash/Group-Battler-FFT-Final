@@ -198,7 +198,7 @@ export const SKILL_FIELD_GROUPS: SkillFieldGroup[] = [
       { key: 'effectVal', label: '數值 1', type: 'number' },
       { key: 'effectType2', label: '附加效果 2', type: 'select', options: EFFECT_OPTIONS_MAP },
       { key: 'effectVal2', label: '數值 2', type: 'number' },
-      { key: 'hazardKind', label: '危害區類型', type: 'select', simpleOptions: SKILL_HAZARD_KIND_OPTIONS },
+      { key: 'hazardKind', label: '危害區類型', type: 'select', simpleOptions: [...SKILL_HAZARD_KIND_OPTIONS] },
       { key: 'hazardDur', label: '危害區時間 (秒)', type: 'number', step: 0.1 },
     ]
   }
