@@ -22,7 +22,7 @@ const FRIENDLY_BUFF_CC: ReadonlySet<SkillStatus> = new Set<SkillStatus>([
 ]);
 
 const HOT_ONLY: ReadonlySet<SkillStatus> = new Set<SkillStatus>(['HOT']);
-const GAP_CLOSING: ReadonlySet<SkillIntent> = new Set<SkillIntent>(['GAP_CLOSE', 'HOOK']);
+const CAN_REACH_HEIGHT: ReadonlySet<SkillIntent> = new Set<SkillIntent>(['HOOK']);
 
 export function isHostileSkill(skill: Skill): boolean {
     return skill.power > 0 || appliesStatusOnHit(skill, HOSTILE_CC);
@@ -149,9 +149,9 @@ export class TargetingSystem {
         if (a.target && !inDanger && spatial.battleTime < a.targetLockUntil) return;
 
         const isSilenced = a.effects.SILENCE.remaining > 0;
-        // 可用的突進（DASH）或拉取（PULL）技能：近戰打不到的目標交給它們，不扣分
+        // 可用的拉取技能：近戰打不到的目標交給它（突進爬不上牆，不算），不扣分
         const hasGapCloser = !isSilenced && a.skills.some((s, i) => !!s && s.range > COMBAT_PARAM.MELEE_RANGE &&
-            hasIntentIn(s, GAP_CLOSING) &&
+            hasIntentIn(s, CAN_REACH_HEIGHT) &&
             (a.curCDs[i] || 0) <= COMBAT_PARAM.READY_CD_TOLERANCE && a.mp >= s.cost);
 
         for (const o of spatial.getAgents()) {
