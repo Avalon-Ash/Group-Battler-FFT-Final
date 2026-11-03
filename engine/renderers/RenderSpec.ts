@@ -222,6 +222,7 @@ export class RenderSpec {
         s += "  所以每幀成本不隨特效數量增加，同一格只貼一次。合成圖與預烘六角遮罩（engine/renderers/DrapeHexMask.ts）合成成三色層：tileMaskColor＝(q−r) mod 3，相鄰格必不同色，\n";
         s += "  逐格貼回時只用矩形，矩形只碰得到相鄰格，而相鄰格在該層透明。不得改回逐格路徑裁切：iPhone 實測每幀約 80 次六角裁切佔掉約三成幀時間（WORKLOG §2 BH）。\n";
         s += "  格子與特效的相對位置和格高無關，所以同一層能給所有同色格用；每格只差一個平移。\n";
+    s += "  遮罩的位移與縮放走畫布變換，不得用 pattern.setTransform：iPhone Safari 上單位帶著環移動時遮罩會對不上格子（WORKLOG §2 BI）。\n";
         s += "- 分類（SSOT 在 constants/vfx.ts GROUND_DRAPE.MODE）：表內的粒子型別走鋪設，目前只有 PART_GROUND；施法 AOE 預警等繪製函式一律走鋪設。\n";
         s += "- 非粒子鋪設：施法 AOE 地面預警（UnitRenderSystem.paintAoeIndicator，GroundDrapeLayer.addPainted）和粒子一起進合成圖，逐格貼在頂面；\n";
         s += "- 懸空平面（GroundDrapeLayer.addPlane，planeZ＝腳下繪製高度＋UnitAuraPainter.RING_LIFT）：詠唱法陣（magicCircle 零件）、奧義聖域、AOE 擴張波紋是腰部高度的水平面，\n";
