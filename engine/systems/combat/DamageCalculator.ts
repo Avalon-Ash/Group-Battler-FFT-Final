@@ -1,5 +1,7 @@
 
 import { Agent } from "../../game";
+import { hasHitAction, hasStatusIn, sumHitActionValue } from "../../core/SkillQueries";
+import type { SkillStatus } from "../../../types";
 import { Skill, Role, DamageChannel } from "../../../types";
 import { COMBAT_PARAM, EFFECT_LIMITS, DAMAGE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
@@ -27,6 +29,8 @@ export interface DamageOptions {
     powerScale?: number;
 }
 
+const SUPPORT_STATUS: ReadonlySet<SkillStatus> = new Set<SkillStatus>(['SHIELD', 'HOT']);
+
 export class DamageCalculator {
 
     /**
@@ -40,7 +44,7 @@ export class DamageCalculator {
         const isAlly = sameSide(source, target);
         
         // Support skills (Heals or Buffs cast on allies) should bypass evasion and shields
-        const isBuffCC = (skill.ccType === 'SHIELD' || skill.ccType === 'HOT' || skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT');
+        const isBuffCC = hasStatusIn(skill, SUPPORT_STATUS);
         const isSupport = isHeal || (isAlly && (skill.power === 0 || isBuffCC));
 
         const result: DamageResult = {
@@ -110,15 +114,12 @@ export class DamageCalculator {
         }
 
         // 2. Execute Logic (斩殺)
-        const isExec1 = skill.effectType === 'EXECUTE';
-        const isExec2 = skill.effectType2 === 'EXECUTE';
-        
-        if (!isHeal && (isExec1 || isExec2)) {
+        if (!isHeal && hasHitAction(skill, 'EXECUTE')) {
             const threshold = COMBAT_PARAM.EXECUTE_THRESHOLD;
             if (target.hp < target.maxHp * threshold) {
                 // [REFACTOR] Instead of flat multiplier, use missing HP scaling
                 // Damage = Base + (MissingHP * ScalingFactor)
-                const scalingFactor = (isExec1 ? skill.effectVal : skill.effectVal2) || COMBAT_PARAM.BASE_EXECUTE_MULTIPLIER;
+                const scalingFactor = sumHitActionValue(skill, 'EXECUTE', COMBAT_PARAM.BASE_EXECUTE_MULTIPLIER);
                 const missingHP = target.maxHp - target.hp;
                 base += missingHP * (scalingFactor / DAMAGE_RULES.EXECUTE_SCALING_DIVISOR); // Normalized scaling
                 result.isExecute = true;
@@ -163,28 +164,20 @@ export class DamageCalculator {
         let final = Math.floor(base);
         
         // 7. Secondary Effects (Vamp, Mana)
-        const isVamp1 = skill.effectType === 'VAMP';
-        const isVamp2 = skill.effectType2 === 'VAMP';
         const lsPct = source.effects.LIFESTEAL.remaining > 0
             ? Math.min(source.effects.LIFESTEAL.value, EFFECT_LIMITS.LIFESTEAL_MAX_PCT) / 100
             : 0;
-        if (!isHeal && (isVamp1 || isVamp2 || lsPct > 0)) {
-            const skillVampPct = (isVamp1 ? skill.effectVal : (isVamp2 ? skill.effectVal2 : 0)) || (isVamp1 || isVamp2 ? COMBAT_PARAM.BASE_VAMP_PCT : 0);
+        if (!isHeal && (hasHitAction(skill, 'VAMP') || lsPct > 0)) {
+            const skillVampPct = sumHitActionValue(skill, 'VAMP', COMBAT_PARAM.BASE_VAMP_PCT);
             const totalVampPct = skillVampPct + lsPct;
             result.vampAmount = Math.floor(final * totalVampPct);
         }
 
         // Mana Burn
-        let mb = 0;
-        if (skill.effectType === 'MANA_BURN') mb += (skill.effectVal || COMBAT_PARAM.MANA_BURN_DEFAULT);
-        if (skill.effectType2 === 'MANA_BURN') mb += (skill.effectVal2 || COMBAT_PARAM.MANA_BURN_DEFAULT);
-        result.manaBurn = mb * powerScale;
+        result.manaBurn = sumHitActionValue(skill, 'MANA_BURN', COMBAT_PARAM.MANA_BURN_DEFAULT) * powerScale;
 
         // Mana Restore
-        let mr = 0;
-        if (skill.effectType === 'MANA_RESTORE') mr += (skill.effectVal || COMBAT_PARAM.MANA_RESTORE_DEFAULT);
-        if (skill.effectType2 === 'MANA_RESTORE') mr += (skill.effectVal2 || COMBAT_PARAM.MANA_RESTORE_DEFAULT);
-        result.manaRestore = mr * powerScale;
+        result.manaRestore = sumHitActionValue(skill, 'MANA_RESTORE', COMBAT_PARAM.MANA_RESTORE_DEFAULT) * powerScale;
 
         // 8. Apply Direction (Damage is negative)
         result.finalValue = isHeal ? final : -final;

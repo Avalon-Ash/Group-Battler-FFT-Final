@@ -55,7 +55,7 @@ export class EffectSystem {
                         pos: unitEventPos(agent, engine), 
                         value: -Math.floor(damagePerSec), 
                         color: dotColor, 
-                        skill: { ccType: 'DOT', dotType: agent.effects.DOT.tag ?? undefined },
+                        skill: { onHit: [{ action: 'STATUS', status: 'DOT' }], dotType: agent.effects.DOT.tag ?? undefined },
                         targetId: agent.id
                     });
                 }

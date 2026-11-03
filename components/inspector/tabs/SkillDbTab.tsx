@@ -6,7 +6,7 @@ import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import { SKILL_FIELD_GROUPS, TAG_MAP, ROLE_MAP } from '../InspectorConstants';
 import { SkillIcon } from '../parts/SkillIcon';
 import { SkillNumberInput } from '../parts/SkillNumberInput';
-import type { SkillEditableField } from '../../../data/ui/skillEditor';
+import { readSkillField, type SkillEditableField } from '../../../data/ui/skillEditor';
 
 type DbTypeTab = 'ALL' | 'BASIC' | 'ACTIVE' | 'ULT';
 
@@ -29,7 +29,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
         return true;
     });
 
-    const updateSkill = (field: keyof Skill, value: string | number | boolean | undefined) => {
+    const updateSkill = (field: SkillEditableField, value: string | number | boolean | undefined) => {
         if (!selectedSkillId) return;
         let v: string | number | boolean | Team | undefined = value;
         if (field === 'team') v = value === 'BLUE' ? Team.BLUE : value === 'RED' ? Team.RED : undefined;
@@ -116,7 +116,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
                                             
                                             <div className="grid grid-cols-2 gap-4">
                                                 {group.fields.map((field) => {
-                                                    const val: unknown = skill[field.key];
+                                                    const val: unknown = readSkillField(skill, field.key);
                                                     let displayVal: string | number = typeof val === 'string' || typeof val === 'number' ? val : '';
                                                     
                                                     if (field.key === 'team') {

@@ -64,18 +64,18 @@ export interface Skill {
     color: string;
     element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
     specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN' | 'INVINCIBLE'; 
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
-    ccDur?: number;
-    ccForce?: number;
-    ccSelf?: boolean;
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
-    ccDur2?: number;
-    ccForce2?: number;
-    ccSelf2?: boolean;
-    effectType?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
-    effectVal?: number; 
-    effectType2?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
-    effectVal2?: number;
+    /** 出手時（engine/systems/combat/SkillActions.ts） */
+    onCast?: readonly CastAction[];
+    /** 落點，一次施放一次 */
+    onImpact?: readonly ImpactAction[];
+    /** 打中每個目標時，依序執行 */
+    onHit?: readonly HitAction[];
+    /** 結算完，一次施放一次，對施法者自己 */
+    onEnd?: readonly EndAction[];
+    /** AI 用來挑招的意圖 */
+    intents?: readonly SkillIntent[];
+    /** 對誰有效；沒寫就看 power（engine/core/SkillQueries.ts skillTeams） */
+    teams?: SkillTeams;
     projectileSpeed?: number; 
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
     visualHitEffect?: string;
@@ -87,6 +87,26 @@ export interface Skill {
      */
     hits?: SkillHits;
 }
+
+export type SkillStatus = 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
+
+/** GAP_CLOSE 衝向敵人、HOOK 把敵人拉過來、PEEL 把貼身的敵人推開、ESCAPE 自己脫離 */
+export type SkillIntent = 'GAP_CLOSE' | 'HOOK' | 'PEEL' | 'ESCAPE';
+
+export type SkillTeams = 'ENEMY' | 'ALLY' | 'ANY';
+
+export interface StatusAction {
+    action: 'STATUS';
+    status: SkillStatus;
+    duration?: number;
+    force?: number;
+}
+
+export type CastAction = { action: 'DASH' };
+export type ImpactAction = { action: 'HAZARD'; kind: SpatialHazard['type']; duration: number };
+type ValueAction<K extends string> = { action: K; value?: number };
+export type HitAction = StatusAction | ValueAction<'VAMP'> | ValueAction<'MANA_BURN'> | ValueAction<'MANA_RESTORE'> | ValueAction<'EXECUTE'> | ValueAction<'SELF_DAMAGE'>;
+export type EndAction = StatusAction;
 
 /** 多段命中的節奏：EVEN 等間隔；ACCEL 越打越密（總長不變）；CLUSTER 三連發一組（組間隔大、組內間隔小）。 */
 type HitCadence = 'EVEN' | 'ACCEL' | 'CLUSTER';
@@ -236,7 +256,7 @@ export interface GameEvent {
     value?: number; 
     text?: string; 
     color?: string;
-    skill?: Skill | (Partial<Skill> & { ccType: string; dotType?: string });
+    skill?: Skill | (Partial<Skill> & { dotType?: string });
     sourceId?: string;
     targetId?: string;
     team?: Team;

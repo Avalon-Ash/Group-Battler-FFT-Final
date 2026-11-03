@@ -139,7 +139,7 @@ export class HazardSystem {
                 pos: unitEventPos(agent, engine), 
                 value: -Math.floor(dmg > 0 ? dmg : hazard.power),
                 color: hazard.color,
-                skill: { color: hazard.color, ccType: 'DOT' },
+                skill: { color: hazard.color, onHit: [{ action: 'STATUS', status: 'DOT' }] },
                 sourceId: hazard.sourceId,
                 targetId: agent.id
             });

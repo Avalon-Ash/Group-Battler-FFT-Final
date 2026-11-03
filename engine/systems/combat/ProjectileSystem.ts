@@ -7,7 +7,8 @@ import {
 import { TrajectoryMath, Point3D } from "../../math/TrajectoryMath";
 import { VisualMath } from "../../math/VisualMath";
 import { HexUtils } from "../../utils";
-import { SkillExecutor, applySelfCC } from "./SkillExecutor";
+import { SkillExecutor, isSkillTarget } from "./SkillExecutor";
+import { runEndActions, runImpactActions } from "./SkillActions";
 import { HazardManager } from "./HazardManager";
 import { ISO_SCALE_Y, COMBAT_PARAM, PROJECTILE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
@@ -86,19 +87,14 @@ export class ProjectileSystem {
       impactCells.forEach((cell) => {
         const t = engine.getAgentAt(cell.q, cell.r);
         if (t && t.hp > 0 && !t.banished) {
-          const isValidTarget =
-            (p.skill.power > 0 && !sameSide(t, p)) ||
-            (p.skill.power < 0 && sameSide(t, p)) ||
-            p.skill.power === 0;
-
-          if (isValidTarget) victims.push(t);
+          if (isSkillTarget(p.skill, p, t)) victims.push(t);
         }
       });
       if (source) skillExecutor.deliverHits(source, p.skill, victims, hitPos, engine, preRollCrit, impactCells);
       
       if (source) {
-          HazardManager.spawnHazards(source, impactCells, p.skill, engine, targetHex);
-          applySelfCC(source, p.skill, engine);
+          runImpactActions(source, p.skill, impactCells, targetHex, engine);
+          runEndActions(source, p.skill, engine);
       }
 
       engine.events.push({
@@ -116,7 +112,7 @@ export class ProjectileSystem {
           skillExecutor.deliverHits(source, p.skill, [target], undefined, engine, undefined);
       }
       if (source) {
-        applySelfCC(source, p.skill, engine);
+        runEndActions(source, p.skill, engine);
       }
       engine.events.push({
         type: "PROJECTILE_HIT",

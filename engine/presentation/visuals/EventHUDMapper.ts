@@ -10,6 +10,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { GameEvent } from "../../../types";
+import { isDotSkill } from "../../core/SkillQueries";
 import { GameEngine } from "../../game";
 import { HUDSystem } from "../hud";
 import { GridSystem } from "../../systems/grid";
@@ -100,7 +101,7 @@ export class EventHUDMapper {
 
             // [業務規則] 傷害顯示優先級：ABSORB > DOT (毒) > CRIT (暴擊) > 預設
             const isCrit = event.crit === true;
-            const isDot = event.skill?.ccType === 'DOT';
+            const isDot = !!event.skill && isDotSkill(event.skill);
 
             if (event.text === 'ABSORB') {
                 color = DAMAGE_TEXT_COLORS.ABSORB;

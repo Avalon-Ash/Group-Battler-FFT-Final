@@ -1,4 +1,5 @@
 import { GameEvent, ImpactKind } from "../../../../types";
+import { isDotSkill } from "../../../core/SkillQueries";
 import { VFXSystem } from "../../vfx";
 import type { CameraImpactSink } from "../../ShakeDirector";
 import { Point3D } from "../../../math/VisualMath";
@@ -50,7 +51,7 @@ export class CombatVFXHandler {
                 impacts.reportImpact('SACRIFICE', COMBAT_VFX.SACRIFICE_TRAUMA, event.targetId);
             } else if (event.text === 'BURN') {
                 vfx.playEffect('FX_MANA_BURN', target.x, target.y, target.z, event.color || DAMAGE_TEXT_COLORS.MANA_BURN, undefined, undefined, hexKey);
-            } else if (!event.skill?.projectileSpeed && event.skill?.ccType !== 'DOT') {
+            } else if (!event.skill?.projectileSpeed && !(event.skill && isDotSkill(event.skill))) {
                 // Impact VFX now handled in SkillExecutor.resolveHit
                 const kind: ImpactKind = isMassive ? 'MASSIVE' : (isCrit ? 'CRIT' : 'HIT');
                 const trauma = isMassive ? COMBAT_VFX.MASSIVE_TRAUMA : (isCrit ? COMBAT_VFX.CRIT_TRAUMA : COMBAT_VFX.HIT_TRAUMA);

@@ -6,6 +6,8 @@ import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "..
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isActionBlocked, isIncapacitated } from "../core/Effects";
 import { activationBlock } from "../systems/combat/SkillStateMachine";
+import { hasIntentIn } from "../core/SkillQueries";
+import type { SkillIntent } from "../../types";
 import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
 import { canStepUp } from "../math/ClimbRule";
@@ -91,6 +93,8 @@ function bestAdvanceCell(a: Agent, engine: GameEngine): Hex | null {
     }
     return best;
 }
+
+const PUSH_PULL: ReadonlySet<SkillIntent> = new Set<SkillIntent>(['HOOK', 'PEEL']);
 
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
@@ -315,8 +319,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
             const currentSkill = a.skills[a.castingSkillIdx];
             if (currentSkill && currentSkill.tag !== 'BASIC') {
                 // 檢查是否當前正在詠唱的就是推拉技能，如果是，則視為 Ready 以維持 BT 狀態
-                const isPushPull = currentSkill.ccType === 'KNOCKBACK' || currentSkill.ccType === 'PULL' || 
-                                 currentSkill.ccType2 === 'KNOCKBACK' || currentSkill.ccType2 === 'PULL';
+                const isPushPull = hasIntentIn(currentSkill, PUSH_PULL);
                 return isPushPull;
             }
         }
@@ -324,7 +327,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // 檢查是否有推拉技能可用於背水一戰
         return a.skills.some((s, idx) => {
             if (!s) return false;
-            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
+            const isPushPull = hasIntentIn(s, PUSH_PULL);
             if (!isPushPull) return false;
             
             let cd = a.curCDs[idx];
@@ -774,7 +777,7 @@ export const BTActions: Record<string, BTActionFn> = {
         // 尋找第一個可用的推拉技能
         const idx = a.skills.findIndex((s, i) => {
             if (!s) return false;
-            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
+            const isPushPull = hasIntentIn(s, PUSH_PULL);
             if (!isPushPull) return false;
             let cd = a.curCDs[i];
             if (isNaN(cd) || cd < 0) cd = 0;

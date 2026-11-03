@@ -7,6 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";           // GameEngine 仍從 game.ts 取（避免循環依賴）
+import { hasHitAction } from "../core/SkillQueries";
 import { Agent } from "../core/Agent";
 import { Role, Team, Skill, BodyTypeId, AnimState, ActionState, FactionLook } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
 import { UNIT_DB } from "../../data/units";
@@ -83,7 +84,7 @@ export class AgentManager {
         // 大逃殺的大招與主動從所有職業、隊伍抽（普攻仍照職業）。獨自一人的陣營不抽要靠隊友才有用的自傷補血。
         const { factions, unitsPerFaction } = engine.battleSetup;
         const slotSkills = factions < ROYALE_RULES.MIN_FACTIONS ? validSkills : engine.skillDB.filter(s =>
-            unitsPerFaction > 1 || (s.effectType !== 'SELF_DAMAGE' && s.effectType2 !== 'SELF_DAMAGE'));
+            unitsPerFaction > 1 || !hasHitAction(s, 'SELF_DAMAGE'));
 
         a.skillIds = [
             rndS(slotSkills.filter(s => s.tag === 'ULT')),
