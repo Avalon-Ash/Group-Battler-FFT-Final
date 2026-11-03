@@ -146,10 +146,11 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     }, [engine, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera, tool, spawnMode, draftRole, draftBodyType, winner]);
 
     const handleResize = useCallback((w: number, h: number) => {
-        if (w > 0 && h > 0) {
+        // 戰鬥中尺寸變了（手機工具列收合、旋轉）交給導播重新取景，不瞬間跳回全圖
+        if (w > 0 && h > 0 && !engine.isRunning) {
             centerCamera(w, h);
         }
-    }, [centerCamera]);
+    }, [centerCamera, engine]);
 
     useGameLoop(
         engine, 
@@ -161,7 +162,12 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         camera
     );
 
+    const lastPhaseRef = useRef(transitionPhase);
     useEffect(() => {
+        // 轉場只在全黑（IN 開始）時重新置中；OUT、IDLE 那時畫面看得到，跳了就穿幫
+        const phaseChanged = lastPhaseRef.current !== transitionPhase;
+        lastPhaseRef.current = transitionPhase;
+        if (phaseChanged && transitionPhase !== 'IN') return;
         if (wrapperRef.current) {
             const t = setTimeout(() => {
                 if (wrapperRef.current) {

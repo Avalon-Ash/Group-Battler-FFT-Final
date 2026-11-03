@@ -2,7 +2,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CameraSystem — 鏡頭控制系統                             ║
 // ║  職責：viewport 平移、縮放、目標追蹤、跟隨平滑           ║
-// ║  [TODO: CINEMACHINE] 未來支援多目標混合 / 自動構圖        ║
+// ║  多目標取景在 CameraTargetGroup，這裡只追導播給的目標     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { UI_SETTINGS, CAMERA_PARAM, CAMERA_SHAKE_PARAM } from '../../constants';

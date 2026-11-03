@@ -177,66 +177,58 @@ export const POST_PROCESS = {
 
 /** 具名參數：保持原值與運算次序。 */
 export const DIRECTOR_PARAM = {
-    /** 奧義鏡頭基準縮放（倍） */
-    ULT_ZOOM: 1.45,
-    /** 預設強制聚焦時間（秒） */
-    DEFAULT_FOCUS_S: 2,
-    /** 缺少螢幕資訊時的寬高比（比值） */
-    DEFAULT_ASPECT: 1.77,
-    /** 寬高比重算門檻（比值） */
-    ASPECT_EPSILON: 0.1,
-    /** 超寬螢幕寬高比門檻（比值） */
-    ULTRAWIDE_ASPECT: 2,
-    /** 超寬螢幕縮放修正（倍） */
-    ULTRAWIDE_ZOOM: 0.85,
-    /** 直向螢幕縮放修正（倍） */
-    PORTRAIT_ZOOM: 0.65,
-    /** 較窄螢幕寬高比門檻（比值） */
-    NARROW_ASPECT: 1.4,
-    /** 較窄螢幕縮放修正（倍） */
-    NARROW_ZOOM: 0.8,
-    /** 施法候選焦點維持時間（秒） */
-    ACTION_FOCUS_S: 4,
-    /** 一般候選焦點維持時間（秒） */
-    IDLE_FOCUS_S: 2.5,
-    /** 候選施法者排除墜落深度（px） */
-    FALL_DEPTH: 50,
-    /** 奧義候選分數（分） */
+    /** 奧義施法分（分） */
     ULT_SCORE: 50,
-    /** 主動技候選分數（分） */
+    /** 主動技施法分（分） */
     ACTIVE_SCORE: 20,
-    /** 普攻候選分數（分） */
+    /** 普攻施法分（分） */
     BASIC_SCORE: 5,
-    /** 受擊候選加分（分） */
+    /** 受擊加分（分） */
     HIT_SCORE: 15,
-    /** 移動候選加分（分） */
+    /** 移動加分（分） */
     MOVING_SCORE: 5,
-    /** 奧義施法者取景權重（倍） */
-    ULT_WEIGHT: 1.2,
+    /** 逃生加分（分） */
+    EVADE_SCORE: 10,
+    /** 動作結束後分數每秒衰減（分／秒） */
+    SCORE_DECAY_PER_S: 10,
+    /** 挑戰者要比主角多這麼多分才換人（分） */
+    STICKY_SCORE: 10,
+    /** 主角最短維持時間（秒）；主角失效不受此限 */
+    MIN_HOLD_S: 2,
+    /** 不能上鏡的墜落深度（px） */
+    FALL_DEPTH: 50,
+    /** 主角取景權重 */
+    ANCHOR_WEIGHT: 1,
+    /** 主角取景半徑（px） */
+    ANCHOR_RADIUS: 100,
+    /** 主角的目標取景權重 */
+    RELATED_WEIGHT: 0.7,
+    /** 主角的目標與攻擊者取景半徑（px） */
+    RELATED_RADIUS: 80,
+    /** 正在打主角的人取景權重 */
+    ATTACKER_WEIGHT: 0.5,
+    /** 奧義施法者取景權重 */
+    ULT_WEIGHT: 0.8,
     /** 奧義施法者取景半徑（px） */
     ULT_RADIUS: 120,
-    /** 奧義範圍中心取景權重（倍） */
-    AOE_WEIGHT: 0.6,
-    /** 普攻施法者取景權重（倍） */
-    BASIC_WEIGHT: 0.6,
-    /** 一般施法者取景半徑（px） */
-    CAST_RADIUS: 80,
-    /** 施法目標取景權重倍率（倍） */
-    TARGET_WEIGHT_MULT: 0.7,
-    /** 目標與逃生單位取景半徑（px） */
-    TARGET_RADIUS: 80,
-    /** 鄰近敵方取景權重（倍） */
-    NEARBY_WEIGHT: 0.3,
-    /** 鄰近敵方取景半徑（px） */
-    NEARBY_RADIUS: 60,
-    /** 逃生目的地取景權重（倍） */
-    DEST_WEIGHT: 0.4,
-    /** 逃生目的地取景半徑（px） */
-    DEST_RADIUS: 40,
-    /** 全景排除墜落深度（px） */
-    PANORAMA_FALL_DEPTH: 100,
-    /** 全景單位取景半徑（px） */
-    PANORAMA_RADIUS: 50,
+    /** 奧義範圍中心取景權重 */
+    AOE_WEIGHT: 0.4,
+    /** 榜上前幾名（主角以外）進群組（人） */
+    TOP_EXTRAS: 2,
+    /** 榜上成員取景權重 */
+    TOP_WEIGHT: 0.25,
+    /** 榜上成員取景半徑（px） */
+    TOP_RADIUS: 60,
+    /** 權重到這個值，成員才完全決定縮放；更低的依比例打折 */
+    FULL_INFLUENCE_WEIGHT: 0.5,
+    /** 成員權重從 0 升到 1 的時間（秒） */
+    WEIGHT_IN_S: 0.5,
+    /** 成員權重從 1 降到 0 的時間（秒） */
+    WEIGHT_OUT_S: 1,
+    /** 成員不再被需要後，權重開始下降前多留的時間（秒） */
+    LINGER_S: 1.5,
+    /** 導播縮放的比例速度上限（對數／秒） */
+    ZOOM_RATE_PER_S: 0.35,
     /** 空場中央鏡頭縮放（倍） */
     EMPTY_ZOOM: 0.7,
 } as const;

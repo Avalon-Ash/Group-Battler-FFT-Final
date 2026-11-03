@@ -1,27 +1,23 @@
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  DirectorSystem — 戰鬥演出導演                           ║
-// ║  職責：CameraSystem 目標決策 / 戲劇性鏡頭切換邏輯        ║
+// ║  職責：從排分清單選主角、決定取景群組成員、算鏡頭目標      ║
 // ║  觀看陣營 getWatchSide：擊殺播報與連殺字只給這個陣營      ║
-// ║  [ARCH] targetId 只在 update 開頭依評分改，擊殺不切鏡     ║
+// ║  [ARCH] targetId 只在 update 開頭改，擊殺不切鏡           ║
+// ║  [ARCH] 主角是榜首：要贏過黏著分、至少看滿最短時間才換，  ║
+// ║  主角失效立刻換。計分在 DirectorRoster，取景在            ║
+// ║  CameraTargetGroup；鏡頭只收 CAMERA_MOVE（CameraSystem）。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
-import { AIState } from "../../types";
 import { CameraTargetGroup } from "./CameraTargetGroup";
-import { DIRECTOR_PARAM, HEX_SIZE, UI_SETTINGS, SHAKE_DIRECTOR_PARAM } from "../../constants";
+import { DirectorRoster } from "./DirectorRoster";
+import { DIRECTOR_PARAM, HEX_SIZE, SHAKE_DIRECTOR_PARAM } from "../../constants";
 import { ShakeDirector } from "./ShakeDirector";
 import { VisualMath } from "../math/VisualMath";
-import { sameSide } from '../core/Allegiance';
 
 export class DirectorSystem {
-    // Dynamic Zoom Baselines (Calculated based on Aspect Ratio)
-    private ultZoom: number = DIRECTOR_PARAM.ULT_ZOOM;
-
-    private readonly MIN_ZOOM = UI_SETTINGS.CAMERA_ZOOM.directorMin;
-    private readonly MAX_ZOOM = UI_SETTINGS.CAMERA_ZOOM.directorMax;
-    
     // Controls
     public enabled: boolean = true;
     public shakeDirector = new ShakeDirector();
@@ -39,14 +35,18 @@ export class DirectorSystem {
     }
 
     // State
+    private roster = new DirectorRoster();
     private targetGroup = new CameraTargetGroup();
-    private lastAspectRatio: number = 0;
+    /** 上次送出的縮放；null＝這局還沒送過 */
+    private frameZoom: number | null = null;
 
     public reset(engine: GameEngine) {
         const ds = engine.state.director;
         ds.targetId = null;
         ds.focusTimer = 0;
-        ds.priorityTimer = 0;
+        this.roster.reset();
+        this.targetGroup.clear();
+        this.frameZoom = null;
         this.shakeDirector.reset();
         this.publishedWatchSide = undefined;
         // Keep enabled state as is
@@ -86,13 +86,6 @@ export class DirectorSystem {
         engine.bus.emit('WATCH_SIDE', { side });
     }
 
-    public forceFocus(engine: GameEngine, id: string, duration: number = DIRECTOR_PARAM.DEFAULT_FOCUS_S) {
-        const ds = engine.state.director;
-        ds.targetId = id;
-        ds.priorityTimer = duration; 
-        ds.focusTimer = duration;
-    }
-
     public update(engine: GameEngine, dt: number) {
         const shake = this.shakeDirector.consume();
         if (shake >= SHAKE_DIRECTOR_PARAM.MIN_OUTPUT) {
@@ -103,212 +96,107 @@ export class DirectorSystem {
             return;
         }
 
-        // 0. Update Zoom Logic based on Canvas Aspect Ratio
-        // Responsive Scaling: Adjust zoom to fit content based on screen shape
-        const currentAR = engine.screenAspect || DIRECTOR_PARAM.DEFAULT_ASPECT;
-        
-        if (Math.abs(currentAR - this.lastAspectRatio) > DIRECTOR_PARAM.ASPECT_EPSILON) {
-            this.lastAspectRatio = currentAR;
-            
-            // Base modifier
-            let zoomMod = 1.0;
-            
-            if (currentAR > DIRECTOR_PARAM.ULTRAWIDE_ASPECT) {
-                // Ultra-wide: Zoom out slightly to fit vertical height
-                zoomMod = DIRECTOR_PARAM.ULTRAWIDE_ZOOM;
-            } else if (currentAR < 1.0) {
-                // Portrait (Mobile): Zoom out significantly to fit horizontal width
-                zoomMod = DIRECTOR_PARAM.PORTRAIT_ZOOM;
-            } else if (currentAR < DIRECTOR_PARAM.NARROW_ASPECT) {
-                // 4:3 or similar: Zoom out a bit
-                zoomMod = DIRECTOR_PARAM.NARROW_ZOOM;
-            }
-
-            this.ultZoom = DIRECTOR_PARAM.ULT_ZOOM * zoomMod;
-        }
-
         const ds = engine.state.director;
-        
-        // 1. Timer Logic
-        if (ds.priorityTimer > 0) ds.priorityTimer -= dt;
-        if (ds.focusTimer > 0) ds.focusTimer -= dt;
-
-        // 2. Select Target (Decision Making)
-        this.decideTarget(engine, ds);
+        const isEligible = (a: Agent) => this.isEligible(engine, a);
+        this.roster.update(engine.agents, dt, isEligible);
+        this.decideTarget(engine, ds, dt);
         this.publishWatchSide(engine);
 
-        // 3. Calculate Cinematic Frame (Computation)
-        const frame = this._buildTargetGroup(engine, ds.targetId);
+        const frame = this.buildFrame(engine, ds.targetId, dt);
+        engine.bus.emit('CAMERA_MOVE', frame);
+    }
 
-        // 4. Push to Camera System (Decoupled Action via Event Bus)
-        if (frame) {
-            engine.bus.emit('CAMERA_MOVE', frame);
+    /** 能上鏡：活著、在場上、沒有正在墜落（避免鏡頭被帶走） */
+    private isEligible(engine: GameEngine, a: Agent): boolean {
+        return a.hp > 0 && !a.banished && !a.outOfBounds
+            && a.physics.z >= -DIRECTOR_PARAM.FALL_DEPTH && engine.isValid(a.q, a.r);
+    }
+
+    private decideTarget(engine: GameEngine, ds: GameEngine['state']['director'], dt: number) {
+        if (ds.focusTimer > 0) ds.focusTimer -= dt;
+
+        const current = ds.targetId ? engine.agents.find(a => a.id === ds.targetId) : undefined;
+        const top = this.roster.ranked[0];
+
+        if (!current || !this.isEligible(engine, current)) {
+            // 榜上沒人（大家都在發呆）時隨便一個能上鏡的，觀看陣營才有值
+            const next = top?.agent ?? engine.agents.find(a => this.isEligible(engine, a));
+            ds.targetId = next ? next.id : null;
+            ds.focusTimer = DIRECTOR_PARAM.MIN_HOLD_S;
+            return;
+        }
+
+        if (ds.focusTimer > 0 || !top || top.agent === current) return;
+        if (top.score >= this.roster.scoreOf(current.id) + DIRECTOR_PARAM.STICKY_SCORE) {
+            ds.targetId = top.agent.id;
+            ds.focusTimer = DIRECTOR_PARAM.MIN_HOLD_S;
         }
     }
 
-    private decideTarget(engine: GameEngine, ds: GameEngine['state']['director']) {
-        if (ds.priorityTimer > 0) return;
-
-        let needNewTarget = false;
-        
-        if (ds.targetId) {
-            const current = engine.agents.find(a => a.id === ds.targetId);
-            if (!current || current.hp <= 0 || current.banished || current.outOfBounds) {
-                needNewTarget = true;
-            } else if (ds.focusTimer <= 0) {
-                needNewTarget = true; 
-            }
-        } else {
-            needNewTarget = true;
-        }
-
-        if (needNewTarget) {
-            const bestCandidate = this.findBestCandidate(engine);
-            if (bestCandidate) {
-                if (ds.targetId !== bestCandidate.id) {
-                    ds.targetId = bestCandidate.id;
-                    const isAction = bestCandidate.castingSkillIdx !== -1;
-                    ds.focusTimer = isAction ? DIRECTOR_PARAM.ACTION_FOCUS_S : DIRECTOR_PARAM.IDLE_FOCUS_S;
-                }
-            } else {
-                ds.targetId = null;
-            }
-        }
+    private agentVisualY(a: Agent): number {
+        return VisualMath.getVisualBodyCenterY(a.py + a.physics.y, a.physics.z);
     }
 
-    private findBestCandidate(engine: GameEngine): Agent | null {
-        let maxScore = -1;
-        let best: Agent | null = null;
+    private wantAgent(a: Agent, weight: number, radius: number) {
+        this.targetGroup.want(a.id, a.px + a.physics.x, this.agentVisualY(a), weight, radius);
+    }
+
+    /** 群組成員：主角、和主角有關的人、所有放奧義的人（和主角無關也算）、榜上前幾名 */
+    private buildFrame(engine: GameEngine, anchorId: string | null, dt: number): { x: number, y: number, zoom: number } {
+        const anchor = anchorId ? engine.agents.find(a => a.id === anchorId) : undefined;
+        if (anchor) {
+            this.wantAgent(anchor, DIRECTOR_PARAM.ANCHOR_WEIGHT, DIRECTOR_PARAM.ANCHOR_RADIUS);
+            const target = anchor.target;
+            if (target && this.isEligible(engine, target)) {
+                this.wantAgent(target, DIRECTOR_PARAM.RELATED_WEIGHT, DIRECTOR_PARAM.RELATED_RADIUS);
+            }
+        }
 
         for (const a of engine.agents) {
-            if (a.hp <= 0 || a.banished || a.outOfBounds) continue;
-            
-            // [FIX] 忽略正在墜落或腳下無地的單位，避免導播鏡頭被帶走
-            if (a.physics.z < -DIRECTOR_PARAM.FALL_DEPTH || !engine.isValid(a.q, a.r)) continue;
-
-            // Deterministic tie-breaker based on ID to prevent camera jitter
-            const deterministicRng = a.id.charCodeAt(0) % 10;
-            let score = deterministicRng; 
-
-            if (a.castingSkillIdx !== -1) {
-                const skill = a.skills[a.castingSkillIdx];
-                if (skill?.tag === 'ULT') score += DIRECTOR_PARAM.ULT_SCORE;
-                else if (skill?.tag === 'ACTIVE') score += DIRECTOR_PARAM.ACTIVE_SCORE;
-                else score += DIRECTOR_PARAM.BASIC_SCORE;
-            }
-            if (a.view.hitFlashTimer > 0) score += DIRECTOR_PARAM.HIT_SCORE;
-            if (a.isMoving) score += DIRECTOR_PARAM.MOVING_SCORE;
-
-            if (a.role === 'WARRIOR' || a.role === 'TANK') score += 2;
-
-            if (score > maxScore) {
-                maxScore = score;
-                best = a;
-            }
-        }
-        return best;
-    }
-
-    private _agentVisualY(a: Agent): number {
-        return VisualMath.getVisualBodyCenterY(
-            a.py + a.physics.y,
-            a.physics.z
-        );
-    }
-
-    private _buildTargetGroup(engine: GameEngine, priorityId: string | null): { x: number, y: number, zoom: number } | null {
-        this.targetGroup.clear();
-
-        // 優先度 0: 導播目標（主角）永遠是群組成員、權重最高；下面各層的人再加進來
-        if (priorityId) {
-            const focal = engine.agents.find(a => a.id === priorityId && a.hp > 0);
-            if (focal) {
-                this.targetGroup.add(focal.px + focal.physics.x, this._agentVisualY(focal), 2.0, 100);
-            }
-        }
-
-        // 優先度 1: 有 ULT 施法者
-        const ultCasters = engine.agents.filter(a => a.hp > 0 && a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === "ULT");
-        if (ultCasters.length > 0) {
-            for (const caster of ultCasters) {
-                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), DIRECTOR_PARAM.ULT_WEIGHT, DIRECTOR_PARAM.ULT_RADIUS);
-                const skill = caster.skills[caster.castingSkillIdx]!;
-                if (skill.type === 'AOE' && caster.targetHex) {
-                    const targetPx = HexUtils.toPx(caster.targetHex.q, caster.targetHex.r, engine.mapConfig);
-                    const aoeRadiusPx = (skill.aoeRadius || 1) * HEX_SIZE;
-                    this.targetGroup.add(targetPx.x, targetPx.y, DIRECTOR_PARAM.AOE_WEIGHT, aoeRadiusPx);
+            if (!this.isEligible(engine, a) || a.castingSkillIdx === -1) continue;
+            const skill = a.skills[a.castingSkillIdx];
+            if (skill?.tag === 'ULT') {
+                this.wantAgent(a, DIRECTOR_PARAM.ULT_WEIGHT, DIRECTOR_PARAM.ULT_RADIUS);
+                if (skill.type === 'AOE' && a.targetHex) {
+                    const p = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
+                    this.targetGroup.want(`${a.id}:aoe`, p.x, p.y, DIRECTOR_PARAM.AOE_WEIGHT, (skill.aoeRadius || 1) * HEX_SIZE);
                 }
-            }
-            const solved = this.targetGroup.solve(engine.screenW, engine.screenH);
-            solved.zoom = Math.max(this.ultZoom, solved.zoom);
-            return this.smooth(solved);
-        }
-
-        // 優先度 2: ACTIVE 技能施法 / 近戰交火 (多人同時處理)
-        const activeCasters = engine.agents.filter(a => 
-            a.hp > 0 && 
-            a.castingSkillIdx !== -1 && 
-            a.physics.z > -DIRECTOR_PARAM.FALL_DEPTH &&
-            engine.isValid(a.q, a.r)
-        );
-
-        if (activeCasters.length > 0) {
-            for (const caster of activeCasters) {
-                const skill = caster.skills[caster.castingSkillIdx];
-                const w = skill?.tag === 'ACTIVE' ? 1.0 : DIRECTOR_PARAM.BASIC_WEIGHT;
-                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), w, DIRECTOR_PARAM.CAST_RADIUS);
-                const target = caster.target;
-                if (target && target.hp > 0) {
-                    this.targetGroup.add(target.px + target.physics.x, this._agentVisualY(target), w * DIRECTOR_PARAM.TARGET_WEIGHT_MULT, DIRECTOR_PARAM.TARGET_RADIUS);
-                    // 附近的敵人也稍微抓進來
-                    engine.agents.forEach(a => {
-                        if (a.hp > 0 && !sameSide(a, caster) && a.id !== target.id) {
-                            const d = HexUtils.dist(a, target);
-                            if (d <= 1) this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), DIRECTOR_PARAM.NEARBY_WEIGHT, DIRECTOR_PARAM.NEARBY_RADIUS);
-                        }
-                    });
-                }
-            }
-            return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
-        }
-
-        // 優先度 3: 逃生中
-        const evaders = engine.agents.filter(a => a.hp > 0 && (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH));
-        if (evaders.length > 0) {
-            for (const a of evaders) {
-                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), 1.0, DIRECTOR_PARAM.TARGET_RADIUS);
-                if (a.escapeHex) {
-                    const destPx = HexUtils.toPx(a.escapeHex.q, a.escapeHex.r, engine.mapConfig);
-                    this.targetGroup.add(destPx.x, destPx.y, DIRECTOR_PARAM.DEST_WEIGHT, DIRECTOR_PARAM.DEST_RADIUS);
-                }
-            }
-            return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
-        }
-
-        // 優先度 4: 全景 (修正血量權重)
-        let hasTargets = false;
-        for (const a of engine.agents) {
-            if (a.hp > 0 && !a.banished && !a.outOfBounds && a.physics.z > -DIRECTOR_PARAM.PANORAMA_FALL_DEPTH) {
-                // 滿血=0.5, 快死=1.0 (低血量權重較高)
-                const weight = 1.0 - (a.hp / a.maxHp) * 0.5;
-                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), weight, DIRECTOR_PARAM.PANORAMA_RADIUS);
-                hasTargets = true;
+            } else if (anchor && a.target === anchor) {
+                this.wantAgent(a, DIRECTOR_PARAM.ATTACKER_WEIGHT, DIRECTOR_PARAM.RELATED_RADIUS);
             }
         }
 
-        if (!hasTargets) {
+        let extras = 0;
+        for (const entry of this.roster.ranked) {
+            if (extras >= DIRECTOR_PARAM.TOP_EXTRAS) break;
+            if (entry.agent === anchor) continue;
+            this.wantAgent(entry.agent, DIRECTOR_PARAM.TOP_WEIGHT, DIRECTOR_PARAM.TOP_RADIUS);
+            extras++;
+        }
+
+        this.targetGroup.advance(dt);
+
+        if (this.targetGroup.size === 0) {
             const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
             const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
             const centerPx = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
-            return this.smooth({ x: centerPx.x, y: centerPx.y, zoom: DIRECTOR_PARAM.EMPTY_ZOOM });
+            return { x: centerPx.x, y: centerPx.y, zoom: this.limitZoom(DIRECTOR_PARAM.EMPTY_ZOOM, dt) };
         }
 
-        return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
+        const solved = this.targetGroup.solve(engine.screenW, engine.screenH);
+        solved.zoom = this.limitZoom(solved.zoom, dt);
+        return solved;
     }
 
-    private smooth(solved: { x: number, y: number, zoom: number }): { x: number, y: number, zoom: number } {
-        // [MIN/MAX ZOOM 限制]
-        solved.zoom = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, solved.zoom));
-        return solved;
+    /** 縮放的速度上限（比例速度，放大縮小看起來一樣快） */
+    private limitZoom(zoom: number, dt: number): number {
+        if (this.frameZoom === null) {
+            this.frameZoom = zoom;
+            return zoom;
+        }
+        const step = DIRECTOR_PARAM.ZOOM_RATE_PER_S * dt;
+        const delta = Math.max(-step, Math.min(step, Math.log(zoom / this.frameZoom)));
+        this.frameZoom *= Math.exp(delta);
+        return this.frameZoom;
     }
 }
