@@ -106,13 +106,12 @@ export const GROUND_DRAPE = {
     HEX_MASK_BAKE_SCALE: 4,
     /** 烘遮罩時涵蓋的格座標範圍（±格數）：要蓋滿一個重複週期 */
     HEX_MASK_LATTICE_REACH: 6,
-    /** 大張遮罩的世界座標涵蓋範圍（px）：要大於最大地圖 */
-    HEX_MASK_SHEET_WORLD_W: 2400,
-    HEX_MASK_SHEET_WORLD_H: 1600,
     /** 遮罩不透明部分的填色（只用到 alpha） */
     HEX_MASK_FILL: '#ffffff',
     /** 離屏畫布單邊上限（裝置像素）；超過時降低離屏解析度 */
     MAX_CANVAS_PX: 2048,
+    /** 觸控裝置的離屏畫布單邊上限：合成圖加三色層是 4 張，2048² 會到 64 MB，iPhone 會回收分頁 */
+    MAX_CANVAS_PX_TOUCH: 1024,
     /** 離屏畫布容量取整單位（裝置像素）：縮放動畫時尺寸每幀變動，不能每幀重配畫布 */
     CANVAS_GROW_STEP_PX: 128,
     /** 每幾幀整理一次離屏畫布池（GroundDrape.trimCanvases）：整段沒用到的釋放，過大的縮小 */
@@ -120,10 +119,8 @@ export const GROUND_DRAPE = {
     /** 畫布面積超過該週期實際需求的幾倍才縮小（避免大小特效輪流用同一格時反覆重配） */
     CANVAS_SHRINK_RATIO: 4,
     /**
-     * 鋪設類別（依繪製內容判斷，見 docs/COORD_GUARD_FINDINGS.md 對應的修正輪）：
-     *  DIRECT    單一 drawImage／少量填色：每格裁切後直接畫，混合模式與原本完全一致
-     *  OFFSCREEN 多段描邊（曼陀羅、震波）：每幀只畫一次到離屏畫布，再逐格裁切貼上（以粒子混合模式貼上）
-     * 登記特效全是零件，貼地的只有 PART_GROUND（單張 sprite → DIRECT）；OFFSCREEN 保留給多段描邊的繪製函式。
+     * 哪些粒子型別走鋪設（不在表內＝一般貼地 op）。兩種模式現在畫法相同：貼頂面的都進合成圖
+     * （GroundDrapeLayer.renderPlanes），保留這張表是因為它也是「可以鋪設」的白名單。
      */
     MODE: {
         PART_GROUND: 'DIRECT',
