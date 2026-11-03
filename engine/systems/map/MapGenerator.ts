@@ -100,6 +100,7 @@ export class MapGenerator {
 
         this.generateDecorations(system, engine, radius);
         engine.mapVersion++;
+        engine.map.generation++;
     }
 
     private static generateDecorations(system: MapSystem, engine: GameEngine, radius: number) {
