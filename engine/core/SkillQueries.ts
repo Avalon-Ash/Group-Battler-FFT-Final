@@ -82,15 +82,6 @@ export function sumHitActionValue(skill: Skill, kind: ValueHitAction['action'], 
     return total;
 }
 
-export function hasCastAction(skill: Skill, kind: NonNullable<Skill['onCast']>[number]['action']): boolean {
-    const cast = skill.onCast;
-    if (!cast) return false;
-    for (let i = 0; i < cast.length; i++) {
-        if (cast[i].action === kind) return true;
-    }
-    return false;
-}
-
 export function hasIntentIn(skill: Skill, intents: ReadonlySet<SkillIntent>): boolean {
     const own = skill.intents;
     if (!own) return false;

@@ -9,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GameEngine, type Agent } from '../engine/game';
 import { CCManager } from '../engine/systems/combat/CCManager';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
+import { runCastActions } from '../engine/systems/combat/SkillActions';
+import { hexEventPos } from '../engine/events/EventPos';
 import { HexUtils } from '../engine/utils';
 import { resetRandomSource, setRandomSource } from '../engine/math/rng';
 import { DAMAGE_RULES } from '../constants';
@@ -253,7 +255,7 @@ describe('位移：格子真的有換', () => {
         const b = w.dummy(Team.RED, 4);
         w.start();
         a.target = b;
-        w.exec.executeInstantSkill(a, makeSkill({ id: 'x', tag: 'ACTIVE', range: 6, effectType: 'DASH' }), w.engine);
+        runCastActions(a, makeSkill({ id: 'x', tag: 'ACTIVE', range: 6, effectType: 'DASH' }), { q: 4, r: 0 }, hexEventPos(4, 0, w.engine), w.engine);
         expect(HexUtils.dist(a, b)).toBe(1);
     });
 });

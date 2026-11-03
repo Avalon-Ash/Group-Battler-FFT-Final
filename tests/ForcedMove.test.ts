@@ -1,3 +1,5 @@
+import { runCastActions } from '../engine/systems/combat/SkillActions';
+import { hexEventPos } from '../engine/events/EventPos';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/game';
@@ -186,14 +188,14 @@ describe('ForcedMove', () => {
         expect(res2.blocked?.reason).toBe('EDGE');
     });
 
-    it('SkillExecutor DASH respects the climb rule end to end', () => {
+    it('DASH respects the climb rule end to end', () => {
         setHeight(1, 3);
         const caster = spawn(Team.RED, -2);
         const enemy = spawn(Team.BLUE, 3);
         const dash: Skill = { ...skill, ...actionsFromFlat({ ...readFlatFields(skill), effectType: 'DASH' }, skill), range: 6, power: 0, type: 'SINGLE' };
         caster.target = enemy;
         caster.targetHex = { q: 3, r: 0 };
-        new SkillExecutor().executeInstantSkill(caster, dash, engine);
+        runCastActions(caster, dash, { q: 3, r: 0 }, hexEventPos(3, 0, engine), engine);
         expect(caster.q).toBe(0);
     });
 

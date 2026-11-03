@@ -102,7 +102,12 @@ export interface StatusAction {
     force?: number;
 }
 
-export type CastAction = { action: 'DASH' };
+export type CastAction =
+    | { action: 'DASH' }
+    /** 瞬移到目標身邊離施法者最遠的空格 */
+    | { action: 'BLINK' }
+    /** 往遠離目標的方向後撤 tiles 格 */
+    | { action: 'RETREAT'; tiles: number };
 export type ImpactAction = { action: 'HAZARD'; kind: SpatialHazard['type']; duration: number };
 type ValueAction<K extends string> = { action: K; value?: number };
 export type HitAction =
@@ -117,7 +122,13 @@ export type HitAction =
     | { action: 'BREAK_SHIELD' }
     | { action: 'DISPEL'; polarity: 'BUFF' | 'DEBUFF' }
     | { action: 'CHANCE'; chance: number; then: readonly HitAction[] }
-    | { action: 'RANDOM_OF'; options: readonly HitAction[] };
+    | { action: 'RANDOM_OF'; options: readonly HitAction[] }
+    /** 打中後跳到半徑內最近的下一個目標，每跳威力乘 falloff */
+    | { action: 'CHAIN'; jumps: number; radius: number; falloff: number }
+    /** 沿施法者到目標的直線，穿過目標再打 tiles 格內的單位，每穿一個威力乘 falloff */
+    | { action: 'LINE_THROUGH'; tiles: number; falloff: number }
+    /** 和目標交換位置 */
+    | { action: 'SWAP' };
 export type EndAction = StatusAction;
 
 /** 多段命中的節奏：EVEN 等間隔；ACCEL 越打越密（總長不變）；CLUSTER 三連發一組（組間隔大、組內間隔小）。 */

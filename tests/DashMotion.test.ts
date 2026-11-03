@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
+import { runCastActions } from '../engine/systems/combat/SkillActions';
+import { hexEventPos } from '../engine/events/EventPos';
 import type { Agent } from '../engine/game';
 import { Team, Role } from '../types';
 import type { Skill } from '../types';
@@ -310,8 +312,7 @@ describe('DashMotion (DM2)', () => {
 
             // Target (1, 0) is occupied by target, so planDashPath cannot enter (stepsTaken = 0)
             const dashSkill = makeSkill({ effectType: 'DASH', range: 1, power: 150 });
-            const executor = new SkillExecutor();
-            executor.executeInstantSkill(source, dashSkill, engine);
+            runCastActions(source, dashSkill, { q: 1, r: 0 }, hexEventPos(1, 0, engine), engine);
 
             // Must have lunged forward without changing logical tile
             expect(source.q).toBe(0);

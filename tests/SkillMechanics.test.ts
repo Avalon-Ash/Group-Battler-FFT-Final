@@ -7,6 +7,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GameEngine, type Agent } from '../engine/game';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
+import { CombatSystem } from '../engine/systems/combat/CombatSystem';
+import { HexUtils } from '../engine/utils';
 import { resetRandomSource, setRandomSource } from '../engine/math/rng';
 import { isActionBlocked } from '../engine/core/Effects';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
@@ -199,6 +201,169 @@ describe('RANDOM_OF：隨機挑一個', () => {
         w.hit(w.source, w.target, skill);
         expect(w.target.effects.SILENCE.remaining).toBeGreaterThan(0);
         expect(w.target.effects.STUN.remaining).toBe(0);
+    });
+});
+
+describe('CHAIN：打中後跳到下一個', () => {
+    const skill = (jumps: number) => withHit([{ action: 'CHAIN', jumps, radius: 2, falloff: 0.5 }]);
+    const lost = (a: Agent) => HP - a.hp;
+
+    it('對照組：沒有這個動作，旁邊的人不掉血', () => {
+        const w = arena();
+        const near = w.spawn(Team.RED, 2, 0);
+        w.hit(w.source, w.target, makeSkill({}));
+        expect(lost(near)).toBe(0);
+    });
+    it('跳到半徑內的敵人，威力乘 falloff；半徑外的和友軍不受影響', () => {
+        const base = arena();
+        const plain = base.hit(base.source, base.target, makeSkill({}));
+        const w = arena();
+        const near = w.spawn(Team.RED, 2, 0);
+        const far = w.spawn(Team.RED, 6, 0);
+        const ally = w.spawn(Team.BLUE, 1, 1);
+        w.hit(w.source, w.target, skill(1));
+        expect(Math.abs(lost(near) - plain / 2)).toBeLessThanOrEqual(1);
+        expect(lost(far)).toBe(0);
+        expect(lost(ally)).toBe(0);
+    });
+    it('連跳：每跳再乘一次；同一個人不打第二次', () => {
+        const base = arena();
+        const plain = base.hit(base.source, base.target, makeSkill({}));
+        const w = arena();
+        const second = w.spawn(Team.RED, 2, 0);
+        const third = w.spawn(Team.RED, 4, 0);
+        const direct = w.hit(w.source, w.target, skill(5));
+        expect(direct).toBe(plain);
+        expect(Math.abs(lost(second) - plain / 2)).toBeLessThanOrEqual(1);
+        expect(Math.abs(lost(third) - plain / 4)).toBeLessThanOrEqual(1);
+    });
+    it('多段命中只在第一段跳', () => {
+        const w = arena();
+        const near = w.spawn(Team.RED, 2, 0);
+        w.exec.resolveHit(w.source, w.target, skill(1), undefined, w.engine, false, { hitIndex: 1, hitCount: 3, powerScale: 1 / 3 });
+        expect(lost(near)).toBe(0);
+    });
+});
+
+describe('LINE_THROUGH：穿過目標打後面的人', () => {
+    const skill = withHit([{ action: 'LINE_THROUGH', tiles: 3, falloff: 0.5 }]);
+    const lost = (a: Agent) => HP - a.hp;
+
+    it('對照組：沒有這個動作，後面的人不掉血', () => {
+        const w = arena();
+        const behind = w.spawn(Team.RED, 3, 0);
+        w.hit(w.source, w.target, makeSkill({}));
+        expect(lost(behind)).toBe(0);
+    });
+    it('打到直線上 tiles 格內的敵人，線外、太遠、友軍不受影響', () => {
+        const base = arena();
+        const plain = base.hit(base.source, base.target, makeSkill({}));
+        const w = arena();
+        const behind = w.spawn(Team.RED, 3, 0);
+        const beyond = w.spawn(Team.RED, 6, 0);
+        const offLine = w.spawn(Team.RED, 2, 2);
+        const ally = w.spawn(Team.BLUE, 2, 0);
+        w.hit(w.source, w.target, skill);
+        expect(Math.abs(lost(behind) - plain / 2)).toBeLessThanOrEqual(1);
+        expect(lost(beyond)).toBe(0);
+        expect(lost(offLine)).toBe(0);
+        expect(lost(ally)).toBe(0);
+    });
+});
+
+describe('SWAP：和目標交換位置', () => {
+    it('對照組：沒有這個動作，位置不變', () => {
+        const w = arena();
+        w.hit(w.source, w.target, makeSkill({}));
+        expect([w.source.q, w.target.q]).toEqual([0, 1]);
+    });
+    it('互換，格子佔用也跟著換', () => {
+        const w = arena();
+        const far = w.spawn(Team.RED, 4, 0);
+        w.hit(w.source, far, withHit([{ action: 'SWAP' }]));
+        expect([w.source.q, w.source.r]).toEqual([4, 0]);
+        expect([far.q, far.r]).toEqual([0, 0]);
+        expect(w.engine.getAgentAt(4, 0)).toBe(w.source);
+        expect(w.engine.getAgentAt(0, 0)).toBe(far);
+    });
+});
+
+describe('出手動作：不管瞬發、投射物、天降都會生效', () => {
+    /** 真的走施法流程：前搖走完就出手 */
+    const cast = (w: ReturnType<typeof arena>, source: Agent, target: Agent, skill: Skill) => {
+        const combat = new CombatSystem();
+        source.skills = [skill];
+        source.curCDs = [0];
+        source.target = target;
+        source.targetHex = null;
+        combat.initiateCast(source, 0, w.engine);
+        combat.update(5, w.engine);
+    };
+
+    it('BLINK：落在目標身邊，比目標更遠', () => {
+        const w = arena();
+        const far = w.spawn(Team.RED, 3, 0);
+        cast(w, w.source, far, makeSkill({ onCast: [{ action: 'BLINK' }] }));
+        expect(HexUtils.dist(w.source, far)).toBe(1);
+        expect(HexUtils.dist(w.source, { q: 0, r: 0 })).toBe(4);
+    });
+    it('BLINK：天降類在落下前就移動了', () => {
+        const w = arena();
+        const far = w.spawn(Team.RED, 3, 0);
+        cast(w, w.source, far, { ...skillById('wb_u1'), cost: 0 });
+        expect(HexUtils.dist(w.source, far)).toBe(1);
+        expect(far.hp).toBe(HP);
+    });
+    it('RETREAT：往遠離目標的方向走 tiles 格；投射物技能也會', () => {
+        const w = arena();
+        const near = w.spawn(Team.RED, 4, 0);
+        const shooter = w.spawn(Team.BLUE, 3, 0);
+        cast(w, shooter, near, makeSkill({ projectileSpeed: 300, onCast: [{ action: 'RETREAT', tiles: 2 }] }));
+        expect(HexUtils.dist(shooter, near)).toBe(3);
+    });
+    it('RETREAT：後面被擋住就走到擋住為止，不會穿過去', () => {
+        const w = arena();
+        const near = w.spawn(Team.RED, 4, 0);
+        const shooter = w.spawn(Team.BLUE, 3, 0);
+        for (const [q, r] of [[2, 0], [2, 1], [3, -1], [3, 1], [4, -1]]) w.spawn(Team.BLUE, q, r);
+        cast(w, shooter, near, makeSkill({ onCast: [{ action: 'RETREAT', tiles: 2 }] }));
+        expect([shooter.q, shooter.r]).toEqual([3, 0]);
+    });
+    it('DASH：投射物技能也會衝', () => {
+        const w = arena();
+        const far = w.spawn(Team.RED, 4, 0);
+        cast(w, w.source, far, makeSkill({ projectileSpeed: 300, onCast: [{ action: 'DASH' }] }));
+        expect(HexUtils.dist(w.source, far)).toBe(1);
+    });
+});
+
+describe('第二包的技能資料', () => {
+    const chain = (id: string, action: HitAction) => expect(skillById(id).onHit).toContainEqual(action);
+    it.each([
+        ['mb_b4', { action: 'CHAIN', jumps: 2, radius: 2, falloff: 0.7 }],
+        ['mb_a4', { action: 'CHAIN', jumps: 2, radius: 2, falloff: 0.7 }],
+        ['mr_u5', { action: 'CHAIN', jumps: 1, radius: 2, falloff: 0.5 }],
+        ['rb_a2', { action: 'LINE_THROUGH', tiles: 4, falloff: 0.8 }],
+        ['mb_a3', { action: 'SWAP' }],
+    ] as [string, HitAction][])('%s：%j', (id, action) => chain(id, action));
+
+    it('彈跳類是單體，才不會每個範圍目標各跳一次', () => {
+        for (const id of ['mb_b4', 'mb_a4']) {
+            expect(skillById(id).type).toBe('SINGLE');
+            expect(skillById(id).aoeRadius).toBeUndefined();
+        }
+    });
+    it('mb_a3 不再是突進', () => {
+        expect(skillById('mb_a3').onCast).toBeUndefined();
+        expect(skillById('mb_a3').intents).toBeUndefined();
+    });
+    it.each([
+        ['wb_u5', { action: 'BLINK' }, 'GAP_CLOSE'],
+        ['wb_u1', { action: 'BLINK' }, 'GAP_CLOSE'],
+        ['rb_a3', { action: 'RETREAT', tiles: 2 }, 'ESCAPE'],
+    ] as const)('%s 出手動作與意圖', (id, action, intent) => {
+        expect(skillById(id).onCast).toContainEqual(action);
+        expect(skillById(id).intents).toContain(intent);
     });
 });
 

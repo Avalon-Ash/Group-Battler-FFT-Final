@@ -2,8 +2,8 @@ import { Agent, GameEngine } from "../../game";
 import { Skill, SkillStatus, Hex } from "../../../types";
 import { HexUtils } from "../../utils";
 import { DamageCalculator } from "./DamageCalculator";
-import { hasCastAction, hasAnyStatus, hasStatusIn, skillTeams } from "../../core/SkillQueries";
-import { runCastActions, runEndActions, runHitActions, runImpactActions } from "./SkillActions";
+import { hasAnyStatus, hasStatusIn, skillTeams } from "../../core/SkillQueries";
+import { runEndActions, runHitActions, runImpactActions } from "./SkillActions";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
 import { lungeToward } from "../movement/MotionCommands";
@@ -96,10 +96,10 @@ export class SkillExecutor {
         const impactCells = engine.movement.targeting.getImpactArea(source, targetHex, skill, engine);
         const origin = hexEventPos(targetHex.q, targetHex.r, engine);
 
-        if (!deferred && hasCastAction(skill, 'DASH')) {
-            runCastActions(source, skill, targetHex, origin, engine);
-        } else if (
+        // 有出手動作的（突進等）已在 CombatSystem.completeCast 移動過，不再前衝
+        if (
             !deferred &&
+            !skill.onCast?.length &&
             skill.range >= 1 &&
             skill.range <= 2 &&
             (skill.projectileSpeed ?? 0) === 0 &&

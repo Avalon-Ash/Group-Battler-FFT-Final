@@ -12,7 +12,8 @@ import { CastingEngine, BreakCastContext } from "./CastingEngine";
 import { SkillExecutor, DeferredCastSnapshot } from "./SkillExecutor";
 import { HexUtils } from "../../utils";
 import { ultImpactDelay } from '../../../data/vfx/ult_visuals';
-import { unitEventPos } from "../../events/EventPos";
+import { hexEventPos, unitEventPos } from "../../events/EventPos";
+import { runCastActions } from "./SkillActions";
 
 export class CombatSystem {
     public projectileSystem: ProjectileSystem;
@@ -139,6 +140,10 @@ export class CombatSystem {
         else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
         
         engine.log(a, 'CAST', '施放', targetName, `施放 ${s.name} (消耗 ${s.cost} MP)`);
+
+        // 出手：突進、瞬移、後撤和結算方式（瞬發、投射物、天降）無關
+        const center = SkillExecutor.castCenter(a, s);
+        runCastActions(a, s, center, hexEventPos(center.q, center.r, engine), engine);
 
         // 天降類：詠唱結束後再等 timing＋落下時間才結算（ultImpactDelay；特效命中也讀同一個值）。
         // 落點與目標在詠唱結束這一刻定下，之後施法者被暈、陣亡、換目標都照這個結算
