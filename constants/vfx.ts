@@ -100,6 +100,14 @@ export const GROUND_DRAPE = {
     CLIP_EXPAND_PX: 0.5,
     /** 離屏畫布的邊界餘量（邏輯像素），涵蓋描邊與光暈 */
     CANVAS_PAD_PX: 24,
+    /** 預烘六角遮罩（DrapeHexMask）的顏色數：三色就能讓相鄰格不同色 */
+    HEX_MASK_COLORS: 3,
+    /** 遮罩重複單元的烘焙倍率（相對世界座標）：夠高才不會在高 DPR 下糊邊 */
+    HEX_MASK_BAKE_SCALE: 4,
+    /** 烘遮罩時涵蓋的格座標範圍（±格數）：要蓋滿一個重複週期 */
+    HEX_MASK_LATTICE_REACH: 6,
+    /** 遮罩不透明部分的填色（只用到 alpha） */
+    HEX_MASK_FILL: '#ffffff',
     /** 離屏畫布單邊上限（裝置像素）；超過時降低離屏解析度 */
     MAX_CANVAS_PX: 2048,
     /** 離屏畫布容量取整單位（裝置像素）：縮放動畫時尺寸每幀變動，不能每幀重配畫布 */

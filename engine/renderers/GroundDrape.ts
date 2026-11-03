@@ -24,6 +24,7 @@ import { ParticleRenderer } from "../presentation/vfx/renderers/ParticleRenderer
 import { HexGeometry } from "../graphics/utils/HexGeometry";
 import { GROUND_DRAPE, ISO_SCALE_Y, RENDER_QUALITY } from "../../constants";
 import type { RenderOp } from "./RenderList";
+import { applyHexMask, tileMaskColor } from "./DrapeHexMask";
 import type { Agent } from "../core/Agent";
 
 /** 以單位為參數、畫在原點（特效中心＝地平面）的貼地繪製函式。必須是靜態函式參考（不每幀建立閉包）。 */
@@ -60,16 +61,23 @@ interface DrapeEntry {
     /** 本次整理週期內實際需要的最大寬高（裝置像素）；整理時據此縮小或釋放畫布，然後歸零 */
     peakW: number;
     peakH: number;
+    /** 與預烘六角遮罩合成後的三色層（DrapeHexMask），用到才建；layerStamps 記每層本幀是否已合成 */
+    layers: (HTMLCanvasElement | null)[];
+    layerCtxs: (CanvasRenderingContext2D | null)[];
+    layerStamps: number[];
 }
 
 function createEntry(): DrapeEntry {
     return {
         p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, offscreen: false,
         canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1, peakW: 0, peakH: 0,
+        layers: [null, null, null], layerCtxs: [null, null, null], layerStamps: [-1, -1, -1],
     };
 }
 
 export class GroundDrapeLayer {
+    /** 用預烘六角遮罩取代逐格路徑裁切（實機 A/B 期間可切換） */
+    public static hexMask = false;
     private readonly entries: DrapeEntry[] = [];
     private count = 0;
     private stamp = 0;
@@ -88,6 +96,12 @@ export class GroundDrapeLayer {
             const c = e.canvas;
             if (c) {
                 if (e.peakW === 0 || e.peakH === 0) {
+                    for (let k = 0; k < e.layers.length; k++) {
+                        const layer = e.layers[k];
+                        if (layer) { layer.width = 0; layer.height = 0; }
+                        e.layers[k] = null;
+                        e.layerCtxs[k] = null;
+                    }
                     // 寬高設 0 才會立刻還回點陣記憶體（WebKit 不等 GC）
                     c.width = 0;
                     c.height = 0;
@@ -99,6 +113,9 @@ export class GroundDrapeLayer {
                     if (c.width * c.height > needW * needH * GROUND_DRAPE.CANVAS_SHRINK_RATIO) {
                         c.width = needW;
                         c.height = needH;
+                        for (const layer of e.layers) {
+                            if (layer) { layer.width = needW; layer.height = needH; }
+                        }
                     }
                 }
             }
@@ -176,6 +193,7 @@ export class GroundDrapeLayer {
         const hexR = op.tsize;
         const topY = snapY - op.th;
         const bob = op.ty - op.y;
+        const masked = GroundDrapeLayer.hexMask;
         let clipped = false;
         let planes = 0;
         for (let i = 0; i < this.count; i++) {
@@ -189,7 +207,7 @@ export class GroundDrapeLayer {
             if (!Number.isNaN(e.planeZ)) { planes++; continue; } // 懸空平面另一趟畫（不能套到頂面裁切）
 
             // 裁切路徑每格只設一次：同一格被多個特效蓋到時共用（路徑與裁切是這裡最貴的部分）
-            if (!clipped) {
+            if (!clipped && !masked) {
                 clipped = true;
                 ctx.save();
                 HexGeometry.traceHex(ctx, snapX, topY, hexR + GROUND_DRAPE.CLIP_EXPAND_PX, true, layout);
@@ -198,8 +216,8 @@ export class GroundDrapeLayer {
             const ox = Math.round(e.x);
             const oy = Math.round(e.footY + bob - op.th);
             ctx.save();
-            if (e.offscreen) {
-                this.blit(ctx, e, ox, oy, snapX, topY, hexR, layout, battleTime);
+            if (e.offscreen || masked) {
+                this.blit(ctx, e, ox, oy, snapX, topY, hexR, layout, battleTime, masked ? op : null);
             } else if (p) {
                 ctx.translate(ox, oy);
                 ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, e.progress, layout, battleTime);
@@ -229,22 +247,26 @@ export class GroundDrapeLayer {
         const clipY = Math.round(op.y - e.planeZ);
         const ox = Math.round(e.x);
         const oy = Math.round(e.footY - e.planeZ);
+        const masked = GroundDrapeLayer.hexMask;
         ctx.save();
-        HexGeometry.traceHex(ctx, snapX, clipY, hexR + GROUND_DRAPE.CLIP_EXPAND_PX, true, layout);
-        ctx.clip();
+        if (!masked) {
+            HexGeometry.traceHex(ctx, snapX, clipY, hexR + GROUND_DRAPE.CLIP_EXPAND_PX, true, layout);
+            ctx.clip();
+        }
         if (op.tq === e.ownQ && op.tr === e.ownR) {
             ctx.beginPath();
             ctx.rect(snapX - hexR * 2, clipY - hexR * 2, hexR * 4, oy - (clipY - hexR * 2));
             ctx.clip();
         }
-        this.blit(ctx, e, ox, oy, snapX, clipY, hexR, layout, battleTime);
+        this.blit(ctx, e, ox, oy, snapX, clipY, hexR, layout, battleTime, masked ? op : null);
         ctx.restore();
     }
 
     /** 離屏畫布貼到目前裁切區：只複製與該格外框相交的部分 */
-    private blit(ctx: CanvasRenderingContext2D, e: DrapeEntry, ox: number, oy: number, hexX: number, hexTopY: number, hexR: number, layout: HexLayout, battleTime: number): void {
+    private blit(ctx: CanvasRenderingContext2D, e: DrapeEntry, ox: number, oy: number, hexX: number, hexTopY: number, hexR: number, layout: HexLayout, battleTime: number, maskOp: RenderOp | null): void {
         if (!this.ensureRendered(ctx, e, layout, battleTime)) return;
-        const canvas = e.canvas!;
+        const canvas = maskOp ? this.ensureLayer(e, maskOp, layout) : e.canvas;
+        if (!canvas) return;
         const s = e.drawnScale;
         const w = e.drawnW, h = e.drawnH;
         // 離屏畫布中心 (w/2, h/2) 對應世界 (ox, oy)
@@ -259,6 +281,36 @@ export class GroundDrapeLayer {
         if (ix1 <= ix0 || iy1 <= iy0) return;
         ctx.globalCompositeOperation = e.p?.blendMode || (Number.isNaN(e.planeZ) ? GROUND_DRAPE.PAINTER_BLEND : GROUND_DRAPE.PLANE_BLEND);
         ctx.drawImage(canvas, (ix0 - dx0) * s, (iy0 - dy0) * s, (ix1 - ix0) * s, (iy1 - iy0) * s, ix0, iy0, ix1 - ix0, iy1 - iy0);
+    }
+
+    /**
+     * 本幀第一次需要這一色時，把離屏圖複製一份並套上預烘遮罩。格子與特效的相對位置和格高無關，
+     * 所以同一層能給所有同色格用；矩形外框只碰得到相鄰格，而相鄰格在這層是透明的。
+     */
+    private ensureLayer(e: DrapeEntry, op: RenderOp, layout: HexLayout): HTMLCanvasElement | null {
+        const source = e.canvas;
+        if (!source) return null;
+        const k = tileMaskColor(op.tq, op.tr);
+        if (e.layerStamps[k] === this.stamp) return e.layers[k];
+        e.layerStamps[k] = this.stamp;
+        let layer = e.layers[k];
+        if (!layer) {
+            layer = document.createElement('canvas');
+            e.layers[k] = layer;
+            e.layerCtxs[k] = layer.getContext('2d');
+        }
+        const lctx = e.layerCtxs[k];
+        if (!lctx) return null;
+        if (layer.width < source.width) layer.width = source.width;
+        if (layer.height < source.height) layer.height = source.height;
+        const w = e.drawnW, h = e.drawnH, s = e.drawnScale;
+        lctx.setTransform(1, 0, 0, 1, 0, 0);
+        lctx.globalCompositeOperation = 'source-over';
+        lctx.clearRect(0, 0, w, h);
+        lctx.drawImage(source, 0, 0, w, h, 0, 0, w, h);
+        const originX = w / 2 + (op.tx - e.x) * s;
+        const originY = h / 2 + (op.y - e.footY) * s;
+        return applyHexMask(lctx, layout, originX, originY, s, w, h) ? layer : null;
     }
 
     /** 本幀第一次需要時，把特效以目前裝置縮放畫進自己的離屏畫布（之後同一幀的其他格直接複製） */

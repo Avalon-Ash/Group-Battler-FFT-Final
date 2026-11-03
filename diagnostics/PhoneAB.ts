@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  PhoneAB — 實機效能 A/B（渲染優化輪的臨時診斷，用完刪除） ║
 // ║  職責：手機開 ?perf&mute&phoneab，自動逐項改一種繪製方式， ║
-// ║        最後列出每項的幀時間。第三輪只拆貼地特效。        ║
+// ║        最後列出每項的幀時間。第四輪驗證預烘遮罩。        ║
 // ║  只在網址有 phoneab 時由 index.tsx 動態載入，平常不下載。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -41,20 +41,18 @@ interface Segment {
     offscreenScale?: number;
     noBlit?: boolean;
     noPlanes?: boolean;
+    hexMask?: boolean;
 }
 
 const SEGMENTS: Segment[] = [
-    { id: 'base', label: '現況' },
-    { id: 'no_drape', label: '不畫貼地特效', noDrape: true },
-    { id: 'no_clip', label: '不裁切', noClip: true },
-    { id: 'rect_clip', label: '改矩形裁切', rectClip: true },
-    { id: 'path2d', label: '裁切用 Path2D', path2dClip: true },
-    { id: 'no_blend', label: '不用 screen 混色', noBlend: true },
-    { id: 'every3', label: '離屏每 3 幀更新', refreshEvery: REFRESH_EVERY_FRAMES },
-    { id: 'half_res', label: '離屏半解析度', offscreenScale: HALF_RES },
-    { id: 'no_blit', label: '只畫離屏不貼回', noBlit: true },
-    { id: 'no_planes', label: '不畫詠唱環', noPlanes: true },
-    { id: 'base2', label: '現況（再一次）' },
+    { id: 'base1', label: '現況 1' },
+    { id: 'mask1', label: '預烘遮罩 1', hexMask: true },
+    { id: 'base2', label: '現況 2' },
+    { id: 'mask2', label: '預烘遮罩 2', hexMask: true },
+    { id: 'base3', label: '現況 3' },
+    { id: 'mask3', label: '預烘遮罩 3', hexMask: true },
+    { id: 'mask_half', label: '遮罩＋離屏半解析', hexMask: true, offscreenScale: HALF_RES },
+    { id: 'rect', label: '矩形裁切（對照）', rectClip: true },
 ];
 
 interface Row { label: string; fps: number; low: number; ms: number; js: number; clips: number; blits: number; offMp: number; entries: number; }
@@ -297,10 +295,12 @@ export async function runPhoneAB(): Promise<void> {
     const rows: Row[] = [];
     for (let i = 0; i < SEGMENTS.length; i++) {
         active = SEGMENTS[i];
-        status.textContent = `第三輪量測中 ${i + 1}/${SEGMENTS.length}：${active.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
+        GroundDrapeLayer.hexMask = !!active.hexMask;
+        status.textContent = `第四輪量測中 ${i + 1}/${SEGMENTS.length}：${active.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
         rows.push(await runSegment(e, seconds));
     }
     setPinnedTier(null);
+    GroundDrapeLayer.hexMask = false;
     const lines = rows.map((r) => `${r.label.padEnd(10, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(5)} ${r.clips.toFixed(0).padStart(4)} ${r.blits.toFixed(0).padStart(4)} ${r.offMp.toFixed(1).padStart(4)}`);
-    status.textContent = ['第三輪跑完了，請截圖這張表', `${'項目'.padEnd(10, '　')}   FPS  低5%  每幀 裁切 貼回 離屏MP`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight} 特效數 ${rows[0].entries.toFixed(1)}`].join('\n');
+    status.textContent = ['第四輪跑完了，請截圖這張表', `${'項目'.padEnd(10, '　')}   FPS  低5%  每幀 裁切 貼回 離屏MP`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight} 特效數 ${rows[0].entries.toFixed(1)}`].join('\n');
 }
