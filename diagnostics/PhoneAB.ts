@@ -10,11 +10,15 @@ import { RenderDispatcher } from '../engine/renderers/RenderDispatcher';
 import { RenderOpType, type RenderOp } from '../engine/renderers/RenderList';
 import { RenderStats } from '../engine/renderers/RenderStats';
 import { setPinnedTier, type QualityTier } from '../engine/renderers/RenderQuality';
-import { SurfacePainter } from '../engine/graphics/painters/SurfacePainter';
+import { TerrainRenderer } from '../engine/renderers/grid/TerrainRenderer';
+import { GridOverlays } from '../engine/renderers/grid/GridOverlays';
+import { GroundDrapeLayer } from '../engine/renderers/GroundDrape';
 import { SCENE_DB } from '../data/scenes';
 import { Role, Team, type UICommand } from '../types';
 
-const DEFAULT_SEGMENT_S = 16;
+const DEFAULT_SEGMENT_S = 14;
+const ATLAS_SIZE = 4096;
+const ATLAS_PAD = 2;
 const SETTLE_S = 1;
 const CAST_EVERY_S = 4;
 const IMMORTAL_HP = 999999;
@@ -31,74 +35,127 @@ interface Segment {
     label: string;
     battle: boolean;
     tier?: QualityTier;
-    css?: string;
-    skipOps?: RenderOpType[];
-    noLiquid?: boolean;
-    noComposite?: boolean;
-    bitmapSources?: boolean;
+    skip?: 'block' | 'detail' | 'overlay' | 'drape';
+    atlas?: boolean;
+    bake?: boolean;
+    director?: boolean;
 }
 
-const NO_BACKDROP = '*{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}';
-const NO_DOM = '#root *{visibility:hidden!important}#root canvas{visibility:visible!important}';
-
 const SEGMENTS: Segment[] = [
-    { id: 'showcase', label: '展示模式 現況', battle: false },
-    { id: 'showcase_no_dom', label: '展示 隱藏所有 UI', battle: false, css: NO_DOM },
-    { id: 'base', label: '戰鬥 現況', battle: true },
-    { id: 'tier1', label: '解析度 ×2', battle: true, tier: 1 },
-    { id: 'no_backdrop', label: '關毛玻璃', battle: true, css: NO_BACKDROP },
-    { id: 'no_dom', label: '隱藏所有 UI', battle: true, css: NO_DOM },
-    { id: 'no_liquid', label: '不畫液面', battle: true, noLiquid: true },
-    { id: 'no_hazard', label: '不畫危害區', battle: true, skipOps: [RenderOpType.HAZARD] },
-    { id: 'no_terrain', label: '不畫地塊', battle: true, skipOps: [RenderOpType.TERRAIN] },
-    { id: 'no_composite', label: '不切混色', battle: true, noComposite: true },
-    { id: 'bitmap', label: '貼圖改 bitmap', battle: true, bitmapSources: true },
-    { id: 'base2', label: '戰鬥 現況（再一次）', battle: true },
+    { id: 'base', label: '現況', battle: true },
+    { id: 'no_block', label: '不貼地塊圖', battle: true, skip: 'block' },
+    { id: 'no_detail', label: '不畫地表細節', battle: true, skip: 'detail' },
+    { id: 'no_overlay', label: '不畫疊層', battle: true, skip: 'overlay' },
+    { id: 'no_drape', label: '不畫貼地特效', battle: true, skip: 'drape' },
+    { id: 'atlas', label: '地塊共用大圖', battle: true, atlas: true },
+    { id: 'bake', label: '整片烘成一張', battle: true, bake: true },
+    { id: 'bake_tier1', label: '一張＋解析度×2', battle: true, bake: true, tier: 1 },
+    { id: 'director', label: '現況＋導播鏡頭', battle: true, director: true },
+    { id: 'base2', label: '現況（再一次）', battle: true },
 ];
 
-interface Row { label: string; fps: number; low: number; ms: number; js: number; }
+interface Row { label: string; fps: number; low: number; ms: number; js: number; miss: number; }
 
 let active: Segment = SEGMENTS[0];
-const bitmaps = new WeakMap<HTMLCanvasElement, ImageBitmap>();
-const pendingBitmaps = new WeakSet<HTMLCanvasElement>();
+
+// 測「來源畫布切換」的成本：地塊 sprite 複製到同一張大圖再貼
+const atlasCanvas = document.createElement('canvas');
+atlasCanvas.width = ATLAS_SIZE;
+atlasCanvas.height = ATLAS_SIZE;
+const atlasCtx = atlasCanvas.getContext('2d');
+const atlasSlots = new WeakMap<HTMLCanvasElement, { x: number; y: number }>();
+let shelfX = 0;
+let shelfY = 0;
+let shelfH = 0;
+
+function atlasSlot(source: HTMLCanvasElement): { x: number; y: number } | null {
+    const hit = atlasSlots.get(source);
+    if (hit) return hit;
+    if (!atlasCtx) return null;
+    if (shelfX + source.width + ATLAS_PAD > ATLAS_SIZE) { shelfX = 0; shelfY += shelfH + ATLAS_PAD; shelfH = 0; }
+    if (shelfY + source.height > ATLAS_SIZE) return null;
+    const slot = { x: shelfX, y: shelfY };
+    inBlock = false; // 複製進大圖這次不經過大圖替換
+    atlasCtx.drawImage(source, slot.x, slot.y);
+    inBlock = true;
+    atlasSlots.set(source, slot);
+    shelfX += source.width + ATLAS_PAD;
+    shelfH = Math.max(shelfH, source.height);
+    return slot;
+}
+
+let inBlock = false;
+let bakeCanvas: HTMLCanvasElement | null = null;
+let bakeCtx: CanvasRenderingContext2D | null = null;
+let bakeFramesLeft = 0;
+let firstBlockOfFrame = false;
 
 function installGates(): void {
-    const dispatch = RenderDispatcher.dispatch;
-    RenderDispatcher.dispatch = function (ctx, op: RenderOp, ...rest) {
-        if (active.skipOps?.includes(op.type)) return;
-        dispatch.call(RenderDispatcher, ctx, op, ...rest);
+    const beginFrame = TerrainRenderer.beginFrame;
+    TerrainRenderer.beginFrame = function (transitioning: boolean) {
+        firstBlockOfFrame = true;
+        if (bakeFramesLeft > 0) bakeFramesLeft--;
+        beginFrame.call(TerrainRenderer, transitioning);
     };
 
-    const drawLiquid = SurfacePainter.drawLiquid;
-    SurfacePainter.drawLiquid = function (...args) {
-        if (active.noLiquid) return;
-        drawLiquid.apply(SurfacePainter, args);
+    const drawBlock = TerrainRenderer.drawBlock;
+    TerrainRenderer.drawBlock = function (ctx, ...rest) {
+        if (active.skip === 'block') return;
+        if (active.bake) {
+            if (!bakeCanvas || bakeCanvas.width !== ctx.canvas.width || bakeCanvas.height !== ctx.canvas.height) {
+                bakeCanvas = document.createElement('canvas');
+                bakeCanvas.width = ctx.canvas.width;
+                bakeCanvas.height = ctx.canvas.height;
+                bakeCtx = bakeCanvas.getContext('2d');
+                bakeFramesLeft = 2;
+            }
+            if (bakeFramesLeft > 0 && bakeCtx) {
+                if (firstBlockOfFrame) { bakeCtx.setTransform(1, 0, 0, 1, 0, 0); bakeCtx.clearRect(0, 0, bakeCanvas.width, bakeCanvas.height); firstBlockOfFrame = false; }
+                bakeCtx.setTransform(ctx.getTransform());
+                drawBlock.call(TerrainRenderer, bakeCtx, ...rest);
+                drawBlock.call(TerrainRenderer, ctx, ...rest);
+                return;
+            }
+            if (firstBlockOfFrame) {
+                firstBlockOfFrame = false;
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.drawImage(bakeCanvas, 0, 0);
+                ctx.restore();
+            }
+            return;
+        }
+        inBlock = true;
+        drawBlock.call(TerrainRenderer, ctx, ...rest);
+        inBlock = false;
+    };
+
+    const drawDetail = TerrainRenderer.drawTerrainDetail;
+    TerrainRenderer.drawTerrainDetail = function (...args) {
+        if (active.skip !== 'detail') drawDetail.apply(TerrainRenderer, args);
+    };
+
+    const drawOverlays = GridOverlays.drawOverlays;
+    GridOverlays.drawOverlays = function (...args) {
+        if (active.skip !== 'overlay') drawOverlays.apply(GridOverlays, args);
+    };
+
+    const drawOnTile = GroundDrapeLayer.prototype.drawOnTile;
+    GroundDrapeLayer.prototype.drawOnTile = function (...args) {
+        if (active.skip !== 'drape') drawOnTile.apply(this, args);
     };
 
     const proto = CanvasRenderingContext2D.prototype;
-    const gco = Object.getOwnPropertyDescriptor(proto, 'globalCompositeOperation');
-    if (gco?.set && gco.get) {
-        const set = gco.set;
-        Object.defineProperty(proto, 'globalCompositeOperation', {
-            get: gco.get,
-            set(this: CanvasRenderingContext2D, value: GlobalCompositeOperation) {
-                if (!active.noComposite) set.call(this, value);
-            },
-        });
-    }
-
     const drawImage = proto.drawImage as (this: CanvasRenderingContext2D, ...args: unknown[]) => void;
     proto.drawImage = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
         const source = args[0];
-        if (active.bitmapSources && source instanceof HTMLCanvasElement) {
-            const bitmap = bitmaps.get(source);
-            if (bitmap) {
-                drawImage.call(this, bitmap, ...args.slice(1));
+        if (active.atlas && inBlock && source instanceof HTMLCanvasElement && args.length <= 5) {
+            const slot = atlasSlot(source);
+            if (slot) {
+                const w = args.length === 5 ? args[3] : source.width;
+                const h = args.length === 5 ? args[4] : source.height;
+                drawImage.call(this, atlasCanvas, slot.x, slot.y, source.width, source.height, args[1], args[2], w, h);
                 return;
-            }
-            if (!pendingBitmaps.has(source) && source.width > 0 && source.height > 0) {
-                pendingBitmaps.add(source);
-                void createImageBitmap(source).then((made) => bitmaps.set(source, made));
             }
         }
         drawImage.apply(this, args);
@@ -148,6 +205,7 @@ function runSegment(e: GameEngine, seconds: number): Promise<Row> {
         const frames: number[] = [];
         const js: number[] = [];
         const start = performance.now();
+        const missStart = TerrainRenderer.store.getStats().misses;
         let last: number | null = null;
         let nextCast = 0;
         let pair = 0;
@@ -170,7 +228,7 @@ function runSegment(e: GameEngine, seconds: number): Promise<Row> {
                 const sorted = [...frames].sort((x, y) => x - y);
                 const slow = sorted.slice(-Math.max(1, Math.ceil(sorted.length * SLOW_FRAME_SHARE)));
                 const ms = mean(frames);
-                resolve({ label: active.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js) });
+                resolve({ label: active.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js), miss: TerrainRenderer.store.getStats().misses - missStart });
                 return;
             }
             requestAnimationFrame(loop);
@@ -201,8 +259,6 @@ export async function runPhoneAB(): Promise<void> {
     }
 
     installGates();
-    const style = document.createElement('style');
-    document.head.appendChild(style);
     const status = panel();
     const rows: Row[] = [];
     let inBattle = false;
@@ -215,12 +271,12 @@ export async function runPhoneAB(): Promise<void> {
             setUpBattle(e);
             inBattle = true;
         }
-        style.textContent = active.css ?? '';
+        e.bus.emit('UI_COMMAND', { type: 'SET_DIRECTOR_ENABLED', enabled: !!active.director });
+        bakeCanvas = null;
         setPinnedTier(active.tier ?? BASE_TIER);
         rows.push(await runSegment(e, seconds));
     }
-    style.textContent = '';
     setPinnedTier(null);
-    const lines = rows.map((r) => `${r.label.padEnd(12, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(6)} ${r.js.toFixed(1).padStart(5)}`);
-    status.textContent = ['跑完了，請截圖這張表', `${'項目'.padEnd(12, '　')}   FPS   低5% 每幀ms  JSms`, ...lines, `${navigator.userAgent.slice(0, 60)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight}`].join('\n');
+    const lines = rows.map((r) => `${r.label.padEnd(12, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(6)} ${r.js.toFixed(1).padStart(5)} ${String(r.miss).padStart(4)}`);
+    status.textContent = ['跑完了，請截圖這張表', `${'項目'.padEnd(12, '　')}   FPS   低5% 每幀ms  JSms 重烘`, ...lines, `${navigator.userAgent.slice(0, 60)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight}`].join('\n');
 }
