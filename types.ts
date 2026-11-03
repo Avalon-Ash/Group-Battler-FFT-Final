@@ -159,6 +159,8 @@ export interface SpatialProvider {
     getTileDepth(q: number, r: number): number;
     getCurrentShrinkLevel(): number;
     readonly isLastStand: boolean;
+    /** 背水一戰而且地圖只剩最後一格（最後一圈倒數期間是 false）。 */
+    readonly isFinalTileOnly: boolean;
     readonly battleTime: number;
 }
 

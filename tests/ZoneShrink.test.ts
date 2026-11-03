@@ -108,21 +108,58 @@ describe('Last Stand trigger', () => {
         expect(engine.state.isLastStand).toBe(false);
     });
 
-    it('does not start early when the tiles no longer hold everyone (musical chairs until one tile is left)', () => {
-        const engine = setup(hexagon(1), 0);
-        engine.agents = hexagon(1).map((key, i) => {
+    it('does not start early when the tiles no longer hold everyone', () => {
+        const engine = setup(hexagon(2), 0);
+        engine.agents = hexagon(2).map((key, i) => {
             const [q, r] = key.split(',').map(Number);
             return mk(engine, `u${i}`, q, r);
         });
         engine.zones.update(0, engine);
         expect(engine.state.isLastStand).toBe(false);
-        expect(engine.map.mapKeys.size).toBe(7);
+        expect(engine.map.mapKeys.size).toBe(19);
     });
 
     it('does not start with few alive on a small map', () => {
-        const engine = setup(hexagon(1), 0);
+        const engine = setup(hexagon(2), 0);
         engine.agents = [mk(engine, 'a', 0, 0), mk(engine, 'b', 1, 0), mk(engine, 'c', 0, 1)];
         engine.zones.update(0, engine);
+        expect(engine.state.isLastStand).toBe(false);
+    });
+
+    it('starts when the last ring starts counting down, then the ring still collapses', () => {
+        const engine = setup(hexagon(1), 0);
+        engine.agents = [mk(engine, 'a', 1, 0), mk(engine, 'b', 0, 1)];
+        const lastStand = vi.fn();
+        engine.bus.on('LAST_STAND_TRIGGERED', lastStand);
+
+        engine.zones.update(0, engine);
+        expect(engine.state.isLastStand).toBe(true);
+        expect(engine.state.finalHex).toEqual({ q: 0, r: 0 });
+        expect(engine.map.warningTiles.size).toBe(6);
+        expect(engine.map.mapKeys.size).toBe(7);
+        expect(engine.isFinalTileOnly).toBe(false);
+
+        engine.zones.update(1, engine);
+        expect(engine.map.mapKeys).toEqual(new Set(['0,0']));
+        expect(engine.map.warningTiles.size).toBe(0);
+        expect(engine.isFinalTileOnly).toBe(true);
+        expect(lastStand).toHaveBeenCalledTimes(1);
+    });
+
+    it('starts on the last two tiles with the unwarned one as the final hex', () => {
+        const engine = setup(['0,0', '1,0'], 0);
+        engine.zones.update(0, engine);
+        expect(engine.state.isLastStand).toBe(true);
+        expect(engine.map.warningTiles.size).toBe(1);
+        expect(engine.map.warningTiles.has(HexUtils.key(engine.state.finalHex!))).toBe(false);
+    });
+
+    it('is not fooled by the warnings of the layer that just collapsed', () => {
+        const engine = setup(hexagon(3), 0);
+        engine.zones.update(0, engine);
+        engine.zones.update(1, engine);
+        expect(engine.map.mapKeys.size).toBe(19);
+        expect(engine.map.warningTiles.size).toBe(18);
         expect(engine.state.isLastStand).toBe(false);
     });
 

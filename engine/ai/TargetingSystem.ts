@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
+import { Hex, Skill, SpatialProvider, MovementType, Role } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
@@ -134,7 +134,7 @@ export class TargetingSystem {
         if (!inDanger && a.lastHitSourceId && spatial.battleTime - (watch?.hitAt ?? -Infinity) <= TARGET_RULES.RETALIATE_WINDOW_S) {
             const attacker = spatial.getAgents().find(o => o.id === a.lastHitSourceId);
             const basic = a.skills.find(s => s?.tag === 'BASIC');
-            if (attacker && attacker !== a.target && !sameSide(attacker, a) && this.isValidTarget(attacker, spatial) && basic && basic.range > 0 && basic.range <= COMBAT_PARAM.MELEE_RANGE) {
+            if (a.role !== Role.TANK && attacker && attacker !== a.target && !sameSide(attacker, a) && this.isValidTarget(attacker, spatial) && basic && basic.range > 0 && basic.range <= COMBAT_PARAM.MELEE_RANGE) {
                 const outOfReach = (o: Agent) => HexUtils.dist(a, o) > this.getEffectiveRange(a, o.q, o.r, basic.range, spatial);
                 if (!a.target || outOfReach(a.target)) {
                     a.target = attacker;

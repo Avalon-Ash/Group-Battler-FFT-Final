@@ -103,10 +103,11 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
     "IsControlled": (a) => a.effects.STUN.remaining > 0 || a.effects.BANISH.remaining > 0 || a.effects.FEAR.remaining > 0,
-    "IsLastStand": (_, engine) => engine.state.isLastStand,
-    // 腳下有敵方 hazard、已經出界：馬上走。只是站在警告格上：算好時間，趕得及就先打。背水一戰不逃。
+    // 最後一格落定才進 FINALE；最後一圈倒數時照原來的判斷逃、搶格子
+    "IsLastStand": (_, engine) => engine.isFinalTileOnly,
+    // 腳下有敵方 hazard、已經出界：馬上走。只是站在警告格上：算好時間，趕得及就先打。最後一格落定後不逃。
     "WantsRetreat": (a, engine, args) => {
-        if (engine.state.isLastStand) return false;
+        if (engine.isFinalTileOnly) return false;
         if (BTConditions["IsEvading"](a, engine, args)) return true;
         if (!BTConditions["IsInUrgentDanger"](a, engine, args)) return false;
         if (!engine.map.isValid(a.q, a.r)) return true;

@@ -13,8 +13,8 @@ import { stopMovement } from "./MotionCommands";
 export class StackingResolver {
 
     public resolve(spatial: SpatialProvider, logger: LogProvider) {
-        // [PROMPT] 若處於背水一戰狀態，允許座標重疊（Stacking），規避尋路死鎖
-        if (spatial.isLastStand) return;
+        // 只剩最後一格時允許座標重疊（Stacking），規避尋路死鎖；最後一圈倒數時每格仍只站一人
+        if (spatial.isFinalTileOnly) return;
 
         const cellMap = new Map<number, Agent[]>();
         

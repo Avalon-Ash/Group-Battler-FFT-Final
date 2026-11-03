@@ -83,6 +83,7 @@ export class GameEngine implements SpatialProvider {
     set targetTimeScale(v: number) { this.state.time.targetTimeScale = v; }
     get victory() { return this.state.victory; }
     get isLastStand(): boolean { return this.state.isLastStand; }
+    get isFinalTileOnly(): boolean { return this.state.isLastStand && this.map.mapKeys.size === 1; }
     
     get directorTargetId(): string | null { return this.state.director.targetId; }
     get mapKeys(): Set<string> { return this.map.mapKeys; }

@@ -2,7 +2,8 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ZoneSystem — 縮圈、背水一戰與塌陷格掉落管理             ║
 // ║  職責：逐層縮圈；到 minRadius 或整層移除會清空地圖時，   ║
-// ║        改從外圈逐格塌陷，保留最後一格並觸發背水一戰。     ║
+// ║        改從外圈逐格塌陷，保留最後一格。最後一圈開始倒數   ║
+// ║        時觸發背水一戰，倒數結束照常塌陷。                 ║
 // ║        AOE 詠唱預警區暫時也在這裡，待移出。              ║
 // ║  [ARCH] 圈外單位走死亡管線；TILE_COLLAPSED 同步 VFX。    ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -50,8 +51,8 @@ export class ZoneSystem {
                 engine.log(null, 'SYSTEM', '縮圈初始化', null, `地圖網格深度: ${this.maxDepth}, 初始安全層級: ${this.safeRadius}, 間隔: ${engine.zoneConfig.shrinkInterval}s`);
             }
 
-            // 背水一戰開始後地圖不再變小：剩下的就在這塊地上打完
-            if (engine.map.mapKeys.size > 1 && !engine.state.isLastStand) {
+            // 只剩一格就不再變小：剩下的就在這格上打完
+            if (engine.map.mapKeys.size > 1) {
                 this.shrinkTimer -= dt;
                 const isTickSecond = Math.floor(this.shrinkTimer + ZONE.TIME_EPSILON) !== Math.floor(this.shrinkTimer + dt + ZONE.TIME_EPSILON);
                 if (this.warningLevel !== this.currentShrinkLevel) {
@@ -194,33 +195,23 @@ export class ZoneSystem {
     }
 
     /**
-     * 地圖縮到只剩一格才開始背水一戰（使用者 2026-11-03：不提早收，像大風吹——沒搶到位子就打死或推開對方）。
-     * 人一死條件就可能成立，所以每個 tick 都看，不只縮圈時。
+     * 最後一圈開始倒數就是背水一戰（使用者 2026-11-03：掉落前那段時間就是，像大風吹——沒搶到位子就打死或推開對方）。
+     * 警告格在塌陷後才重建，所以要確認它是這一層的，否則上一層的舊警告數量可能剛好湊成「只剩一格沒警告」。
      */
     private checkLastStand(engine: GameEngine): void {
+        const mapKeys = engine.map.mapKeys;
+        const warned = engine.map.warningTiles;
+        if (mapKeys.size === 1) warned.clear();
         if (engine.state.isLastStand) return;
-        if (engine.map.mapKeys.size !== 1) return;
+        const lastRing = this.warningLevel === this.currentShrinkLevel && warned.size === mapKeys.size - 1;
+        if (mapKeys.size !== 1 && !lastRing) return;
+        const finalKey = Array.from(mapKeys).find(key => !warned.has(key));
+        if (!finalKey) return;
+        const [q, r] = finalKey.split(',').map(Number);
         engine.state.isLastStand = true;
-        engine.map.warningTiles.clear();
-        const { q: fq, r: fr } = this.chooseLastStandHex(engine);
-        engine.state.finalHex = { q: fq, r: fr };
-        engine.bus.emit('LAST_STAND_TRIGGERED', { q: fq, r: fr });
-        engine.log(null, 'SYSTEM', '背水一戰', null, '地圖不再縮小，打到剩一方為止');
-    }
-
-    /** 最深、離中心最近的格（同分取鍵值最小，結果固定）。 */
-    private chooseLastStandHex(engine: GameEngine): { q: number; r: number } {
-        const depths = this.depthsFor(engine.map.mapKeys);
-        const center = { q: 0, r: 0 };
-        const ranked = Array.from(engine.map.mapKeys).sort((a, b) => {
-            const [aq, ar] = a.split(',').map(Number);
-            const [bq, br] = b.split(',').map(Number);
-            return (depths.get(b) ?? 0) - (depths.get(a) ?? 0) ||
-                HexUtils.dist({ q: aq, r: ar }, center) - HexUtils.dist({ q: bq, r: br }, center) ||
-                a.localeCompare(b);
-        });
-        const [q, r] = ranked[0].split(',').map(Number);
-        return { q, r };
+        engine.state.finalHex = { q, r };
+        engine.bus.emit('LAST_STAND_TRIGGERED', { q, r });
+        engine.log(null, 'SYSTEM', '背水一戰', null, '最後一圈倒數，只留一格');
     }
 
     private rebuildWarnings(engine: GameEngine): void {

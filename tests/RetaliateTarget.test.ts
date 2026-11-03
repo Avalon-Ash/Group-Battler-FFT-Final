@@ -93,6 +93,22 @@ describe('Retaliate on hit (melee)', () => {
         expect(victim.target).toBe(far);
     });
 
+    it('坦克被打 → 不轉頭（大逃殺坦克勝率 24.9→31.9 的主因）', () => {
+        const victim = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 100, Role.TANK);
+        if (!victim) throw new Error('addAgent failed');
+        const far = spawn(Team.RED, 0, 5);
+        const attacker = spawn(Team.RED, 0, 2);
+        expect(victim.skills.find(s => s?.tag === 'BASIC')?.range).toBe(COMBAT_PARAM.MELEE_RANGE);
+        victim.target = far;
+        victim.targetLockUntil = engine.battleTime + 10;
+        engine.updateTarget(victim);
+
+        victim.hp -= 10;
+        victim.lastHitSourceId = attacker.id;
+        engine.updateTarget(victim);
+        expect(victim.target).toBe(far);
+    });
+
     it('被嘲諷時嘲諷優先，不因受擊轉頭', () => {
         const victim = spawn(Team.BLUE, 0, 0);
         const taunter = spawn(Team.RED, 0, 6);
