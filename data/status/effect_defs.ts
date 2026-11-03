@@ -9,34 +9,42 @@ import type { EffectKind } from '../../types';
 /** 遞減類別：迷惑＝恐懼＋變形。位移與緩速不吃遞減。 */
 export type DRCategory = 'stun' | 'silence' | 'disorient' | 'root' | 'banish' | 'taunt';
 
+export type EffectAction = 'MOVE' | 'CAST' | 'SKILL';
+
 export interface EffectDef {
     polarity: 'BUFF' | 'DEBUFF';     // 取代 CCManager 內 isBuff／isDebuff 陣列
     hardCC: boolean;                 // 硬控制：多段技能一次施放只套一次，且吃遞減（DR）
     drCategory: DRCategory | null;   // 遞減類別（WoW 式）：同類別共用遞減層數；非硬控為 null
     clearsOnApply: readonly EffectKind[]; // BANISH 清 ROOT、FEAR
+    /** 這個狀態禁止什麼（engine/core/Effects.ts isActionBlocked）。MOVE：不能移動；CAST：不能施法；SKILL：不能放主動技和奧義 */
+    blocks?: readonly EffectAction[];
 }
 
 export const EFFECT_DEFS: Readonly<Record<EffectKind, EffectDef>> = {
     STUN: {
         polarity: 'DEBUFF',
+        blocks: ['MOVE', 'CAST'],
         hardCC: true,
         drCategory: 'stun',
         clearsOnApply: [],
     },
     SILENCE: {
         polarity: 'DEBUFF',
+        blocks: ['SKILL'],
         hardCC: true,
         drCategory: 'silence',
         clearsOnApply: [],
     },
     ROOT: {
         polarity: 'DEBUFF',
+        blocks: ['MOVE'],
         hardCC: true,
         drCategory: 'root',
         clearsOnApply: [],
     },
     FEAR: {
         polarity: 'DEBUFF',
+        blocks: ['CAST'],
         hardCC: true,
         drCategory: 'disorient',
         clearsOnApply: [],
@@ -55,6 +63,7 @@ export const EFFECT_DEFS: Readonly<Record<EffectKind, EffectDef>> = {
     },
     BANISH: {
         polarity: 'DEBUFF',
+        blocks: ['MOVE', 'CAST'],
         hardCC: true,
         drCategory: 'banish',
         clearsOnApply: ['ROOT', 'FEAR'],
@@ -67,6 +76,7 @@ export const EFFECT_DEFS: Readonly<Record<EffectKind, EffectDef>> = {
     },
     POLYMORPH: {
         polarity: 'DEBUFF',
+        blocks: ['MOVE', 'CAST'],
         hardCC: true,
         drCategory: 'disorient',
         clearsOnApply: [],

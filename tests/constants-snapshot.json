@@ -586,6 +586,7 @@
   "BLOCK_HEIGHT": 24,
   "CAST_LOCKOUT": {
     "INTERRUPT": 0.1,
+    "INTERRUPT_SKILL_CD": 0.5,
     "FATAL_BREAK": 0.5
   },
   "CAST_RING": {

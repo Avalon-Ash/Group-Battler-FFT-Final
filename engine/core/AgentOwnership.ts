@@ -155,12 +155,11 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         group: 'casting',
         kind: 'domain',
         owners: [
-            'engine/systems/combat/CastingEngine.ts',
-            'engine/systems/combat/CombatSystem.ts',
+            'engine/systems/combat/SkillStateMachine.ts',
             'engine/systems/status/CooldownSystem.ts',
         ],
         lifecycle: ['engine/systems/agentManager.ts'],
-        note: '施法域：中斷時由 CastingEngine 設定、breakCast(lockout) 延長（BT 不再直寫）、CooldownSystem 遞減。秒數在 CAST_LOCKOUT。',
+        note: '施法域：中斷時由 SkillStateMachine 設定、breakCast(lockout) 延長（BT 不再直寫）、CooldownSystem 遞減。秒數在 CAST_LOCKOUT。',
     },
     ccVisual: {
         group: 'status',

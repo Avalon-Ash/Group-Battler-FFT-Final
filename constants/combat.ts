@@ -213,6 +213,8 @@ export const AGENT_CONSTANTS = {
 export const CAST_LOCKOUT = {
     /** 一般中斷：避免同一 tick 重複記錄／重施。 */
     INTERRUPT: 0.1,
+    /** 主動技和奧義被打斷後的最短冷卻：避免卡在部分控制下無限重放。 */
+    INTERRUPT_SKILL_CD: 0.5,
     /** 地面將塌陷而放棄詠唱：確保單位真的先去逃生。 */
     FATAL_BREAK: 0.5,
 } as const;

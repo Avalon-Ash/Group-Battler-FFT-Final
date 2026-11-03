@@ -5,6 +5,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { EffectKind, EffectSlot, EffectSlots } from '../../types';
+import { EFFECT_DEFS, type EffectAction } from '../../data/status/effect_defs';
 
 export const EFFECT_KINDS: readonly EffectKind[] = [
     'STUN',
@@ -67,6 +68,21 @@ export function resetEffectSlots(slots: EffectSlots): void {
         slot.tag = null;
         slot.sourceId = null;
     }
+}
+
+const BLOCKERS: Readonly<Record<EffectAction, readonly EffectKind[]>> = {
+    MOVE: EFFECT_KINDS.filter((k) => EFFECT_DEFS[k].blocks?.includes('MOVE')),
+    CAST: EFFECT_KINDS.filter((k) => EFFECT_DEFS[k].blocks?.includes('CAST')),
+    SKILL: EFFECT_KINDS.filter((k) => EFFECT_DEFS[k].blocks?.includes('SKILL')),
+};
+
+/** 身上有沒有狀態禁止這個行動（EFFECT_DEFS.blocks）。判斷都走這裡，新增控制只要改那張表 */
+export function isActionBlocked(agent: { effects: EffectSlots }, action: EffectAction): boolean {
+    const kinds = BLOCKERS[action];
+    for (let i = 0; i < kinds.length; i++) {
+        if (agent.effects[kinds[i]].remaining > 0) return true;
+    }
+    return false;
 }
 
 /** 完全不能行動的硬控（暈眩、變羊）。恐懼和放逐另外判斷：恐懼會跑，放逐離場 */
