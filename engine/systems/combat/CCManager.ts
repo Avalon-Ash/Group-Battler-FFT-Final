@@ -12,6 +12,7 @@ import { syncBanished } from "../status/ControlSystem";
 import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedMove";
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 import { EFFECT_DEFS } from "../../../data/status/effect_defs";
+import { EFFECT_KINDS } from "../../core/Effects";
 import type { EffectKind } from "../../../types";
 import { sameSide } from '../../core/Allegiance';
 
@@ -413,5 +414,15 @@ export const CCManager = {
             }
         }
         engine.bus.emit('CAMERA_IMPACT', { kind: 'KNOCKBACK', intensity: FORCED_MOVE.IMPACT_SHAKE });
+    },
+
+    dispelEffects(target: Agent, polarity: 'BUFF' | 'DEBUFF'): void {
+        for (let i = 0; i < EFFECT_KINDS.length; i++) {
+            const kind = EFFECT_KINDS[i];
+            if (EFFECT_DEFS[kind].polarity === polarity) {
+                target.effects[kind].remaining = 0;
+                target.effects[kind].max = 0;
+            }
+        }
     }
 };

@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import type { Skill } from '../types';
 import { readFlatFields } from '../data/skills/flatView';
+import type { HitAction } from '../types';
 
 export interface SkillWithCcSelf extends Skill {
     ccSelf?: boolean;
@@ -167,7 +168,14 @@ export function collectSkillIntegrityViolations(skills: readonly Skill[] = DEFAU
         }
 
         const desc = raw.desc ?? '';
-        const rawEffects: (string | undefined)[] = [flat.ccType, flat.ccType2, flat.effectType, flat.effectType2];
+        // 機率、隨機包住的狀態也算這招有
+        const nested = (actions: readonly HitAction[]): string[] => actions.flatMap((a) => {
+            if (a.action === 'STATUS') return [a.status];
+            if (a.action === 'CHANCE') return nested(a.then);
+            if (a.action === 'RANDOM_OF') return nested(a.options);
+            return [];
+        });
+        const rawEffects: (string | undefined)[] = [flat.ccType, flat.ccType2, flat.effectType, flat.effectType2, ...nested(raw.onHit ?? [])];
         const activeEffects = new Set<string>(
             rawEffects.filter((x): x is string => Boolean(x) && x !== 'NONE')
         );

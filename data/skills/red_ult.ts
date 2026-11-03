@@ -111,7 +111,7 @@ export const RED_ULT: Skill[] = [
         visual: 'BOLT', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_RED_RAILGUN', element: 'FIRE',
         onImpact: [{ action: 'HAZARD', kind: 'FIRE', duration: 5 }],
-        onHit: [{ action: 'EXECUTE', value: 2.2 }],
+        onHit: [{ action: 'EXECUTE', value: 2.2 }, { action: 'PIERCE', value: 1 }],
     },
     {
         id: 'rr_u2', role: Role.RANGER, team: Team.RED, tag: 'ULT',

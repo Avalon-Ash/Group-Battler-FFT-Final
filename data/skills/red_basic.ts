@@ -86,7 +86,7 @@ export const RED_BASIC: Skill[] = [
         range: 1, cast: 0.4, cd: 0.9, cost: 0, gain: 25,
         type: 'SINGLE', power: 94, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD',
-        onHit: [{ action: 'EXECUTE', value: 1.25 }],
+        onHit: [{ action: 'RAGE', value: 1 }],
     },
 
     // --- RANGER ---
@@ -137,7 +137,8 @@ export const RED_BASIC: Skill[] = [
         name: '混沌之球', desc: '隨機傷害',
         range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 30,
         type: 'SINGLE', power: 105, color: '#16a34a', visual: 'BOLT', projectileSpeed: 900,
-        visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON'
+        visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON',
+        onHit: [{ action: 'RANDOM_POWER', min: 0.5, max: 1.5 }],
     },
     {
         id: 'mr_b2', role: Role.MAGE, team: Team.RED, tag: 'BASIC',
@@ -160,14 +161,16 @@ export const RED_BASIC: Skill[] = [
         name: '虛弱詛咒', desc: '虛弱',
         range: 6, cast: 0.6, cd: 1.2, cost: 0, gain: 35,
         type: 'SINGLE', power: 75, color: '#581c87', visual: 'BOLT', projectileSpeed: 1100,
-        visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
+        visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID',
+        onHit: [{ action: 'STATUS', status: 'VULNERABLE', duration: 1.5 }],
     },
     {
         id: 'mr_b5', role: Role.MAGE, team: Team.RED, tag: 'BASIC',
         name: '暗影箭', desc: '穿透',
         range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 30,
         type: 'SINGLE', power: 95, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 1100,
-        visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
+        visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID',
+        onHit: [{ action: 'PIERCE', value: 0.5 }],
     },
 
     // --- SUPPORT ---
@@ -193,14 +196,15 @@ export const RED_BASIC: Skill[] = [
         range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 35,
         type: 'SINGLE', power: 55, color: '#a3e635', visual: 'BOLT', projectileSpeed: 900,
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON',
-        onHit: [{ action: 'STATUS', status: 'DOT', duration: 2.5, force: 14 }],
+        onHit: [{ action: 'RANDOM_OF', options: [{ action: 'STATUS', status: 'DOT', duration: 2.5, force: 14 }, { action: 'STATUS', status: 'SLOW', duration: 2, force: 30 }, { action: 'STATUS', status: 'BLIND', duration: 1.5 }, { action: 'STATUS', status: 'VULNERABLE', duration: 2 }] }],
     },
     {
         id: 'sr_b4', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC',
         name: '鮮血治癒', desc: '耗血補人',
         range: 5, cast: 0.5, cd: 0.85, cost: 0, gain: 30,
         type: 'SINGLE', power: -120, color: '#991b1b', visual: 'BOLT', projectileSpeed: 950,
-        visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_BLOOD_MOTE', element: 'BLOOD'
+        visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_BLOOD_MOTE', element: 'BLOOD',
+        onHit: [{ action: 'SELF_DAMAGE', value: 30 }],
     },
     {
         id: 'sr_b5', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC',

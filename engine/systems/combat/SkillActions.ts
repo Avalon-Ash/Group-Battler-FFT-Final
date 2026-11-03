@@ -17,10 +17,11 @@ import type { HitOptions } from "./SkillExecutor";
 import { CCManager } from "./CCManager";
 import { planDashPath, resolveForcedMove } from "./ForcedMove";
 import { HazardManager } from "./HazardManager";
-import { applyDirectDamage } from "./DirectDamage";
+import { applyDirectDamage, breakShield } from "./DirectDamage";
 import { dashTo, lungeToward } from "../movement/MotionCommands";
 import { unitEventPos } from "../../events/EventPos";
 import { CC_RULES, DAMAGE_TEXT_COLORS, PHYSICS, VFX_PARAM } from "../../../constants";
+import { random } from "../../math/rng";
 
 type Handlers<A extends { action: string }, C> = { [K in A['action']]: (ctx: C, action: Extract<A, { action: K }>) => void };
 
@@ -113,6 +114,10 @@ const HIT_HANDLERS: Handlers<HitAction, HitContext> = {
     MANA_BURN: settledInDamage,
     MANA_RESTORE: settledInDamage,
     EXECUTE: settledInDamage,
+    PIERCE: settledInDamage,
+    RAGE: settledInDamage,
+    TRUE_STRIKE: settledInDamage,
+    RANDOM_POWER: settledInDamage,
     // 反噬無視護盾；無歸屬來源，沿用先前的擊殺者
     SELF_DAMAGE: ({ source, engine, opts }, a) => {
         if (source.hp <= 0) return;
@@ -136,6 +141,24 @@ const HIT_HANDLERS: Handlers<HitAction, HitContext> = {
         if (opts.statusesApplied && !isRepeatableStatus(a.status) && a.status !== 'SHIELD') return;
         const force = a.status === 'SHIELD' ? (a.force || CC_RULES.DEFAULT_SHIELD_AMOUNT) * (opts.powerScale ?? 1) : a.force;
         CCManager.applyCC(source, target, skill, a.status, a.duration, force, origin, engine, (opts.hitIndex ?? 0) > 0);
+    },
+    BREAK_SHIELD: ({ target }) => {
+        breakShield(target);
+    },
+    DISPEL: ({ target }, a) => {
+        CCManager.dispelEffects(target, a.polarity);
+    },
+    CHANCE: (ctx, a) => {
+        if (random() < a.chance) {
+            run(HIT_HANDLERS, a.then, ctx);
+        }
+    },
+    RANDOM_OF: (ctx, a) => {
+        if (!a.options || a.options.length === 0) return;
+        const picked = a.options[Math.floor(random() * a.options.length)];
+        if (picked) {
+            run(HIT_HANDLERS, [picked], ctx);
+        }
     },
 };
 

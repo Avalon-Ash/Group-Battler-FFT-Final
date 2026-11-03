@@ -20,7 +20,7 @@ export const BLUE_BASIC: Skill[] = [
         range: 1, cast: 0.4, cd: 1.2, cost: 0, gain: 20,
         type: 'SINGLE', power: 65, color: '#93c5fd', visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING',
-        onHit: [{ action: 'STATUS', status: 'STUN', duration: 0.5 }],
+        onHit: [{ action: 'CHANCE', chance: 0.3, then: [{ action: 'STATUS', status: 'STUN', duration: 0.5 }] }],
     },
     {
         id: 'tb_b3', role: Role.TANK, team: Team.BLUE, tag: 'BASIC',
@@ -58,7 +58,8 @@ export const BLUE_BASIC: Skill[] = [
         name: '弱點刺擊', desc: '穿透攻擊',
         range: 2, cast: 0.4, cd: 1.0, cost: 0, gain: 25, // Reach 2 for Spear feel
         type: 'SINGLE', power: 80, color: '#bae6fd', visual: 'SLASH', projectileSpeed: 0,
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL',
+        onHit: [{ action: 'PIERCE', value: 0.5 }],
     },
     {
         id: 'wb_b3', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC',
@@ -81,7 +82,7 @@ export const BLUE_BASIC: Skill[] = [
         range: 1, cast: 0.4, cd: 1.0, cost: 0, gain: 30,
         type: 'SINGLE', power: 75, color: '#fbbf24', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY',
-        onEnd: [{ action: 'STATUS', status: 'SHIELD', force: 40 }],
+        onEnd: [{ action: 'STATUS', status: 'SHIELD', force: 40 }, { action: 'STATUS', status: 'REFLECT', duration: 2, force: 30 }],
     },
 
     // --- RANGER (Nerfed Ranges 7/8 -> 5) ---
@@ -97,14 +98,16 @@ export const BLUE_BASIC: Skill[] = [
         name: '寒冰箭', desc: '微量緩速',
         range: 5, cast: 0.6, cd: 1.2, cost: 0, gain: 30, // Nerf Range 6->5
         type: 'SINGLE', power: 75, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 1100,
-        visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW', element: 'ICE'
+        visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW', element: 'ICE',
+        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 30 }],
     },
     {
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC',
         name: '獅眼印記', desc: '必中',
         range: 5, cast: 0.3, cd: 0.8, cost: 0, gain: 20, // Nerf Range 6->5
         type: 'SINGLE', power: 60, color: '#ef4444', visual: 'BOLT', projectileSpeed: 2200,
-        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL',
+        onHit: [{ action: 'TRUE_STRIKE' }],
     },
     {
         id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC',
@@ -145,7 +148,7 @@ export const BLUE_BASIC: Skill[] = [
         range: 5, cast: 0.45, cd: 0.85, cost: 0, gain: 25, // Range 5->4
         type: 'SINGLE', power: 78, color: '#bae6fd', visual: 'BOLT', projectileSpeed: 1200,
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_FROST_BOLT', element: 'ICE',
-        onHit: [{ action: 'STATUS', status: 'ROOT', duration: 0.5 }],
+        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 30 }],
     },
     {
         id: 'mb_b4', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC',
@@ -191,7 +194,8 @@ export const BLUE_BASIC: Skill[] = [
         name: '淨化之光', desc: '驅散效果',
         range: 5, cast: 0.5, cd: 1.2, cost: 0, gain: 30, // Range 5->4
         type: 'SINGLE', power: 40, color: '#a7f3d0', visual: 'BOLT', projectileSpeed: 1500,
-        visualHitEffect: 'FX_HIT_BLUE_HOLY', visualProjectileEffect: 'BOLT', element: 'HOLY'
+        visualHitEffect: 'FX_HIT_BLUE_HOLY', visualProjectileEffect: 'BOLT', element: 'HOLY',
+        onHit: [{ action: 'DISPEL', polarity: 'DEBUFF' }],
     },
     {
         id: 'sb_b5', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC',

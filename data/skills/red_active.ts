@@ -209,7 +209,7 @@ export const RED_ACTIVE: Skill[] = [
         type: 'AOE', aoeRadius: 1, power: 50, color: '#581c87', visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_RED_SHADOW', element: 'VOID',
         onImpact: [{ action: 'HAZARD', kind: 'GRAVITY', duration: 5 }],
-        onHit: [{ action: 'MANA_BURN', value: 18 }],
+        onHit: [{ action: 'MANA_BURN', value: 18 }, { action: 'STATUS', status: 'VULNERABLE', duration: 3 }],
     },
     {
         id: 'sr_a5', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE',

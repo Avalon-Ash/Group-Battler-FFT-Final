@@ -80,7 +80,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 1, cast: 0.6, cd: 7.0, cost: 35, gain: 0,
         type: 'SINGLE', power: 240, color: '#f59e0b', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ACTIVE_BLUE_HOLY_SMITE', element: 'PHYSICAL',
-        onHit: [{ action: 'EXECUTE', value: 1.5 }],
+        onHit: [{ action: 'EXECUTE', value: 1.5 }, { action: 'PIERCE', value: 1 }, { action: 'BREAK_SHIELD' }],
     },
     {
         id: 'wb_a5', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE',

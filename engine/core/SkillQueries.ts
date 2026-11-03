@@ -61,6 +61,15 @@ export function hasHitAction(skill: Skill, kind: HitActionKind): boolean {
     return false;
 }
 
+export function findHitAction<K extends HitActionKind>(skill: Skill, kind: K): Extract<HitAction, { action: K }> | undefined {
+    const hit = skill.onHit;
+    if (!hit) return undefined;
+    for (let i = 0; i < hit.length; i++) {
+        if (hit[i].action === kind) return hit[i] as Extract<HitAction, { action: K }>;
+    }
+    return undefined;
+}
+
 /** 這種命中動作的數值總和；value 為 0 或沒寫的用 fallback */
 export function sumHitActionValue(skill: Skill, kind: ValueHitAction['action'], fallback: number): number {
     const hit = skill.onHit;

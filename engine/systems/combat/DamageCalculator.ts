@@ -1,6 +1,6 @@
 
 import { Agent } from "../../game";
-import { hasHitAction, hasStatusIn, sumHitActionValue } from "../../core/SkillQueries";
+import { findHitAction, hasHitAction, hasStatusIn, sumHitActionValue } from "../../core/SkillQueries";
 import type { SkillStatus } from "../../../types";
 import { Skill, Role, DamageChannel } from "../../../types";
 import { COMBAT_PARAM, EFFECT_LIMITS, DAMAGE_RULES } from "../../../constants";
@@ -97,7 +97,7 @@ export class DamageCalculator {
 
         // --- LAST STAND: ABSOLUTE PENETRATION (SKIP MISS) ---
         // 0. Miss Logic (Blind)
-        if (!isSupport && source.effects.BLIND.remaining > 0 && !isLastStand) {
+        if (!isSupport && source.effects.BLIND.remaining > 0 && !isLastStand && !hasHitAction(skill, 'TRUE_STRIKE')) {
             // 50% Chance to miss if blinded 
             if (random() < 0.5) {
                 result.isMiss = true;
@@ -123,6 +123,18 @@ export class DamageCalculator {
                 const missingHP = target.maxHp - target.hp;
                 base += missingHP * (scalingFactor / DAMAGE_RULES.EXECUTE_SCALING_DIVISOR); // Normalized scaling
                 result.isExecute = true;
+            }
+        }
+
+        if (!isHeal && hasHitAction(skill, 'RAGE')) {
+            const value = sumHitActionValue(skill, 'RAGE', 1);
+            base *= 1 + value * (1 - source.hp / source.maxHp);
+        }
+
+        if (!isHeal) {
+            const rp = findHitAction(skill, 'RANDOM_POWER');
+            if (rp) {
+                base *= rp.min + random() * (rp.max - rp.min);
             }
         }
 
@@ -155,7 +167,9 @@ export class DamageCalculator {
 
         // 5. Shield Absorption (SKIP IF LAST STAND)
         if (!isSupport && !isLastStand) {
-            const absorbed = absorbWithShield(target, base);
+            const pierce = hasHitAction(skill, 'PIERCE') ? sumHitActionValue(skill, 'PIERCE', 1) : 0;
+            const shieldable = pierce > 0 ? base * Math.max(0, 1 - pierce) : base;
+            const absorbed = absorbWithShield(target, shieldable);
             base -= absorbed;
             result.shieldAbsorb = absorbed;
         }
