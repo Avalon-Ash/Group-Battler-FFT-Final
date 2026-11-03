@@ -1,207 +1,70 @@
 // ╔══════════════════════════════════════════════════════════╗
-// ║  PhoneAB — 實機效能 A/B（渲染優化輪的臨時診斷，用完刪除） ║
-// ║  職責：手機開 ?perf&mute&phoneab，自動逐項改一種繪製方式， ║
-// ║        最後列出每項的幀時間。第五輪比較合成一張。        ║
+// ║  PhoneAB — 實機效能驗收（渲染優化輪的臨時診斷，用完刪除） ║
+// ║  職責：手機開 ?perf&mute&phoneab，自動跑各解析度、10v10   ║
+// ║        與真實導播鏡頭，最後列出每項的幀時間。            ║
 // ║  只在網址有 phoneab 時由 index.tsx 動態載入，平常不下載。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { GameEngine } from '../engine/game';
 import { RenderStats } from '../engine/renderers/RenderStats';
-import { setPinnedTier, type QualityTier } from '../engine/renderers/RenderQuality';
-import { TerrainRenderer } from '../engine/renderers/grid/TerrainRenderer';
-import { GroundDrapeLayer } from '../engine/renderers/GroundDrape';
-import { hexMaskOptions } from '../engine/renderers/DrapeHexMask';
-import { HexGeometry } from '../engine/graphics/utils/HexGeometry';
-import { ISO_SCALE_Y } from '../constants';
+import { getQualityTier, setPinnedTier, type QualityTier } from '../engine/renderers/RenderQuality';
 import { SCENE_DB } from '../data/scenes';
-import { Role, Team, type HexLayout, type UICommand } from '../types';
+import { Role, Team, type UICommand } from '../types';
 
 const DEFAULT_SEGMENT_S = 14;
-const SETTLE_S = 1;
+const SETTLE_S = 2;
 const CAST_EVERY_S = 4;
 const IMMORTAL_HP = 999999;
 const HEAL_BELOW_HP = 500000;
-const BASE_TIER: QualityTier = 3;
 const SLOW_FRAME_SHARE = 0.05;
-const FIXTURE_RADIUS = 4;
+const FIXTURE_RADIUS = 5;
 const SETUP_WAIT_MS = 800;
 const ASSET_POLL_MS = 200;
-const REFRESH_EVERY_FRAMES = 3;
-const HALF_RES = 0.5;
 const ULT_PAIRS = [['mb_u1', 'rr_u2'], ['wb_u4', 'sb_u4'], ['tr_u4', 'mr_u4'], ['rb_u2', 'wr_u5']];
+const ROLES = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
 
 interface Segment {
-    id: string;
     label: string;
-    noDrape?: boolean;
-    noClip?: boolean;
-    rectClip?: boolean;
-    path2dClip?: boolean;
-    noBlend?: boolean;
-    refreshEvery?: number;
-    offscreenScale?: number;
-    noBlit?: boolean;
-    noPlanes?: boolean;
-    hexMask?: boolean;
-    sharedPlane?: boolean;
-    sheet?: boolean;
+    perSide: number;
+    tier: QualityTier | null;
+    director: boolean;
 }
 
 const SEGMENTS: Segment[] = [
-    { id: 'warm', label: '暖機' },
-    { id: 'sheet1', label: '合成＋大圖 1', hexMask: true, sharedPlane: true, sheet: true },
-    { id: 'base1', label: '現況 1' },
-    { id: 'plane1', label: '合成＋圖案 1', hexMask: true, sharedPlane: true },
-    { id: 'sheet2', label: '合成＋大圖 2', hexMask: true, sharedPlane: true, sheet: true },
-    { id: 'base2', label: '現況 2' },
-    { id: 'plane2', label: '合成＋圖案 2', hexMask: true, sharedPlane: true },
-    { id: 'sheet3', label: '合成＋大圖 3', hexMask: true, sharedPlane: true, sheet: true },
-    { id: 'layers', label: '逐特效遮罩', hexMask: true },
-    { id: 'rect', label: '矩形裁切（對照）', rectClip: true },
+    { label: '5v5 階層3', perSide: 5, tier: 3, director: false },
+    { label: '5v5 階層2', perSide: 5, tier: 2, director: false },
+    { label: '5v5 階層1', perSide: 5, tier: 1, director: false },
+    { label: '5v5 階層0', perSide: 5, tier: 0, director: false },
+    { label: '10v10 階層1', perSide: 10, tier: 1, director: false },
+    { label: '10v10 階層3', perSide: 10, tier: 3, director: false },
+    { label: '5v5 自動＋導播', perSide: 5, tier: null, director: true },
+    { label: '10v10 自動＋導播', perSide: 10, tier: null, director: true },
 ];
 
-interface Row { label: string; fps: number; low: number; ms: number; js: number; clips: number; blits: number; offMp: number; entries: number; }
+interface Row { label: string; fps: number; low: number; ms: number; js: number; tier: number; }
 
-let active: Segment = SEGMENTS[0];
-let frame = 0;
-let mainCtx: CanvasRenderingContext2D | null = null;
-let hexArgs: { x: number; y: number; r: number; layout: HexLayout } | null = null;
-const hexPaths = new Map<string, Path2D>();
-const counters = { clips: 0, blits: 0, offPixels: 0, frames: 0 };
-
-interface DrapeEntryView { drawnW: number; drawnH: number; drawnStamp: number; canvas: HTMLCanvasElement | null; }
-interface DrapeInternals {
-    ensureRendered(ctx: CanvasRenderingContext2D, e: DrapeEntryView, layout: HexLayout, battleTime: number): boolean;
-    drawPlaneOnTile(...args: unknown[]): void;
-    stamp: number;
-    size: number;
-}
-
-function installGates(): void {
-    const beginFrame = TerrainRenderer.beginFrame;
-    TerrainRenderer.beginFrame = function (transitioning: boolean) {
-        frame++;
-        counters.frames++;
-        beginFrame.call(TerrainRenderer, transitioning);
-    };
-
-    const proto = GroundDrapeLayer.prototype as unknown as DrapeInternals;
-    const drawOnTile = GroundDrapeLayer.prototype.drawOnTile;
-    GroundDrapeLayer.prototype.drawOnTile = function (ctx, ...rest) {
-        if (active.noDrape) return;
-        mainCtx = ctx;
-        drawOnTile.call(this, ctx, ...rest);
-        mainCtx = null;
-    };
-
-    const ensureRendered = proto.ensureRendered;
-    proto.ensureRendered = function (this: DrapeInternals, ctx, e, layout, battleTime) {
-        if (e.drawnStamp !== this.stamp && active.refreshEvery && frame % active.refreshEvery !== 0 && e.drawnW > 0 && e.canvas && e.canvas.width > 0) {
-            e.drawnStamp = this.stamp;
-            return true;
-        }
-        const fresh = e.drawnStamp !== this.stamp;
-        const keepMain = mainCtx;
-        mainCtx = null; // 畫離屏這段不算主畫布
-        const scale = active.offscreenScale ?? 1;
-        const target = scale === 1 ? ctx : ({
-            getTransform: () => {
-                const t = ctx.getTransform();
-                return { a: t.a * scale, b: t.b * scale };
-            },
-        } as unknown as CanvasRenderingContext2D);
-        const result = ensureRendered.call(this, target, e, layout, battleTime);
-        mainCtx = keepMain;
-        if (fresh) counters.offPixels += e.drawnW * e.drawnH;
-        return result;
-    };
-
-    const drawPlane = proto.drawPlaneOnTile;
-    proto.drawPlaneOnTile = function (this: DrapeInternals, ...args: unknown[]) {
-        if (!active.noPlanes) drawPlane.apply(this, args);
-    };
-
-    const traceHex = HexGeometry.traceHex;
-    HexGeometry.traceHex = function (ctx, x, y, radius, applyIso, layout) {
-        if (mainCtx && ctx === mainCtx && layout && (active.rectClip || active.path2dClip || active.noClip)) {
-            hexArgs = { x, y, r: radius, layout };
-            return;
-        }
-        traceHex.call(HexGeometry, ctx, x, y, radius, applyIso, layout);
-    };
-
-    const ctxProto = CanvasRenderingContext2D.prototype;
-    const clip = ctxProto.clip as (this: CanvasRenderingContext2D, ...args: unknown[]) => void;
-    ctxProto.clip = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
-        if (this === mainCtx) {
-            counters.clips++;
-            const hex = hexArgs;
-            hexArgs = null;
-            if (active.noClip) return;
-            if (hex && active.rectClip) {
-                this.beginPath();
-                this.rect(hex.x - hex.r, hex.y - hex.r * ISO_SCALE_Y, hex.r * 2, hex.r * 2 * ISO_SCALE_Y);
-                clip.call(this);
-                return;
-            }
-            if (hex && active.path2dClip) {
-                const key = `${hex.r}:${hex.layout}`;
-                let path = hexPaths.get(key);
-                if (!path) {
-                    path = new Path2D();
-                    HexGeometry.getVertices(hex.r, true, hex.layout).forEach((v, i) => (i === 0 ? path!.moveTo(v.x, v.y) : path!.lineTo(v.x, v.y)));
-                    path.closePath();
-                    hexPaths.set(key, path);
-                }
-                this.translate(hex.x, hex.y);
-                clip.call(this, path);
-                this.translate(-hex.x, -hex.y);
-                return;
-            }
-        }
-        clip.apply(this, args);
-    } as typeof ctxProto.clip;
-
-    const gco = Object.getOwnPropertyDescriptor(ctxProto, 'globalCompositeOperation');
-    if (gco?.set && gco.get) {
-        const set = gco.set;
-        Object.defineProperty(ctxProto, 'globalCompositeOperation', {
-            get: gco.get,
-            set(this: CanvasRenderingContext2D, value: GlobalCompositeOperation) {
-                if (!(active.noBlend && this === mainCtx)) set.call(this, value);
-            },
-        });
-    }
-
-    const drawImage = ctxProto.drawImage as (this: CanvasRenderingContext2D, ...args: unknown[]) => void;
-    ctxProto.drawImage = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
-        if (this === mainCtx) {
-            counters.blits++;
-            if (active.noBlit) return;
-        }
-        drawImage.apply(this, args);
-    } as typeof ctxProto.drawImage;
-}
-
-function setUpBattle(e: GameEngine): void {
+function setUpBattle(e: GameEngine, segment: Segment): void {
     const cmd = (c: UICommand) => e.bus.emit('UI_COMMAND', c);
     cmd({ type: 'STOP_GAME' });
-    cmd({ type: 'SET_DIRECTOR_ENABLED', enabled: false });
     cmd({ type: 'SET_ZONE_CONFIG', config: { enabled: false } });
     const desert = SCENE_DB.find((s) => s.id === 'DESERT');
     if (desert) e.currentScene = desert;
     e.map.rebuildMap(e);
     cmd({ type: 'CLEAR_BOARD', keepScene: true });
+    cmd({ type: 'SET_DIRECTOR_ENABLED', enabled: segment.director });
     const cells: { q: number; r: number }[] = [];
     for (let q = -FIXTURE_RADIUS; q <= FIXTURE_RADIUS; q++) {
         for (let r = -FIXTURE_RADIUS; r <= FIXTURE_RADIUS; r++) {
             if (e.isValid(q, r) && !e.hasObstacle(q, r) && Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) <= FIXTURE_RADIUS) cells.push({ q, r });
         }
     }
-    [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT].forEach((role, i) => {
-        cmd({ type: 'PLACE_AGENT', team: Team.BLUE, ...cells.filter((c) => c.q < 0)[i * 2], hp: IMMORTAL_HP, role });
-        cmd({ type: 'PLACE_AGENT', team: Team.RED, ...cells.filter((c) => c.q > 0)[i * 2], hp: IMMORTAL_HP, role });
-    });
+    const blue = cells.filter((c) => c.q < 0);
+    const red = cells.filter((c) => c.q > 0);
+    for (let i = 0; i < segment.perSide; i++) {
+        const role = ROLES[i % ROLES.length];
+        cmd({ type: 'PLACE_AGENT', team: Team.BLUE, ...blue[i], hp: IMMORTAL_HP, role });
+        cmd({ type: 'PLACE_AGENT', team: Team.RED, ...red[i], hp: IMMORTAL_HP, role });
+    }
     e.play();
 }
 
@@ -221,30 +84,19 @@ function castPair(e: GameEngine, ids: string[]): void {
     }
 }
 
-function runSegment(e: GameEngine, seconds: number): Promise<Row> {
+function runSegment(e: GameEngine, segment: Segment, seconds: number): Promise<Row> {
     return new Promise((resolve) => {
         const frames: number[] = [];
         const js: number[] = [];
-        const entries: number[] = [];
         const start = performance.now();
-        const drape = (e.renderer as unknown as { pipeline?: { groundDrape?: DrapeInternals } }).pipeline?.groundDrape;
         let last: number | null = null;
         let nextCast = 0;
         let pair = 0;
-        let counting = false;
         const loop = (now: number) => {
             const elapsed = (now - start) / 1000;
             if (last !== null && elapsed > SETTLE_S) {
-                if (!counting) {
-                    counting = true;
-                    counters.clips = 0;
-                    counters.blits = 0;
-                    counters.offPixels = 0;
-                    counters.frames = 0;
-                }
                 frames.push(now - last);
                 js.push(RenderStats.getJsTotalMs());
-                entries.push(drape?.size ?? 0);
             }
             last = now;
             for (const a of e.agents) if (a.hp > 0 && a.hp < HEAL_BELOW_HP) a.hp = IMMORTAL_HP;
@@ -257,11 +109,7 @@ function runSegment(e: GameEngine, seconds: number): Promise<Row> {
                 const sorted = [...frames].sort((x, y) => x - y);
                 const slow = sorted.slice(-Math.max(1, Math.ceil(sorted.length * SLOW_FRAME_SHARE)));
                 const ms = mean(frames);
-                const n = Math.max(1, counters.frames);
-                resolve({
-                    label: active.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js),
-                    clips: counters.clips / n, blits: counters.blits / n, offMp: counters.offPixels / n / 1e6, entries: mean(entries),
-                });
+                resolve({ label: segment.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js), tier: getQualityTier() });
                 return;
             }
             requestAnimationFrame(loop);
@@ -291,24 +139,18 @@ export async function runPhoneAB(): Promise<void> {
         // 沒有 wake lock 只是螢幕可能變暗；量測照跑
     }
 
-    installGates();
     const status = panel();
     document.querySelector<HTMLElement>('[data-testid="showcase-enter-btn"]')?.click();
     await wait(SETUP_WAIT_MS);
-    setUpBattle(e);
-    setPinnedTier(BASE_TIER);
     const rows: Row[] = [];
     for (let i = 0; i < SEGMENTS.length; i++) {
-        active = SEGMENTS[i];
-        GroundDrapeLayer.hexMask = !!active.hexMask;
-        GroundDrapeLayer.sharedPlane = !!active.sharedPlane;
-        hexMaskOptions.useSheet = !!active.sheet;
-        status.textContent = `第五輪量測中 ${i + 1}/${SEGMENTS.length}：${active.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
-        rows.push(await runSegment(e, seconds));
+        const segment = SEGMENTS[i];
+        status.textContent = `驗收量測中 ${i + 1}/${SEGMENTS.length}：${segment.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
+        setPinnedTier(segment.tier);
+        setUpBattle(e, segment);
+        rows.push(await runSegment(e, segment, seconds));
     }
     setPinnedTier(null);
-    GroundDrapeLayer.hexMask = false;
-    GroundDrapeLayer.sharedPlane = false;
-    const lines = rows.map((r) => `${r.label.padEnd(10, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(5)} ${r.clips.toFixed(0).padStart(4)} ${r.blits.toFixed(0).padStart(4)} ${r.offMp.toFixed(1).padStart(4)}`);
-    status.textContent = ['第五輪跑完了，請截圖這張表', `${'項目'.padEnd(10, '　')}   FPS  低5%  每幀 裁切 貼回 離屏MP`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight} 特效數 ${rows[0].entries.toFixed(1)}`].join('\n');
+    const lines = rows.map((r) => `${r.label.padEnd(12, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(5)} ${r.js.toFixed(1).padStart(4)} ${String(r.tier).padStart(2)}`);
+    status.textContent = ['驗收跑完了，請截圖這張表', `${'項目'.padEnd(12, '　')}   FPS  低5%  每幀  JS 階層`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight}`].join('\n');
 }

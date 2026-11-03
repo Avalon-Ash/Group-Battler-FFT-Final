@@ -2,7 +2,7 @@
 // ║  GroundDrape — 貼地鋪設層（FFT 風格：法陣鋪在每格頂面）    ║
 // ║  職責：本幀的大型平貼特效（法陣、震波、龜裂…）不進 RenderList ║
 // ║        排序，登記在這裡；RenderDispatcher 畫每個 TERRAIN op  ║
-// ║        時，裁切到該格頂面六邊形、貼合該格高度與漂浮位移後畫。║
+// ║        時，貼到該格頂面六邊形、貼合該格高度與漂浮位移。     ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§2、§9：    ║
 // ║  鋪設特效不是排序 op，所以沒有「單位站在法陣上」的排序環；    ║
 // ║  站在該格的單位在該格 TERRAIN 之後才畫，棋座壓在法陣上       ║
@@ -16,15 +16,18 @@
 // ║  懸空平面（planeZ，詠唱環）：不貼頂面，而是以固定高度逐格裁切；║
 // ║  頂面高過平面的格子不畫（被擋住），施法者那格只畫後半，前半  ║
 // ║  由 AURA op 在施法者之後補畫（RenderSpec §9）。              ║
+// ║  不用路徑裁切（iPhone 上是最貴的一步）：貼頂面的特效依混合    ║
+// ║  模式合成一張圖，懸空平面各自一張，都與預烘六角遮罩合成成     ║
+// ║  三色層（DrapeHexMask），逐格只貼矩形。                       ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Particle } from "../presentation/vfx/state";
 import type { HexLayout } from "../../types";
 import { ParticleRenderer } from "../presentation/vfx/renderers/ParticleRenderer";
-import { HexGeometry } from "../graphics/utils/HexGeometry";
 import { GROUND_DRAPE, ISO_SCALE_Y, RENDER_QUALITY } from "../../constants";
 import type { RenderOp } from "./RenderList";
 import { applyHexMask, tileMaskColor } from "./DrapeHexMask";
+import { isMemoryConstrainedDevice } from "./RenderQuality";
 import type { Agent } from "../core/Agent";
 
 /** 以單位為參數、畫在原點（特效中心＝地平面）的貼地繪製函式。必須是靜態函式參考（不每幀建立閉包）。 */
@@ -49,8 +52,7 @@ interface DrapeEntry {
     extW: number;
     extH: number;
     progress: number;
-    offscreen: boolean;
-    // ── 離屏畫布（只有 OFFSCREEN 型別用） ──
+    // ── 離屏畫布（只有懸空平面用；貼頂面的進合成圖） ──
     canvas: HTMLCanvasElement | null;
     cctx: CanvasRenderingContext2D | null;
     /** 本幀已畫好的區域（裝置像素）與縮放；drawnStamp !== 當前幀代表尚未畫 */
@@ -89,17 +91,18 @@ interface DrapePlane extends MaskHolder {
 
 function createEntry(): DrapeEntry {
     return {
-        p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, offscreen: false,
+        p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0,
         canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1, peakW: 0, peakH: 0,
         layers: [null, null, null], layerCtxs: [null, null, null], layerStamps: [-1, -1, -1],
     };
 }
 
+/** 離屏畫布單邊上限：觸控裝置較低，避免合成圖加三色層吃太多記憶體 */
+function maxCanvasPx(): number {
+    return isMemoryConstrainedDevice() ? GROUND_DRAPE.MAX_CANVAS_PX_TOUCH : GROUND_DRAPE.MAX_CANVAS_PX;
+}
+
 export class GroundDrapeLayer {
-    /** 用預烘六角遮罩取代逐格路徑裁切（實機 A/B 期間可切換） */
-    public static hexMask = false;
-    /** 貼頂面特效依混合模式合成一張圖，每幀成本不隨特效數量增加（實機 A/B 期間可切換；需要 hexMask） */
-    public static sharedPlane = false;
     private readonly entries: DrapeEntry[] = [];
     private readonly planes = new Map<GlobalCompositeOperation, DrapePlane>();
     private planesStamp = -1;
@@ -179,10 +182,9 @@ export class GroundDrapeLayer {
         e.planeZ = NaN;
         this.fill(e, x, footY, halfW);
         e.progress = progress;
-        e.offscreen = GROUND_DRAPE.MODE[p.type] === 'OFFSCREEN';
     }
 
-    /** 非粒子的貼地繪製（例：施法 AOE 預警）。painter 在原點畫出整個圖形；一律離屏畫一次、逐格貼。 */
+    /** 非粒子的貼地繪製（例：施法 AOE 預警）。painter 在原點畫出整個圖形，和粒子一起進合成圖。 */
     public addPainted(painter: DrapePainter, agent: Agent, x: number, footY: number, halfW: number): void {
         this.addEntryPainted(painter, agent, x, footY, halfW, NaN, 0, 0);
     }
@@ -209,7 +211,6 @@ export class GroundDrapeLayer {
         this.fill(e, x, footY, halfW);
         e.extW = e.extH = halfW * GROUND_DRAPE.PAINTER_EXTENT + GROUND_DRAPE.CANVAS_PAD_PX;
         e.progress = 0;
-        e.offscreen = true;
     }
 
     private fill(e: DrapeEntry, x: number, footY: number, halfW: number): void {
@@ -231,11 +232,8 @@ export class GroundDrapeLayer {
         const hexR = op.tsize;
         const topY = snapY - op.th;
         const bob = op.ty - op.y;
-        const masked = GroundDrapeLayer.hexMask;
-        const shared = masked && GroundDrapeLayer.sharedPlane;
-        if (shared) this.renderPlanes(ctx, layout, battleTime);
+        this.renderPlanes(ctx, layout, battleTime);
         const tile = ++this.tileToken;
-        let clipped = false;
         let planes = 0;
         for (let i = 0; i < this.count; i++) {
             const e = this.entries[i];
@@ -246,34 +244,12 @@ export class GroundDrapeLayer {
             const reach = e.reach + hexR;
             if (dx * dx + dy * dy > reach * reach) continue;
             if (!Number.isNaN(e.planeZ)) { planes++; continue; } // 懸空平面另一趟畫（不能套到頂面裁切）
-            if (shared) {
-                const plane = this.planes.get(this.blendOf(e));
-                if (plane && plane.lastTile !== tile) {
-                    plane.lastTile = tile;
-                    this.blitPlane(ctx, plane, op, snapX, topY, hexR, layout);
-                }
-                continue;
+            const plane = this.planes.get(this.blendOf(e));
+            if (plane && plane.lastTile !== tile) {
+                plane.lastTile = tile;
+                this.blitPlane(ctx, plane, op, snapX, topY, hexR, layout);
             }
-
-            // 裁切路徑每格只設一次：同一格被多個特效蓋到時共用（路徑與裁切是這裡最貴的部分）
-            if (!clipped && !masked) {
-                clipped = true;
-                ctx.save();
-                HexGeometry.traceHex(ctx, snapX, topY, hexR + GROUND_DRAPE.CLIP_EXPAND_PX, true, layout);
-                ctx.clip();
-            }
-            const ox = Math.round(e.x);
-            const oy = Math.round(e.footY + bob - op.th);
-            ctx.save();
-            if (e.offscreen || masked) {
-                this.blit(ctx, e, ox, oy, snapX, topY, hexR, layout, battleTime, masked ? op : null);
-            } else if (p) {
-                ctx.translate(ox, oy);
-                ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, e.progress, layout, battleTime);
-            }
-            ctx.restore();
         }
-        if (clipped) ctx.restore();
         if (planes === 0) return;
         for (let i = 0; i < this.count; i++) {
             const e = this.entries[i];
@@ -287,8 +263,8 @@ export class GroundDrapeLayer {
     }
 
     /**
-     * 懸空平面在一格上的片段：平面高度上該格的六邊形裁切。該格頂面高過平面＝被擋住不畫；
-     * 施法者那格只畫後半（平面中心線以上），前半由 AURA op 補畫。不與頂面鋪設共用裁切。
+     * 懸空平面在一格上的片段：平面高度上該格的六邊形（三色層的矩形）。該格頂面高過平面＝被擋住不畫；
+     * 施法者那格只畫後半（平面中心線以上，矩形裁切），前半由 AURA op 補畫。
      */
     private drawPlaneOnTile(ctx: CanvasRenderingContext2D, e: DrapeEntry, op: RenderOp, snapX: number, hexR: number, bob: number, layout: HexLayout, battleTime: number): void {
         const tileTop = op.th - bob;
@@ -296,18 +272,13 @@ export class GroundDrapeLayer {
         const clipY = Math.round(op.y - e.planeZ);
         const ox = Math.round(e.x);
         const oy = Math.round(e.footY - e.planeZ);
-        const masked = GroundDrapeLayer.hexMask;
         ctx.save();
-        if (!masked) {
-            HexGeometry.traceHex(ctx, snapX, clipY, hexR + GROUND_DRAPE.CLIP_EXPAND_PX, true, layout);
-            ctx.clip();
-        }
         if (op.tq === e.ownQ && op.tr === e.ownR) {
             ctx.beginPath();
             ctx.rect(snapX - hexR * 2, clipY - hexR * 2, hexR * 4, oy - (clipY - hexR * 2));
             ctx.clip();
         }
-        this.blit(ctx, e, ox, oy, snapX, clipY, hexR, layout, battleTime, masked ? op : null);
+        this.blit(ctx, e, op, ox, oy, snapX, clipY, hexR, layout, battleTime);
         ctx.restore();
     }
 
@@ -347,7 +318,7 @@ export class GroundDrapeLayer {
 
         const tf = ctx.getTransform();
         const deviceScale = Math.hypot(tf.a, tf.b) || 1;
-        const maxPx = GROUND_DRAPE.MAX_CANVAS_PX;
+        const maxPx = maxCanvasPx();
         const step = GROUND_DRAPE.CANVAS_GROW_STEP_PX;
         for (const plane of this.planes.values()) {
             if (plane.members.length === 0) continue;
@@ -407,12 +378,10 @@ export class GroundDrapeLayer {
         ctx.globalCompositeOperation = prev;
     }
 
-    /** 離屏畫布貼到目前裁切區：只複製與該格外框相交的部分 */
-    private blit(ctx: CanvasRenderingContext2D, e: DrapeEntry, ox: number, oy: number, hexX: number, hexTopY: number, hexR: number, layout: HexLayout, battleTime: number, maskOp: RenderOp | null): void {
+    /** 懸空平面的三色層貼到這一格：只複製與該格外框相交的部分 */
+    private blit(ctx: CanvasRenderingContext2D, e: DrapeEntry, op: RenderOp, ox: number, oy: number, hexX: number, hexTopY: number, hexR: number, layout: HexLayout, battleTime: number): void {
         if (!this.ensureRendered(ctx, e, layout, battleTime)) return;
-        const canvas = maskOp
-            ? this.maskedLayer(e, maskOp, layout, e.drawnW / 2 + (maskOp.tx - e.x) * e.drawnScale, e.drawnH / 2 + (maskOp.y - e.footY) * e.drawnScale)
-            : e.canvas;
+        const canvas = this.maskedLayer(e, op, layout, e.drawnW / 2 + (op.tx - e.x) * e.drawnScale, e.drawnH / 2 + (op.y - e.footY) * e.drawnScale);
         if (!canvas) return;
         const s = e.drawnScale;
         const w = e.drawnW, h = e.drawnH;
@@ -426,7 +395,7 @@ export class GroundDrapeLayer {
         const ix0 = Math.max(dx0, bx0), ix1 = Math.min(dx0 + w / s, bx1);
         const iy0 = Math.max(dy0, by0), iy1 = Math.min(dy0 + h / s, by1);
         if (ix1 <= ix0 || iy1 <= iy0) return;
-        ctx.globalCompositeOperation = e.p?.blendMode || (Number.isNaN(e.planeZ) ? GROUND_DRAPE.PAINTER_BLEND : GROUND_DRAPE.PLANE_BLEND);
+        ctx.globalCompositeOperation = GROUND_DRAPE.PLANE_BLEND;
         ctx.drawImage(canvas, (ix0 - dx0) * s, (iy0 - dy0) * s, (ix1 - ix0) * s, (iy1 - iy0) * s, ix0, iy0, ix1 - ix0, iy1 - iy0);
     }
 
@@ -467,7 +436,7 @@ export class GroundDrapeLayer {
 
         const tf = ctx.getTransform();
         const deviceScale = Math.hypot(tf.a, tf.b) || 1;
-        const maxPx = GROUND_DRAPE.MAX_CANVAS_PX;
+        const maxPx = maxCanvasPx();
         const s = Math.min(deviceScale, maxPx / (2 * e.extW), maxPx / (2 * e.extH));
         // 偶數寬高：中心落在整數裝置像素，貼回主畫布時與直接繪製對得上
         const w = Math.ceil(e.extW * s) * 2;
