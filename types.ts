@@ -105,7 +105,19 @@ export interface StatusAction {
 export type CastAction = { action: 'DASH' };
 export type ImpactAction = { action: 'HAZARD'; kind: SpatialHazard['type']; duration: number };
 type ValueAction<K extends string> = { action: K; value?: number };
-export type HitAction = StatusAction | ValueAction<'VAMP'> | ValueAction<'MANA_BURN'> | ValueAction<'MANA_RESTORE'> | ValueAction<'EXECUTE'> | ValueAction<'SELF_DAMAGE'>;
+export type HitAction =
+    | StatusAction
+    | ValueAction<'VAMP'> | ValueAction<'MANA_BURN'> | ValueAction<'MANA_RESTORE'> | ValueAction<'EXECUTE'> | ValueAction<'SELF_DAMAGE'>
+    /** value：無視護盾的比例（0～1） */
+    | ValueAction<'PIERCE'>
+    /** value：血全失時多出的傷害倍率 */
+    | ValueAction<'RAGE'>
+    | { action: 'TRUE_STRIKE' }
+    | { action: 'RANDOM_POWER'; min: number; max: number }
+    | { action: 'BREAK_SHIELD' }
+    | { action: 'DISPEL'; polarity: 'BUFF' | 'DEBUFF' }
+    | { action: 'CHANCE'; chance: number; then: readonly HitAction[] }
+    | { action: 'RANDOM_OF'; options: readonly HitAction[] };
 export type EndAction = StatusAction;
 
 /** 多段命中的節奏：EVEN 等間隔；ACCEL 越打越密（總長不變）；CLUSTER 三連發一組（組間隔大、組內間隔小）。 */

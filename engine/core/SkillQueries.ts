@@ -10,6 +10,7 @@
 import type { HitAction, Skill, SkillIntent, SkillStatus, SkillTeams } from '../../types';
 
 type HitActionKind = HitAction['action'];
+type ValueHitAction = Extract<HitAction, { value?: number }>;
 
 /** 打中目標時會不會套這個狀態（不含施法者自己身上的） */
 export function appliesStatusOnHit(skill: Pick<Skill, 'onHit'>, statuses: ReadonlySet<SkillStatus>): boolean {
@@ -61,13 +62,13 @@ export function hasHitAction(skill: Skill, kind: HitActionKind): boolean {
 }
 
 /** 這種命中動作的數值總和；value 為 0 或沒寫的用 fallback */
-export function sumHitActionValue(skill: Skill, kind: Exclude<HitActionKind, 'STATUS'>, fallback: number): number {
+export function sumHitActionValue(skill: Skill, kind: ValueHitAction['action'], fallback: number): number {
     const hit = skill.onHit;
     if (!hit) return 0;
     let total = 0;
     for (let i = 0; i < hit.length; i++) {
         const a = hit[i];
-        if (a.action === kind) total += a.value || fallback;
+        if (a.action === kind) total += (a as ValueHitAction).value || fallback;
     }
     return total;
 }

@@ -37,7 +37,7 @@ export function isFlatSkillField(field: string): field is keyof FlatSkillFields 
     return FLAT_FIELD_SET.has(field);
 }
 
-const FLAT_HIT_KINDS: ReadonlySet<string> = new Set(['STATUS', 'VAMP', 'MANA_BURN', 'MANA_RESTORE', 'EXECUTE', 'SELF_DAMAGE']);
+const FLAT_EFFECT_KINDS: ReadonlySet<string> = new Set(['VAMP', 'MANA_BURN', 'MANA_RESTORE', 'EXECUTE', 'SELF_DAMAGE']);
 /** 由動作推得的意圖；其他意圖（ESCAPE 等）是人寫的，轉換時保留 */
 const DERIVED_INTENTS: ReadonlySet<SkillIntent> = new Set(['GAP_CLOSE', 'HOOK', 'PEEL']);
 
@@ -50,7 +50,7 @@ export function readFlatFields(skill: Skill): FlatSkillFields {
     const effects: { kind: SkillEffectKind; value?: number }[] = [];
     for (const a of skill.onHit ?? []) {
         if (a.action === 'STATUS') slots.push({ status: a.status, duration: a.duration, force: a.force, self: false });
-        else if (FLAT_HIT_KINDS.has(a.action)) effects.push({ kind: a.action as SkillEffectKind, value: a.value });
+        else if (FLAT_EFFECT_KINDS.has(a.action)) effects.push({ kind: a.action as SkillEffectKind, value: (a as { value?: number }).value });
     }
     for (const a of skill.onEnd ?? []) slots.push({ status: a.status, duration: a.duration, force: a.force, self: true });
     if (skill.onCast?.some((a) => a.action === 'DASH')) effects.push({ kind: 'DASH' });
@@ -88,7 +88,7 @@ export function actionsFromFlat(flat: FlatSkillFields, existing?: SkillActionLis
     if (flat.ccType2) (flat.ccSelf2 ? onEnd : onHit).push(statusAction(flat.ccType2, flat.ccDur2, flat.ccForce2));
     if (flat.hazardKind) onImpact.push({ action: 'HAZARD', kind: flat.hazardKind, duration: flat.hazardDur ?? 0 });
 
-    for (const a of existing?.onHit ?? []) if (!FLAT_HIT_KINDS.has(a.action)) onHit.push(a);
+    for (const a of existing?.onHit ?? []) if (a.action !== 'STATUS' && !FLAT_EFFECT_KINDS.has(a.action)) onHit.push(a);
     for (const a of existing?.onCast ?? []) if (a.action !== 'DASH') onCast.push(a);
     for (const a of existing?.onImpact ?? []) if (a.action !== 'HAZARD') onImpact.push(a);
 
