@@ -66,7 +66,7 @@ let hexArgs: { x: number; y: number; r: number; layout: HexLayout } | null = nul
 const hexPaths = new Map<string, Path2D>();
 const counters = { clips: 0, blits: 0, offPixels: 0, frames: 0 };
 
-interface DrapeEntryView { drawnW: number; drawnH: number; drawnStamp: number; }
+interface DrapeEntryView { drawnW: number; drawnH: number; drawnStamp: number; canvas: HTMLCanvasElement | null; }
 interface DrapeInternals {
     ensureRendered(ctx: CanvasRenderingContext2D, e: DrapeEntryView, layout: HexLayout, battleTime: number): boolean;
     drawPlaneOnTile(...args: unknown[]): void;
@@ -93,7 +93,7 @@ function installGates(): void {
 
     const ensureRendered = proto.ensureRendered;
     proto.ensureRendered = function (this: DrapeInternals, ctx, e, layout, battleTime) {
-        if (e.drawnStamp !== this.stamp && active.refreshEvery && frame % active.refreshEvery !== 0 && e.drawnW > 0) {
+        if (e.drawnStamp !== this.stamp && active.refreshEvery && frame % active.refreshEvery !== 0 && e.drawnW > 0 && e.canvas && e.canvas.width > 0) {
             e.drawnStamp = this.stamp;
             return true;
         }
