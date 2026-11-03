@@ -99,7 +99,7 @@ export const BLUE_BASIC: Skill[] = [
         range: 5, cast: 0.6, cd: 1.2, cost: 0, gain: 30, // Nerf Range 6->5
         type: 'SINGLE', power: 75, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 1100,
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW', element: 'ICE',
-        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 30 }],
+        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.3 }],
     },
     {
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC',
@@ -148,14 +148,15 @@ export const BLUE_BASIC: Skill[] = [
         range: 5, cast: 0.45, cd: 0.85, cost: 0, gain: 25, // Range 5->4
         type: 'SINGLE', power: 78, color: '#bae6fd', visual: 'BOLT', projectileSpeed: 1200,
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_FROST_BOLT', element: 'ICE',
-        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 30 }],
+        onHit: [{ action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.3 }],
     },
     {
         id: 'mb_b4', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC',
         name: '奧術彈射', desc: '小範圍彈跳',
         range: 5, cast: 0.5, cd: 1.2, cost: 0, gain: 30,
-        type: 'AOE', aoeRadius: 1, power: 40, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900,
-        visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
+        type: 'SINGLE', power: 40, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900,
+        visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE',
+        onHit: [{ action: 'CHAIN', jumps: 2, radius: 2, falloff: 0.7 }],
     },
     {
         id: 'mb_b5', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC',

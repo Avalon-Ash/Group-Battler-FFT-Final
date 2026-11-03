@@ -4,7 +4,7 @@ import { HEX_SIZE, HAZARD_RULES } from "../../../constants";
 
 export const HazardManager = {
     
-    spawnHazard(source: Agent, cells: {q: number, r: number}[], skill: Skill, engine: GameEngine, center: {q: number, r: number}, type: SpatialHazard['type'], duration: number) {
+    spawnHazard(source: Agent, cells: {q: number, r: number}[], skill: Skill, engine: GameEngine, center: {q: number, r: number}, type: SpatialHazard['type'], duration: number, onEnter?: SpatialHazard['onEnter']) {
         const pullRad = skill.aoeRadius ? skill.aoeRadius * HEX_SIZE * HAZARD_RULES.PULL_RADIUS_FACTOR : undefined;
 
         // [FIX] Spatial Entity Pattern: One hazard covers multiple cells, logic decoupled from grid
@@ -22,7 +22,10 @@ export const HazardManager = {
                 lastTickTime: engine.battleTime,
                 centerQ: center.q,
                 centerR: center.r,
-                pullRadius: pullRad
+                pullRadius: pullRad,
+                onEnter,
+                skill: onEnter ? skill : undefined,
+                triggeredIds: onEnter ? new Set<string>() : undefined,
             };
 
         engine.hazardSystem.registerHazard(hazard, engine);

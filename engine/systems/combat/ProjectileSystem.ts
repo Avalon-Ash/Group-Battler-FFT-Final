@@ -7,7 +7,8 @@ import {
 import { TrajectoryMath, Point3D } from "../../math/TrajectoryMath";
 import { VisualMath } from "../../math/VisualMath";
 import { HexUtils } from "../../utils";
-import { SkillExecutor, isSkillTarget } from "./SkillExecutor";
+import { SkillExecutor } from "./SkillExecutor";
+import { isSkillTarget } from "../../core/SkillQueries";
 import { runEndActions, runImpactActions } from "./SkillActions";
 import { HazardManager } from "./HazardManager";
 import { ISO_SCALE_Y, COMBAT_PARAM, PROJECTILE_RULES } from "../../../constants";

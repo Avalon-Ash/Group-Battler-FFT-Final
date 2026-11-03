@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GameEngine, type Agent } from '../engine/game';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
 import { CombatSystem } from '../engine/systems/combat/CombatSystem';
+import { runImpactActions } from '../engine/systems/combat/SkillActions';
 import { HexUtils } from '../engine/utils';
 import { resetRandomSource, setRandomSource } from '../engine/math/rng';
 import { isActionBlocked } from '../engine/core/Effects';
@@ -338,6 +339,48 @@ describe('出手動作：不管瞬發、投射物、天降都會生效', () => {
     });
 });
 
+describe('陷阱：敵人走進來才觸發', () => {
+    const trapSkill = makeSkill({
+        id: 'm_trap', type: 'AOE', aoeRadius: 1,
+        onImpact: [{ action: 'HAZARD', kind: 'ICE', duration: 8, onEnter: [{ action: 'STATUS', status: 'ROOT', duration: 2 }] }],
+    });
+    const place = (w: ReturnType<typeof arena>, q: number, r: number) =>
+        runImpactActions(w.source, trapSkill, [{ q, r }], { q, r }, w.engine);
+    const tick = (w: ReturnType<typeof arena>) => w.engine.hazardSystem.update(1 / 30, w.engine);
+
+    it('對照組：沒人踩，放下去不會定身誰', () => {
+        const w = arena();
+        place(w, 4, 0);
+        tick(w);
+        expect(w.target.effects.ROOT.remaining).toBe(0);
+    });
+    it('敵人站到格子上就定身', () => {
+        const w = arena();
+        place(w, 1, 0);
+        tick(w);
+        expect(w.target.effects.ROOT.remaining).toBeGreaterThan(0);
+    });
+    it('同一個人只觸發一次', () => {
+        const w = arena();
+        place(w, 1, 0);
+        tick(w);
+        w.target.effects.ROOT.remaining = 0;
+        tick(w);
+        expect(w.target.effects.ROOT.remaining).toBe(0);
+    });
+    it('友軍踩到不觸發', () => {
+        const w = arena();
+        place(w, 0, 0);
+        tick(w);
+        expect(w.source.effects.ROOT.remaining).toBe(0);
+    });
+    it('rb_a4 冰霜陷阱是真的陷阱', () => {
+        const a = skillById('rb_a4').onImpact?.[0];
+        expect(a?.onEnter).toContainEqual({ action: 'STATUS', status: 'ROOT', duration: 2.5 });
+        expect(skillById('rb_a4').onHit).toBeUndefined();
+    });
+});
+
 describe('第二包的技能資料', () => {
     const chain = (id: string, action: HitAction) => expect(skillById(id).onHit).toContainEqual(action);
     it.each([
@@ -382,8 +425,8 @@ describe('技能描述承諾的機制真的裝上了', () => {
         ['sb_b4', { action: 'DISPEL', polarity: 'DEBUFF' }],
         ['sr_b4', { action: 'SELF_DAMAGE', value: 30 }],
         ['tb_b2', { action: 'CHANCE', chance: 0.3, then: [{ action: 'STATUS', status: 'STUN', duration: 0.5 }] }],
-        ['rb_b2', { action: 'STATUS', status: 'SLOW', duration: 1.5, force: 30 }],
-        ['mb_b3', { action: 'STATUS', status: 'SLOW', duration: 1.5, force: 30 }],
+        ['rb_b2', { action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.3 }],
+        ['mb_b3', { action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.3 }],
         ['mr_b4', { action: 'STATUS', status: 'VULNERABLE', duration: 1.5 }],
         ['sr_a4', { action: 'STATUS', status: 'VULNERABLE', duration: 3 }],
     ] as [string, HitAction][])('%s：%j', (id, action) => has(id, action));

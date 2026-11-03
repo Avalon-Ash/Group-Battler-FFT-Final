@@ -204,6 +204,7 @@ export const RED_ULT: Skill[] = [
         visual: 'FIREBALL', projectileSpeed: 0, element: 'FIRE',
         hits: { count: 8, interval: 0.08 },
         visualHitEffect: 'FX_ULT_RED_SOUL_BURN',
+        onHit: [{ action: 'CHAIN', jumps: 1, radius: 2, falloff: 0.5 }],
         onImpact: [{ action: 'HAZARD', kind: 'FIRE', duration: 5 }],
     },
 

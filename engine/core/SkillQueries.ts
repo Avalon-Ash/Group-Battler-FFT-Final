@@ -8,6 +8,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { HitAction, Skill, SkillIntent, SkillStatus, SkillTeams } from '../../types';
+import { sameSide } from './Allegiance';
 
 type HitActionKind = HitAction['action'];
 type ValueHitAction = Extract<HitAction, { value?: number }>;
@@ -92,8 +93,14 @@ export function hasIntentIn(skill: Skill, intents: ReadonlySet<SkillIntent>): bo
 }
 
 /** 這招對誰有效。沒寫就看威力：傷害打敵人、治療打友軍、威力 0 不限 */
-export function skillTeams(skill: Skill): SkillTeams {
+function skillTeams(skill: Skill): SkillTeams {
     if (skill.teams) return skill.teams;
     if (skill.power > 0) return 'ENEMY';
     return skill.power < 0 ? 'ALLY' : 'ANY';
+}
+
+/** 這招對這個單位有沒有效（依 teams） */
+export function isSkillTarget(skill: Skill, source: Parameters<typeof sameSide>[1], unit: Parameters<typeof sameSide>[0]): boolean {
+    const teams = skillTeams(skill);
+    return teams === 'ANY' || (teams === 'ENEMY') === !sameSide(unit, source);
 }

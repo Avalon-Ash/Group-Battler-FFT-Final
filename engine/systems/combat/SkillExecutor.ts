@@ -2,7 +2,7 @@ import { Agent, GameEngine } from "../../game";
 import { Skill, SkillStatus, Hex } from "../../../types";
 import { HexUtils } from "../../utils";
 import { DamageCalculator } from "./DamageCalculator";
-import { hasAnyStatus, hasStatusIn, skillTeams } from "../../core/SkillQueries";
+import { hasAnyStatus, hasStatusIn, isSkillTarget } from "../../core/SkillQueries";
 import { runEndActions, runHitActions, runImpactActions } from "./SkillActions";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
@@ -29,6 +29,7 @@ export interface HitOptions {
     hitCount?: number;
     /** 這次施放對這個目標已經套過一次性狀態（硬控等）：本段不再套。位移與 SLOW 每段都套 */
     statusesApplied?: boolean;
+    chained?: boolean;
 }
 
 export interface HitOutcome {
@@ -37,12 +38,6 @@ export interface HitOutcome {
 }
 
 const SUPPORT_STATUS: ReadonlySet<SkillStatus> = new Set<SkillStatus>(['SHIELD', 'HOT']);
-
-/** 這招對這個單位有沒有效（依 teams） */
-export function isSkillTarget(skill: Skill, source: { team: Agent['team']; side: Agent['side'] }, unit: Agent): boolean {
-    const teams = skillTeams(skill);
-    return teams === 'ANY' || (teams === 'ENEMY') === !sameSide(unit, source);
-}
 
 export class SkillExecutor {
     /** 多段命中排程（狀態歸 CombatSystem 每 tick 推進）。 */
@@ -330,7 +325,7 @@ export class SkillExecutor {
         }
 
         // C. 反噬與控制（動作清單，engine/systems/combat/SkillActions.ts）
-        runHitActions(source, target, skill, origin, engine, opts);
+        runHitActions(source, target, skill, origin, engine, opts, this);
 
         // D. Death Check & Absolute EXECUTE enforcement
         if (result.isExecute || target.hp <= 0) {

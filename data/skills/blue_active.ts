@@ -62,9 +62,11 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 6, cast: 0.2, cd: 7.0, cost: 30, gain: 0, // Buff Range 4->6, CD 9->8, Cast 0.1->0.2
         type: 'SINGLE', power: 140, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL',
-        onCast: [{ action: 'DASH' }],
+
         onHit: [{ action: 'STATUS', status: 'STUN', duration: 1.2 }],
+        onCast: [{ action: 'DASH' }],
         intents: ['GAP_CLOSE'],
+
     },
     {
         id: 'wb_a3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE',
@@ -108,13 +110,16 @@ export const BLUE_ACTIVE: Skill[] = [
         name: '穿雲貫甲', desc: '直線貫穿',
         range: 9, cast: 1, cd: 7.0, cost: 45, gain: 0,
         type: 'SINGLE', power: 350, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 3000,
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL',
+        onHit: [{ action: 'LINE_THROUGH', tiles: 4, falloff: 0.8 }],
     },
     {
         id: 'rb_a3', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE',
         name: '疾影射擊', desc: '位移射擊',
         range: 7, cast: 0.2, cd: 7.0, cost: 35, gain: 0,
         type: 'SINGLE', power: 160, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 2500,
+        onCast: [{ action: 'RETREAT', tiles: 2 }],
+        intents: ['ESCAPE'],
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'LIGHTNING',
         onHit: [{ action: 'STATUS', status: 'BLIND', duration: 2.5 }],
     },
@@ -124,8 +129,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 7, cast: 0.5, cd: 10.0, cost: 40, gain: 0,
         type: 'AOE', aoeRadius: 1, power: 90, color: '#bfdbfe', visual: 'BOMB', projectileSpeed: 1000,
         visualHitEffect: 'FX_ACTIVE_BLUE_FROST_SNAP', element: 'ICE',
-        onImpact: [{ action: 'HAZARD', kind: 'ICE', duration: 4 }],
-        onHit: [{ action: 'STATUS', status: 'ROOT', duration: 4 }],
+        onImpact: [{ action: 'HAZARD', kind: 'ICE', duration: 8, onEnter: [{ action: 'STATUS', status: 'ROOT', duration: 2.5 }] }],
     },
     {
         id: 'rb_a5', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE',
@@ -133,6 +137,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 8, cast: 1.0, cd: 9.0, cost: 50, gain: 0,
         type: 'AOE', aoeRadius: 2, power: 150, color: '#93c5fd', visual: 'ARROW', projectileSpeed: 1200,
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL',
+
         onImpact: [{ action: 'HAZARD', kind: 'POISON', duration: 3 }],
         onHit: [{ action: 'STATUS', status: 'DOT', duration: 3, force: 30 }],
     },
@@ -160,16 +165,16 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 5, cast: 0.5, cd: 7.5, cost: 15, gain: 25,
         type: 'SINGLE', power: 110, color: '#8b5cf6', visual: 'BEAM', projectileSpeed: 0,
         visualHitEffect: 'FX_TELEPORT', element: 'ARCANE',
-        onCast: [{ action: 'DASH' }],
-        intents: ['GAP_CLOSE'],
+        onHit: [{ action: 'SWAP' }],
     },
     {
         id: 'mb_a4', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE',
         name: '晶體折射', desc: '折射傷害',
         range: 6, cast: 0.8, cd: 7.0, cost: 45, gain: 0,
-        type: 'AOE', aoeRadius: 1, power: 135, color: '#bae6fd', visual: 'BEAM', projectileSpeed: 0,
+        type: 'SINGLE', power: 135, color: '#bae6fd', visual: 'BEAM', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_BLUE_ICE', element: 'ICE',
         onImpact: [{ action: 'HAZARD', kind: 'ICE', duration: 5 }],
+        onHit: [{ action: 'CHAIN', jumps: 2, radius: 2, falloff: 0.7 }],
     },
     {
         id: 'mb_a5', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE',

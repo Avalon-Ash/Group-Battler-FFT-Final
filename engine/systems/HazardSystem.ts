@@ -9,6 +9,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";
+import { CCManager } from "./combat/CCManager";
 import { MovementType, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 import type { MapConfig } from "../utils";
@@ -100,6 +101,8 @@ export class HazardSystem {
                 // Flying units are immune to ground hazards like FIRE/POISON
                 if (agent.movementType === MovementType.FLYING && (h.type === 'FIRE' || h.type === 'POISON')) return;
 
+                if (h.onEnter && h.skill && !h.triggeredIds?.has(agent.id)) this.triggerTrap(agent, h, engine);
+
                 // Damage Tick
                 if (engine.battleTime >= h.lastTickTime + h.tickInterval) {
                      this.applyHazardEffect(agent, h, engine);
@@ -116,6 +119,15 @@ export class HazardSystem {
 
         // 4. Global Pulling (GRAVITY)
         this.updateGravityPull(dt, engine);
+    }
+
+    private triggerTrap(agent: Agent, hazard: SpatialHazard, engine: GameEngine) {
+        hazard.triggeredIds?.add(agent.id);
+        const source = engine.agents.find(a => a.id === hazard.sourceId);
+        if (!source || !hazard.skill) return;
+        for (const a of hazard.onEnter ?? []) {
+            CCManager.applyCC(source, agent, hazard.skill, a.status, a.duration, a.force, undefined, engine);
+        }
     }
 
     private applyHazardEffect(agent: Agent, hazard: SpatialHazard, engine: GameEngine) {

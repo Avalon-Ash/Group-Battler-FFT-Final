@@ -108,7 +108,13 @@ export type CastAction =
     | { action: 'BLINK' }
     /** 往遠離目標的方向後撤 tiles 格 */
     | { action: 'RETREAT'; tiles: number };
-export type ImpactAction = { action: 'HAZARD'; kind: SpatialHazard['type']; duration: number };
+export type ImpactAction = {
+    action: 'HAZARD';
+    kind: SpatialHazard['type'];
+    duration: number;
+    /** 陷阱：敵人走進來時對他套這些狀態，每人只觸發一次 */
+    onEnter?: readonly StatusAction[];
+};
 type ValueAction<K extends string> = { action: K; value?: number };
 export type HitAction =
     | StatusAction
@@ -269,6 +275,12 @@ export interface SpatialHazard {
     centerQ?: number;
     centerR?: number;
     pullRadius?: number;
+    /** 陷阱：見 ImpactAction.onEnter */
+    onEnter?: readonly StatusAction[];
+    /** 陷阱已經觸發過的單位 */
+    triggeredIds?: Set<string>;
+    /** 放出這個危害區的技能（陷阱套狀態時要用） */
+    skill?: Skill;
 }
 
 export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK' | 'KILL_SPREE' | 'HAZARD_SPAWN' | 'GROUND_IMPACT' | 'LAST_STAND_TRIGGERED' | 'HIT_FX';

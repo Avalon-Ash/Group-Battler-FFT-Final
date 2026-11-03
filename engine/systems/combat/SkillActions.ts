@@ -12,16 +12,19 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Agent, GameEngine } from "../../game";
-import type { CastAction, EndAction, HitAction, ImpactAction, Skill, StatusAction } from "../../../types";
-import type { HitOptions } from "./SkillExecutor";
+import type { CastAction, EndAction, HitAction, ImpactAction, Skill, StatusAction, Hex } from "../../../types";
+import type { HitOptions, SkillExecutor } from "./SkillExecutor";
+import { isSkillTarget } from "../../core/SkillQueries";
 import { CCManager } from "./CCManager";
-import { planDashPath, resolveForcedMove } from "./ForcedMove";
+import { planDashPath, planRetreatPath, resolveForcedMove } from "./ForcedMove";
 import { HazardManager } from "./HazardManager";
 import { applyDirectDamage, breakShield } from "./DirectDamage";
-import { dashTo, lungeToward } from "../movement/MotionCommands";
+import { dashTo, lungeToward, stopMovement, teleportTo } from "../movement/MotionCommands";
 import { unitEventPos } from "../../events/EventPos";
 import { CC_RULES, DAMAGE_TEXT_COLORS, PHYSICS, VFX_PARAM } from "../../../constants";
 import { random } from "../../math/rng";
+import { HexMath } from "../../math/HexMath";
+import { HexUtils } from "../../utils";
 
 type Handlers<A extends { action: string }, C> = { [K in A['action']]: (ctx: C, action: Extract<A, { action: K }>) => void };
 
@@ -43,6 +46,36 @@ interface CastContext {
 }
 
 const CAST_HANDLERS: Handlers<CastAction, CastContext> = {
+    BLINK: ({ source, targetHex, engine }) => {
+        let best: Hex | null = null;
+        let bestDist = -Infinity;
+        for (const n of HexUtils.neighbors(targetHex)) {
+            if (!engine.isValid(n.q, n.r) || engine.hasObstacle(n.q, n.r) || engine.getAgentAt(n.q, n.r)) continue;
+            const d = HexUtils.dist(source, n);
+            if (d > bestDist) {
+                bestDist = d;
+                best = { q: n.q || 0, r: n.r || 0 };
+            }
+        }
+        if (!best) return;
+        dashTo(source, best.q, best.r, engine);
+        engine.bus.emit('CAMERA_IMPACT', { kind: 'DASH', intensity: VFX_PARAM.SHAKE_INTENSITY_DASH, targetId: source.id });
+        engine.events.push({
+            type: 'CC_APPLIED',
+            pos: unitEventPos(source, engine),
+            text: "瞬移",
+            color: DAMAGE_TEXT_COLORS.DASH,
+            sourceId: source.id,
+            targetId: source.id,
+        });
+    },
+    RETREAT: ({ source, targetHex, engine }, a) => {
+        const path = planRetreatPath(source, targetHex, a.tiles, engine);
+        const dash = resolveForcedMove(source, path, path.length, 'DASH', engine);
+        if (dash.stepsTaken > 0) {
+            dashTo(source, dash.finalHex.q, dash.finalHex.r, engine);
+        }
+    },
     // 高度／障礙／單位由 ForcedMove 裁決
     DASH: ({ source, targetHex, origin, engine }) => {
         const dashPath = planDashPath(source, targetHex, engine);
@@ -83,7 +116,7 @@ interface ImpactContext {
 
 const IMPACT_HANDLERS: Handlers<ImpactAction, ImpactContext> = {
     HAZARD: ({ source, skill, cells, center, engine }, a) => {
-        HazardManager.spawnHazard(source, cells, skill, engine, center, a.kind, a.duration);
+        HazardManager.spawnHazard(source, cells, skill, engine, center, a.kind, a.duration, a.onEnter);
     },
 };
 
@@ -100,6 +133,7 @@ interface HitContext {
     origin: { x: number; y: number } | undefined;
     engine: GameEngine;
     opts: HitOptions;
+    executor: SkillExecutor;
 }
 
 /** 每段重複套用的控制：位移（每段都拉／推）與緩速（每段刷新）。其餘狀態一次施放只套一次 */
@@ -160,10 +194,82 @@ const HIT_HANDLERS: Handlers<HitAction, HitContext> = {
             run(HIT_HANDLERS, [picked], ctx);
         }
     },
+
+    CHAIN: ({ source, target, skill, engine, opts, executor }, a) => {
+        if (opts.chained || (opts.hitIndex ?? 0) > 0) return;
+        let current: Agent = target;
+        const hitSet = new Set<Agent>([target]);
+        for (let n = 1; n <= a.jumps; n++) {
+            let best: Agent | null = null;
+            let bestDist = Infinity;
+            for (const u of engine.agents) {
+                if (u.hp <= 0 || u.banished || u.outOfBounds) continue;
+                if (hitSet.has(u)) continue;
+                if (!isSkillTarget(skill, source, u)) continue;
+                const d = HexUtils.dist(current, u);
+                if (d <= a.radius && d < bestDist) {
+                    bestDist = d;
+                    best = u;
+                }
+            }
+            if (!best) break;
+            hitSet.add(best);
+            const powerScale = (opts.powerScale ?? 1) * (a.falloff ** n);
+            executor.resolveHit(source, best, skill, undefined, engine, undefined, { powerScale, chained: true });
+            current = best;
+        }
+    },
+    LINE_THROUGH: ({ source, target, skill, engine, opts, executor }, a) => {
+        if (opts.chained || (opts.hitIndex ?? 0) > 0) return;
+        const distST = HexUtils.dist(source, target);
+        if (distST === 0) return;
+        const totalDist = distST + a.tiles;
+        const sc = HexMath.axialToCube(source);
+        const tc = HexMath.axialToCube(target);
+        const dx = tc.x - sc.x;
+        const dy = tc.y - sc.y;
+        const dz = tc.z - sc.z;
+        const endCube = {
+            x: sc.x + dx * (totalDist / distST),
+            y: sc.y + dy * (totalDist / distST),
+            z: sc.z + dz * (totalDist / distST),
+        };
+        const endHex = HexMath.cubeToAxial(HexMath.cubeRound(endCube));
+        const fullLine = HexUtils.line(source, endHex);
+        const tilesAfter = fullLine.slice(distST + 1);
+        let hitCount = 0;
+        for (const cell of tilesAfter) {
+            const u = engine.getAgentAt(cell.q, cell.r);
+            if (!u || u === target) continue;
+            if (u.hp <= 0 || u.banished || u.outOfBounds) continue;
+            if (!isSkillTarget(skill, source, u)) continue;
+            hitCount++;
+            const powerScale = (opts.powerScale ?? 1) * (a.falloff ** hitCount);
+            executor.resolveHit(source, u, skill, undefined, engine, undefined, { powerScale, chained: true });
+        }
+    },
+    SWAP: ({ source, target, engine, opts }) => {
+        if (opts.chained || (opts.hitIndex ?? 0) > 0) return;
+        if (source.hp <= 0 || source.banished || source.outOfBounds) return;
+        if (target.hp <= 0 || target.banished || target.outOfBounds) return;
+
+        const sQ = source.q;
+        const sR = source.r;
+        const tQ = target.q;
+        const tR = target.r;
+
+        teleportTo(source, tQ, tR, engine);
+        teleportTo(target, sQ, sR, engine);
+        engine.map.registerAgent(source);
+        engine.map.registerAgent(target);
+
+        if (source.isMoving) stopMovement(source);
+        if (target.isMoving) stopMovement(target);
+    },
 };
 
-export function runHitActions(source: Agent, target: Agent, skill: Skill, origin: { x: number; y: number } | undefined, engine: GameEngine, opts: HitOptions): void {
-    run(HIT_HANDLERS, skill.onHit, { source, target, skill, origin, engine, opts });
+export function runHitActions(source: Agent, target: Agent, skill: Skill, origin: { x: number; y: number } | undefined, engine: GameEngine, opts: HitOptions, executor: SkillExecutor): void {
+    run(HIT_HANDLERS, skill.onHit, { source, target, skill, origin, engine, opts, executor });
 }
 
 // ── onEnd ──

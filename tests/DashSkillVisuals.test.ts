@@ -14,7 +14,7 @@ describe('dash skill visuals', () => {
     const dashSkills = DEFAULT_SKILL_DB.filter(isDash);
 
     it('there are dash skills to check', () => {
-        expect(dashSkills.length).toBeGreaterThanOrEqual(3);
+        expect(dashSkills.length).toBeGreaterThanOrEqual(2);
     });
 
     it('every dash skill uses the DASH_ASSAULT archetype and its sequence opens a streak (BEAM) action', () => {

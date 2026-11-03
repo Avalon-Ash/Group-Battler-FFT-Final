@@ -59,7 +59,7 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     // --- MAGE ---
     'mb_a1': { archetype: 'BURST_AOE', color: '#a855f7', secondaryColor: '#d8b4fe', scale: 1.4, impactFx: 'FX_ACTIVE_BLUE_ARCANE_RIPPLE' },
     'mb_a2': { archetype: 'DEBUFF_RAY', color: '#e0f2fe', secondaryColor: '#38bdf8', scale: 1.0, impactFx: 'FX_ACTIVE_BLUE_FROST_SNAP' },
-    'mb_a3': { archetype: 'DASH_ASSAULT', color: '#8b5cf6', secondaryColor: '#c084fc', scale: 1.2, impactFx: 'FX_TELEPORT', beamStyle: 'LIGHTNING_BEAM' },
+    'mb_a3': { archetype: 'SIMPLE_IMPACT', color: '#8b5cf6', secondaryColor: '#c084fc', scale: 1.2, impactFx: 'FX_TELEPORT', beamStyle: 'LIGHTNING_BEAM' },
     'mb_a4': { archetype: 'PROJECTILE_SALVO', color: '#bae6fd', secondaryColor: '#e0f2fe', scale: 1.0, count: 3 },
     'mb_a5': { archetype: 'WALL', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.5, impactFx: 'FX_GRID_IMPACT_BLUE' },
 

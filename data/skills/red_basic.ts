@@ -196,7 +196,7 @@ export const RED_BASIC: Skill[] = [
         range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 35,
         type: 'SINGLE', power: 55, color: '#a3e635', visual: 'BOLT', projectileSpeed: 900,
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON',
-        onHit: [{ action: 'RANDOM_OF', options: [{ action: 'STATUS', status: 'DOT', duration: 2.5, force: 14 }, { action: 'STATUS', status: 'SLOW', duration: 2, force: 30 }, { action: 'STATUS', status: 'BLIND', duration: 1.5 }, { action: 'STATUS', status: 'VULNERABLE', duration: 2 }] }],
+        onHit: [{ action: 'RANDOM_OF', options: [{ action: 'STATUS', status: 'DOT', duration: 2.5, force: 14 }, { action: 'STATUS', status: 'SLOW', duration: 2, force: 0.3 }, { action: 'STATUS', status: 'BLIND', duration: 1.5 }, { action: 'STATUS', status: 'VULNERABLE', duration: 2 }] }],
     },
     {
         id: 'sr_b4', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC',

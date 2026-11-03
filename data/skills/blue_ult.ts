@@ -59,6 +59,8 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 3, power: 550, color: '#3b82f6',
         visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_BLUE_THUNDER_SLAM', element: 'LIGHTNING',
+        onCast: [{ action: 'BLINK' }],
+        intents: ['GAP_CLOSE'],
         onHit: [{ action: 'STATUS', status: 'STUN', duration: 1.5 }],
     },
     {
@@ -94,6 +96,8 @@ export const BLUE_ULT: Skill[] = [
         type: 'SINGLE', power: 900, color: '#e0f2fe',
         visual: 'BEAM', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_BLUE_LIGHTSPEED', element: 'LIGHTNING',
+        onCast: [{ action: 'BLINK' }],
+        intents: ['GAP_CLOSE'],
         onHit: [{ action: 'STATUS', status: 'STUN', duration: 1.5 }],
     },
 
