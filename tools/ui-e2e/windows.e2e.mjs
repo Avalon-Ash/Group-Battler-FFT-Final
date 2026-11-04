@@ -1413,10 +1413,12 @@ const runEditorSuite = async () => {
         window.__fpsRaf = requestAnimationFrame(loop);
     });
 
-    await page.mouse.move(1250, 350);
+    // 暫停時按在單位或障礙物上是拖曳它們，不是平移；隨機地圖要從空格起手
+    const panStart = await getEmptyHexWithCoord();
+    await page.mouse.move(panStart.screenX, panStart.screenY);
     await page.mouse.down();
     for (let i = 0; i < 10; i++) {
-        await page.mouse.move(1250 - i * 15, 350 - i * 15);
+        await page.mouse.move(panStart.screenX - i * 15, panStart.screenY - i * 15);
         await page.waitForTimeout(20);
     }
     await page.mouse.up();
