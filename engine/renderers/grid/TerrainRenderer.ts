@@ -19,6 +19,7 @@ import {
 import { terrainTextureStore } from "./TerrainTextureStore";
 import { obstacleSpriteStore } from "./ObstacleSpriteStore";
 import { getEdgeTable } from "./GridCache";
+import { isMemoryConstrainedDevice } from "../RenderQuality";
 
 /** 六角形邊數（邊） */
 const HEX_SIDES = 6;
@@ -181,11 +182,15 @@ export const TerrainRenderer = {
     lastDecorRev: -1,
     lastTheme: null as TerrainTheme | null,
     lastRenderScale: -1,
+    /** 地塊烘焙倍率上限（觸控裝置較低）；每幀開頭更新一次，不在每格查 matchMedia */
+    maxRenderScale: Infinity as number,
+
     /** 轉場期間為 true：超過烘焙預算的地塊延後到下一幀（RENDER_CACHE.TRANSITION_BAKE_BUDGET_MS）。由 beginFrame 設定 */
     deferBakes: false,
 
     /** RenderPipeline 每幀畫世界前呼叫一次：重置烘焙預算、設定是否在轉場中 */
     beginFrame(transitioning: boolean) {
+        this.maxRenderScale = isMemoryConstrainedDevice() ? RENDER_CACHE.MAX_SCALE_TOUCH : Infinity;
         this.deferBakes = transitioning;
         this.store.beginFrame();
     },
@@ -234,7 +239,8 @@ export const TerrainRenderer = {
         const drawY = y;
 
         const tf = ctx.getTransform();
-        const currentScale = Math.hypot(tf.a, tf.b);
+        const deviceScale = Math.hypot(tf.a, tf.b);
+        const currentScale = Math.min(deviceScale, this.maxRenderScale);
         const renderScale = quantizeRenderScaleSticky(currentScale, this.lastRenderScale);
         this.lastRenderScale = renderScale;
         const variant = variantFor(q, r2, MATERIAL_CONFIG.terrain.grain.variants);

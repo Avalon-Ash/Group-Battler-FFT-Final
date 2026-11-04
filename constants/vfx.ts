@@ -112,6 +112,8 @@ export const GROUND_DRAPE = {
     MAX_CANVAS_PX: 2048,
     /** 觸控裝置的離屏畫布單邊上限：合成圖加三色層是 4 張，2048² 會到 64 MB，iPhone 會回收分頁 */
     MAX_CANVAS_PX_TOUCH: 1024,
+    /** 觸控裝置上每個懸空平面（詠唱環）的畫布單邊上限：場上可能同時 14 個，每個 4 張，1024² 就有 224 MB */
+    MAX_PLANE_PX_TOUCH: 640,
     /** 離屏畫布容量取整單位（裝置像素）：縮放動畫時尺寸每幀變動，不能每幀重配畫布 */
     CANVAS_GROW_STEP_PX: 128,
     /** 每幾幀整理一次離屏畫布池（GroundDrape.trimCanvases）：整段沒用到的釋放，過大的縮小 */
