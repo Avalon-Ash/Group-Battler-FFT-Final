@@ -81,8 +81,11 @@ try {
     });
     ok('select: popover uses the glass blur', popBlur.includes('blur'), popBlur);
     const before = await select.textContent();
+    // Radix 用 setTimeout 移動焦點：按鍵之間要等一拍，真人的按鍵間隔一定比這長
     await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(60);
     await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(60);
     await page.keyboard.press('Enter');
     await page.waitForTimeout(200);
     ok('select: arrow keys and Enter change the value', (await select.textContent()) !== before);

@@ -156,6 +156,123 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
+  /* 共用元件庫（components/ui/primitives）：Radix 無法用 utility 表達的 data-* 狀態與原生 input 的偽元素 */
+  .ui-tablist { border-bottom: 1px solid var(--mat-control-border); }
+  .ui-tab {
+    color: rgb(var(--token-fg-muted));
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 120ms, border-color 120ms;
+  }
+  .ui-tab:hover:not([data-disabled]) { color: rgb(var(--token-fg-primary)); }
+  .ui-tab[data-state='active'] {
+    color: rgb(var(--token-fg-primary));
+    border-bottom-color: var(--mat-focus);
+  }
+  .ui-select-content {
+    min-width: var(--radix-select-trigger-width);
+    max-height: var(--radix-select-content-available-height);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .ui-option {
+    border-radius: var(--ui-radius-control);
+    color: rgb(var(--token-fg-secondary));
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+  }
+  .ui-option[data-highlighted] {
+    background: var(--mat-control-hover-bg);
+    color: rgb(var(--token-fg-primary));
+  }
+  .ui-option[data-state='checked'] { color: rgb(var(--token-fg-primary)); }
+  .ui-option[data-disabled] {
+    color: rgb(var(--token-fg-disabled));
+    cursor: not-allowed;
+  }
+
+  /* 滑桿：原生 range；填色由 --slider-pct（元件執行期算）驅動。點擊範圍高度 = --ui-control-h-sm */
+  .ui-slider input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: var(--ui-control-h-sm);
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .ui-slider input[type='range']::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: var(--ui-radius-pill);
+    background: linear-gradient(to right, var(--mat-focus) var(--slider-pct, 0%), var(--mat-control-border) var(--slider-pct, 0%));
+  }
+  .ui-slider input[type='range']::-moz-range-track {
+    height: 4px;
+    border-radius: var(--ui-radius-pill);
+    background: linear-gradient(to right, var(--mat-focus) var(--slider-pct, 0%), var(--mat-control-border) var(--slider-pct, 0%));
+  }
+  .ui-slider input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    border-radius: var(--ui-radius-pill);
+    background: var(--mat-primary-bg);
+    border: 1px solid var(--mat-primary-border);
+    box-shadow: var(--mat-shell-shadow);
+  }
+  .ui-slider input[type='range']::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: var(--ui-radius-pill);
+    background: var(--mat-primary-bg);
+    border: 1px solid var(--mat-primary-border);
+    box-shadow: var(--mat-shell-shadow);
+  }
+  .ui-slider input[type='range']:hover::-webkit-slider-thumb { background: var(--mat-primary-hover); }
+  .ui-slider input[type='range']:hover::-moz-range-thumb { background: var(--mat-primary-hover); }
+  .ui-slider input[type='range']:disabled { cursor: not-allowed; opacity: 0.5; }
+
+  /* 開關：原生 checkbox（role=switch），外觀用 appearance:none 加偽元素 */
+  .ui-switch input[type='checkbox'] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 24px;
+    margin: 0;
+    border-radius: var(--ui-radius-pill);
+    background: var(--mat-well-bg);
+    border: 1px solid var(--mat-well-border);
+    box-shadow: var(--mat-well-shadow);
+    cursor: pointer;
+    transition: background-color 120ms, border-color 120ms;
+  }
+  .ui-switch input[type='checkbox']::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--ui-radius-pill);
+    background: rgb(var(--token-fg-muted));
+    transition: transform 120ms, background-color 120ms;
+  }
+  .ui-switch input[type='checkbox']:checked {
+    background: var(--mat-control-on-bg);
+    border-color: var(--mat-control-on-border);
+  }
+  .ui-switch input[type='checkbox']:checked::after {
+    transform: translateX(16px);
+    background: var(--mat-primary-bg);
+  }
+  .ui-switch input[type='checkbox']:disabled { cursor: not-allowed; opacity: 0.5; }
+
   .ui-scroll {
     overflow: auto;
     scrollbar-gutter: stable;
