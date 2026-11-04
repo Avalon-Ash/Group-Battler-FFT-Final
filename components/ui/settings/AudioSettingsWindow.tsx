@@ -100,7 +100,7 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = () => {
     };
 
     return (
-        <div data-testid="audio-settings-window" className="p-4 flex flex-col gap-4 ui-scroll overflow-y-auto select-none">
+        <div data-testid="audio-settings-window" className="w-full max-w-2xl mx-auto p-4 flex flex-col gap-4 ui-scroll overflow-y-auto select-none">
             {isUrlMuted && (
                 <div
                     data-testid="url-muted-indicator"

@@ -84,6 +84,7 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                                 step={sliderField.step}
                                 value={numVal}
                                 ariaLabel={field.label}
+                                className="setting-slider"
                                 inputTestId={`setting-slider-${field.id}`}
                                 onChange={(parsed) => onChange(sliderField.createCommand(parsed))}
                             />

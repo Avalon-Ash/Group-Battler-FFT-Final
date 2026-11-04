@@ -667,6 +667,8 @@
 }
 
 @media (pointer: coarse) {
+  /* 觸控區維持 44px，但讓它和標題列重疊，設定列才不會被撐開 */
+  .setting-slider { margin-block: -8px; }
   :root {
     --mat-shell-window: rgba(16, 24, 38, 0.78);
     --ui-control-h: var(--touch-target-min);

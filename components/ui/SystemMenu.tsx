@@ -64,7 +64,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                 {isOpen && (
                     <div
                         className={cn(
-                            'shell shell-popover mat-blur rounded-ui-card flex flex-col p-2 gap-2 animate-slide-left origin-top-right w-56 max-w-full',
+                            'shell shell-popover mat-blur rounded-ui-card flex flex-col p-2 gap-2 animate-slide-left origin-top-right w-64 max-w-full',
                             isCompact && 'overflow-y-auto ui-scroll',
                         )}
                         style={isCompact ? { maxHeight: 'calc(100dvh - 5.5rem)' } : undefined}
