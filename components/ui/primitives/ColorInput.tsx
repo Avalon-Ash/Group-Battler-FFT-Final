@@ -10,6 +10,7 @@ export interface ColorInputProps extends Omit<ComponentPropsWithoutRef<'span'>, 
     disabled?: boolean;
 }
 
+const HEX_LENGTH = 7;
 const HEX_PATTERN = /^#[0-9a-f]{6}$/i;
 
 export const ColorInput = forwardRef<HTMLSpanElement, ColorInputProps>(function ColorInput(
@@ -38,7 +39,7 @@ export const ColorInput = forwardRef<HTMLSpanElement, ColorInputProps>(function 
                 aria-label={`${ariaLabel} hex`}
                 disabled={disabled}
                 value={draft ?? value}
-                maxLength={7}
+                maxLength={HEX_LENGTH}
                 spellCheck={false}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={commit}

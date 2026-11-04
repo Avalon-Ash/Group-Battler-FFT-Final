@@ -10,15 +10,16 @@ import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import { Icons } from '../icons';
 import { Helpers, ROLE_MAP } from '../../inspector/InspectorConstants';
 import { displayAiState } from '../../../engine/core/AgentDerived';
-import { BehaviorTreeTab } from '../../inspector/tabs/BehaviorTreeTab';
 import { UnitStatusTab } from '../../inspector/tabs/UnitStatusTab';
+import { useWindowActions } from '../../../hooks/useWindowStore';
+import { IconButton } from '../primitives';
 
 export interface UnitInspectorBodyProps {
     engine: GameEngine;
     agentId?: string | null;
 }
 
-type TabType = 'STATUS' | 'AI' | 'SKILLS';
+type TabType = 'STATUS' | 'SKILLS';
 
 export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, agentId }) => {
     // 1. All hooks unconditionally executed before any return
@@ -27,6 +28,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
     const agent = agentId ? (engine.agents.find(a => a.id === agentId) ?? null) : null;
 
     const { editAgent, send } = useEngineCommands(engine);
+    const windowActions = useWindowActions();
 
     const [tab, setTab] = useState<TabType>('STATUS');
     const [isConfigExpanded, setIsConfigExpanded] = useState(false);
@@ -179,6 +181,10 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                         </div>
                     </div>
 
+                    <IconButton size="sm" label="開啟行為樹" data-testid="inspector-open-bt" onClick={() => windowActions.open('behaviorTree')}>
+                        <Icons.Tree className="h-4 w-4" />
+                    </IconButton>
+
                     {/* Tab Navigation */}
                     <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 shrink-0">
                         <button
@@ -192,18 +198,6 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             title="狀態監控"
                         >
                             狀態
-                        </button>
-                        <button
-                            onClick={() => setTab('AI')}
-                            className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
-                            style={
-                                tab === 'AI'
-                                    ? { backgroundColor: 'var(--token-literal-amber-tint20)', color: 'var(--token-literal-amber300)' }
-                                    : { color: 'var(--token-literal-slate500)' }
-                            }
-                            title="行為樹監控 (AI)"
-                        >
-                            AI
                         </button>
                         <button
                             onClick={() => setTab('SKILLS')}
@@ -397,15 +391,6 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                                 <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>能量值 (MP / MAX)</span>
                                 <span className="text-sm font-bold mt-1" style={{ color: 'var(--token-literal-blue400)' }}>{Math.round(currentMp)} / {Math.round(currentMaxMp)}</span>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {tab === 'AI' && (
-                    <div className="flex-1 w-full h-full relative overflow-hidden">
-                        <BehaviorTreeTab agent={agent} version={updateCounter} engine={engine} />
-                        <div className="absolute bottom-2 right-2 text-[10px] text-white/20 font-mono pointer-events-none">
-                            即時運算中 (LIVE)
                         </div>
                     </div>
                 )}

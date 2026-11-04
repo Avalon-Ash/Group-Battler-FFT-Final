@@ -527,6 +527,7 @@ export type WindowId =
     | 'db'
     | 'vfxmap'
     | 'inspector'
+    | 'behaviorTree'
     | 'monitor'
     | 'directorSettings'
     | 'zoneSettings'

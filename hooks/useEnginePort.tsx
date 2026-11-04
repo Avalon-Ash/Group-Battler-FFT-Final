@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import type { GameEngine } from '../engine/game';
 import { useEngineCommands } from './useEngineCommands';
 import { useEngineView } from './useEngineView';
@@ -21,6 +21,12 @@ export function useEngineHandle(): GameEngine | null {
 
 export function useView<T>(selector: (engine: GameEngine) => T): T | null {
     return useEngineView(useContext(EngineContext), selector);
+}
+
+/** 帶參數的 selector（例如依單位 id 查詢）：元件不用自己包 useCallback。 */
+export function useViewOf<A, T>(selector: (engine: GameEngine, arg: A) => T, arg: A): T | null {
+    const bound = useCallback((engine: GameEngine) => selector(engine, arg), [selector, arg]);
+    return useEngineView(useContext(EngineContext), bound);
 }
 
 export function useCommands() {

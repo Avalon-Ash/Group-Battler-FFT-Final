@@ -10,6 +10,7 @@ import { DirectorSettingsWindow, GameplaySettingsWindow } from '../settings/Sett
 import { ShowcaseSettings } from '../showcase/ShowcaseSettings';
 import { AudioSettingsWindow } from '../settings/AudioSettingsWindow';
 import { UnitInspectorBody } from '../inspector/UnitInspectorBody';
+import { BehaviorTreeWindow } from '../behaviorTree/BehaviorTreeWindow';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
 import { windowStore } from './windowStore';
@@ -57,6 +58,11 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
         render: ({ engine, selectedAgentId }) => (
             <UnitInspectorBody engine={engine} agentId={selectedAgentId} />
         ),
+    },
+    behaviorTree: {
+        icon: <Icons.Tree className="w-4 h-4" />,
+        flush: true,
+        render: () => <BehaviorTreeWindow />,
     },
     monitor: {
         icon: <Icons.TV className="w-4 h-4" />,

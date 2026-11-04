@@ -8,6 +8,14 @@ import {
     type SegmentedOption, type SelectGroup, type SelectOption,
 } from './index';
 
+const LONG_GROUP_SIZE = 12;
+const SAMPLE_ROWS = 3;
+const SAMPLE_SLIDER = 40;
+const SAMPLE_NUMBER = 50;
+const SAMPLE_HP = 72;
+const SAMPLE_SHIELD = 30;
+const SAMPLE_HEAT = 90;
+
 const SELECT_OPTIONS: SelectOption[] = [
     { value: 'alpha', label: '阿爾法' },
     { value: 'bravo', label: '布拉沃' },
@@ -19,7 +27,7 @@ const SELECT_OPTIONS: SelectOption[] = [
 const SELECT_GROUPS: SelectGroup[] = [
     { label: 'TANK', options: [{ value: 'guard', label: '守衛', icon: <Icons.RoleTank className="h-4 w-4" /> }, { value: 'bulwark', label: '堡壘' }] },
     { label: 'MAGE', options: [{ value: 'arc', label: '電弧', icon: <Icons.RoleMage className="h-4 w-4" /> }, { value: 'nova', label: '新星' }] },
-    { label: 'SUPPORT', options: Array.from({ length: 12 }, (_, i) => ({ value: `medic-${i}`, label: `醫護 ${i + 1}` })) },
+    { label: 'SUPPORT', options: Array.from({ length: LONG_GROUP_SIZE }, (_, i) => ({ value: `medic-${i}`, label: `醫護 ${i + 1}` })) },
 ];
 
 const SEGMENTED_OPTIONS: SegmentedOption[] = [
@@ -47,11 +55,11 @@ export function Gallery() {
     const [segment, setSegment] = useState('select');
     const [pick, setPick] = useState('alpha');
     const [groupPick, setGroupPick] = useState('guard');
-    const [slider, setSlider] = useState(40);
+    const [slider, setSlider] = useState(SAMPLE_SLIDER);
     const [enabled, setEnabled] = useState(false);
     const [text, setText] = useState('');
     const [note, setNote] = useState('');
-    const [committed, setCommitted] = useState(50);
+    const [committed, setCommitted] = useState(SAMPLE_NUMBER);
     const [color, setColor] = useState(() => rgbChannelsToHex(UI_TOKENS.accent.DEFAULT));
 
     return (
@@ -105,7 +113,7 @@ export function Gallery() {
                         <ColorInput data-testid="gallery-color-input" ariaLabel="範例顏色" value={color} onChange={setColor} />
                     </SettingRow>
                     <Input data-testid="gallery-input" aria-label="範例文字" placeholder="輸入文字" value={text} onChange={(e) => setText(e.target.value)} />
-                    <Textarea data-testid="gallery-textarea" aria-label="範例備註" placeholder="輸入備註" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+                    <Textarea data-testid="gallery-textarea" aria-label="範例備註" placeholder="輸入備註" rows={SAMPLE_ROWS} value={note} onChange={(e) => setNote(e.target.value)} />
                 </Card>
 
                 <SectionHeading>Status</SectionHeading>
@@ -119,9 +127,9 @@ export function Gallery() {
                     <Tag tone="red">red</Tag>
                 </div>
                 <div data-testid="gallery-meter" className="flex flex-col gap-2">
-                    <Meter label="生命" value={72} max={100} tone="success" showValue />
-                    <Meter label="護盾" value={30} max={100} tone="accent" size="sm" />
-                    <Meter label="過熱" value={90} max={100} tone="danger" showValue />
+                    <Meter label="生命" value={SAMPLE_HP} max={100} tone="success" showValue />
+                    <Meter label="護盾" value={SAMPLE_SHIELD} max={100} tone="accent" size="sm" />
+                    <Meter label="過熱" value={SAMPLE_HEAT} max={100} tone="danger" showValue />
                 </div>
                 <Card padding="lg">
                     <EmptyState data-testid="gallery-empty-state" icon={<Icons.Database className="h-8 w-8" />} title="沒有資料" description="這裡之後會列出內容。" />

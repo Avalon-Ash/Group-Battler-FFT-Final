@@ -39,6 +39,15 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         visibleInShowcase: false,
     },
     {
+        id: 'behaviorTree',
+        title: 'BEHAVIOR TREE',
+        icon: 'tree',
+        defaultRect: { x: 380, y: 80, width: 420, height: 560 },
+        minSize: { width: 300, height: 260 },
+        kind: 'window',
+        visibleInShowcase: false,
+    },
+    {
         id: 'monitor',
         title: 'DIRECTOR MONITOR',
         icon: 'activity',

@@ -134,21 +134,10 @@
     "BAR_DELAY_S": 0.1
   },
   "BT_VIEW_PARAM": {
-    "DEFAULT_SCALE": 0.9,
-    "FIT_WIDTH": 0.92,
-    "FIT_HEIGHT": 0.88,
-    "FIT_MAX_SCALE": 1.2,
-    "WHEEL_STEP": 0.05,
-    "MIN_SCALE": 0.2,
-    "MAX_SCALE": 2,
-    "POPUP_W": 680,
-    "POPUP_H": 520,
+    "MODE_TRACE_SHOWN": 5,
     "FADE_OUT_MS": 1000,
     "FADE_MID_MS": 200,
-    "FADE_MID_OPACITY": 0.7,
-    "FADE_OLD_MS": 500,
-    "FADE_OLD_OPACITY": 0.4,
-    "MODE_TRACE_SHOWN": 5
+    "FADE_OLD_MS": 500
   },
   "AUDIO_EVENT_PARAM": {
     "RESULT_FADE_S": 0.2,

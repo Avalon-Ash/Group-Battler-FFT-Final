@@ -170,34 +170,12 @@ export const MATRIX_RAIN_PARAM = {
 export const BT_VIEW_PARAM = {
     /** 檢視器顯示最近幾筆模式轉換。 */
     MODE_TRACE_SHOWN: 5,
-    /** 行為樹初始縮放（倍） */
-    DEFAULT_SCALE: 0.9,
-    /** 自動縮放可用寬度（比例） */
-    FIT_WIDTH: 0.92,
-    /** 自動縮放可用高度（比例） */
-    FIT_HEIGHT: 0.88,
-    /** 自動縮放上限（倍） */
-    FIT_MAX_SCALE: 1.2,
-    /** 每次滾輪縮放步幅（倍） */
-    WHEEL_STEP: 0.05,
-    /** 手動縮放下限（倍） */
-    MIN_SCALE: 0.2,
-    /** 手動縮放上限（倍） */
-    MAX_SCALE: 2,
-    /** 彈出視窗寬度（px） */
-    POPUP_W: 680,
-    /** 彈出視窗高度（px） */
-    POPUP_H: 520,
-    /** 中期淡出時間（毫秒） */
     /** 節點結果在檢視器留多久才消失（毫秒） */
     FADE_OUT_MS: 1000,
+    /** 結果開始變淡的時間（毫秒） */
     FADE_MID_MS: 200,
-    /** 中期淡出不透明度（比例） */
-    FADE_MID_OPACITY: 0.7,
-    /** 後期淡出時間（毫秒） */
+    /** 結果轉成弱化色的時間（毫秒） */
     FADE_OLD_MS: 500,
-    /** 後期淡出不透明度（比例） */
-    FADE_OLD_OPACITY: 0.4,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

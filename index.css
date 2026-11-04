@@ -365,6 +365,27 @@
 .animate-bounce-in { animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 
+/* 行為樹視窗的列 */
+.bt-row {
+  --bt-indent: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--ui-control-h-sm);
+  border-radius: var(--ui-radius-control);
+  color: rgb(var(--token-fg-muted));
+}
+.bt-kind { display: inline-flex; flex-shrink: 0; }
+.bt-toggle { display: inline-block; flex-shrink: 0; width: var(--ui-control-h-sm); }
+.bt-running {
+  background: var(--mat-control-on-bg);
+  box-shadow: inset 0 0 0 1px var(--mat-control-on-border);
+  color: rgb(var(--token-fg-primary));
+}
+.bt-success { color: rgb(var(--token-success-hover)); }
+.bt-failure { color: var(--mat-danger-fg); }
+.bt-age-2 { color: rgb(var(--token-fg-muted)); }
+
 /* 使用者開「減少透明度」：外殼全部改純色。Safari 不支援這個查詢，預設樣式本身也要可讀 */
 @media (prefers-reduced-transparency: reduce) {
   .mat-blur {

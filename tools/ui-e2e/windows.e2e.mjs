@@ -696,6 +696,18 @@ const runInspectorCommandSuite = async () => {
     const reopened = await rectOf(page, 'inspector');
     ok('clicking canvas agent reopens inspector', reopened !== null);
 
+    // 2a. Behavior tree is its own window and follows the selection.
+    await page.locator('[data-testid="inspector-open-bt"]').click();
+    await page.waitForTimeout(400);
+    const btAgent = await page.locator('[data-testid="behavior-tree-agent"]').textContent();
+    const inspectorText = await page.locator('[data-window-id="inspector"]').textContent();
+    ok('behavior tree window shows the unit selected in the inspector', Boolean(btAgent) && inspectorText.includes(btAgent), btAgent);
+    const btBlur = await page.evaluate(() => [...document.querySelectorAll('[data-window-id="behaviorTree"] *')].filter((e) => getComputedStyle(e).backdropFilter !== 'none').length);
+    ok('behavior tree rows have no nested blur', btBlur === 0, `blur=${btBlur}`);
+    ok('behavior tree has a readable tree', (await page.locator('[data-window-id="behaviorTree"] [role="treeitem"]').count()) > 0);
+    await page.locator('[data-window-id="behaviorTree"] [data-window-btn="close"]').click();
+    await page.waitForTimeout(200);
+
     // 2b. Maximized windows rise above the system menu and the toolbar; Esc restores them.
     await page.locator('[data-window-id="inspector"] [data-window-btn="maximize"]').click();
     await page.waitForTimeout(300);
