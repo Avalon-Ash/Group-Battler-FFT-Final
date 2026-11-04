@@ -64,7 +64,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                 {isOpen && (
                     <div
                         className={cn(
-                            'shell shell-popover mat-blur rounded-ui-card flex flex-col p-2 gap-2 animate-slide-left origin-top-right w-56',
+                            'shell shell-popover mat-blur rounded-ui-card flex flex-col p-2 gap-2 animate-slide-left origin-top-right w-56 max-w-full',
                             isCompact && 'overflow-y-auto ui-scroll',
                         )}
                         style={isCompact ? { maxHeight: 'calc(100dvh - 5.5rem)' } : undefined}
@@ -80,21 +80,21 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                                         data-testid={`menu-item-${win.id}`}
                                         variant="ghost"
                                         size="sm"
-                                        className="w-full justify-between px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                        className="w-full justify-between gap-2 px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
                                         onClick={() => {
                                             windowActions.toggle(win.id);
                                             setIsOpen(false);
                                         }}
                                     >
-                                        <div className="flex items-center gap-2.5">
-                                            <span className="w-4 h-4 flex items-center justify-center text-fg-muted">
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <span className="w-4 h-4 flex items-center justify-center text-fg-muted shrink-0">
                                                 {win.icon}
                                             </span>
-                                            <span className="font-bold">
+                                            <span className="ui-heading min-w-0 truncate">
                                                 {win.title}
                                             </span>
                                         </div>
-                                        <span className={cn('w-2 h-2', isWinOpen ? MENU_DOT_CLASSES.active : MENU_DOT_CLASSES.inactive)} />
+                                        <span className={cn('w-2 h-2 shrink-0', isWinOpen ? MENU_DOT_CLASSES.active : MENU_DOT_CLASSES.inactive)} />
                                     </Button>
                                 );
                             })}
@@ -108,34 +108,38 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                             <Button
                                 data-testid="menu-item-reset-layout"
                                 variant="ghost"
-                                size="md"
-                                className="w-full justify-start gap-2.5 px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                size="sm"
+                                className="w-full justify-start gap-2.5 px-3 py-1.5 h-auto text-fg-secondary hover:text-fg-primary rounded-ui-control"
                                 onClick={() => {
                                     windowActions.resetLayout();
                                     setIsOpen(false);
                                 }}
                             >
-                                <Icons.Restart className="w-4 h-4 text-fg-muted shrink-0" />
-                                <div className="flex flex-col items-start text-left">
-                                    <span className="font-bold">重設版面</span>
-                                    <span className="font-mono text-ui-num text-fg-muted">清除視窗位置記憶</span>
+                                <span className="w-4 h-4 flex items-center justify-center text-fg-muted shrink-0">
+                                    <Icons.Restart className="w-4 h-4" />
+                                </span>
+                                <div className="flex flex-col items-start text-left min-w-0">
+                                    <span className="font-bold truncate">重設版面</span>
+                                    <span className="font-mono text-ui-num text-fg-muted truncate">清除視窗位置記憶</span>
                                 </div>
                             </Button>
 
                             <Button
                                 data-testid="menu-item-spec"
                                 variant="ghost"
-                                size="md"
-                                className="w-full justify-start gap-2.5 px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                size="sm"
+                                className="w-full justify-start gap-2.5 px-3 py-1.5 h-auto text-fg-secondary hover:text-fg-primary rounded-ui-control"
                                 onClick={() => {
                                     onDownloadSpec();
                                     setIsOpen(false);
                                 }}
                             >
-                                <Icons.Save className="w-4 h-4 text-fg-muted shrink-0" />
-                                <div className="flex flex-col items-start text-left">
-                                    <span className="font-bold">下載架構白皮書</span>
-                                    <span className="font-mono text-ui-num text-fg-muted">白皮書與座標規格</span>
+                                <span className="w-4 h-4 flex items-center justify-center text-fg-muted shrink-0">
+                                    <Icons.Save className="w-4 h-4" />
+                                </span>
+                                <div className="flex flex-col items-start text-left min-w-0">
+                                    <span className="font-bold truncate">下載架構白皮書</span>
+                                    <span className="font-mono text-ui-num text-fg-muted truncate">白皮書與座標規格</span>
                                 </div>
                             </Button>
                         </div>

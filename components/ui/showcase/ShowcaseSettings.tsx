@@ -19,6 +19,7 @@ import {
 } from './showcaseConfigStore';
 import { Icons } from '../icons';
 import {
+    Button,
     Card,
     SectionHeading,
     Segmented,
@@ -64,26 +65,26 @@ const SHOWCASE_TABS: TabItem[] = [
     },
 ];
 
-const LAYOUT_OPTIONS: SegmentedOption[] = [
+const LAYOUT_OPTIONS: { value: LayoutPreset; label: string; testId: string }[] = [
     {
         value: 'CENTER',
-        label: <span data-testid="showcase-layout-center">中央對齊</span>,
-        title: '中央對齊',
+        label: '中央對齊',
+        testId: 'showcase-layout-center',
     },
     {
         value: 'BOTTOM_CENTER',
-        label: <span data-testid="showcase-layout-bottom_center">底部中央</span>,
-        title: '底部中央',
+        label: '底部中央',
+        testId: 'showcase-layout-bottom_center',
     },
     {
         value: 'BOTTOM_LEFT',
-        label: <span data-testid="showcase-layout-bottom_left">左下側</span>,
-        title: '左下側',
+        label: '左下側',
+        testId: 'showcase-layout-bottom_left',
     },
     {
         value: 'BOTTOM_RIGHT',
-        label: <span data-testid="showcase-layout-bottom_right">右下側</span>,
-        title: '右下側',
+        label: '右下側',
+        testId: 'showcase-layout-bottom_right',
     },
 ];
 
@@ -152,7 +153,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = () => {
                 tabs={SHOWCASE_TABS}
                 className="w-full h-full flex flex-col"
             >
-                <TabsContent value="SYSTEM" className="p-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-4">
+                <TabsContent value="SYSTEM" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-4">
                     <Card className="flex flex-col gap-3 p-3">
                         <SettingRow
                             label="展示模式總開關"
@@ -197,17 +198,23 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = () => {
 
                     <Card className="flex flex-col gap-3 p-3">
                         <SectionHeading>展示排版預設</SectionHeading>
-                        <Segmented
-                            ariaLabel="展示排版預設"
-                            value={activeLayout}
-                            onValueChange={(val) => handleLayoutChange(val as LayoutPreset)}
-                            options={LAYOUT_OPTIONS}
-                            className="w-full justify-between"
-                        />
+                        <div className="grid grid-cols-2 gap-2">
+                            {LAYOUT_OPTIONS.map((opt) => (
+                                <Button
+                                    key={opt.value}
+                                    size="sm"
+                                    data-testid={opt.testId}
+                                    data-state={activeLayout === opt.value ? 'on' : undefined}
+                                    onClick={() => handleLayoutChange(opt.value)}
+                                >
+                                    {opt.label}
+                                </Button>
+                            ))}
+                        </div>
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="CAMERA" className="p-4 overflow-y-auto ui-scroll flex-1 min-h-0">
+                <TabsContent value="CAMERA" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0">
                     <SchemaForm
                         fields={DIRECTOR_SETTINGS_SCHEMA}
                         values={directorSettingsValues}
@@ -215,7 +222,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = () => {
                     />
                 </TabsContent>
 
-                <TabsContent value="VISUAL" className="p-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-4">
+                <TabsContent value="VISUAL" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-4">
                     <Card className="flex flex-col gap-3 p-3">
                         <SettingRow label="代碼雨視覺開關">
                             <Switch
@@ -238,44 +245,42 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = () => {
                         />
                     </Card>
 
-                    <Card className="flex flex-col gap-3 p-3">
-                        <SettingRow
-                            label="下墜速度"
-                            description={
-                                <span className="font-mono text-ui-num text-accent">
-                                    {activeConfig.speed.toFixed(1)}
-                                </span>
-                            }
-                        >
-                            <Slider
-                                min={UI_SETTINGS.MATRIX_SPEED.min}
-                                max={UI_SETTINGS.MATRIX_SPEED.max}
-                                step={UI_SETTINGS.MATRIX_SPEED.step}
-                                value={activeConfig.speed}
-                                ariaLabel="下墜速度"
-                                onChange={(val) => updateConfig('speed', val)}
-                                className="w-40"
-                            />
-                        </SettingRow>
+                    <Card className="p-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between gap-1">
+                                    <span className="text-ui-body text-fg-primary">下墜速度</span>
+                                    <span className="font-mono text-ui-num text-accent shrink-0">
+                                        {activeConfig.speed.toFixed(1)}
+                                    </span>
+                                </div>
+                                <Slider
+                                    min={UI_SETTINGS.MATRIX_SPEED.min}
+                                    max={UI_SETTINGS.MATRIX_SPEED.max}
+                                    step={UI_SETTINGS.MATRIX_SPEED.step}
+                                    value={activeConfig.speed}
+                                    ariaLabel="下墜速度"
+                                    onChange={(val) => updateConfig('speed', val)}
+                                />
+                            </div>
 
-                        <SettingRow
-                            label="字流密度"
-                            description={
-                                <span className="font-mono text-ui-num text-accent">
-                                    {activeConfig.streamGap.toFixed(2)}
-                                </span>
-                            }
-                        >
-                            <Slider
-                                min={UI_SETTINGS.MATRIX_GAP.min}
-                                max={UI_SETTINGS.MATRIX_GAP.max}
-                                step={UI_SETTINGS.MATRIX_GAP.step}
-                                value={activeConfig.streamGap}
-                                ariaLabel="字流密度"
-                                onChange={(val) => updateConfig('streamGap', val)}
-                                className="w-40"
-                            />
-                        </SettingRow>
+                            <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between gap-1">
+                                    <span className="text-ui-body text-fg-primary">字流密度</span>
+                                    <span className="font-mono text-ui-num text-accent shrink-0">
+                                        {activeConfig.streamGap.toFixed(2)}
+                                    </span>
+                                </div>
+                                <Slider
+                                    min={UI_SETTINGS.MATRIX_GAP.min}
+                                    max={UI_SETTINGS.MATRIX_GAP.max}
+                                    step={UI_SETTINGS.MATRIX_GAP.step}
+                                    value={activeConfig.streamGap}
+                                    ariaLabel="字流密度"
+                                    onChange={(val) => updateConfig('streamGap', val)}
+                                />
+                            </div>
+                        </div>
                     </Card>
 
                     <Card className="flex flex-col gap-2 p-3">
@@ -289,7 +294,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = () => {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="GAMEPLAY" className="p-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-3">
+                <TabsContent value="GAMEPLAY" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-3">
                     <p className="text-ui-label text-fg-muted">
                         展示模式每局隨機（雙陣營或大逃殺，最多 20 人）。這裡按套用只影響下一局，之後回到隨機；回到手動模式時用你的設定。
                     </p>

@@ -7,6 +7,7 @@ import { UI_Z, UI_PIN, UI_PANEL_PARAM, UI_SETTINGS } from '../../constants';
 import { useCommands, useView } from '../../hooks/useEnginePort';
 import { selectL1PlaybackView } from '../../engine/systems/ui/views/l1';
 import { Button, IconButton, Slider } from './primitives';
+import { cn } from './primitives/cn';
 
 interface PlaybackHUDProps {
     hidden: boolean;
@@ -48,15 +49,19 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
         >
             <div
                 data-testid="playback-hud"
-                className={`shell shell-hud mat-blur rounded-ui-pill p-2 flex items-center select-none cursor-grab active:cursor-grabbing ${
-                    isCompact ? 'pr-3 gap-2' : 'pr-5 gap-3'
-                } ${isDragging ? 'cursor-grabbing scale-105' : ''}`}
+                className={cn(
+                    'shell shell-hud mat-blur select-none cursor-grab active:cursor-grabbing',
+                    isCompact
+                        ? 'rounded-ui-card p-2 flex flex-wrap items-center justify-between gap-2 w-72 max-w-full'
+                        : 'rounded-ui-pill p-2 flex items-center pr-5 gap-3',
+                    isDragging && 'cursor-grabbing scale-105',
+                )}
             >
                 <Button
                     data-testid="playback-play-btn"
                     variant={isPlaying ? 'secondary' : 'primary'}
                     size="sm"
-                    className="rounded-ui-pill font-bold"
+                    className="rounded-ui-pill font-bold shrink-0 order-1"
                     onClick={(e) => {
                         e.stopPropagation();
                         onTogglePlay();
@@ -69,7 +74,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                     <span>{isPlaying ? '暫停' : '開始'}</span>
                 </Button>
 
-                <div className={`flex gap-1.5 ${isCompact ? 'flex-row' : 'flex-col'}`}>
+                <div className={cn('flex gap-1.5 shrink-0 order-1', isCompact ? 'flex-row' : 'flex-col')}>
                     <IconButton
                         label="重新開始"
                         size="sm"
@@ -98,9 +103,12 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                     </IconButton>
                 </div>
 
-                <div className={`h-6 w-px bg-line-subtle/20 ${isCompact ? '' : 'mx-1'}`} />
+                <div className={`h-6 w-px bg-line-subtle/20 ${isCompact ? 'hidden' : 'mx-1'}`} />
 
-                <div className={`flex flex-col ${isCompact ? 'w-24' : 'w-32'} gap-1`} onPointerDown={(e) => e.stopPropagation()}>
+                <div
+                    className={cn('flex flex-col gap-1', isCompact ? 'w-full order-2' : 'w-32')}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
                     <div className="flex justify-between items-center px-1">
                         <span className="font-mono text-ui-num text-fg-muted uppercase tracking-wider">速度</span>
                         <span className="font-mono text-ui-num text-fg-primary font-bold">
@@ -117,13 +125,13 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                     />
                 </div>
 
-                <div className={`h-6 w-px bg-line-subtle/20 ${isCompact ? '' : 'mx-1'}`} />
+                <div className={`h-6 w-px bg-line-subtle/20 ${isCompact ? 'hidden' : 'mx-1'}`} />
 
                 <IconButton
                     label="進入展示模式 (Showcase)"
                     size="sm"
                     variant="ghost"
-                    className="rounded-ui-pill"
+                    className="rounded-ui-pill shrink-0 order-1"
                     onClick={(e) => {
                         e.stopPropagation();
                         onShowcase();
