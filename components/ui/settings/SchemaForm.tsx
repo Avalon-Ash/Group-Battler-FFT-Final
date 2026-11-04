@@ -1,6 +1,7 @@
 import React from 'react';
 import { SettingField, ToggleSettingField, SliderSettingField } from '../../../data/ui/settingsSchema';
 import { UICommand } from '../../../types';
+import { Button, SectionHeading, SettingRow, Slider, Switch } from '../primitives';
 
 export interface SchemaFormProps {
     fields: SettingField[];
@@ -13,7 +14,7 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
     fields,
     values,
     onChange,
-    className = 'space-y-5',
+    className = 'flex flex-col gap-4',
 }) => {
     return (
         <div className={className}>
@@ -21,14 +22,12 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                 const val = values[field.id];
                 if (field.kind === 'heading') {
                     return (
-                        <div
+                        <SectionHeading
                             key={field.id}
                             data-testid={`setting-heading-${field.id}`}
-                            className="pt-2 first:pt-0 pb-1 border-b border-white/10 text-[11px] font-black uppercase tracking-widest"
-                            style={{ color: 'var(--token-literal-cyan400)' }}
                         >
                             {field.label}
-                        </div>
+                        </SectionHeading>
                     );
                 }
 
@@ -36,33 +35,18 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                     const toggleField = field as ToggleSettingField;
                     const checked = Boolean(val ?? false);
                     return (
-                        <div
+                        <SettingRow
                             key={field.id}
-                            className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5"
+                            label={field.label}
+                            description={field.description}
                         >
-                            <span className="text-[10px] font-bold text-white/60 uppercase">
-                                {field.label}
-                            </span>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={checked}
-                                    data-testid={`setting-toggle-${field.id}`}
-                                    onChange={(e) => onChange(toggleField.createCommand(e.target.checked))}
-                                />
-                                <div
-                                    className={`w-9 h-5 rounded-full transition-colors relative after:content-[''] after:absolute after:top-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${
-                                        checked
-                                            ? 'after:translate-x-4 after:left-[4px]'
-                                            : 'after:left-[2px]'
-                                    }`}
-                                    style={{
-                                        backgroundColor: checked ? 'var(--token-literal-cyan500)' : 'var(--token-literal-slate700)',
-                                    }}
-                                />
-                            </label>
-                        </div>
+                            <Switch
+                                checked={checked}
+                                ariaLabel={field.label}
+                                inputTestId={`setting-toggle-${field.id}`}
+                                onChange={(next) => onChange(toggleField.createCommand(next))}
+                            />
+                        </SettingRow>
                     );
                 }
 
@@ -78,48 +62,43 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                         : String(numVal);
 
                     return (
-                        <div key={field.id} className="space-y-1.5">
-                            <div className="flex justify-between text-[10px] text-white/50 font-bold uppercase tracking-wider">
-                                <span>{field.label}</span>
-                                <span className="font-mono" style={{ color: 'var(--token-literal-cyan400)' }}>
+                        <SettingRow
+                            key={field.id}
+                            label={field.label}
+                            description={field.description}
+                        >
+                            <div className="flex items-center gap-2 w-48 max-w-full">
+                                <Slider
+                                    min={sliderField.min}
+                                    max={dynamicMax}
+                                    step={sliderField.step}
+                                    value={numVal}
+                                    ariaLabel={field.label}
+                                    inputTestId={`setting-slider-${field.id}`}
+                                    onChange={(parsed) => onChange(sliderField.createCommand(parsed))}
+                                />
+                                <span className="w-12 text-right font-mono text-ui-num text-fg-secondary shrink-0">
                                     {displayVal}
                                 </span>
                             </div>
-                            <input
-                                type="range"
-                                min={sliderField.min}
-                                max={dynamicMax}
-                                step={sliderField.step}
-                                value={numVal}
-                                data-testid={`setting-slider-${field.id}`}
-                                onChange={(e) => {
-                                    const parsed =
-                                        sliderField.step < 1
-                                            ? parseFloat(e.target.value)
-                                            : parseInt(e.target.value, 10);
-                                    onChange(sliderField.createCommand(parsed));
-                                }}
-                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-cyan-500"
-                                style={{ backgroundColor: 'var(--token-literal-slate700)' }}
-                            />
-                        </div>
+                        </SettingRow>
                     );
                 }
 
                 if (field.kind === 'action') {
                     return (
-                        <div key={field.id} className="space-y-1">
-                            <button
-                                type="button"
+                        <div key={field.id} className="flex flex-col gap-1">
+                            <Button
+                                variant="primary"
+                                title={field.label}
                                 data-testid={`setting-action-${field.id}`}
                                 onClick={() => onChange(field.createCommand())}
-                                className="w-full py-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-[11px] font-bold tracking-wider transition-colors active:scale-[0.98]"
-                                style={{ color: 'var(--token-literal-cyan400)' }}
+                                className="w-full"
                             >
                                 {field.label}
-                            </button>
+                            </Button>
                             {field.description && (
-                                <p className="text-[10px] text-white/40 text-center">{field.description}</p>
+                                <p className="text-center text-ui-label text-fg-muted">{field.description}</p>
                             )}
                         </div>
                     );

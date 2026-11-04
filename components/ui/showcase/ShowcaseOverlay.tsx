@@ -1,20 +1,19 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useMatrixRain } from './useMatrixRain';
 import { Icons } from '../icons';
-import { GameEngine } from '../../../engine/game';
 import { UI_Z, UI_PANEL_PARAM, ROYALE_RULES } from '../../../constants';
 import type { BattleSetup } from '../../../types';
 import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { useWindowStore } from '../../../hooks/useWindowStore';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
-import { formatRgba } from '../../../data/ui/tokens';
+import { Button, Tag } from '../primitives';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
     /** 場上這一局的陣營設定：標題卡依它標示雙陣營或大逃殺 */
     battleSetup?: BattleSetup;
-    engine?: GameEngine; 
+    engine?: unknown; 
     showDirectorMonitor?: boolean;
     setShowDirectorMonitor?: (v: boolean) => void;
 }
@@ -50,35 +49,38 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
             case 'CENTER': 
                 return 'inset-0 flex-col justify-center items-center text-center p-4 md:p-8';
             case 'BOTTOM_CENTER': 
-                return 'bottom-12 left-0 right-0 mx-auto w-full max-w-[calc(100vw-4rem)] md:max-w-5xl flex-col md:flex-row justify-between items-center';
+                return 'bottom-12 left-0 right-0 mx-auto w-full flex-col md:flex-row justify-between items-center';
             case 'BOTTOM_LEFT': 
-                return 'bottom-10 left-6 w-[min(320px,90vw)] md:w-[400px] flex-col justify-end items-start';
+                return 'bottom-10 left-6 flex-col justify-end items-start';
             case 'BOTTOM_RIGHT': 
-                return 'bottom-10 right-6 w-[min(320px,90vw)] md:w-[400px] flex-col justify-end items-end text-right';
+                return 'bottom-10 right-6 flex-col justify-end items-end text-right';
             default: 
                 return 'inset-0 justify-center items-center';
         }
+    };
+
+    const getLayoutStyle = (): React.CSSProperties => {
+        if (layout === 'BOTTOM_LEFT' || layout === 'BOTTOM_RIGHT') {
+            return { width: 'min(400px, 90vw)' };
+        }
+        if (layout === 'BOTTOM_CENTER') {
+            return { maxWidth: 'min(1024px, calc(100vw - 4rem))' };
+        }
+        return {};
     };
     
     const isCompact = layout !== 'CENTER';
     const isWideBar = layout === 'BOTTOM_CENTER';
 
-    const getRgbaBg = (hex: string, alpha: number) => {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        if (!result) return formatRgba(0, 0, 0, alpha);
-        const r = parseInt(result[1], 16);
-        const g = parseInt(result[2], 16);
-        const b = parseInt(result[3], 16);
-        return formatRgba(r, g, b, alpha);
-    };
-
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: UI_Z.SHOWCASE }}>
-            
             <div 
-                className="absolute inset-0 transition-colors duration-300"
-                style={{ backgroundColor: getRgbaBg(config.bgColor, config.enabled ? config.bgOpacity : 0) }}
-            ></div>
+                className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
+                style={{
+                    backgroundColor: config.bgColor,
+                    opacity: config.enabled ? config.bgOpacity : 0,
+                }}
+            />
 
             <canvas 
                 ref={canvasRef} 
@@ -87,42 +89,61 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
 
             {config.enabled && config.bgOpacity > UI_PANEL_PARAM.SHOWCASE_BG_MIN_OPACITY && (
                 <>
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwIiAvPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxIiBmaWxsPSJyZ2JhKDI1NSwgMjU1LDI1NSwgMC4wNSkiIC8+Cjwvc3ZnPg==')] opacity-30 pointer-events-none"></div>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_90%)] pointer-events-none"></div>
+                    <div
+                        className="absolute inset-0 opacity-30 pointer-events-none"
+                        style={{
+                            backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwIiAvPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxIiBmaWxsPSJyZ2JhKDI1NSwgMjU1LDI1NSwgMC4wNSkiIC8+Cjwvc3ZnPg==')",
+                        }}
+                    />
+                    <div
+                        className="absolute inset-0 opacity-40 pointer-events-none"
+                        style={{
+                            backgroundImage: 'radial-gradient(circle at center, transparent 0%, black 90%)',
+                        }}
+                    />
                 </>
             )}
 
-            <div className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`} style={{ zIndex: UI_Z.SHOWCASE_CARD }}>
-                
-                <div data-testid="showcase-card" className={`p-8 md:p-10 pointer-events-none flex max-w-full transition-opacity duration-300 ${isSettingsOpen && isCompactViewport ? 'opacity-0 invisible' : ''} ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
-                    
+            <div
+                className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`}
+                style={{ zIndex: UI_Z.SHOWCASE_CARD, ...getLayoutStyle() }}
+            >
+                <div
+                    data-testid="showcase-card"
+                    className={`shell shell-hud mat-blur rounded-ui-window p-8 md:p-10 pointer-events-none flex max-w-full transition-opacity duration-300 ${
+                        isSettingsOpen && isCompactViewport ? 'opacity-0 invisible' : ''
+                    } ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}
+                >
                     <div className={`relative flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left flex-1' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}>
-                        
-                        <div data-testid="showcase-mode-tag" className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-mono tracking-widest mb-4 ${isRoyale ? 'bg-rose-950/40 border-rose-500/40 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isRoyale ? 'bg-rose-400' : 'bg-cyan-400'}`}></span>
+                        <Tag
+                            data-testid="showcase-mode-tag"
+                            tone={isRoyale ? 'danger' : 'accent'}
+                            className="mb-4 gap-2"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-ui-pill animate-pulse bg-current" />
                             <span>{modeLabel}</span>
-                        </div>
+                        </Tag>
 
-                        <h1 className={`font-black text-transparent bg-clip-text bg-gradient-to-b font-mono tracking-tighter ${isRoyale ? 'from-white via-rose-100 to-rose-500 drop-shadow-[0_0_30px_rgba(244,63,94,0.5)]' : 'from-white via-cyan-100 to-cyan-500 drop-shadow-[0_0_30px_rgba(6,182,212,0.5)]'} ${isCompact ? 'text-5xl' : 'text-7xl md:text-8xl'}`}>
+                        <h1 className="ui-heading text-ui-hero font-black tracking-tighter text-fg-primary">
                             TACTICAL.OS
                         </h1>
                         
-                        <div className="text-slate-400 font-mono text-xs tracking-[0.4em] uppercase mt-3 opacity-80 mix-blend-plus-lighter">
+                        <div className="ui-heading text-ui-label text-fg-muted tracking-widest mt-2">
                             SSOT CORE ONLINE
                         </div>
                     </div>
 
                     <div className={`relative shrink-0 pointer-events-auto ${isCompact && !isWideBar ? 'w-full' : ''}`}>
-                        <button 
+                        <Button
+                            variant="primary"
                             data-testid="showcase-enter-btn"
                             onClick={onEnter}
-                            className={`group liquid-btn-primary rounded-2xl overflow-hidden transition-all duration-300 ${isWideBar ? 'px-16 py-6 w-full md:w-auto text-xl' : 'w-full px-12 py-5 text-lg'} shadow-[0_0_30px_rgba(6,182,212,0.2)]`}
+                            title="START SIMULATION"
+                            className={`group text-ui-title ${isWideBar ? 'px-12 py-4 w-full md:w-auto' : 'w-full px-8 py-4'}`}
                         >
-                            <span className="relative flex items-center justify-center gap-4 z-10">
-                                <span className="whitespace-nowrap">START SIMULATION</span>
-                                <Icons.Play className="w-5 h-5 fill-current group-hover:translate-x-1 transition-transform" />
-                            </span>
-                        </button>
+                            <span className="whitespace-nowrap">START SIMULATION</span>
+                            <Icons.Play className="w-5 h-5 fill-current group-hover:translate-x-1 transition-transform" />
+                        </Button>
                     </div>
                 </div>
             </div>
