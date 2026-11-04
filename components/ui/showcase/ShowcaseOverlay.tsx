@@ -73,6 +73,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
     const isWideBar = layout === 'BOTTOM_CENTER';
 
     return (
+        <>
         <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: UI_Z.SHOWCASE }}>
             <div 
                 className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
@@ -104,6 +105,10 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
                 </>
             )}
 
+
+            {/* 展示設定只從右上角系統選單開（showcaseSettings visibleInShowcase）；左上舊的齒輪入口 2026-10-19 移除 */}
+        </div>
+        {/* 主卡在代碼雨的群組外：代碼雨的 mix-blend 會把群組隔離，裡面的 backdrop-filter 看不到戰場 */}
             <div
                 className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`}
                 style={{ zIndex: UI_Z.SHOWCASE_CARD, ...getLayoutStyle() }}
@@ -147,7 +152,6 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
                     </div>
                 </div>
             </div>
-            {/* 展示設定只從右上角系統選單開（showcaseSettings visibleInShowcase）；左上舊的齒輪入口 2026-10-19 移除 */}
-        </div>
+        </>
     );
 };

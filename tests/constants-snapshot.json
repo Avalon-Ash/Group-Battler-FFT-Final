@@ -1816,7 +1816,7 @@
   },
   "UI_Z": {
     "SHOWCASE": 20,
-    "SHOWCASE_CARD": 1,
+    "SHOWCASE_CARD": 21,
     "HUD": 30,
     "WINDOW_BASE": 40,
     "WINDOW_MAX": 89,

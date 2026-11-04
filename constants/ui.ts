@@ -39,8 +39,8 @@ export const UI_WINDOW = {
 export const UI_Z = {
     /** 展示模式標題卡與背景：在視窗層之下，展示模式開的設定／音訊等視窗才不會被標題卡蓋住 */
     SHOWCASE: 20,
-    /** 標題卡在展示背景內部的相對層級 */
-    SHOWCASE_CARD: 1,
+    /** 展示主卡：在展示背景之上、HUD 之下 */
+    SHOWCASE_CARD: 21,
     /** 工具列、播放 HUD：一般視窗會蓋過它們 */
     HUD: 30,
     /** 一般視窗的層級範圍；超過 WINDOW_MAX 時 windowStore 會重新編號 */
