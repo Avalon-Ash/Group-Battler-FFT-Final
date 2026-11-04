@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/game';
 import { Team, Role } from '../types';
-import type { Skill } from '../types';
+import type { Skill, SkillStatus } from '../types';
 import { CCManager } from '../engine/systems/combat/CCManager';
 import { ControlSystem } from '../engine/systems/status/ControlSystem';
 import { COMBAT_PARAM } from '../constants';
@@ -34,7 +34,7 @@ describe('CC diminishing returns (WoW style)', () => {
         engine.clear();
     });
 
-    const apply = (type: Skill['ccType'], dur: number) => CCManager.applyCC(caster, target, {} as Skill, type, dur, undefined, undefined, engine);
+    const apply = (type: SkillStatus, dur: number) => CCManager.applyCC(caster, target, {} as Skill, type, dur, undefined, undefined, engine);
     const tick = (seconds: number, step = 0.1) => {
         for (let t = 0; t < seconds - 1e-9; t += step) control.update(target, step, engine);
     };

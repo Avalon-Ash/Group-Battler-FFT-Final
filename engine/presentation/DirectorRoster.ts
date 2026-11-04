@@ -26,7 +26,7 @@ function instantScore(a: Agent): number {
     if (a.castingSkillIdx !== -1) {
         const tag = a.skills[a.castingSkillIdx]?.tag;
         score += tag === 'ULT' ? DIRECTOR_PARAM.ULT_SCORE
-            : tag === 'ACTIVE' ? DIRECTOR_PARAM.ACTIVE_SCORE
+            : tag === 'ACTIVE' || tag === 'MOBILITY' ? DIRECTOR_PARAM.ACTIVE_SCORE
             : DIRECTOR_PARAM.BASIC_SCORE;
     }
     if (a.view.hitFlashTimer > 0) score += DIRECTOR_PARAM.HIT_SCORE;

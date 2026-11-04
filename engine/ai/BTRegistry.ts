@@ -4,7 +4,10 @@ import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types"
 import { HexUtils } from "../utils";
 import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
-import { isIncapacitated } from "../core/Effects";
+import { isActionBlocked, isIncapacitated } from "../core/Effects";
+import { activationBlock } from "../systems/combat/SkillStateMachine";
+import { hasIntentIn } from "../core/SkillQueries";
+import type { SkillIntent } from "../../types";
 import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
 import { canStepUp } from "../math/ClimbRule";
@@ -91,6 +94,12 @@ function bestAdvanceCell(a: Agent, engine: GameEngine): Hex | null {
     return best;
 }
 
+const PUSH_PULL: ReadonlySet<SkillIntent> = new Set<SkillIntent>(['HOOK', 'PEEL']);
+
+function isThreat(a: Agent, e: Agent, within: number): boolean {
+    return !sameSide(e, a) && e.hp > 0 && !e.banished && !e.outOfBounds && HexUtils.dist(a, e) <= within;
+}
+
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
@@ -100,10 +109,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsFeared": (a) => a.effects.FEAR.remaining > 0, 
     // 能否自行移動：被定身（root）／暈眩／放逐／恐懼時，任何「移動」節點都必須失敗，
     // 否則 Survival 的 Run! 會永遠 RUNNING，單位被釘在原地卻也不出手（大逃殺發呆成因 B，tests/AIIdlePriority.test.ts）。
-    "CanMove": (a) => a.effects.ROOT.remaining <= 0 && !isIncapacitated(a) && !a.banished && a.effects.FEAR.remaining <= 0,
+    "CanMove": (a) => !isActionBlocked(a, 'MOVE') && !isActionBlocked(a, 'CAST'),
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
-    "IsControlled": (a) => isIncapacitated(a) || a.effects.BANISH.remaining > 0 || a.effects.FEAR.remaining > 0,
+    "IsControlled": (a) => isActionBlocked(a, 'CAST'),
     // 最後一格落定才進 FINALE；最後一圈倒數時照原來的判斷逃、搶格子
     "IsLastStand": (_, engine) => engine.isFinalTileOnly,
     // 腳下有敵方 hazard、已經出界：馬上走。只是站在警告格上：算好時間，趕得及就先打。最後一格落定後不逃。
@@ -223,22 +232,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (idx === undefined || idx < 0 || idx >= a.skills.length) return false;
         const s = a.skills[idx];
         if (!s) return false;
-        
-        // 正在詠唱其他技能：整條 skill branch 失敗
-        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return false;
-        
-        let cd = a.curCDs[idx];
-        if (isNaN(cd) || cd < 0) cd = 0;
-
-        // Increase tolerance slightly for non-basic to avoid frame-edge race conditions
-        const tolerance = (s.tag === 'BASIC') ? COMBAT_PARAM.BASIC_CD_TOLERANCE : COMBAT_PARAM.SKILL_CD_TOLERANCE;
-        const isOnCD = cd > tolerance; 
-        
-        if (isOnCD || a.mp < s.cost) return false;
-        if (a._castCompleteCooldown > 0) return false;
-        if (a._interruptCooldown > 0) return false;
-        if (isIncapacitated(a) || a.banished || a.effects.FEAR.remaining > 0) return false;
-        if (a.effects.SILENCE.remaining > 0 && s.tag !== 'BASIC') return false;
+        if (activationBlock(a, idx)) return false;
         
         // 施法期間走不了：詠唱完還要趕得及逃才出手。被釘住（逃不掉）時不套用，原地出手勝過乾站到塌陷（成因 C）。
         if (engine.isWarningTile(HexUtils.key(a)) && !BTConditions["IsPinned"](a, engine, {})) {
@@ -248,6 +242,21 @@ export const BTConditions: Record<string, BTConditionFn> = {
         return true;
     },
     
+    "ActivationMet": (a, engine, args) => {
+        const s = a.skills[args.slot];
+        if (!s) return false;
+        const need = s.activation;
+        if (!need) return true;
+        if (need.targetBeyond !== undefined) {
+            if (!a.target || a.target.hp <= 0) return false;
+            const dist = HexUtils.dist(a, a.target);
+            if (dist <= need.targetBeyond) return false;
+            if (dist > engine.getEffectiveRange(a, a.target.q, a.target.r, s.range) + COMBAT_PARAM.RANGE_TOLERANCE) return false;
+        }
+        if (need.enemyWithin !== undefined && !engine.agents.some((e) => isThreat(a, e, need.enemyWithin as number))) return false;
+        return true;
+    },
+
     "FindOptimalTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
@@ -329,8 +338,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
             const currentSkill = a.skills[a.castingSkillIdx];
             if (currentSkill && currentSkill.tag !== 'BASIC') {
                 // 檢查是否當前正在詠唱的就是推拉技能，如果是，則視為 Ready 以維持 BT 狀態
-                const isPushPull = currentSkill.ccType === 'KNOCKBACK' || currentSkill.ccType === 'PULL' || 
-                                 currentSkill.ccType2 === 'KNOCKBACK' || currentSkill.ccType2 === 'PULL';
+                const isPushPull = hasIntentIn(currentSkill, PUSH_PULL);
                 return isPushPull;
             }
         }
@@ -338,7 +346,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // 檢查是否有推拉技能可用於背水一戰
         return a.skills.some((s, idx) => {
             if (!s) return false;
-            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
+            const isPushPull = hasIntentIn(s, PUSH_PULL);
             if (!isPushPull) return false;
             
             let cd = a.curCDs[idx];
@@ -788,7 +796,7 @@ export const BTActions: Record<string, BTActionFn> = {
         // 尋找第一個可用的推拉技能
         const idx = a.skills.findIndex((s, i) => {
             if (!s) return false;
-            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
+            const isPushPull = hasIntentIn(s, PUSH_PULL);
             if (!isPushPull) return false;
             let cd = a.curCDs[i];
             if (isNaN(cd) || cd < 0) cd = 0;

@@ -21,6 +21,8 @@ import { HexUtils } from '../engine/utils';
 import { ULT_VISUALS } from '../data/vfx/ult_visuals';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { STATUS_VISUALS } from '../data/vfx/status_visuals';
+import { flatSkill } from './helpers/flatSkill';
+import { readFlatFields, type FlatSkillFields } from '../data/skills/flatView';
 
 const HP = 5000;
 
@@ -57,7 +59,7 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
         hits: { count: 4, interval: 0.5 },
     };
 
-    const aoeSkill = (extra: Partial<Skill> = {}): Skill => ({
+    const aoeSkill = (extra: Partial<Skill> & FlatSkillFields = {}): Skill => flatSkill<Skill>({
         ...baseSkill, type: 'AOE', range: 0, aoeRadius: 1, ...extra,
     });
 
@@ -158,7 +160,7 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
             const caster = spawn(Team.BLUE, 0, 0);
             const enemy = spawn(Team.RED, 1, 0);
             caster.target = enemy;
-            const skill: Skill = { ...baseSkill, ccType: 'STUN', ccDur: 2 };
+            const skill: Skill = flatSkill<Skill>({ ...baseSkill, ccType: 'STUN', ccDur: 2 });
 
             executor.executeInstantSkill(caster, skill, engine);
             advanceTo(2);
@@ -188,7 +190,7 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
             let i = 0;
             setRandomSource(() => rolls[Math.min(i++, rolls.length - 1)]);
 
-            executor.executeInstantSkill(caster, { ...baseSkill, ccType: 'STUN', ccDur: 2 }, engine);
+            executor.executeInstantSkill(caster, flatSkill<Skill>({ ...baseSkill, ccType: 'STUN', ccDur: 2 }), engine);
             expect(enemy.effects.STUN.remaining).toBe(0);
             advanceTo(0.5);
             expect(enemy.effects.STUN.remaining).toBe(2);
@@ -196,11 +198,11 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
             expect(enemy.drStacks.stun).toBe(1);
         });
 
-        it('位移每段都套（拉向中心，一段一格；戰士 weight 5，力道 5 = 1 格），SLOW 每段刷新', () => {
+        it('位移每段都套（拉向中心，一段一格；戰士 weight 1，力道 2 = 1 格），SLOW 每段刷新', () => {
             const caster = spawn(Team.BLUE, 0, 0);
             const enemy = spawn(Team.RED, 3, 0);
             const skill = aoeSkill({
-                aoeRadius: 3, power: 90, ccType: 'PULL', ccForce: 5, ccType2: 'SLOW', ccForce2: 0.65, ccDur2: 0.3,
+                aoeRadius: 3, power: 90, ccType: 'PULL', ccForce: 2, ccType2: 'SLOW', ccForce2: 0.65, ccDur2: 0.3,
                 hits: { count: 3, interval: 0.2 },
             });
             const dist = () => HexUtils.dist(enemy, { q: 0, r: 0 });
@@ -366,8 +368,8 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
             }
             const hole = DEFAULT_SKILL_DB.find(s => s.id === 'mb_u1')!;
             expect(hole.hits).toBeDefined();
-            expect(hole.ccType2).toBe('SLOW');
-            expect(hole.ccDur2!).toBeGreaterThan(hole.hits!.interval);
+            expect(readFlatFields(hole).ccType2).toBe('SLOW');
+            expect(readFlatFields(hole).ccDur2!).toBeGreaterThan(hole.hits!.interval);
         });
     });
 });

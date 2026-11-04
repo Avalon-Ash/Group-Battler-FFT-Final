@@ -11,6 +11,7 @@
 
 import { Role, Team, AIState, ActionState, Skill } from '../../types';
 import { getFactionSkin } from '../../data/units/factionSkin';
+import { SKILL_HAZARD_KIND_OPTIONS, type SkillEditableField } from '../../data/ui/skillEditor';
 import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
 import { PROJECTILE_VISUALS } from '../../data/vfx/projectile_visuals';
 
@@ -38,6 +39,7 @@ const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
 export const TAG_MAP: Record<string, { label: string; color: string }> = {
     'ULT':    { label: '奧義大絕', color: 'text-purple-400' },
     'ACTIVE': { label: '戰術主動', color: 'text-cyan-400' },
+    'MOBILITY': { label: '機動', color: 'text-emerald-400' },
     'BASIC':  { label: '基礎普攻', color: 'text-slate-400' }
 };
 
@@ -135,7 +137,7 @@ const PROJECTILE_EFFECT_OPTIONS = ['NONE', ...Object.keys(PROJECTILE_VISUALS).so
 
 /** 技能編輯欄位定義（SkillDbTab 依此動態產生表單）。key 必須在 data/ui/skillEditor.ts SKILL_EDITABLE_FIELDS 內（UPDATE_SKILL 只收這些）。 */
 interface SkillFieldDef {
-  key: keyof Skill;
+  key: SkillEditableField;
   label: string;
   type: 'text' | 'number' | 'select' | 'color' | 'textarea';
   step?: number;
@@ -197,6 +199,8 @@ export const SKILL_FIELD_GROUPS: SkillFieldGroup[] = [
       { key: 'effectVal', label: '數值 1', type: 'number' },
       { key: 'effectType2', label: '附加效果 2', type: 'select', options: EFFECT_OPTIONS_MAP },
       { key: 'effectVal2', label: '數值 2', type: 'number' },
+      { key: 'hazardKind', label: '危害區類型', type: 'select', simpleOptions: [...SKILL_HAZARD_KIND_OPTIONS] },
+      { key: 'hazardDur', label: '危害區時間 (秒)', type: 'number', step: 0.1 },
     ]
   }
 ];

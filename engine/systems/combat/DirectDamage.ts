@@ -28,6 +28,11 @@ export function absorbWithShield(agent: Agent, amount: number): number {
  * 傷害（預設先扣護盾，再扣 HP；HP 下限為 0）。環境 / 狀態類傷害（墜落、地面危害、DoT）與技能傷害共用。
  * bypassShield = true 為真實傷害（例：墜落傷害；技能傷害的護盾已在 DamageCalculator 扣過）。
  */
+/** 擊破護盾：清空目標身上的所有護盾。BREAK_SHIELD 動作專用。 */
+export function breakShield(agent: Agent): void {
+    agent.shield = 0;
+}
+
 export function applyDirectDamage(agent: Agent, amount: number, bypassShield: boolean = false, sourceId: string | null = null, channel: DamageChannel = 'DIRECT'): DirectDamageResult {
     // 無敵擋持續傷害、危害區和撞擊；真實傷害（墜落、反噬、已結算的技能傷害）照扣
     if (!bypassShield && agent.effects.INVINCIBLE.remaining > 0) return { absorbed: 0, dealt: 0, channel };

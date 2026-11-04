@@ -9,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GameEngine, type Agent } from '../engine/game';
 import { CCManager } from '../engine/systems/combat/CCManager';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
+import { runCastActions } from '../engine/systems/combat/SkillActions';
+import { hexEventPos } from '../engine/events/EventPos';
 import { HexUtils } from '../engine/utils';
 import { resetRandomSource, setRandomSource } from '../engine/math/rng';
 import { DAMAGE_RULES } from '../constants';
@@ -16,18 +18,20 @@ import { EFFECT_DEFS } from '../data/status/effect_defs';
 import { ultImpactDelay } from '../data/vfx/ult_visuals';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { MovementType, Role, Team } from '../types';
-import type { Skill } from '../types';
+import type { Skill, SkillStatus, SpatialHazard } from '../types';
+import { flatSkill } from './helpers/flatSkill';
+import { readFlatFields, type FlatSkillFields } from '../data/skills/flatView';
 
 const TICK = 1 / 30;
 const HP = 100000;
 
-type SkillOver = Partial<Skill> & { id: string; tag: Skill['tag'] };
+type SkillOver = Partial<Skill> & FlatSkillFields & { id: string; tag: Skill['tag'] };
 
 function makeSkill(over: SkillOver): Skill {
-    return {
+    return flatSkill<Skill>({
         role: Role.WARRIOR, name: over.id, range: 1, cast: 0.2, cd: 1, cost: 0, gain: 0,
         type: 'SINGLE', power: 100, color: '#ffffff', visual: 'SLASH', projectileSpeed: 0, ...over,
-    } as Skill;
+    });
 }
 
 const BASIC = makeSkill({ id: 'c_basic', tag: 'BASIC', power: 10, cd: 0.5 });
@@ -61,7 +65,7 @@ function arena() {
         }
         return { casting, moved, dist: HexUtils.dist(startHex, a) };
     };
-    const cc = (source: Agent, target: Agent, type: string, dur: number, force?: number, over: Partial<Skill> = {}) =>
+    const cc = (source: Agent, target: Agent, type: string, dur: number, force?: number, over: Partial<Skill> & FlatSkillFields = {}) =>
         CCManager.applyCC(source, target, makeSkill({ id: 'c_cc', tag: 'ACTIVE', ...over }), type, dur, force, undefined, engine);
     return { engine, spawn, dummy, start, run, cc, exec: new SkillExecutor() };
 }
@@ -147,7 +151,7 @@ describe('控制效果：單位真的不能做那件事', () => {
 });
 
 describe('增減益：數值真的有變', () => {
-    const damageTo = (setup?: (w: ReturnType<typeof arena>, a: Agent, b: Agent) => void, skill: Partial<Skill> = {}) => {
+    const damageTo = (setup?: (w: ReturnType<typeof arena>, a: Agent, b: Agent) => void, skill: Partial<Skill> & FlatSkillFields = {}) => {
         const w = arena();
         const a = w.spawn(Team.BLUE, 0);
         const b = w.dummy(Team.RED, 1);
@@ -176,7 +180,7 @@ describe('增減益：數值真的有變', () => {
         w.start();
         w.cc(b, b, 'INVINCIBLE', 4);
         w.cc(a, b, 'DOT', 3, 100);
-        w.exec.executeInstantSkill(a, makeSkill({ id: 'x', tag: 'ACTIVE', range: 9, type: 'AOE', aoeRadius: 1, power: 500, element: 'FIRE' }), w.engine, { center: { q: b.q, r: b.r }, target: b });
+        w.exec.executeInstantSkill(a, makeSkill({ id: 'x', tag: 'ACTIVE', range: 9, type: 'AOE', aoeRadius: 1, power: 500, element: 'FIRE', hazardKind: 'FIRE', hazardDur: 2 }), w.engine, { center: { q: b.q, r: b.r }, target: b });
         const before = b.hp;
         w.run(b, 2);
         expect(before - b.hp).toBe(0);
@@ -251,13 +255,13 @@ describe('位移：格子真的有換', () => {
         const b = w.dummy(Team.RED, 4);
         w.start();
         a.target = b;
-        w.exec.executeInstantSkill(a, makeSkill({ id: 'x', tag: 'ACTIVE', range: 6, effectType: 'DASH' }), w.engine);
+        runCastActions(a, makeSkill({ id: 'x', tag: 'ACTIVE', range: 6, effectType: 'DASH' }), { q: 4, r: 0 }, hexEventPos(4, 0, w.engine), w.engine);
         expect(HexUtils.dist(a, b)).toBe(1);
     });
 });
 
 describe('技能附帶效果', () => {
-    const hit = (skill: Partial<Skill>, setup?: (a: Agent, b: Agent) => void) => {
+    const hit = (skill: Partial<Skill> & FlatSkillFields, setup?: (a: Agent, b: Agent) => void) => {
         const w = arena();
         const a = w.spawn(Team.BLUE, 0);
         const b = w.dummy(Team.RED, 1);
@@ -307,7 +311,7 @@ describe('技能附帶效果', () => {
 });
 
 describe('地面危害', () => {
-    const fieldAt = (type: Partial<Skill>, role = Role.WARRIOR) => {
+    const fieldAt = (type: Partial<Skill> & FlatSkillFields, role = Role.WARRIOR) => {
         const w = arena();
         const a = w.dummy(Team.BLUE, 0);
         const b = w.spawn(Team.RED, 3, 0, role, [null, null, null]);
@@ -321,15 +325,20 @@ describe('地面危害', () => {
         return { direct, periodic: before - b.hp - direct, hazards: w.engine.state.spatialHazards.length };
     };
 
+    const HAZARD_BY_ELEM: Record<'FIRE' | 'ICE' | 'VOID', SpatialHazard['type']> = {
+        FIRE: 'FIRE',
+        ICE: 'ICE',
+        VOID: 'GRAVITY',
+    };
     it.each(['FIRE', 'ICE', 'VOID'] as const)('%s 屬性會留危害區並造成傷害', (element) => {
-        const r = fieldAt({ element });
+        const r = fieldAt({ element, hazardKind: HAZARD_BY_ELEM[element], hazardDur: 2 });
         expect(r.periodic).toBeGreaterThan(0);
     });
     it('DOT 會留毒區', () => {
-        expect(fieldAt({ ccType: 'DOT', ccDur: 3, ccForce: 1 }).periodic).toBeGreaterThan(0);
+        expect(fieldAt({ ccType: 'DOT', ccDur: 3, ccForce: 1, hazardKind: 'POISON', hazardDur: 3 }).periodic).toBeGreaterThan(0);
     });
     it('飛行單位不吃火', () => {
-        const r = fieldAt({ element: 'FIRE' }, Role.MAGE);
+        const r = fieldAt({ element: 'FIRE', hazardKind: 'FIRE', hazardDur: 2 }, Role.MAGE);
         expect(r.periodic).toBe(0);
     });
     it('沒有屬性就不留', () => {
@@ -354,15 +363,16 @@ describe('技能資料：寫了的欄位都要有作用', () => {
             if (s.power > 0 && polarity(type) === 'BUFF') out.push(`${type} 是增益但這招只打敵人`);
             if (s.power < 0 && polarity(type) === 'DEBUFF') out.push(`${type} 是減益但這招只打友軍`);
         };
-        check(s.ccType, s.ccDur, s.ccForce, s.ccSelf);
-        check(s.ccType2, s.ccDur2, s.ccForce2, s.ccSelf2);
-        for (const e of [s.effectType, s.effectType2]) {
+        const flat = readFlatFields(s);
+        check(flat.ccType, flat.ccDur, flat.ccForce, flat.ccSelf);
+        check(flat.ccType2, flat.ccDur2, flat.ccForce2, flat.ccSelf2);
+        for (const e of [flat.effectType, flat.effectType2]) {
             if (e !== 'DASH') continue;
             if ((s.projectileSpeed ?? 0) > 0) out.push('投射物不會突進');
             if (ultImpactDelay(s.id) > 0) out.push('天降類不會突進');
         }
-        if (s.effectType === undefined && s.effectVal !== undefined) out.push('effectVal 沒有 effectType');
-        if (s.effectType2 === undefined && s.effectVal2 !== undefined) out.push('effectVal2 沒有 effectType2');
+        if (flat.effectType === undefined && flat.effectVal !== undefined) out.push('effectVal 沒有 effectType');
+        if (flat.effectType2 === undefined && flat.effectVal2 !== undefined) out.push('effectVal2 沒有 effectType2');
         if (s.type !== 'AOE' && s.aoeRadius) out.push('單體技能寫了 aoeRadius');
         return out;
     };
@@ -374,7 +384,10 @@ describe('技能資料：寫了的欄位都要有作用', () => {
 
     it('技能用到的控制種類，引擎都認得', () => {
         const known = new Set<string>([...Object.keys(EFFECT_DEFS), 'SHIELD', 'KNOCKBACK', 'PULL', 'SLOW']);
-        const used = new Set(skills.flatMap((s) => [s.ccType, s.ccType2]).filter((t): t is NonNullable<Skill['ccType']> => !!t));
+        const used = new Set(skills.flatMap((s) => {
+            const f = readFlatFields(s);
+            return [f.ccType, f.ccType2];
+        }).filter((t): t is NonNullable<SkillStatus> => !!t));
         expect([...used].filter((t) => !known.has(t))).toEqual([]);
     });
 });

@@ -36,6 +36,7 @@
 
 ## 6. 戰鬥與傷害
 
+- 技能是資料：四個時機（`onCast`、`onImpact`、`onHit`、`onEnd`）的動作清單，每種動作一個 handler；施放條件與階段由技能狀態機回答，AI 依技能宣告的意圖與施放條件挑招。（`docs/SKILL_PIPELINE_DESIGN.md`、`engine/systems/combat/SkillActions.ts`、`engine/systems/combat/SkillStateMachine.ts`）
 - 技能執行交由傷害計算器產生傷害、暴擊、斬殺、格擋、護盾與附帶資源結果，再由執行端套用；暴擊倍率為 {{DAMAGE_RULES.CRIT_MULTIPLIER}}。（`engine/systems/combat/SkillExecutor.ts`、`engine/systems/combat/DamageCalculator.ts`、`constants/combat.ts`）
 - 斬殺依缺失生命追加基礎值，再套驟死倍率；治療不走坦克傷害減免分支，護盾吸收與直接傷害共用入口。（`engine/systems/combat/DamageCalculator.ts`、`engine/systems/combat/DirectDamage.ts`）
 - `DirectDamage` 提供傷害、治療與致命歸零命令，將 HP 下限、治療上限與來源歸屬集中處理；狀態效果另由狀態系統更新。（`engine/systems/combat/DirectDamage.ts`、`engine/systems/status/EffectSystem.ts`）

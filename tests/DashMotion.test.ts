@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
+import { runCastActions } from '../engine/systems/combat/SkillActions';
+import { hexEventPos } from '../engine/events/EventPos';
 import type { Agent } from '../engine/game';
 import { Team, Role } from '../types';
 import type { Skill } from '../types';
@@ -8,6 +10,8 @@ import { BLOCK_HEIGHT, MAX_TERRAIN_TIER, PHYSICS, AFTERIMAGE } from '../constant
 import { dashTo, lungeToward } from '../engine/systems/movement/MotionCommands';
 import { VisualMath } from '../engine/math/VisualMath';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
+import { flatSkill } from './helpers/flatSkill';
+import type { FlatSkillFields } from '../data/skills/flatView';
 
 const HP = 200;
 
@@ -222,7 +226,7 @@ describe('DashMotion (DM2)', () => {
     });
 
     describe('Melee Lunge (DM3)', () => {
-        const makeSkill = (overrides: Partial<Skill> = {}): Skill => ({
+        const makeSkill = (overrides: Partial<Skill> & FlatSkillFields = {}): Skill => flatSkill<Skill>({
             id: 'test_skill',
             name: 'Test Skill',
             desc: 'Test',
@@ -308,8 +312,7 @@ describe('DashMotion (DM2)', () => {
 
             // Target (1, 0) is occupied by target, so planDashPath cannot enter (stepsTaken = 0)
             const dashSkill = makeSkill({ effectType: 'DASH', range: 1, power: 150 });
-            const executor = new SkillExecutor();
-            executor.executeInstantSkill(source, dashSkill, engine);
+            runCastActions(source, dashSkill, { q: 1, r: 0 }, hexEventPos(1, 0, engine), engine);
 
             // Must have lunged forward without changing logical tile
             expect(source.q).toBe(0);

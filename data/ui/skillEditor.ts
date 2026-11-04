@@ -1,4 +1,5 @@
-import { Skill, Team } from '../../types';
+import { Skill, SkillStatus, SpatialHazard, Team } from '../../types';
+import { actionsFromFlat, FLAT_SKILL_FIELDS, isFlatSkillField, readFlatFields, type SkillEffectKind } from '../skills/flatView';
 import { COMBAT_PARAM } from '../../constants';
 import { VFX_REGISTRY } from '../vfx/VFXRegistry';
 import { PROJECTILE_VISUALS } from '../vfx/projectile_visuals';
@@ -11,10 +12,8 @@ export const SKILL_EDITABLE_FIELDS = [
     'name', 'desc', 'tag', 'team', 'visual', 'visualHitEffect', 'visualProjectileEffect', 'specialVisualStatus', 'color',
     'projectileSpeed', 'range', 'type', 'aoeRadius',
     'power', 'cast', 'cost', 'gain', 'cd', 'element',
-    'ccType', 'ccDur', 'ccForce', 'ccSelf',
-    'ccType2', 'ccDur2', 'ccForce2', 'ccSelf2',
-    'effectType', 'effectVal', 'effectType2', 'effectVal2',
-] as const satisfies readonly (keyof Skill)[];
+    ...FLAT_SKILL_FIELDS,
+] as const;
 
 export type SkillEditableField = typeof SKILL_EDITABLE_FIELDS[number];
 
@@ -27,7 +26,7 @@ export function isSkillEditableField(field: string): field is SkillEditableField
 // =========================================================================
 // 共用 Enum 選項（純資料來源，受 types.ts 型別約束）
 // =========================================================================
-export const SKILL_TAG_OPTIONS = ['BASIC', 'ACTIVE', 'ULT'] as const satisfies readonly Skill['tag'][];
+export const SKILL_TAG_OPTIONS = ['BASIC', 'ACTIVE', 'ULT', 'MOBILITY'] as const satisfies readonly Skill['tag'][];
 export const SKILL_TYPE_OPTIONS = ['SINGLE', 'AOE'] as const satisfies readonly Skill['type'][];
 export const SKILL_VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH'] as const satisfies readonly NonNullable<Skill['visual']>[];
 export const SKILL_ELEMENT_OPTIONS = ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'HOLY', 'VOID', 'POISON', 'ARCANE', 'BLOOD'] as const satisfies readonly NonNullable<Skill['element']>[];
@@ -35,10 +34,11 @@ export const SKILL_SPECIAL_VISUAL_STATUS_OPTIONS = ['POLYMORPH', 'STASIS', 'FROZ
 export const SKILL_CC_TYPE_OPTIONS = [
     'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE', 'ROOT', 'FEAR',
     'TAUNT', 'BLIND', 'SHIELD', 'POLYMORPH', 'INVINCIBLE', 'VULNERABLE', 'HASTE', 'REFLECT', 'LIFESTEAL', 'SLOW'
-] as const satisfies readonly NonNullable<Skill['ccType']>[];
+] as const satisfies readonly SkillStatus[];
 export const SKILL_EFFECT_TYPE_OPTIONS = [
     'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE', 'DASH', 'SELF_DAMAGE'
-] as const satisfies readonly NonNullable<Skill['effectType']>[];
+] as const satisfies readonly SkillEffectKind[];
+export const SKILL_HAZARD_KIND_OPTIONS = ['POISON', 'FIRE', 'ICE', 'GRAVITY'] as const satisfies readonly SpatialHazard['type'][];
 
 const TAG_SET = new Set<string>(SKILL_TAG_OPTIONS);
 const TYPE_SET = new Set<string>(SKILL_TYPE_OPTIONS);
@@ -47,6 +47,7 @@ const ELEMENT_SET = new Set<string>(SKILL_ELEMENT_OPTIONS);
 const SPECIAL_VISUAL_SET = new Set<string>(SKILL_SPECIAL_VISUAL_STATUS_OPTIONS);
 const CC_TYPE_SET = new Set<string>(SKILL_CC_TYPE_OPTIONS);
 const EFFECT_TYPE_SET = new Set<string>(SKILL_EFFECT_TYPE_OPTIONS);
+const HAZARD_KIND_SET = new Set<string>(SKILL_HAZARD_KIND_OPTIONS);
 
 function isVfxRegistryOwnKey(val: unknown): boolean {
     return typeof val === 'string' && val.length > 0 && Object.prototype.hasOwnProperty.call(VFX_REGISTRY, val);
@@ -85,6 +86,7 @@ const SKILL_FIELD_RULES: Record<SkillEditableField, SkillFieldRule> = {
     projectileSpeed: { required: false, validate: (v) => v === undefined || isNonNegativeFiniteNumber(v) },
     ccDur: { required: false, validate: (v) => v === undefined || isNonNegativeFiniteNumber(v) },
     ccDur2: { required: false, validate: (v) => v === undefined || isNonNegativeFiniteNumber(v) },
+    hazardDur: { required: false, validate: (v) => v === undefined || isNonNegativeFiniteNumber(v) },
 
     // 3. 必填有限數值（可負、零、正，負值為合法治療）
     power: { required: true, validate: isFiniteNumber },
@@ -119,6 +121,7 @@ const SKILL_FIELD_RULES: Record<SkillEditableField, SkillFieldRule> = {
     ccType2: { required: false, validate: (v) => v === undefined || (typeof v === 'string' && CC_TYPE_SET.has(v)) },
     effectType: { required: false, validate: (v) => v === undefined || (typeof v === 'string' && EFFECT_TYPE_SET.has(v)) },
     effectType2: { required: false, validate: (v) => v === undefined || (typeof v === 'string' && EFFECT_TYPE_SET.has(v)) },
+    hazardKind: { required: false, validate: (v) => v === undefined || (typeof v === 'string' && HAZARD_KIND_SET.has(v)) },
 
     // 10. 選填 VFX own key（拒絕空字串、未知鍵、繼承屬性鍵）
     visualHitEffect: { required: false, validate: (v) => v === undefined || isVfxRegistryOwnKey(v) },
@@ -148,6 +151,7 @@ export function normalizeSkillCast(tag: Skill['tag'], cast: number): number {
  */
 export function buildSkillUpdate(skill: Skill, field: SkillEditableField, value: unknown): Partial<Record<keyof Skill, unknown>> | null {
     if (!validateSkillFieldValue(field, value)) return null;
+    if (isFlatSkillField(field)) return actionsFromFlat({ ...readFlatFields(skill), [field]: value }, skill);
     const patch: Partial<Record<keyof Skill, unknown>> = { [field]: value };
     // value 已通過該欄位的規則（tag 在 SKILL_TAG_OPTIONS 內、cast 為非負有限數），這裡只是收窄型別
     const tag = (field === 'tag' ? value : skill.tag) as Skill['tag'];
@@ -155,6 +159,11 @@ export function buildSkillUpdate(skill: Skill, field: SkillEditableField, value:
     const normalized = normalizeSkillCast(tag, cast);
     if (normalized !== cast) patch.cast = normalized;
     return patch;
+}
+
+/** 表單顯示的值：控制與效果欄位是動作清單的視圖（data/skills/flatView.ts） */
+export function readSkillField(skill: Skill, field: SkillEditableField): unknown {
+    return isFlatSkillField(field) ? readFlatFields(skill)[field] : skill[field];
 }
 
 /**

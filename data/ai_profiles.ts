@@ -1,5 +1,6 @@
 
 import { AIState, AIMode } from "../types";
+import { SKILL_SLOTS } from "../constants";
 
 /** 行為樹節點參數。鍵集合由 BTRegistry 實際使用者決定，新增鍵請同步擴充此型別。 */
 export interface BTArgs {
@@ -51,11 +52,22 @@ const SKILL_PRIORITY: BTDef = {
     ]
 };
 
+// 機動槽：技能自己宣告什麼情況值得放（Skill.activation），兩個戰鬥模式都先看它
+const MOBILITY: BTDef = {
+    type: 'SEQUENCE',
+    name: 'Mobility',
+    children: [
+        { type: 'CONDITION', name: 'Worth It?', key: 'ActivationMet', args: { slot: SKILL_SLOTS.MOBILITY } },
+        createSkillRoutine(SKILL_SLOTS.MOBILITY, "Mobility"),
+    ]
+};
+
 // 目標在普攻射程外：順手打得到別人就打；否則技能 → 追擊 → 走位 → 前進，全失敗轉 UNSTICK
 const ENGAGE_TREE: BTDef = {
     type: 'SELECTOR',
     name: 'Engage Actions',
     children: [
+        MOBILITY,
         { type: 'ACTION', name: 'Strike Nearby', key: 'StrikeNearby' },
         SKILL_PRIORITY,
         // 追擊只拒絕「停下來的格子會塌陷」；被拒絕時走位，往目標挪但不踩塌陷格
@@ -70,6 +82,7 @@ const FIGHT_TREE: BTDef = {
     type: 'SELECTOR',
     name: 'Fight Actions',
     children: [
+        MOBILITY,
         SKILL_PRIORITY,
         { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } }
     ]

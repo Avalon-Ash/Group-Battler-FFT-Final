@@ -24,7 +24,8 @@
     "knip": "knip",
     "balance:idle": "node tools/balance/ai-idle-sim.mjs",
     "balance:sim": "node tools/balance/batch-sim.mjs",
-    "balance:report": "node tools/balance/report.mjs"
+    "balance:report": "node tools/balance/report.mjs",
+    "balance:fingerprint": "node tools/balance/sim-fingerprint.mjs"
   },
   "dependencies": {
     "react": "^19.2.3",

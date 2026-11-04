@@ -1,13 +1,14 @@
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CastingEngine — 單位詠唱與中斷狀態管理                 ║
-// ║  職責：更新引導進度、處理受控/致死中斷、派發 CAST_BREAK ║
+// ║  職責：判斷何時中斷、派發 CAST_BREAK；欄位由狀態機寫    ║
 // ║  上游：CombatSystem.update / breakCast                    ║
 // ║  下游：engine.events (CAST_BREAK) → VisualSystem        ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../../game";
-import { isIncapacitated } from "../../core/Effects";
+import { isActionBlocked } from "../../core/Effects";
+import { advanceWindup, applyInterruptPenalty, endWindup } from "./SkillStateMachine";
 import { CAST_LOCKOUT, CAST_RULES } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
 import { EventPool } from "../../events/GameEventPool";
@@ -19,14 +20,14 @@ export class CastingEngine {
 
     public updateCasting(a: Agent, dt: number, engine: GameEngine, onComplete: (a: Agent) => void) {
         // 1. 硬控場檢查 (Interrupt Priority)
-        const isHardCC = isIncapacitated(a) || a.banished || a.effects.FEAR.remaining > 0 || a.hp <= 0;
+        const isHardCC = isActionBlocked(a, 'CAST') || a.hp <= 0;
         
         if (isHardCC) {
             this.handleInterruption(a, engine);
             return;
         }
 
-        if (a.effects.SILENCE.remaining > 0) {
+        if (isActionBlocked(a, 'SKILL')) {
             const currentSkill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
             if (currentSkill && currentSkill.tag !== 'BASIC') {
                 this.handleInterruption(a, engine);
@@ -43,10 +44,7 @@ export class CastingEngine {
         }
 
         // 3. 詠唱進度積分
-        a.castTimer -= dt;
-        if (a.castingAnimationTimer > 0) a.castingAnimationTimer -= dt; 
-        
-        if (a.castTimer <= 0) {
+        if (advanceWindup(a, dt)) {
             onComplete(a);
             this.resetCaster(a, true);
         }
@@ -77,15 +75,12 @@ export class CastingEngine {
 
         // [FIX] Only log/effect if not in recent interrupt cooldown to prevent spam
         if (a._interruptCooldown <= 0 && currentSkill) {
-            a._interruptCooldown = CAST_LOCKOUT.INTERRUPT;
+            applyInterruptPenalty(a, skillIdx, currentSkill);
             
             if (currentSkill.tag !== 'BASIC') {
                 const progressPct = 1 - (a.castTimer / currentSkill.cast);
                 engine.log(a, 'CC', '中斷', currentSkill.name, `詠唱被打斷 (進度: ${Math.floor(progressPct * 100)}%)`);
                 
-                // [FIX] Infinite Casting: Apply a small penalty CD to the skill if interrupted 
-                // prevents immediate re-cast loop when stuttering or under partial CC
-                a.curCDs[skillIdx] = Math.max(a.curCDs[skillIdx] || 0, 0.5);
                 
                 engine.events.push({ 
                     type: 'CAST_BREAK', 
@@ -105,15 +100,10 @@ export class CastingEngine {
     }
 
     private resetCaster(a: Agent, fromCompletion: boolean = false) {
-        a.castingSkillIdx = -1;
-        a.castTimer = 0;
-        a.castingAnimationTimer = 0;
+        endWindup(a, fromCompletion);
         a.currentTelegraph = null;
         if (a.target && sameSide(a.target, a)) {
             a.forceAiUpdate = true;
-        }
-        if (fromCompletion) {
-            a._castCompleteCooldown = CAST_RULES.COMPLETE_COOLDOWN; // [FIX] Lockout to prevent instant re-cast loop
         }
         // aiState 不再存 CASTING_*（castingSkillIdx 歸 -1 即結束施法狀態，P7b），不必還原
     }

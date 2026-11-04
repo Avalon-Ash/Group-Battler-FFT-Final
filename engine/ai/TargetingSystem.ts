@@ -1,5 +1,7 @@
 
 import { Agent } from "../core/Agent";
+import type { SkillIntent, SkillStatus } from "../../types";
+import { appliesStatusOnHit, hasHitAction, hasIntentIn, hasStatusIn } from "../core/SkillQueries";
 import { Hex, Skill, SpatialProvider, MovementType, Role } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT, COMBAT_PARAM, TARGET_RULES } from "../../constants";
@@ -11,20 +13,19 @@ import { sameSide } from '../core/Allegiance';
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
 
-const HOSTILE_CC: ReadonlySet<string> = new Set([
+const HOSTILE_CC: ReadonlySet<SkillStatus> = new Set<SkillStatus>([
     'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'POLYMORPH', 'VULNERABLE'
 ]);
 
-const FRIENDLY_BUFF_CC: ReadonlySet<string> = new Set([
+const FRIENDLY_BUFF_CC: ReadonlySet<SkillStatus> = new Set<SkillStatus>([
     'SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'
 ]);
 
+const HOT_ONLY: ReadonlySet<SkillStatus> = new Set<SkillStatus>(['HOT']);
+const CAN_REACH_HEIGHT: ReadonlySet<SkillIntent> = new Set<SkillIntent>(['HOOK']);
+
 export function isHostileSkill(skill: Skill): boolean {
-    const hasHostileCC = Boolean(
-        (skill.ccType && !skill.ccSelf && HOSTILE_CC.has(skill.ccType)) ||
-        (skill.ccType2 && !skill.ccSelf2 && HOSTILE_CC.has(skill.ccType2))
-    );
-    return skill.power > 0 || hasHostileCC;
+    return skill.power > 0 || appliesStatusOnHit(skill, HOSTILE_CC);
 }
 
 export class TargetingSystem {
@@ -148,9 +149,9 @@ export class TargetingSystem {
         if (a.target && !inDanger && spatial.battleTime < a.targetLockUntil) return;
 
         const isSilenced = a.effects.SILENCE.remaining > 0;
-        // 可用的突進（DASH）或拉取（PULL）技能：近戰打不到的目標交給它們，不扣分
+        // 可用的拉取技能：近戰打不到的目標交給它（突進爬不上牆，不算），不扣分
         const hasGapCloser = !isSilenced && a.skills.some((s, i) => !!s && s.range > COMBAT_PARAM.MELEE_RANGE &&
-            (s.effectType === 'DASH' || s.effectType2 === 'DASH' || s.ccType === 'PULL' || s.ccType2 === 'PULL') &&
+            hasIntentIn(s, CAN_REACH_HEIGHT) &&
             (a.curCDs[i] || 0) <= COMBAT_PARAM.READY_CD_TOLERANCE && a.mp >= s.cost);
 
         for (const o of spatial.getAgents()) {
@@ -243,11 +244,12 @@ export class TargetingSystem {
         // 1. PBAOE 或自身技能 (Range 0)
         if (skill.range === 0) {
             const aoeRadius = Math.max(1, skill.aoeRadius || 1);
-            const hasFriendlyBuff = (skill.ccType && FRIENDLY_BUFF_CC.has(skill.ccType)) || (skill.ccType2 && FRIENDLY_BUFF_CC.has(skill.ccType2));
+            const hasFriendlyBuff = hasStatusIn(skill, FRIENDLY_BUFF_CC);
 
             // A. 對敵傷害或對敵控制 PBAOE (power > 0 或含有敵方 CC)
             if (skill.type === 'AOE' && isHostileSkill(skill)) {
-                const hasEnemyInRange = enemies.some(e => HexUtils.dist(source, e) <= aoeRadius);
+                const inArea = enemies.filter(e => HexUtils.dist(source, e) <= aoeRadius).length;
+                const hasEnemyInRange = inArea >= (skill.activation?.minTargets ?? 1);
                 if (hasEnemyInRange) {
                     return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
                 }
@@ -256,7 +258,7 @@ export class TargetingSystem {
 
             // B. 純友軍群體治療／持續回血 (AOE 且 power < 0 且無主動防護／加速增益)
             if (skill.type === 'AOE' && skill.power < 0 && !hasFriendlyBuff) {
-                const isSelfDmg = skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE';
+                const isSelfDmg = hasHitAction(skill, 'SELF_DAMAGE');
                 const hasInjuredAlly = allies.some(a =>
                     HexUtils.dist(source, a) <= aoeRadius &&
                     (!isSelfDmg || a.id !== source.id || a.hp < a.maxHp * TARGET_RULES.SELF_DAMAGE_HEAL_HP_THRESHOLD) &&
@@ -304,16 +306,11 @@ export class TargetingSystem {
         }
 
         // 3. 單體技能
-        const isBuffCC = (skill.ccType && FRIENDLY_BUFF_CC.has(skill.ccType)) ||
-                         (skill.ccType2 && FRIENDLY_BUFF_CC.has(skill.ccType2)) ||
-                         skill.ccType === 'HOT' || skill.ccType2 === 'HOT';
+        const isBuffCC = hasStatusIn(skill, FRIENDLY_BUFF_CC) || hasStatusIn(skill, HOT_ONLY);
         const targetIsAlly = skill.power < 0 || (skill.power === 0 && isBuffCC);
 
-        const isPureHeal = skill.power < 0 &&
-                           (!skill.ccType || !FRIENDLY_BUFF_CC.has(skill.ccType)) &&
-                           (!skill.ccType2 || !FRIENDLY_BUFF_CC.has(skill.ccType2));
-        const isSelfDamageHeal = skill.effectType === 'SELF_DAMAGE' ||
-                                 skill.effectType2 === 'SELF_DAMAGE';
+        const isPureHeal = skill.power < 0 && !hasStatusIn(skill, FRIENDLY_BUFF_CC);
+        const isSelfDamageHeal = hasHitAction(skill, 'SELF_DAMAGE');
 
         let validStickyTarget = false;
         if (source.target && source.target.hp > 0 && !source.target.banished) {
@@ -365,6 +362,8 @@ export class TargetingSystem {
             // 友軍目標技能無合法友軍時，回傳 null（不可回傳敵軍，亦不可空放）
             return { targetAgent: null, targetHex: null };
         } else if (skill.type === 'SINGLE') {
+            const declared = this.declaredTarget(source, skill, enemies, spatial);
+            if (declared) return { targetAgent: declared, targetHex: null };
             // 普通敵方目標黏著邏輯
             if (validStickyTarget && source.target) {
                 const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
@@ -378,6 +377,24 @@ export class TargetingSystem {
         this.updateTarget(source, spatial);
         
         return { targetAgent: source.target, targetHex: null };
+    }
+
+    /** 技能自己宣告要打誰：逃生、推開打最近的威脅；單體大招打血最多的 */
+    private declaredTarget(source: Agent, skill: Skill, enemies: readonly Agent[], spatial: SpatialProvider): Agent | null {
+        const within = skill.activation?.enemyWithin;
+        if (within === undefined && skill.targetPreference !== 'HIGHEST_HP') return null;
+        let best: Agent | null = null;
+        let bestScore = -Infinity;
+        for (const e of enemies) {
+            const dist = HexUtils.dist(source, e);
+            if (dist > this.getEffectiveRange(source, e.q, e.r, skill.range, spatial) + COMBAT_PARAM.RANGE_TOLERANCE) continue;
+            const score = within !== undefined ? -dist : e.hp;
+            if (score > bestScore) {
+                bestScore = score;
+                best = e;
+            }
+        }
+        return best;
     }
 
     public getImpactArea(_source: Agent, targetHex: Hex, skill: Skill, spatial: ImpactAreaContext): Hex[] {

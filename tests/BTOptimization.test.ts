@@ -5,6 +5,8 @@ import { HexUtils } from '../engine/utils';
 import { COMBAT_PARAM } from '../constants';
 import { BTConditions, BTActions } from '../engine/ai/BTRegistry';
 import { CombatSystem } from '../engine/systems/combat/CombatSystem';
+import { flatSkill } from './helpers/flatSkill';
+import { readFlatFields } from '../data/skills/flatView';
 
 describe('BTOptimization (行為樹與目標選擇優化)', () => {
     let engine: GameEngine;
@@ -92,11 +94,11 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             const enemy = engine.agentManager.addAgent(engine, Team.RED, 5, 0, 500, Role.TANK);
             if (!warrior || !enemy) throw new Error('addAgent failed');
 
-            const pbaoeSkill: Skill = {
+            const pbaoeSkill: Skill = flatSkill<Skill>({
                 id: 'wr_a1', tag: 'ACTIVE', role: Role.WARRIOR, name: '戰爭踐踏',
                 range: 0, cast: 0.2, cd: 7.5, cost: 35, gain: 0,
                 type: 'AOE', aoeRadius: 1, power: 120, color: '#fff', ccType: 'STUN', ccDur: 1.5
-            };
+            });
             warrior.skills[1] = pbaoeSkill;
 
             // 敵人離 5 格，aoeRadius = 1
@@ -115,11 +117,11 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             const enemy = engine.agentManager.addAgent(engine, Team.RED, 3, 0, 500, Role.TANK);
             if (!warrior || !enemy) throw new Error('addAgent failed');
 
-            const pbaoeSkill: Skill = {
+            const pbaoeSkill: Skill = flatSkill<Skill>({
                 id: 'wr_a1', tag: 'ACTIVE', role: Role.WARRIOR, name: '戰爭踐踏',
                 range: 0, cast: 0.2, cd: 7.5, cost: 35, gain: 0,
                 type: 'AOE', aoeRadius: 1, power: 120, color: '#fff', ccType: 'STUN', ccDur: 1.5
-            };
+            });
             warrior.skills[1] = pbaoeSkill;
             warrior.target = enemy;
 
@@ -163,11 +165,11 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             const ally = engine.agentManager.addAgent(engine, Team.BLUE, 2, 0, 500, Role.TANK);
             if (!healer || !ally) throw new Error('addAgent failed');
 
-            const aoeHeal: Skill = {
+            const aoeHeal: Skill = flatSkill<Skill>({
                 id: 'sb_u2', tag: 'ULT', role: Role.SUPPORT, name: '復活之光',
                 range: 0, cast: 1.0, cd: 5.0, cost: 100, gain: 0,
                 type: 'AOE', aoeRadius: 4, power: -450, color: '#fff'
-            };
+            });
 
             // 滿血不施放
             const resFull = engine.movement.targeting.calculateOptimalTarget(healer, aoeHeal, engine);
@@ -184,12 +186,12 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             const ally = engine.agentManager.addAgent(engine, Team.RED, 2, 0, 500, Role.WARRIOR);
             if (!healer || !ally) throw new Error('addAgent failed');
 
-            const sacrificeHeal: Skill = {
+            const sacrificeHeal: Skill = flatSkill<Skill>({
                 id: 'sr_a5', tag: 'ACTIVE', role: Role.SUPPORT, name: '黑暗犧牲',
                 range: 6, cast: 0.5, cd: 9.0, cost: 0, gain: 40,
                 type: 'SINGLE', power: -500, color: '#fff',
                 effectType: 'SELF_DAMAGE', effectVal: 140
-            };
+            });
 
             // 只有施法者自己受損，隊友滿血：不應對自己施放
             healer.hp = 200;
@@ -230,11 +232,11 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             const enemy = engine.agentManager.addAgent(engine, Team.RED, 6, 0, 500, Role.WARRIOR);
             if (!tank || !enemy) throw new Error('addAgent failed');
 
-            const buffSkill: Skill = {
+            const buffSkill: Skill = flatSkill<Skill>({
                 id: 'tb_a5', tag: 'ACTIVE', role: Role.TANK, name: '稜鏡反射',
                 range: 0, cast: 0.3, cd: 10.0, cost: 40, gain: 0,
                 type: 'SINGLE', power: 0, color: '#fff', ccType: 'REFLECT', ccDur: 4.0
-            };
+            });
 
             // 距離 6 格且滿血：不施放
             const resFar = engine.movement.targeting.calculateOptimalTarget(tank, buffSkill, engine);
@@ -265,9 +267,10 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             CombatSystem.prototype.initiateCast = function (a, skillIdx, simEngine) {
                 const skill = a.skills[skillIdx];
                 if (skill) {
+                    const flat = readFlatFields(skill);
                     const hasHostileCC = Boolean(
-                        (skill.ccType && !skill.ccSelf && HOSTILE_CC_SET.has(skill.ccType)) ||
-                        (skill.ccType2 && !skill.ccSelf2 && HOSTILE_CC_SET.has(skill.ccType2))
+                        (flat.ccType && !flat.ccSelf && HOSTILE_CC_SET.has(flat.ccType)) ||
+                        (flat.ccType2 && !flat.ccSelf2 && HOSTILE_CC_SET.has(flat.ccType2))
                     );
 
                     // 檢查 PBAOE 空放（對敵傷害或對敵控制）
@@ -280,12 +283,12 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
                     }
 
                     // 檢查對滿血友軍空補或自殘補自己（排除帶有主動增益如 INVINCIBLE/SHIELD 的技能）
-                    const isFriendlyBuff = ['SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'].includes(skill.ccType as string) ||
-                                           ['SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'].includes(skill.ccType2 as string);
+                    const isFriendlyBuff = ['SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'].includes(flat.ccType as string) ||
+                                           ['SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'].includes(flat.ccType2 as string);
 
                     if (skill.power < 0 && !hasHostileCC && !isFriendlyBuff) {
                         if (skill.type === 'SINGLE') {
-                            const isSelfDamage = skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE';
+                            const isSelfDamage = flat.effectType === 'SELF_DAMAGE' || flat.effectType2 === 'SELF_DAMAGE';
                             if (isSelfDamage && a.target && a.target.id === a.id) {
                                 healFullHpCasts++;
                             } else if (a.target && a.target.team === a.team && a.target.hp >= a.target.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD) {

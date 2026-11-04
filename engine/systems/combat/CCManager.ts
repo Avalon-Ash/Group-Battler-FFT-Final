@@ -12,6 +12,7 @@ import { syncBanished } from "../status/ControlSystem";
 import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedMove";
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 import { EFFECT_DEFS } from "../../../data/status/effect_defs";
+import { EFFECT_KINDS } from "../../core/Effects";
 import type { EffectKind } from "../../../types";
 import { sameSide } from '../../core/Allegiance';
 
@@ -346,11 +347,7 @@ export const CCManager = {
 
     calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine, repeatHit: boolean = false) {
         const rawForce = Math.max(1, force);
-        const resistance = target.weight || 1; 
-        
-        // [FIX] Normal weight is 1. If force is 1, it should push 1 tile.
-        // So tilesToPush = rawForce - (resistance - 1)
-        let tilesToPush = Math.max(0, rawForce - (resistance - 1));
+        let tilesToPush = Math.max(rawForce >= FORCED_MOVE.MIN_ONE_TILE_FORCE ? 1 : 0, rawForce - target.weight);
         // 拉向一個點（AOE 牽引的中心）最多拉到那一格，不會穿過去；已經在中心就不動（多段牽引每段都拉）
         if (type === 'PULL' && origin) {
             const centre = HexUtils.fromPx(origin.x, origin.y, engine.mapConfig);
@@ -413,5 +410,15 @@ export const CCManager = {
             }
         }
         engine.bus.emit('CAMERA_IMPACT', { kind: 'KNOCKBACK', intensity: FORCED_MOVE.IMPACT_SHAKE });
+    },
+
+    dispelEffects(target: Agent, polarity: 'BUFF' | 'DEBUFF'): void {
+        for (let i = 0; i < EFFECT_KINDS.length; i++) {
+            const kind = EFFECT_KINDS[i];
+            if (EFFECT_DEFS[kind].polarity === polarity) {
+                target.effects[kind].remaining = 0;
+                target.effects[kind].max = 0;
+            }
+        }
     }
 };

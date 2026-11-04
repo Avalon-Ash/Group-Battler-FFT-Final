@@ -128,6 +128,31 @@ export function planDashPath(agent: Agent, targetHex: Hex, spatial: ForcedMoveSp
     return line;
 }
 
+/**
+ * 後撤路徑規劃：每一步在目前格走得進去的鄰格裡，選離 fromHex 最遠的一格（同距離取先出現的），
+ * 共 tiles 步；沒有比現在更遠的格子就停。高度由 resolveForcedMove 裁決。
+ */
+export function planRetreatPath(agent: Agent, fromHex: Hex, tiles: number, spatial: ForcedMoveSpatial): Hex[] {
+    const path: Hex[] = [];
+    let current: Hex = { q: agent.q, r: agent.r };
+    for (let i = 0; i < tiles; i++) {
+        let best: Hex | null = null;
+        let bestDist = HexUtils.dist(current, fromHex);
+        for (const n of HexUtils.neighbors(current)) {
+            if (!spatial.isValid(n.q, n.r) || spatial.hasObstacle(n.q, n.r) || spatial.getAgentAt(n.q, n.r)) continue;
+            const d = HexUtils.dist(n, fromHex);
+            if (d > bestDist) {
+                bestDist = d;
+                best = { q: n.q || 0, r: n.r || 0 };
+            }
+        }
+        if (!best) break;
+        path.push(best);
+        current = best;
+    }
+    return path;
+}
+
 /** 撞擊是否造成傷害：只有被擋下且還有沒走完的格數。突進不受傷。 */
 export function isImpactBlock(block: ForcedMoveBlock | null, kind: ForcedMoveKind): block is ForcedMoveBlock {
     return kind !== 'DASH' && block !== null && block.reason !== 'EDGE' && block.remaining > 0;

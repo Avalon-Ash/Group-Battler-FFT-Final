@@ -48,7 +48,7 @@ export interface AgentView {
 
 export interface Skill {
     id: string;
-    tag: 'BASIC' | 'ACTIVE' | 'ULT';
+    tag: 'BASIC' | 'ACTIVE' | 'ULT' | 'MOBILITY';
     role: Role;
     team?: Team; 
     name: string;
@@ -64,18 +64,22 @@ export interface Skill {
     color: string;
     element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
     specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN' | 'INVINCIBLE'; 
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
-    ccDur?: number;
-    ccForce?: number;
-    ccSelf?: boolean;
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
-    ccDur2?: number;
-    ccForce2?: number;
-    ccSelf2?: boolean;
-    effectType?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
-    effectVal?: number; 
-    effectType2?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
-    effectVal2?: number;
+    /** 出手時（engine/systems/combat/SkillActions.ts） */
+    onCast?: readonly CastAction[];
+    /** 落點，一次施放一次 */
+    onImpact?: readonly ImpactAction[];
+    /** 打中每個目標時，依序執行 */
+    onHit?: readonly HitAction[];
+    /** 結算完，一次施放一次，對施法者自己 */
+    onEnd?: readonly EndAction[];
+    /** AI 用來挑招的意圖 */
+    intents?: readonly SkillIntent[];
+    /** 對誰有效；沒寫就看 power（engine/core/SkillQueries.ts skillTeams） */
+    teams?: SkillTeams;
+    /** 什麼情況才值得放（AI 判斷） */
+    activation?: SkillActivation;
+    /** 單體技能要打誰。HIGHEST_HP：血最多的敵人，避免高傷大招打在殘血上浪費 */
+    targetPreference?: 'HIGHEST_HP';
     projectileSpeed?: number; 
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
     visualHitEffect?: string;
@@ -87,6 +91,64 @@ export interface Skill {
      */
     hits?: SkillHits;
 }
+
+export type SkillStatus = 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE' | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW';
+
+/** GAP_CLOSE 衝向敵人、HOOK 把敵人拉過來、PEEL 把貼身的敵人推開、ESCAPE 自己脫離 */
+export type SkillIntent = 'GAP_CLOSE' | 'HOOK' | 'PEEL' | 'ESCAPE';
+
+export type SkillTeams = 'ENEMY' | 'ALLY' | 'ANY';
+
+export interface SkillActivation {
+    /** 有敵人在這個距離內才放；單體技能會打最近的那個（逃生、推開） */
+    enemyWithin?: number;
+    /** 目標在射程內而且比這個距離遠才放（貼身時突進、拉人都沒有效果） */
+    targetBeyond?: number;
+    /** 以自己為中心的範圍技，範圍內至少要有這麼多敵人 */
+    minTargets?: number;
+}
+
+export interface StatusAction {
+    action: 'STATUS';
+    status: SkillStatus;
+    duration?: number;
+    force?: number;
+}
+
+export type CastAction =
+    | { action: 'DASH' }
+    /** 瞬移到目標身邊離施法者最遠的空格 */
+    | { action: 'BLINK' }
+    /** 往遠離目標的方向後撤 tiles 格 */
+    | { action: 'RETREAT'; tiles: number };
+export type ImpactAction = {
+    action: 'HAZARD';
+    kind: SpatialHazard['type'];
+    duration: number;
+    /** 陷阱：敵人走進來時對他套這些狀態，每人只觸發一次 */
+    onEnter?: readonly StatusAction[];
+};
+type ValueAction<K extends string> = { action: K; value?: number };
+export type HitAction =
+    | StatusAction
+    | ValueAction<'VAMP'> | ValueAction<'MANA_BURN'> | ValueAction<'MANA_RESTORE'> | ValueAction<'EXECUTE'> | ValueAction<'SELF_DAMAGE'>
+    /** value：無視護盾的比例（0～1） */
+    | ValueAction<'PIERCE'>
+    /** value：血全失時多出的傷害倍率 */
+    | ValueAction<'RAGE'>
+    | { action: 'TRUE_STRIKE' }
+    | { action: 'RANDOM_POWER'; min: number; max: number }
+    | { action: 'BREAK_SHIELD' }
+    | { action: 'DISPEL'; polarity: 'BUFF' | 'DEBUFF' }
+    | { action: 'CHANCE'; chance: number; then: readonly HitAction[] }
+    | { action: 'RANDOM_OF'; options: readonly HitAction[] }
+    /** 打中後跳到半徑內最近的下一個目標，每跳威力乘 falloff */
+    | { action: 'CHAIN'; jumps: number; radius: number; falloff: number }
+    /** 沿施法者到目標的直線，穿過目標再打 tiles 格內的單位，每穿一個威力乘 falloff */
+    | { action: 'LINE_THROUGH'; tiles: number; falloff: number }
+    /** 和目標交換位置 */
+    | { action: 'SWAP' };
+export type EndAction = StatusAction;
 
 /** 多段命中的節奏：EVEN 等間隔；ACCEL 越打越密（總長不變）；CLUSTER 三連發一組（組間隔大、組內間隔小）。 */
 type HitCadence = 'EVEN' | 'ACCEL' | 'CLUSTER';
@@ -226,6 +288,12 @@ export interface SpatialHazard {
     centerQ?: number;
     centerR?: number;
     pullRadius?: number;
+    /** 陷阱：見 ImpactAction.onEnter */
+    onEnter?: readonly StatusAction[];
+    /** 陷阱已經觸發過的單位 */
+    triggeredIds?: Set<string>;
+    /** 放出這個危害區的技能（陷阱套狀態時要用） */
+    skill?: Skill;
 }
 
 export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK' | 'KILL_SPREE' | 'HAZARD_SPAWN' | 'GROUND_IMPACT' | 'LAST_STAND_TRIGGERED' | 'HIT_FX';
@@ -236,7 +304,7 @@ export interface GameEvent {
     value?: number; 
     text?: string; 
     color?: string;
-    skill?: Skill | (Partial<Skill> & { ccType: string; dotType?: string });
+    skill?: Skill | (Partial<Skill> & { dotType?: string });
     sourceId?: string;
     targetId?: string;
     team?: Team;

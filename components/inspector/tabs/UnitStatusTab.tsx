@@ -125,7 +125,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                 </div>
 
                 <div className="space-y-3 pb-24">
-                    {['ULT', 'ACTIVE', 'BASIC'].map((tag, i) => {
+                    {['ULT', 'ACTIVE', 'BASIC', 'MOBILITY'].map((tag, i) => {
                         const currentSkillId = agent.skillIds[i];
                         const currentSkill = db.find(s => s.id === currentSkillId);
                         
