@@ -148,7 +148,7 @@ export const ZONE_SETTINGS_SCHEMA: SettingField[] = [
         min: UI_SETTINGS.ZONE_SHRINK_INTERVAL.min,
         max: UI_SETTINGS.ZONE_SHRINK_INTERVAL.max,
         step: UI_SETTINGS.ZONE_SHRINK_INTERVAL.step,
-        format: (val: number) => String(Math.round(val)),
+        format: (val: number) => `${Math.round(val)} 秒`,
         createCommand: (shrinkInterval: number): UICommand => ({
             type: 'SET_ZONE_CONFIG',
             config: { shrinkInterval },
