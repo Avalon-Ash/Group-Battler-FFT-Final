@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './cn';
 
 const tagVariants = cva(
-    'inline-flex items-center gap-1 rounded-ui-tag border px-2 text-ui-num font-bold uppercase tracking-wider whitespace-nowrap',
+    'inline-flex items-center gap-1 rounded-ui-tag border px-2 text-ui-label font-bold uppercase tracking-wider whitespace-nowrap',
     {
         variants: {
             tone: {

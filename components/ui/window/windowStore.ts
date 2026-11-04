@@ -57,23 +57,25 @@ export function getMaximizedRect(viewport: { width: number; height: number }): W
 }
 
 /**
- * z-index a window paints at. Maximized windows jump above the system menu but keep their relative order.
+ * z-index a window paints at. Only the topmost open window may use the maximized layer: a window
+ * opened or raised over a maximized one must end up in front of it (the behavior tree opened from a
+ * maximized inspector), and the menu button comes back once the maximized window is no longer on top.
  */
-export function getWindowLayerZ(win: Pick<WindowState, 'zIndex' | 'isMaximized'>): number {
-    return win.isMaximized
+export function getWindowLayerZ(win: Pick<WindowState, 'id' | 'zIndex' | 'isMaximized'>, topmostOpenId: string | null): number {
+    return win.isMaximized && win.id === topmostOpenId
         ? UI_Z.WINDOW_MAXIMIZED + (win.zIndex - UI_Z.WINDOW_BASE)
         : win.zIndex;
 }
 
 /**
- * Topmost open, maximized window, or null when none is maximized.
+ * The window Esc should restore: the topmost open window, when it is maximized.
  */
 export function getTopmostMaximizedWindowId(windows: Partial<Record<string, WindowState>>): WindowId | null {
     let top: WindowState | null = null;
     for (const win of Object.values(windows)) {
-        if (win?.isOpen && win.isMaximized && (!top || win.zIndex > top.zIndex)) top = win;
+        if (win?.isOpen && (!top || win.zIndex > top.zIndex)) top = win;
     }
-    return top ? top.id : null;
+    return top?.isMaximized ? top.id : null;
 }
 
 /**

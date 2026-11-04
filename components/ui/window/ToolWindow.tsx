@@ -117,7 +117,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             position: 'fixed',
             left: 0,
             right: 0,
-            bottom: 0,
+            bottom: 'var(--ui-sheet-bottom, 0px)',
             top: 'auto',
             width: `${viewport.width}px`,
             maxWidth: '100vw',
@@ -137,7 +137,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             maxWidth: 'none',
             height: isCollapsed ? 'auto' : `${displayRect.height}px`,
             maxHeight: 'none',
-            zIndex: getWindowLayerZ(state),
+            zIndex: getWindowLayerZ(state, topmostOpenId),
             pointerEvents: 'auto',
             transition: 'none',
         };
@@ -148,7 +148,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         : isMaximized
             ? 'shell-maximized'
             : 'shell-window mat-blur';
-    const windowClasses = `shell ${material} ${isNarrow ? 'rounded-t-ui-window border-b-0' : 'rounded-ui-window'} flex flex-col overflow-hidden select-none ${className}`;
+    const windowClasses = `shell ${material} rounded-ui-window flex flex-col overflow-hidden select-none ${className}`;
 
     return (
         <div

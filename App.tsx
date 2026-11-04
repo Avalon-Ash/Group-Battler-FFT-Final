@@ -43,7 +43,7 @@ function App() {
 
   return (
     <EngineProvider engine={engineRef.current}>
-    <div className="h-dvh w-screen bg-surface-base text-fg-secondary overflow-hidden font-sans flex flex-col relative select-none">
+    <div data-hud={hideHUD ? 'off' : 'on'} className="h-dvh w-screen bg-surface-base text-fg-secondary overflow-hidden font-sans flex flex-col relative select-none">
       <FactionWarning show={state.showFactionWarning} />
       
       {state.isShowcaseMode && (

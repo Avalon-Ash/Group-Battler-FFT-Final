@@ -329,6 +329,22 @@
 .bt-failure { color: var(--mat-danger-fg); }
 .bt-age-2 { color: rgb(var(--token-fg-muted)); }
 
+/* 結算畫面的底：戰鬥已結束，全螢幕模糊不影響操作 */
+.ui-scrim { background: rgba(0, 0, 0, 0.6); }
+
+/* 窄畫面：標題不能超出螢幕；底部面板要讓開播放列 */
+@media (max-width: 900px) {
+  :root {
+    --ui-font-hero: 40px;
+    --ui-font-hero-lh: 44px;
+    --ui-font-display: 32px;
+    --ui-font-display-lh: 36px;
+  }
+  [data-hud='on'] {
+    --ui-sheet-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
 /* 使用者開「減少透明度」：外殼全部改純色。Safari 不支援這個查詢，預設樣式本身也要可讀 */
 @media (prefers-reduced-transparency: reduce) {
   .mat-blur {
@@ -342,6 +358,7 @@
   :root {
     --mat-shell-window: rgba(16, 24, 38, 0.78);
     --ui-control-h: var(--touch-target-min);
+    --ui-control-h-sm: var(--touch-target-min);
     --ui-font-body: 14px;
     --ui-font-body-lh: 22px;
     --ui-scrollbar: 4px;
