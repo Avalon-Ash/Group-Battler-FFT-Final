@@ -25,6 +25,8 @@ export const RENDER_CACHE = {
     /** 縮放級距遲滯比例：超出目前級距 5% 才升級（容許最多 5% 的放大模糊）；降級立即生效 */
     SCALE_HYSTERESIS: 0.05,
     MAX_TERRAIN_SPRITES: 2048,
+    /** 觸控裝置的地塊烘焙倍率上限：導播特寫時裝置縮放約 2.3，升到 3 倍每塊多 2.25 倍記憶體 */
+    MAX_SCALE_TOUCH: 2,
     FLOAT_STEP: 0.5,
     HEIGHT_KEY_SCALE: 2,
     SPRITE_PADDING: 4,

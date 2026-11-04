@@ -7,10 +7,11 @@
 // ║  鋪設特效不是排序 op，所以沒有「單位站在法陣上」的排序環；    ║
 // ║  站在該格的單位在該格 TERRAIN 之後才畫，棋座壓在法陣上       ║
 // ║  （ART_SPEC §13）。分類與參數：constants/vfx.ts GROUND_DRAPE。    ║
-// ║  池化：登記項與離屏畫布皆重複使用。離屏畫布每 CANVAS_TRIM_FRAMES ║
-// ║  幀檢查一次：這段期間沒用到的釋放（寬高設 0），需求遠小於容量   ║
-// ║  的縮小（大範圍奧義會把畫布撐到 2048²，iPhone 長跑因此被系統   ║
-// ║  回收分頁，2026-10-26）。                                     ║
+// ║  池化：懸空平面的畫布組每幀借還一次，不綁在登記項的位置上：     ║
+// ║  同時有幾個平面就只有幾組（綁位置時平面換個位置就多一組，      ║
+// ║  iPhone 解析度實測 208 張、737 MB，分頁被回收，2026-11-04）。   ║
+// ║  每 CANVAS_TRIM_FRAMES 幀檢查一次：沒用到的釋放（寬高設 0），   ║
+// ║  需求遠小於容量的縮小。                                       ║
 // ║  除了粒子，也接受「繪製函式＋單位」（施法 AOE 地面預警），    ║
 // ║  一律走離屏畫布；函式是靜態參考，不每幀配置閉包。            ║
 // ║  懸空平面（planeZ，詠唱環）：不貼頂面，而是以固定高度逐格裁切；║
@@ -60,13 +61,23 @@ interface DrapeEntry {
     drawnW: number;
     drawnH: number;
     drawnScale: number;
-    /** 本次整理週期內實際需要的最大寬高（裝置像素）；整理時據此縮小或釋放畫布，然後歸零 */
-    peakW: number;
-    peakH: number;
+    /** 這一幀借到的畫布組；canvas、cctx、layers、layerCtxs 都指向它 */
+    surface: PlaneSurface | null;
     /** 與預烘六角遮罩合成後的三色層（DrapeHexMask），用到才建；layerStamps 記每層本幀是否已合成 */
     layers: (HTMLCanvasElement | null)[];
     layerCtxs: (CanvasRenderingContext2D | null)[];
     layerStamps: number[];
+}
+
+/** 懸空平面的一組畫布（來源圖加三色層）；每幀借還，同時有幾個平面就只有幾組 */
+interface PlaneSurface {
+    canvas: HTMLCanvasElement;
+    cctx: CanvasRenderingContext2D | null;
+    layers: (HTMLCanvasElement | null)[];
+    layerCtxs: (CanvasRenderingContext2D | null)[];
+    /** 本次整理週期內實際需要的最大寬高（裝置像素）；整理時據此縮小或釋放，然後歸零 */
+    peakW: number;
+    peakH: number;
 }
 
 /** 預烘遮罩的三色層與來源圖（DrapeEntry 與 DrapePlane 共用同一套合成） */
@@ -89,11 +100,14 @@ interface DrapePlane extends MaskHolder {
     lastTile: number;
 }
 
+const NO_LAYERS: (HTMLCanvasElement | null)[] = [];
+const NO_LAYER_CTXS: (CanvasRenderingContext2D | null)[] = [];
+
 function createEntry(): DrapeEntry {
     return {
         p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0,
-        canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1, peakW: 0, peakH: 0,
-        layers: [null, null, null], layerCtxs: [null, null, null], layerStamps: [-1, -1, -1],
+        canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1, surface: null,
+        layers: NO_LAYERS, layerCtxs: NO_LAYER_CTXS, layerStamps: [-1, -1, -1],
     };
 }
 
@@ -105,6 +119,8 @@ function maxCanvasPx(): number {
 export class GroundDrapeLayer {
     private readonly entries: DrapeEntry[] = [];
     private readonly planes = new Map<GlobalCompositeOperation, DrapePlane>();
+    /** 這一幀沒人借的畫布組 */
+    private readonly freeSurfaces: PlaneSurface[] = [];
     private planesStamp = -1;
     private tileToken = 0;
     private count = 0;
@@ -112,6 +128,7 @@ export class GroundDrapeLayer {
 
     /** 每幀提交之前呼叫一次 */
     public begin(): void {
+        for (let i = 0; i < this.count; i++) this.returnSurface(this.entries[i]);
         this.count = 0;
         this.stamp++;
         if (this.stamp % GROUND_DRAPE.CANVAS_TRIM_FRAMES === 0) this.trimCanvases();
@@ -133,36 +150,60 @@ export class GroundDrapeLayer {
             plane.peakW = 0;
             plane.peakH = 0;
         }
-        for (const e of this.entries) {
-            const c = e.canvas;
-            if (c) {
-                if (e.peakW === 0 || e.peakH === 0) {
-                    for (let k = 0; k < e.layers.length; k++) {
-                        const layer = e.layers[k];
-                        if (layer) { layer.width = 0; layer.height = 0; }
-                        e.layers[k] = null;
-                        e.layerCtxs[k] = null;
-                    }
-                    // 寬高設 0 才會立刻還回點陣記憶體（WebKit 不等 GC）
-                    c.width = 0;
-                    c.height = 0;
-                    e.canvas = null;
-                    e.cctx = null;
-                } else {
-                    const needW = Math.ceil(e.peakW / step) * step;
-                    const needH = Math.ceil(e.peakH / step) * step;
-                    if (c.width * c.height > needW * needH * GROUND_DRAPE.CANVAS_SHRINK_RATIO) {
-                        c.width = needW;
-                        c.height = needH;
-                        for (const layer of e.layers) {
-                            if (layer) { layer.width = needW; layer.height = needH; }
-                        }
-                    }
+        const free = this.freeSurfaces;
+        let kept = 0;
+        for (let i = 0; i < free.length; i++) {
+            const s = free[i];
+            const c = s.canvas;
+            if (s.peakW === 0 || s.peakH === 0) {
+                // 寬高設 0 才會立刻還回點陣記憶體（WebKit 不等 GC）
+                for (const layer of s.layers) {
+                    if (layer) { layer.width = 0; layer.height = 0; }
+                }
+                c.width = 0;
+                c.height = 0;
+                continue;
+            }
+            const needW = Math.ceil(s.peakW / step) * step;
+            const needH = Math.ceil(s.peakH / step) * step;
+            if (c.width * c.height > needW * needH * GROUND_DRAPE.CANVAS_SHRINK_RATIO) {
+                c.width = needW;
+                c.height = needH;
+                for (const layer of s.layers) {
+                    if (layer) { layer.width = needW; layer.height = needH; }
                 }
             }
-            e.peakW = 0;
-            e.peakH = 0;
+            s.peakW = 0;
+            s.peakH = 0;
+            free[kept++] = s;
         }
+        free.length = kept;
+    }
+
+    /** 把這一項借的畫布組還回去 */
+    private returnSurface(e: DrapeEntry): void {
+        if (!e.surface) return;
+        this.freeSurfaces.push(e.surface);
+        e.surface = null;
+        e.canvas = null;
+        e.cctx = null;
+        e.layers = NO_LAYERS;
+        e.layerCtxs = NO_LAYER_CTXS;
+    }
+
+    /** 借一組畫布；沒有閒置的才新建 */
+    private borrowSurface(e: DrapeEntry): PlaneSurface {
+        let s = this.freeSurfaces.pop();
+        if (!s) {
+            const canvas = document.createElement('canvas');
+            s = { canvas, cctx: canvas.getContext('2d'), layers: [null, null, null], layerCtxs: [null, null, null], peakW: 0, peakH: 0 };
+        }
+        e.surface = s;
+        e.canvas = s.canvas;
+        e.cctx = s.cctx;
+        e.layers = s.layers;
+        e.layerCtxs = s.layerCtxs;
+        return s;
     }
 
     public get size(): number { return this.count; }
@@ -436,24 +477,21 @@ export class GroundDrapeLayer {
 
         const tf = ctx.getTransform();
         const deviceScale = Math.hypot(tf.a, tf.b) || 1;
-        const maxPx = maxCanvasPx();
+        const maxPx = isMemoryConstrainedDevice() ? GROUND_DRAPE.MAX_PLANE_PX_TOUCH : GROUND_DRAPE.MAX_CANVAS_PX;
         const s = Math.min(deviceScale, maxPx / (2 * e.extW), maxPx / (2 * e.extH));
         // 偶數寬高：中心落在整數裝置像素，貼回主畫布時與直接繪製對得上
         const w = Math.ceil(e.extW * s) * 2;
         const h = Math.ceil(e.extH * s) * 2;
 
-        if (!e.canvas) {
-            e.canvas = document.createElement('canvas');
-            e.cctx = e.canvas.getContext('2d');
-        }
-        const c = e.canvas;
-        const octx = e.cctx;
+        const surface = e.surface ?? this.borrowSurface(e);
+        const c = surface.canvas;
+        const octx = surface.cctx;
         if (!octx) return false;
         const step = GROUND_DRAPE.CANVAS_GROW_STEP_PX;
         if (c.width < w) c.width = Math.ceil(w / step) * step;
         if (c.height < h) c.height = Math.ceil(h / step) * step;
-        if (w > e.peakW) e.peakW = w;
-        if (h > e.peakH) e.peakH = h;
+        if (w > surface.peakW) surface.peakW = w;
+        if (h > surface.peakH) surface.peakH = h;
 
         octx.setTransform(1, 0, 0, 1, 0, 0);
         octx.imageSmoothingEnabled = true;
