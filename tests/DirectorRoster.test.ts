@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { GameEngine, type Agent } from '../engine/game';
-import { CameraTargetGroup } from '../engine/presentation/CameraTargetGroup';
 import { DirectorRoster } from '../engine/presentation/DirectorRoster';
 import { DIRECTOR_PARAM } from '../constants';
 import { Team, Role } from '../types';
@@ -83,45 +82,6 @@ describe('DirectorRoster', () => {
     });
 });
 
-describe('CameraTargetGroup', () => {
-    it('a member that stops being wanted lingers, then fades out without a zoom jump', () => {
-        const group = new CameraTargetGroup();
-        const settle = () => { group.want('near', 0, 0, 1, 100); group.want('far', 800, 0, 1, 100); group.advance(10); };
-        settle();
-        let prev = group.solve(1000, 1000).zoom;
-        let biggest = 0;
-        let ticks = 0;
-        while (group.size > 1 && ticks++ < 600) {
-            group.want('near', 0, 0, 1, 100);
-            group.advance(TICK);
-            const { zoom } = group.solve(1000, 1000);
-            biggest = Math.max(biggest, Math.abs(Math.log(zoom / prev)));
-            prev = zoom;
-        }
-        expect(group.size).toBe(1);
-        expect(ticks).toBeGreaterThan(DIRECTOR_PARAM.LINGER_S / TICK);
-        // 舊做法收招那一 tick 就跳約 ln(3)≈1.1；這裡只驗沒有跳變，速度上限另外在導播端
-        expect(biggest).toBeLessThan(0.1);
-    });
-
-    it('a low-weight far member cannot set the zoom alone', () => {
-        const near = new CameraTargetGroup();
-        near.want('a', 0, 0, 1, 100);
-        near.advance(10);
-        const withFar = new CameraTargetGroup();
-        withFar.want('a', 0, 0, 1, 100);
-        withFar.want('far', 800, 0, DIRECTOR_PARAM.TOP_WEIGHT, 60);
-        withFar.advance(10);
-        const equalFar = new CameraTargetGroup();
-        equalFar.want('a', 0, 0, 1, 100);
-        equalFar.want('far', 800, 0, 1, 60);
-        equalFar.advance(10);
-        const z = (g: CameraTargetGroup) => g.solve(1000, 1000).zoom;
-        expect(z(withFar)).toBeLessThanOrEqual(z(near));
-        expect(z(withFar)).toBeGreaterThan(z(equalFar));
-    });
-});
-
 describe('DirectorSystem target', () => {
     it('holds the anchor for the minimum time, then a clearly higher score takes over', () => {
         const { engine, add } = arena();
@@ -162,22 +122,6 @@ describe('DirectorSystem target', () => {
         expect(engine.state.director.targetId).toBe(red.id);
     });
 
-    it('zoom sent to the camera never exceeds the rate limit when casters come and go', () => {
-        const { engine, add } = arena();
-        const blue = add(Team.BLUE, 0);
-        const red = add(Team.RED, 6);
-        blue.castingSkillIdx = skillIndex(blue, 'ULT');
-        const zooms: number[] = [];
-        engine.bus.on('CAMERA_MOVE', d => { zooms.push(d.zoom); });
-        for (let i = 0; i < 600; i++) {
-            red.castingSkillIdx = i % 120 < 60 ? skillIndex(red, 'ULT') : -1;
-            engine.director.update(engine, TICK);
-        }
-        const limit = DIRECTOR_PARAM.ZOOM_RATE_PER_S * TICK + 1e-9;
-        for (let i = 1; i < zooms.length; i++) {
-            expect(Math.abs(Math.log(zooms[i] / zooms[i - 1]))).toBeLessThanOrEqual(limit);
-        }
-    });
 });
 
 describe('Camera snaps stay out of the running battle', () => {

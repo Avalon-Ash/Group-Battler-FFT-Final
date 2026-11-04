@@ -62,7 +62,7 @@ export const UI_SETTINGS = {
     BATTLE_UNITS_PER_FACTION: { min: 1, max: 40, default: 5, step: 1 },
     /** 開局總人數硬上限（人，效能）；總池＝min(本張地圖可出生格數 − 1, 這個值) */
     BATTLE_MAX_UNITS: 40,
-    CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 0.25, zoomDefault: 0.2, step: 0.1, sliderMax: 5.0 },
+    CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 3, zoomDefault: 4, step: 0.1, sliderMax: 5.0 },
     /** 鏡頭震動滑桿範圍（預設值在 SHAKE_DIRECTOR_PARAM） */
     SHAKE_STRENGTH: { min: 0, max: 1.5, step: 0.05 },
     SHAKE_OFF_FOCUS: { min: 0, max: 1, step: 0.05 },

@@ -184,7 +184,7 @@ export const DIRECTOR_PARAM = {
     /** 普攻施法分（分） */
     BASIC_SCORE: 5,
     /** 受擊加分（分） */
-    HIT_SCORE: 15,
+    HIT_SCORE: 8,
     /** 移動加分（分） */
     MOVING_SCORE: 5,
     /** 逃生加分（分） */
@@ -194,7 +194,9 @@ export const DIRECTOR_PARAM = {
     /** 挑戰者要比主角多這麼多分才換人（分） */
     STICKY_SCORE: 10,
     /** 主角最短維持時間（秒）；主角失效不受此限 */
-    MIN_HOLD_S: 2,
+    MIN_HOLD_S: 4,
+    /** 別處有人放奧義時，主角至少看滿這麼久就可以被搶（秒）；其餘動作要等 MIN_HOLD_S */
+    ULT_CUT_HOLD_S: 1.5,
     /** 不能上鏡的墜落深度（px） */
     FALL_DEPTH: 50,
     /** 主角取景權重 */
@@ -231,6 +233,34 @@ export const DIRECTOR_PARAM = {
     ZOOM_RATE_PER_S: 0.35,
     /** 空場中央鏡頭縮放（倍） */
     EMPTY_ZOOM: 0.7,
+    /** 這場架的範圍：離主角超過這個距離的人不進取景（px，約 8.5 格） */
+    FIGHT_RADIUS_PX: 720,
+    /** 活著的成員不再相關後多留的時間（秒）；死者立刻離開 */
+    MEMBER_LINGER_S: 0.8,
+    /** 每個成員四周要留的邊（px，單位身體加血條） */
+    UNIT_MARGIN_PX: 70,
+    /** 取景留白（倍） */
+    FRAME_PADDING: 1.15,
+    /** 三種景別：畫面短邊的一半看得到多少世界距離（px）；縮放還要再夾 directorMin～directorMax */
+    SHOT_RADIUS_PX: { CLOSE: 170, MID: 270, WIDE: 435 },
+    /** 要換到更緊的景別，範圍要比剛好框住再小這個比例（倍），避免在邊界來回跳 */
+    SHOT_IN_MARGIN: 1.15,
+    /** 更緊的景別要持續放得下這麼久才拉近（秒） */
+    SHOT_IN_HOLD_S: 0.5,
+    /** 目前景別放不下持續這麼久才拉遠（秒） */
+    SHOT_OUT_HOLD_S: 0.2,
+    /** 拉近一次的緩進緩出時間（秒） */
+    SHOT_IN_BLEND_S: 1,
+    /** 拉遠一次的緩進緩出時間（秒） */
+    SHOT_OUT_BLEND_S: 0.7,
+    /** 全景時縮放跟隨範圍的速度上限（對數／秒） */
+    WIDE_ZOOM_RATE_PER_S: 0.5,
+    /** 換主角時焦點從舊位置移到新位置的時間（秒） */
+    SWITCH_BLEND_S: 0.8,
+    /** 鏡頭視窗的半寬（畫面短邊的比例）：焦點在框內鏡頭不動 */
+    WINDOW_X: 0.12,
+    /** 鏡頭視窗的半高（畫面短邊的比例）：比半寬大，跳躍、擊飛時鏡頭不點頭 */
+    WINDOW_Y: 0.2,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */
