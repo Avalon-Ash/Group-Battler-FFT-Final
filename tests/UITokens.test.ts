@@ -62,8 +62,8 @@ describe('UI Tokens SSOT (U11a)', () => {
     });
 
     it('verifies core Tailwind palette values align with official specifications', () => {
-        // cyan-400 = #22d3ee = 34 211 238
-        expect(UI_TOKENS.accent.hover).toBe('34 211 238');
+        // 2026-11-04 強調色 hover 改成 #83e3ef = 131 227 239
+        expect(UI_TOKENS.accent.hover).toBe('131 227 239');
         // 2026-11-04 強調色改成 #67d9e8 = 103 217 232（GPT 視覺審查）
         expect(UI_TOKENS.accent.DEFAULT).toBe('103 217 232');
         // red-500 = #ef4444 = 239 68 68
