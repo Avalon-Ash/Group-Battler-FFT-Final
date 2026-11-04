@@ -12,6 +12,7 @@ const LONG_GROUP_SIZE = 12;
 const SAMPLE_ROWS = 3;
 const SAMPLE_SLIDER = 40;
 const SAMPLE_NUMBER = 50;
+const SAMPLE_NUMBER_MAX = 9999;
 const SAMPLE_HP = 72;
 const SAMPLE_SHIELD = 30;
 const SAMPLE_HEAT = 90;
@@ -106,7 +107,7 @@ export function Gallery() {
                         <Switch data-testid="gallery-switch" ariaLabel="範例開關" checked={enabled} onChange={setEnabled} />
                     </SettingRow>
                     <SettingRow label="數字" description="Enter 或離開欄位提交，Esc 還原">
-                        <NumberInput data-testid="gallery-number-input" ariaLabel="範例數字" value={committed} onCommit={setCommitted} min={0} max={9999} step={1} className="w-28" />
+                        <NumberInput data-testid="gallery-number-input" ariaLabel="範例數字" value={committed} onCommit={setCommitted} min={0} max={SAMPLE_NUMBER_MAX} step={1} className="w-28" />
                         <span data-testid="gallery-number-value" className="font-mono text-ui-num text-fg-secondary">{committed}</span>
                     </SettingRow>
                     <SettingRow label="顏色">
