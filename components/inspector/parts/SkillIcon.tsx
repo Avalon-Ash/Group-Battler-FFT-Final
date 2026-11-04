@@ -1,7 +1,7 @@
-
-import React from 'react';
-import { Skill } from '../../../types';
-import { AssetManager } from '../../../engine/assets';
+import React, { useMemo } from 'react';
+import type { Skill } from '../../../types';
+import { getSkillIconDataUrl } from '../../../hooks/adapters/skillIcon';
+import { cn } from '../../ui/primitives/cn';
 
 interface SkillIconProps {
     skill: Skill | null;
@@ -10,7 +10,35 @@ interface SkillIconProps {
 
 export const SkillIcon: React.FC<SkillIconProps> = ({ skill, className }) => {
     const sizeClass = (className?.includes('w-') && className?.includes('h-')) ? '' : 'w-10 h-10';
-    if (!skill || !skill.visual) return <div className={`rounded bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-xs text-slate-500 ${sizeClass} ${className || ''}`}>∅</div>;
-    const iconUrl = AssetManager.getSkillIcon(skill.visual, skill.color).toDataURL();
-    return <img src={iconUrl} className={`rounded bg-slate-900 border-2 border-slate-600 shadow-md ${sizeClass} ${className || ''}`} alt={skill.visual} />;
+
+    const iconUrl = useMemo(() => {
+        if (!skill || !skill.visual) return null;
+        return getSkillIconDataUrl(skill.visual, skill.color);
+    }, [skill?.visual, skill?.color]);
+
+    if (!skill || !skill.visual || !iconUrl) {
+        return (
+            <div
+                className={cn(
+                    'well flex shrink-0 items-center justify-center rounded-ui-control text-ui-label text-fg-disabled',
+                    sizeClass,
+                    className,
+                )}
+            >
+                -
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={iconUrl}
+            className={cn(
+                'card shrink-0 rounded-ui-control object-cover',
+                sizeClass,
+                className,
+            )}
+            alt={skill.name || skill.visual}
+        />
+    );
 };

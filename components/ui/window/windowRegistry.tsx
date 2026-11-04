@@ -39,12 +39,12 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     logs: {
         icon: <Icons.Log className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <LogTab engine={engine} />,
+        render: () => <LogTab />,
     },
     db: {
         icon: <Icons.Database className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <SkillDbTab engine={engine} />,
+        render: () => <SkillDbTab />,
     },
     vfxmap: {
         icon: <Icons.VFX className="w-4 h-4" />,
