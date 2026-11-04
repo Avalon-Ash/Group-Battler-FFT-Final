@@ -421,7 +421,7 @@ export type UICommand =
 /**
  * @public 下一輪「可玩地基」的指令排程會用到。
  * 只影響畫面與聲音的指令：不改模擬，不進回放。
- * 其餘 UICommand 都是 GameCommand，之後要在 tick 開頭處理才能回放與 undo（docs/UI_REFRESH_PLAN.md）。
+ * 其餘 UICommand 都是 GameCommand，之後要在 tick 開頭處理才能回放與 undo（docs/DECISIONS.md「UI」）。
  */
 export type ViewCommand = Extract<UICommand, { type:
     | 'SET_DIRECTOR_ENABLED'

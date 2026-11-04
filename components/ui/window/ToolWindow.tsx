@@ -142,7 +142,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             transition: 'none',
         };
 
-    // 材質分級（docs/UI_REFRESH_PLAN.md）：只有桌機聚焦中的視窗用真模糊
+    // 材質分級（docs/DECISIONS.md「UI」）：只有桌機聚焦中的視窗用真模糊
     const material = isNarrow || id !== topmostOpenId
         ? 'shell-inactive'
         : isMaximized

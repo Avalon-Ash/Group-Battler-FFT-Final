@@ -43,7 +43,7 @@
   }
 }
 
-/* 新材質（docs/UI_REFRESH_PLAN.md）。真模糊只有 .mat-blur 一個來源（styles/tokens.css）。 */
+/* 新材質（docs/DECISIONS.md「UI」）。真模糊只有 .mat-blur 一個來源（styles/tokens.css）。 */
 @layer components {
   .shell {
     border: 1px solid var(--mat-shell-border);

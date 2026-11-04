@@ -1,5 +1,5 @@
 /**
- * ui-audit-static.mjs — UI 改版的靜態稽核（docs/UI_REFRESH_PLAN.md）
+ * ui-audit-static.mjs — UI 改版的靜態稽核（docs/DECISIONS.md「UI」）
  * 用法：
  *   npm run audit:ui -- L1      只查某條線的檔案（清單在 tools/ui-e2e/ui-lines.json）
  *   npm run audit:ui -- all     查所有 tsx（整合後的全庫閘門）

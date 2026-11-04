@@ -34,7 +34,7 @@ function formatRgba(red: number, green: number, blue: number, alpha: number): st
 }
 
 /**
- * 材質（完整 CSS 值，輸出成 --mat-*）。分級規則見 docs/UI_REFRESH_PLAN.md：
+ * 材質（完整 CSS 值，輸出成 --mat-*）。分級規則見 docs/DECISIONS.md「UI」：
  * 外殼才有真模糊，內部元件只用半透明底、細邊框、頂部高光。
  * 數值來自 2026-11-04 GPT 視覺審查，外殼不透明度由主代理依白色爆閃的對比調整。
  */

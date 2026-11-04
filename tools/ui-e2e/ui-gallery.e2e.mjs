@@ -1,5 +1,5 @@
 /**
- * ui-gallery.e2e.mjs — 共用元件庫的驗收（docs/UI_REFRESH_PLAN.md）
+ * ui-gallery.e2e.mjs — 共用元件庫的驗收（docs/DECISIONS.md「UI」）
  * 開 `?ui-gallery` 樣張頁，實際操作每種元件，用 axe 查無障礙，並量字級與巢狀模糊。
  * Run: node tools/ui-e2e/ui-gallery.e2e.mjs [--shots]
  *   --shots 會在 tools/ui-e2e/out/ui-gallery/ 存三種場景的截圖給人看

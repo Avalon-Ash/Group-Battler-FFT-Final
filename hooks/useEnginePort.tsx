@@ -4,7 +4,7 @@ import { useEngineCommands } from './useEngineCommands';
 import { useEngineView } from './useEngineView';
 
 /**
- * UI 碰引擎的唯一入口（docs/UI_REFRESH_PLAN.md）。
+ * UI 碰引擎的唯一入口（docs/DECISIONS.md「UI」）。
  * components 用 useView(selector) 讀 view model、用 useCommands() 發指令，不收 GameEngine prop，
  * 也不 import engine/game。之後要換指令排程（tick 開頭處理、回放）只改這裡和 useEngineCommands。
  */

@@ -619,6 +619,17 @@
 - **沒做**：解碼或下載失敗會讓音檔整場標記失敗（`failedAssets`），這輪沒有證據是它，沒動；音樂有合成鋪底，不會全靜音。iPhone 側邊靜音開關會關掉 Web Audio，重新整理也救不回來，要改得用 `navigator.audioSession`，是產品決定，留給使用者。
 - **實機回饋（同日）**：導播焦點、拉近、景別頻率、畫質、記憶體都 OK，分頁不再回收。通常穩定 40～60 FPS，20 人岩漿低於 20。
 
+### BP. 2026-11-04 UI 全面改版（主代理設計與審查，agy 多線、Sonnet、GPT Astra 與 Sol 參與）
+結論：UI 改成純投影加共用元件庫，視窗層級、毛玻璃材質、行為樹獨立視窗、開場標題都照使用者要求做完。實機手感待使用者確認。
+
+- **驗收（合併前最後一次，feat/ui-refresh）**：`npm test` 1371 項通過；`npm run audit:ui -- all` 43 檔 0 違規；`e2e:ui`、`e2e:gallery` 全過；`perf:fidelity` 六場景通過且未重錄；`perf:guard` 通過。8 種視窗最大化 0/384 遮擋，巢狀模糊 0，小於 24px 的控制項 0，原生 `<select>` 0。
+- **架構**：`hooks/useEnginePort`（`useView`、`useViewOf`、`useCommands`）是 UI 碰引擎的入口；`engine/systems/ui/views/` 放 selector；選取改 `hooks/useSelection`；`session.timeScale` 移除。`types.ts` 的 `ViewCommand`／`GameCommand` 分類是給下一輪用的。
+- **元件**：`components/ui/primitives/`，`?ui-gallery` 可看全部（動態載入）。原生 `<select>` 換 Radix，emoji 換 lucide。
+- **基準**：樣式基準重錄兩次，各自獨立 commit，最後一次只動 `showcase_card`、`showcase_enter_btn`。
+- **順手修的**：手機寬度下重新註冊視窗會蓋掉開啟狀態，START 因此消失；`drag pan` 從固定座標起手，隨機地圖上會按到單位或障礙物而偶發失敗，改從空格起手。
+- **派工數字**：agy 同時跑 4 條可行；agy 的 Claude 池一個大包就吃光 5 小時窗（L3 中途 429，主代理補完）；GPT 視覺審查抓到最大化視窗蓋住子視窗。最後一輪 GPT 回報 5 項，修 3 項，1 項看截圖判定誤報（log 字型），1 項是素材（見 HANDOFF）。
+- **主代理犯的錯**：兩次用 `;` 把 commit 接在測試後面，測試失敗仍提交，事後補修正 commit。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
