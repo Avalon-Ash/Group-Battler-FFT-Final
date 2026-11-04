@@ -62,9 +62,6 @@ function App() {
         <ShowcaseOverlay 
             onEnter={handleEnterManualMode}
             battleSetup={state.battleSetup}
-            timeScale={state.timeScale}
-
-            setTimeScale={setters.setTimeScale} 
             engine={engineRef.current} 
             showDirectorMonitor={isMonitorOpen}
             setShowDirectorMonitor={(v: boolean) => (v ? windowActions.open('monitor') : windowActions.close('monitor'))}
@@ -75,11 +72,9 @@ function App() {
           hidden={hideHUD}
           isPlaying={state.isPlaying}
           winner={state.winner}
-          timeScale={state.timeScale}
           onTogglePlay={actions.togglePlay}
           onRestart={actions.handleReset}
           onRandom={actions.handleRandomBattlefield} 
-          onSetTimeScale={setters.setTimeScale}
           onShowcase={() => { setters.setIsShowcaseMode(true); actions.startShowcaseMatch(); }}
       />
       {!isGameOver && (

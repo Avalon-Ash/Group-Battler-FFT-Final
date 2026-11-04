@@ -14,8 +14,6 @@ interface ShowcaseOverlayProps {
     onEnter: () => void;
     /** 場上這一局的陣營設定：標題卡依它標示雙陣營或大逃殺 */
     battleSetup?: BattleSetup;
-    timeScale?: number;
-    setTimeScale?: (v: number) => void;
     engine?: GameEngine; 
     showDirectorMonitor?: boolean;
     setShowDirectorMonitor?: (v: boolean) => void;

@@ -221,6 +221,10 @@ export class WindowStore {
         }
 
         const restored = restoreState(raw, defs);
+        // 手機一次只顯示一個底部面板：還原開著的視窗會蓋住畫面，開著展示設定時連 START 都會被藏起來
+        if (typeof window !== 'undefined' && window.innerWidth <= UI_WINDOW.SHEET_BREAKPOINT) {
+            for (const state of Object.values(restored)) state.isOpen = false;
+        }
         for (const [id, state] of Object.entries(restored)) {
             if (!this._windows[id]) {
                 this._windows[id] = state;

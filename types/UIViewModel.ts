@@ -67,6 +67,8 @@ export interface LogView {
 export interface GamePlaybackView {
     readonly isRunning: boolean;
     readonly timeScale: number;
+    /** 使用者設定的倍率；timeScale 是緩動中的實際值，滑桿要顯示這個 */
+    targetTimeScale: number;
     readonly turn: number;
     readonly winner: Team | null;
 }

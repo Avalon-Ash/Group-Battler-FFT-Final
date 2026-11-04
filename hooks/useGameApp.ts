@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { UI_SETTINGS } from '../constants';
 import { selectionStore, usePrimarySelectedId } from './useSelection';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
@@ -69,7 +70,6 @@ export const useGameApp = () => {
         winnerSide: null as number | null,
         /** 目前場上這一局的陣營設定（生成時記下；面板改了但還沒開新局時，結算仍照這個） */
         battleSetup: { ...initialEngine.battleSetup } as BattleSetup,
-        timeScale: 1.0,
         isShowcaseMode: true, 
         transitionPhase: 'IDLE' as 'IDLE' | 'IN' | 'OUT',
         unitCount: 0
@@ -237,7 +237,8 @@ export const useGameApp = () => {
             rosterRef.current = [];
             const autoStart = showcaseModeRef.current;
             if (autoStart) engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
-            setSession(p => ({ ...p, winner: null, winnerId: null, winnerSide: null, isPlaying: autoStart, timeScale: 1.0 }));
+            setSession(p => ({ ...p, winner: null, winnerId: null, winnerSide: null, isPlaying: autoStart }));
+            engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             setEditor(p => ({ ...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id }));
         };
         engine.bus.on('BATTLE_SETUP_APPLY', handleApply);
@@ -311,9 +312,6 @@ export const useGameApp = () => {
         return () => clearInterval(interval);
     }, []);
 
-    useEffect(() => { 
-        engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: session.timeScale });
-    }, [session.timeScale]);
 
     // 點選的單位同步給引擎：導播關閉時擊殺播報只給它的陣營
     const selectedAgentId = usePrimarySelectedId();
@@ -339,7 +337,7 @@ export const useGameApp = () => {
     return {
         engineRef,
         state: { 
-            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
+            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: editor.hexLayout,
             selectedAgent: selectedAgentId ? (engineRef.current.agents.find((a) => a.id === selectedAgentId) ?? null) : null, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
@@ -349,7 +347,6 @@ export const useGameApp = () => {
             setTool: (tool: ToolType) => setEditor(p => ({...p, tool})),
             setSelectedObstacle: (selectedObstacle: string) => setEditor(p => ({...p, selectedObstacle})),
             setHpInput: (hpInput: number) => setEditor(p => ({...p, hpInput})),
-            setTimeScale: (timeScale: number) => setSession(p => ({...p, timeScale})),
             setSpawnMode: (spawnMode: 'RANDOM' | 'DRAFT') => setEditor(p => ({...p, spawnMode})),
             setDraftRole: (draftRole: Role) => setEditor(p => ({...p, draftRole})),
             setDraftBodyType: (draftBodyType?: BodyTypeId) => setEditor(p => ({...p, draftBodyType})),
@@ -392,12 +389,14 @@ export const useGameApp = () => {
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
                 rosterRef.current = [];
                 internalSpawnTeams();
-                setSession(p => ({...p, winner: null, winnerId: null, isPlaying: false, timeScale: 1.0})); 
+                setSession(p => ({...p, winner: null, winnerId: null, isPlaying: false}));
+                engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
                 setEditor(p => ({...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id})); 
             },
             handleReset: () => {
                 engineRef.current.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
-                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null, timeScale: 1.0}));
+                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null}));
+                engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             togglePlay: () => { 
                 if(session.winner) return;
@@ -421,13 +420,15 @@ export const useGameApp = () => {
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
                 rosterRef.current = [];
                 internalSpawnTeams(); 
-                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null, timeScale: 1.0})); 
+                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null}));
+                engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             rematch: () => {
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
-                setSession(p => ({...p, isPlaying: true, winner: null, winnerId: null, timeScale: 1.0}));
+                setSession(p => ({...p, isPlaying: true, winner: null, winnerId: null}));
+                engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadAll,

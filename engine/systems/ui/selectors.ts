@@ -319,6 +319,7 @@ export function selectLogView(engine: GameEngine): LogView {
 export function selectGamePlaybackView(engine: GameEngine): GamePlaybackView {
     const isRunning = engine.isRunning;
     const timeScale = engine.state.time.timeScale;
+    const targetTimeScale = engine.state.time.targetTimeScale;
     const turn = Math.floor(engine.state.time.battleTime);
     const winner = engine.state.victory.winningTeam;
 
@@ -326,6 +327,7 @@ export function selectGamePlaybackView(engine: GameEngine): GamePlaybackView {
         prevPlaybackView &&
         prevPlaybackView.isRunning === isRunning &&
         prevPlaybackView.timeScale === timeScale &&
+        prevPlaybackView.targetTimeScale === targetTimeScale &&
         prevPlaybackView.turn === turn &&
         prevPlaybackView.winner === winner
     ) {
@@ -335,6 +337,7 @@ export function selectGamePlaybackView(engine: GameEngine): GamePlaybackView {
     const next: GamePlaybackView = {
         isRunning,
         timeScale,
+        targetTimeScale,
         turn,
         winner,
     };

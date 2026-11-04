@@ -3,22 +3,27 @@ import { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
 import { Icons } from './icons';
-import { UI_Z, UI_PIN, UI_PANEL_PARAM } from '../../constants';
+import { UI_Z, UI_PIN, UI_PANEL_PARAM, UI_SETTINGS } from '../../constants';
+import { useCommands, useView } from '../../hooks/useEnginePort';
+import { selectGamePlaybackView } from '../../engine/systems/ui/selectors';
 interface PlaybackHUDProps {
     hidden: boolean;
     isPlaying: boolean;
     winner: Team | null;
-    timeScale: number;
     onTogglePlay: () => void;
     onRestart: () => void;
     onRandom: () => void;
-    onSetTimeScale: (v: number) => void;
     onShowcase: () => void;
 }
 export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
-    hidden, isPlaying, winner, timeScale, onTogglePlay, onRestart, onRandom, onSetTimeScale, onShowcase
+    hidden, isPlaying, winner, onTogglePlay, onRestart, onRandom, onShowcase
 }) => {
     const ref = useRef<HTMLDivElement>(null);
+    const playback = useView(selectGamePlaybackView);
+    const { send } = useCommands();
+    const range = UI_SETTINGS.TIME_SCALE;
+    const timeScale = playback?.targetTimeScale ?? range.default;
+    const scalePct = ((timeScale - range.min) / (range.max - range.min)) * 100;
     const isCompact = useCompactViewport();
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'bottom-center',
@@ -81,12 +86,12 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                     </div>
                     <div className="relative h-6 w-full flex items-center group cursor-pointer">
                         <div className="absolute left-0 right-0 h-2 bg-black/40 rounded-full border border-white/10 overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-cyan-900 to-cyan-500 transition-all duration-100 ease-out" style={{width: `${(timeScale/3)*100}%`}}></div>
+                            <div className="h-full bg-gradient-to-r from-cyan-900 to-cyan-500 transition-all duration-100 ease-out" style={{width: `${scalePct}%`}}></div>
                         </div>
-                        <div className="absolute h-4 w-1.5 bg-white rounded-full shadow-[0_0_10px_cyan] pointer-events-none transition-all duration-100 ease-out z-10" style={{left: `calc(${(timeScale/3)*100}% - 3px)`}}></div>
+                        <div className="absolute h-4 w-1.5 bg-white rounded-full shadow-[0_0_10px_cyan] pointer-events-none transition-all duration-100 ease-out z-10" style={{left: `calc(${scalePct}% - 3px)`}}></div>
                         <input 
-                            type="range" min="0.1" max="3.0" step="0.1" 
-                            value={timeScale} onChange={(e) => onSetTimeScale(parseFloat(e.target.value))}
+                            type="range" min={range.min} max={range.max} step={range.step}
+                            value={timeScale} onChange={(e) => send({ type: 'SET_TIME_SCALE', timeScale: parseFloat(e.target.value) })}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                             onPointerDown={(e) => e.stopPropagation()}
                         />
