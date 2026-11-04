@@ -397,6 +397,7 @@
 
 @media (pointer: coarse) {
   :root {
+    --mat-shell-window: rgba(16, 24, 38, 0.78);
     --ui-control-h: var(--touch-target-min);
     --ui-font-body: 14px;
     --ui-font-body-lh: 22px;

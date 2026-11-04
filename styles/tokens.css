@@ -104,7 +104,7 @@
   --mat-control-on-border: rgba(103, 217, 232, 0.55);
   --mat-control-off-bg: rgba(255, 255, 255, 0.02);
   --mat-control-off-border: rgba(220, 235, 255, 0.08);
-  --mat-control-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --mat-control-highlight: none;
   --mat-card-bg: rgba(255, 255, 255, 0.035);
   --mat-card-border: rgba(220, 235, 255, 0.10);
   --mat-well-bg: rgba(0, 0, 0, 0.18);

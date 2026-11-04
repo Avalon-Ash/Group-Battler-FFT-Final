@@ -106,7 +106,8 @@ export const UI_MATERIAL_TOKENS = {
         onBorder: 'rgba(103, 217, 232, 0.55)',
         offBg: 'rgba(255, 255, 255, 0.02)',
         offBorder: 'rgba(220, 235, 255, 0.08)',
-        highlight: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+        // 上緣亮線加外框在手機上像塑膠凸邊（2026-11-04 GPT 樣張審查），只留邊框
+        highlight: 'none',
     },
     card: {
         bg: 'rgba(255, 255, 255, 0.035)',
