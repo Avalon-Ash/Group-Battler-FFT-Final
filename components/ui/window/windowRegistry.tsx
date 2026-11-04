@@ -55,8 +55,8 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     inspector: {
         icon: <Icons.Select className="w-4 h-4" />,
         flush: true,
-        render: ({ engine, selectedAgentId }) => (
-            <UnitInspectorBody engine={engine} agentId={selectedAgentId} />
+        render: () => (
+            <UnitInspectorBody />
         ),
     },
     behaviorTree: {
@@ -67,7 +67,7 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     monitor: {
         icon: <Icons.TV className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <DirectorMonitorHUD engine={engine} />,
+        render: () => <DirectorMonitorHUD />,
     },
     directorSettings: {
         icon: <Icons.TV className="w-4 h-4" />,

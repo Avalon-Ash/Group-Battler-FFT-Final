@@ -1,411 +1,200 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { TEAM_COLORS } from '../../../constants';
-import type { GameEngine } from '../../../engine/game';
-import { Role, Team, BodyTypeId } from '../../../types';
-import { BODY_TYPE_PROFILE, resolveBodyType } from '../../../data/units/appearance/bodyTypes';
-import type { AgentView } from '../../../types/UIViewModel';
-import { selectAgentView } from '../../../engine/systems/ui/selectors';
-import { useEngineView } from '../../../hooks/useEngineView';
-import { useEngineCommands } from '../../../hooks/useEngineCommands';
-import { Icons } from '../icons';
-import { Helpers, ROLE_MAP } from '../../inspector/InspectorConstants';
-import { displayAiState } from '../../../engine/core/AgentDerived';
-import { UnitStatusTab } from '../../inspector/tabs/UnitStatusTab';
+import React, { useState } from 'react';
+import { Role } from '../../../types';
+import { useCommands, useViewOf } from '../../../hooks/useEnginePort';
+import { usePrimarySelectedId } from '../../../hooks/useSelection';
 import { useWindowActions } from '../../../hooks/useWindowStore';
-import { IconButton } from '../primitives';
+import { selectInspectorView } from '../../../engine/systems/ui/views/l3';
+import type { TeamTone } from '../../../types/ui/l3';
+import {
+    BODY_TYPE_OPTIONS, INSPECTOR_STATUS_TAG, INSPECTOR_TABS, INSPECTOR_TEXT, ROLE_OPTIONS, TEAM_CODE,
+} from '../../../data/ui/labels/l3';
+import { Icons } from '../icons';
+import { Helpers } from '../../inspector/InspectorConstants';
+import { UnitStatusTab } from '../../inspector/tabs/UnitStatusTab';
+import { Card, EmptyState, IconButton, Meter, NumberInput, SectionHeading, Select, Tabs, TabsContent, Tag } from '../primitives';
 
-export interface UnitInspectorBodyProps {
-    engine: GameEngine;
-    agentId?: string | null;
-}
+const ROLE_ICON: Readonly<Record<Role, React.ReactNode>> = {
+    [Role.TANK]: <Icons.RoleTank className="h-5 w-5" />,
+    [Role.WARRIOR]: <Icons.RoleWarrior className="h-5 w-5" />,
+    [Role.RANGER]: <Icons.RoleRanger className="h-5 w-5" />,
+    [Role.MAGE]: <Icons.RoleMage className="h-5 w-5" />,
+    [Role.SUPPORT]: <Icons.RoleSupport className="h-5 w-5" />,
+};
 
-type TabType = 'STATUS' | 'SKILLS';
+const TEAM_TEXT: Readonly<Record<TeamTone, string>> = {
+    blue: 'text-team-blue-primary',
+    red: 'text-team-red-primary',
+};
 
-export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, agentId }) => {
-    // 1. All hooks unconditionally executed before any return
-    const agentSelector = useCallback((e: GameEngine) => selectAgentView(e, agentId), [agentId]);
-    const agentView = useEngineView<AgentView | null>(engine, agentSelector);
-    const agent = agentId ? (engine.agents.find(a => a.id === agentId) ?? null) : null;
+const MIN_MAX_HP = 1;
+const MIN_MAX_MP = 0;
 
-    const { editAgent, send } = useEngineCommands(engine);
+export const UnitInspectorBody: React.FC = () => {
+    const agentId = usePrimarySelectedId();
+    const view = useViewOf(selectInspectorView, agentId);
+    const { editAgent, send } = useCommands();
     const windowActions = useWindowActions();
 
-    const [tab, setTab] = useState<TabType>('STATUS');
+    const [tab, setTab] = useState(INSPECTOR_TABS[0].value);
     const [isConfigExpanded, setIsConfigExpanded] = useState(false);
-    const [updateCounter, setUpdateCounter] = useState(0);
 
-    const currentMaxHp = agentView?.maxHp ?? agent?.maxHp ?? 0;
-    const currentHp = agentView?.hp ?? agent?.hp ?? 0;
-    const currentMaxMp = agentView?.maxMp ?? agent?.maxMp ?? 0;
-    const currentMp = agentView?.mp ?? agent?.mp ?? 0;
-    const currentRole = agentView?.role ?? agent?.role ?? Role.WARRIOR;
-    const currentTeam = agentView?.team ?? agent?.team ?? Team.BLUE;
-
-    // R8 Draft States
-    const [hpDraft, setHpDraft] = useState<string>(() => (currentMaxHp > 0 ? Math.round(currentMaxHp).toString() : ''));
-    const [mpDraft, setMpDraft] = useState<string>(() => (currentMaxMp >= 0 ? Math.round(currentMaxMp).toString() : ''));
-    const [isHpFocused, setIsHpFocused] = useState(false);
-    const [isMpFocused, setIsMpFocused] = useState(false);
-
-    // Reset drafts on agentId change
-    useEffect(() => {
-        setIsHpFocused(false);
-        setIsMpFocused(false);
-        setHpDraft(currentMaxHp > 0 ? Math.round(currentMaxHp).toString() : '');
-        setMpDraft(currentMaxMp >= 0 ? Math.round(currentMaxMp).toString() : '');
-    }, [agentId]);
-
-    // Keep draft updated when not focused
-    useEffect(() => {
-        if (!isHpFocused) {
-            setHpDraft(currentMaxHp > 0 ? Math.round(currentMaxHp).toString() : '');
-        }
-    }, [currentMaxHp, isHpFocused]);
-
-    useEffect(() => {
-        if (!isMpFocused) {
-            setMpDraft(currentMaxMp >= 0 ? Math.round(currentMaxMp).toString() : '');
-        }
-    }, [currentMaxMp, isMpFocused]);
-
-    const submitHp = () => {
-        if (!agentId) return;
-        const v = parseInt(hpDraft.trim(), 10);
-        if (!Number.isNaN(v) && v > 0) {
-            editAgent(agentId, { maxHp: v, hp: v });
-            setUpdateCounter(n => n + 1);
-            setHpDraft(v.toString());
-        } else {
-            setHpDraft(currentMaxHp > 0 ? Math.round(currentMaxHp).toString() : '');
-        }
-    };
-
-    const submitMp = () => {
-        if (!agentId) return;
-        const v = parseInt(mpDraft.trim(), 10);
-        if (!Number.isNaN(v) && v >= 0) {
-            editAgent(agentId, { maxMp: v });
-            setUpdateCounter(n => n + 1);
-            setMpDraft(v.toString());
-        } else {
-            setMpDraft(currentMaxMp >= 0 ? Math.round(currentMaxMp).toString() : '');
-        }
-    };
-
-    const setRole = (r: string) => {
-        if (agentId) {
-            editAgent(agentId, { role: r as Role });
-            setUpdateCounter(n => n + 1);
-        }
-    };
-
-    const setBodyType = (b: BodyTypeId) => {
-        if (agentId) {
-            send({ type: 'EDIT_AGENT', agentId, bodyType: b });
-            setUpdateCounter(n => n + 1);
-        }
-    };
-
-    const isDead = !agent || !agentView || agentView.isDead || agent.hp <= 0 || agent.banished || agent.fullyDead;
-
-    // 2. Early return for empty state (when no unit selected or unit missing/dead)
-    if (!agentId || isDead) {
+    if (!agentId || !view) {
         return (
-            <div className="flex flex-col items-center justify-center h-full min-h-[220px] p-6 text-center select-none" style={{ color: 'var(--token-literal-slate500)' }}>
-                <Icons.Select className="w-8 h-8 mb-2 opacity-30" />
-                <div className="text-xs font-bold tracking-wider uppercase" style={{ color: 'var(--token-literal-slate400)' }}>
-                    請先選取單位
-                </div>
-                <div className="text-[10px] mt-1" style={{ color: 'var(--token-literal-slate600)' }}>
-                    在戰場中點選任意單位以檢視詳情
-                </div>
-            </div>
+            <EmptyState
+                className="h-full justify-center select-none"
+                icon={<Icons.Select className="h-8 w-8" />}
+                title={INSPECTOR_TEXT.noSelectionTitle}
+                description={INSPECTOR_TEXT.noSelectionHint}
+            />
+        );
+    }
+    if (view.isDead) {
+        return (
+            <EmptyState
+                className="h-full justify-center select-none"
+                icon={<Icons.Select className="h-8 w-8" />}
+                title={INSPECTOR_TEXT.deadTitle}
+                description={INSPECTOR_TEXT.deadHint}
+            />
         );
     }
 
-    const isBlue = currentTeam === Team.BLUE;
-    const teamAccentColor = isBlue ? TEAM_COLORS[Team.BLUE].uiAccent : TEAM_COLORS[Team.RED].uiAccent;
-    const teamBorderColor = isBlue ? TEAM_COLORS[Team.BLUE].uiBorder : TEAM_COLORS[Team.RED].uiBorder;
-
-    const hpPct = currentMaxHp > 0 ? (currentHp / currentMaxHp) * 100 : 0;
-    const mpPct = currentMaxMp > 0 ? (currentMp / currentMaxMp) * 100 : 0;
-
-    const renderRoleIcon = (role: Role) => {
-        switch (role) {
-            case Role.TANK: return <Icons.RoleTank className="w-5 h-5" />;
-            case Role.WARRIOR: return <Icons.RoleWarrior className="w-5 h-5" />;
-            case Role.RANGER: return <Icons.RoleRanger className="w-5 h-5" />;
-            case Role.MAGE: return <Icons.RoleMage className="w-5 h-5" />;
-            case Role.SUPPORT: return <Icons.RoleSupport className="w-5 h-5" />;
-            default: return null;
-        }
+    const setRole = (value: string) => {
+        const next = ROLE_OPTIONS.find((o) => o.value === value);
+        if (next) editAgent(view.id, { role: next.value });
+    };
+    const setBodyType = (value: string) => {
+        const next = BODY_TYPE_OPTIONS.find((o) => o.value === value);
+        if (next) send({ type: 'EDIT_AGENT', agentId: view.id, bodyType: next.value });
     };
 
     return (
-        <div className="flex flex-col h-full w-full select-none overflow-hidden">
-            {/* Header / Identity bar */}
-            <div className="p-3 bg-gradient-to-b from-white/10 to-transparent relative border-b border-white/5 shrink-0">
-                <div className="flex justify-between items-start gap-4">
-                    {/* Identity & Config Toggle */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 border shadow-inner shrink-0"
-                            style={{ borderColor: teamBorderColor, color: teamAccentColor }}
-                        >
-                            {renderRoleIcon(currentRole)}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <div
-                                className="font-mono font-bold text-sm leading-none tracking-tight truncate"
-                                style={{ color: teamAccentColor }}
-                            >
-                                {agent.id}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-[10px] font-bold uppercase tracking-wider truncate" style={{ color: 'var(--token-literal-slate400)' }}>
-                                    {ROLE_MAP[currentRole]?.label || currentRole}
-                                </span>
-                                <button
-                                    onClick={() => setIsConfigExpanded(!isConfigExpanded)}
-                                    className={`touch-target-icon w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
-                                        isConfigExpanded
-                                            ? 'text-white shadow-md'
-                                            : 'bg-white/10 hover:text-white hover:bg-white/20'
-                                    }`}
-                                    style={isConfigExpanded ? { backgroundColor: 'var(--token-literal-cyan500)' } : { color: 'var(--token-literal-slate400)' }}
-                                    title="編輯單位屬性"
-                                >
-                                    <Icons.Settings className={`w-4 h-4 ${isConfigExpanded ? 'animate-spin-slow' : ''}`} />
-                                </button>
-                            </div>
+        <div className="flex h-full w-full min-h-0 flex-col select-none">
+            <div className="flex shrink-0 flex-col gap-3 border-b border-line-subtle/10 p-3">
+                <div className="flex items-center gap-3">
+                    <div className={`well flex h-10 w-10 shrink-0 items-center justify-center ${TEAM_TEXT[view.teamTone]}`}>
+                        {ROLE_ICON[view.role]}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span className={`truncate font-mono text-ui-title ${TEAM_TEXT[view.teamTone]}`}>{view.id}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="ui-heading truncate text-fg-secondary">{view.role}</span>
+                            <Tag tone={view.teamTone}>{TEAM_CODE[view.teamTone]}</Tag>
                         </div>
                     </div>
-
-                    <IconButton size="sm" label="開啟行為樹" data-testid="inspector-open-bt" onClick={() => windowActions.open('behaviorTree')}>
+                    <IconButton
+                        size="sm"
+                        variant="ghost"
+                        label={INSPECTOR_TEXT.editToggle}
+                        aria-pressed={isConfigExpanded}
+                        data-state={isConfigExpanded ? 'on' : 'off'}
+                        onClick={() => setIsConfigExpanded((v) => !v)}
+                    >
+                        <Icons.Settings className="h-4 w-4" />
+                    </IconButton>
+                    <IconButton size="sm" label={INSPECTOR_TEXT.openBehaviorTree} data-testid="inspector-open-bt" onClick={() => windowActions.open('behaviorTree')}>
                         <Icons.Tree className="h-4 w-4" />
                     </IconButton>
-
-                    {/* Tab Navigation */}
-                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 shrink-0">
-                        <button
-                            onClick={() => setTab('STATUS')}
-                            className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
-                            style={
-                                tab === 'STATUS'
-                                    ? { backgroundColor: 'var(--token-literal-sky400-tint20)', color: 'var(--token-literal-sky400)' }
-                                    : { color: 'var(--token-literal-slate500)' }
-                            }
-                            title="狀態監控"
-                        >
-                            狀態
-                        </button>
-                        <button
-                            onClick={() => setTab('SKILLS')}
-                            className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
-                            style={
-                                tab === 'SKILLS'
-                                    ? { backgroundColor: 'var(--token-literal-cyan-bright-tint20)', color: 'var(--token-literal-cyan300)' }
-                                    : { color: 'var(--token-literal-slate500)' }
-                            }
-                            title="技能配置 (LINK)"
-                        >
-                            技能
-                        </button>
-                    </div>
                 </div>
 
-                {/* Config Drawer */}
-                <div
-                    className={`overflow-hidden transition-all duration-300 ease-out ${
-                        isConfigExpanded ? 'max-h-32 opacity-100 mt-3 pb-1 scale-100' : 'max-h-0 opacity-0 scale-95 origin-top'
-                    }`}
-                >
-                    <div className="grid grid-cols-4 gap-2 bg-black/40 p-2 rounded-xl border border-white/10 shadow-inner">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-slate500)' }}>
-                                職業
-                            </label>
-                            <select
-                                className="liquid-input h-8 w-full text-xs font-bold bg-black/50 !rounded-lg border-white/10 p-0 pl-2 text-white"
-                                value={currentRole}
-                                onChange={(e) => setRole(e.target.value)}
-                            >
-                                {Object.values(Role).map((r) => (
-                                    <option key={r} value={r} className="bg-black text-white">
-                                        {ROLE_MAP[r].label.split(' ')[0]}
-                                    </option>
+                {isConfigExpanded && (
+                    <Card className="grid grid-cols-2 gap-3">
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.role}</span>
+                            <Select
+                                data-testid="inspector-role"
+                                ariaLabel={INSPECTOR_TEXT.role}
+                                size="sm"
+                                className="w-full"
+                                value={view.role}
+                                onValueChange={setRole}
+                                options={ROLE_OPTIONS}
+                            />
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.bodyType}</span>
+                            <Select
+                                data-testid="inspector-bodytype"
+                                ariaLabel={INSPECTOR_TEXT.bodyType}
+                                size="sm"
+                                className="w-full"
+                                value={view.bodyType}
+                                onValueChange={setBodyType}
+                                options={BODY_TYPE_OPTIONS}
+                            />
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.maxHp}</span>
+                            <NumberInput
+                                data-testid="inspector-hp"
+                                ariaLabel={INSPECTOR_TEXT.maxHp}
+                                className="w-full"
+                                value={view.maxHp}
+                                min={MIN_MAX_HP}
+                                onCommit={(v) => editAgent(view.id, { maxHp: v, hp: v })}
+                            />
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.maxMp}</span>
+                            <NumberInput
+                                data-testid="inspector-mp"
+                                ariaLabel={INSPECTOR_TEXT.maxMp}
+                                className="w-full"
+                                value={view.maxMp}
+                                min={MIN_MAX_MP}
+                                onCommit={(v) => editAgent(view.id, { maxMp: v })}
+                            />
+                        </div>
+                    </Card>
+                )}
+
+                <div className="flex flex-col gap-2">
+                    <Meter label={INSPECTOR_TEXT.hp} value={view.hp} max={view.maxHp} tone={view.teamTone} showValue />
+                    {view.maxMp > 0 && <Meter label={INSPECTOR_TEXT.mp} value={view.mp} max={view.maxMp} tone="accent" size="sm" showValue />}
+                </div>
+            </div>
+
+            <Tabs value={tab} onValueChange={setTab} tabs={INSPECTOR_TABS} className="min-h-0 flex-1 px-3 pt-2">
+                <TabsContent value="STATUS" className="ui-scroll min-h-0 flex-1 pb-3">
+                    <div className="flex flex-col gap-3">
+                        <Card className="flex flex-col gap-2">
+                            <SectionHeading
+                                action={view.statusTags.map((kind) => (
+                                    <Tag key={kind} tone={INSPECTOR_STATUS_TAG[kind].tone}>{INSPECTOR_STATUS_TAG[kind].label}</Tag>
                                 ))}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-slate500)' }}>
-                                體型
-                            </label>
-                            <select
-                                className="liquid-input h-8 w-full text-xs font-bold bg-black/50 !rounded-lg border-white/10 p-0 pl-2 text-white"
-                                value={resolveBodyType(agent)}
-                                onChange={(e) => setBodyType(e.target.value as BodyTypeId)}
                             >
-                                {(Object.entries(BODY_TYPE_PROFILE) as [BodyTypeId, typeof BODY_TYPE_PROFILE[BodyTypeId]][])
-                                    .filter(([_, profile]) => profile.enabled)
-                                    .map(([typeKey, profile]) => (
-                                        <option key={typeKey} value={typeKey} className="bg-black text-white">
-                                            {profile.label}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-emerald-tint70)' }}>
-                                生命值
-                            </label>
-                            <input
-                                type="number"
-                                className="liquid-input h-8 w-full text-center font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 p-0"
-                                style={{ color: 'var(--token-literal-emerald400)' }}
-                                value={hpDraft}
-                                onFocus={() => {
-                                    setIsHpFocused(true);
-                                    setHpDraft(Math.round(currentMaxHp).toString());
-                                }}
-                                onChange={(e) => setHpDraft(e.target.value)}
-                                onBlur={() => {
-                                    setIsHpFocused(false);
-                                    submitHp();
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        submitHp();
-                                        e.currentTarget.blur();
-                                    } else if (e.key === 'Escape') {
-                                        setHpDraft(Math.round(currentMaxHp).toString());
-                                        e.currentTarget.blur();
-                                    }
-                                }}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: 'var(--token-literal-blue-tint70)' }}>
-                                能量值
-                            </label>
-                            <input
-                                type="number"
-                                className="liquid-input h-8 w-full text-center font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 p-0"
-                                style={{ color: 'var(--token-literal-blue400)' }}
-                                value={mpDraft}
-                                onFocus={() => {
-                                    setIsMpFocused(true);
-                                    setMpDraft(Math.round(currentMaxMp).toString());
-                                }}
-                                onChange={(e) => setMpDraft(e.target.value)}
-                                onBlur={() => {
-                                    setIsMpFocused(false);
-                                    submitMp();
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        submitMp();
-                                        e.currentTarget.blur();
-                                    } else if (e.key === 'Escape') {
-                                        setMpDraft(Math.round(currentMaxMp).toString());
-                                        e.currentTarget.blur();
-                                    }
-                                }}
-                            />
+                                {INSPECTOR_TEXT.aiHeading}
+                            </SectionHeading>
+                            <div className="flex items-center gap-2 font-mono text-ui-body">
+                                <span className="text-text-warn">{Helpers.getAIStateLabel(view.aiState)}</span>
+                                <span className="text-fg-muted">/</span>
+                                <span className="text-text-accent">{Helpers.getActionStateLabel(view.actionState)}</span>
+                            </div>
+                        </Card>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Card padding="sm" className="flex flex-col gap-1">
+                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.coordinate}</span>
+                                <span className="font-mono text-ui-body text-fg-primary">({view.q}, {view.r})</span>
+                            </Card>
+                            <Card padding="sm" className="flex flex-col gap-1">
+                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.shield}</span>
+                                <span className="font-mono text-ui-body text-fg-primary">{view.shield}</span>
+                            </Card>
+                            <Card padding="sm" className="flex flex-col gap-1">
+                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.hp}</span>
+                                <span className="font-mono text-ui-body text-fg-primary">{view.hp} / {view.maxHp}</span>
+                            </Card>
+                            <Card padding="sm" className="flex flex-col gap-1">
+                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.mp}</span>
+                                <span className="font-mono text-ui-body text-fg-primary">{view.mp} / {view.maxMp}</span>
+                            </Card>
                         </div>
                     </div>
-                </div>
-
-                {/* Vitals Bars */}
-                <div className="space-y-1 mt-3 pointer-events-none">
-                    <div className="h-1.5 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
-                        <div
-                            className="h-full transition-all duration-300"
-                            style={{ width: `${Math.max(0, hpPct)}%`, backgroundColor: 'var(--token-literal-emerald500)' }}
-                        />
-                    </div>
-                    {currentMaxMp > 0 && (
-                        <div className="h-1 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
-                            <div
-                                className="h-full transition-all duration-300"
-                                style={{ width: `${mpPct}%`, backgroundColor: 'var(--token-literal-cyan500)' }}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Tab Body */}
-            <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative bg-black/20">
-                {tab === 'STATUS' && (
-                    <div className="p-3 overflow-y-auto custom-scrollbar space-y-3">
-                        <div className="bg-black/30 rounded-xl p-3 border border-white/5 space-y-2">
-                            <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--token-literal-slate500)' }}>
-                                    行為樹狀態 | 執行流程
-                                </span>
-                                <div className="flex gap-1">
-                                    {agent.effects.STUN.remaining > 0 && (
-                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'var(--token-literal-amber-tint20)', borderColor: 'var(--token-literal-amber-tint50)', color: 'var(--token-literal-amber300)' }}>
-                                            暈眩
-                                        </span>
-                                    )}
-                                    {agent.effects.SILENCE.remaining > 0 && (
-                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'var(--token-literal-slate-tint50)', borderColor: 'var(--token-literal-slate500)', color: 'var(--token-literal-slate300)' }}>
-                                            沉默
-                                        </span>
-                                    )}
-                                    {agent.banished && (
-                                        <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'var(--token-literal-purple-tint20)', borderColor: 'var(--token-literal-purple-tint50)', color: 'var(--token-literal-purple300)' }}>
-                                            放逐
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? 'var(--token-literal-slate600)' : 'var(--token-literal-amber400)' }}>
-                                    {Helpers.getAIStateLabel(displayAiState(agent))}
-                                </span>
-                                <span className="text-[10px] font-mono" style={{ color: 'var(--token-literal-slate700)' }}>/</span>
-                                <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? 'var(--token-literal-slate600)' : 'var(--token-literal-cyan300)' }}>
-                                    {Helpers.getActionStateLabel(agent.actionState)}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Vital Metrics Grid */}
-                        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                            <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>目前座標 (Q, R)</span>
-                                <span className="text-sm font-bold text-white mt-1">({agent.q}, {agent.r})</span>
-                            </div>
-                            <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>護盾值 (SHIELD)</span>
-                                <span className="text-sm font-bold mt-1" style={{ color: 'var(--token-literal-sky400)' }}>{Math.round(agent.shield)}</span>
-                            </div>
-                            <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>生命值 (HP / MAX)</span>
-                                <span className="text-sm font-bold mt-1" style={{ color: 'var(--token-literal-emerald400)' }}>{Math.round(currentHp)} / {Math.round(currentMaxHp)}</span>
-                            </div>
-                            <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 flex flex-col">
-                                <span className="text-[10px] uppercase font-sans font-bold" style={{ color: 'var(--token-literal-slate500)' }}>能量值 (MP / MAX)</span>
-                                <span className="text-sm font-bold mt-1" style={{ color: 'var(--token-literal-blue400)' }}>{Math.round(currentMp)} / {Math.round(currentMaxMp)}</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {tab === 'SKILLS' && (
-                    <div className="flex-1 w-full h-full relative overflow-hidden p-1">
-                        <UnitStatusTab
-                            agent={agent}
-                            db={engine.skillDB}
-                            onSetSkill={(slot, skillId) => send({ type: 'SET_AGENT_SKILL', agentId: agent.id, slot, skillId })}
-                            onUpdate={() => setUpdateCounter((n) => n + 1)}
-                        />
-                    </div>
-                )}
-            </div>
+                </TabsContent>
+                <TabsContent value="SKILLS" className="ui-scroll min-h-0 flex-1 pb-3">
+                    <UnitStatusTab agentId={view.id} />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };
