@@ -120,6 +120,13 @@ const enterManualMode = async (page) => {
     await page.waitForTimeout(800);
 };
 
+/** 共用 Select 是 Radix：點開觸發器，再點文字含 optionText 的選項。 */
+const chooseOption = async (page, testId, optionText) => {
+    await page.locator(`[data-testid="${testId}"]`).click();
+    await page.locator('[role="option"]').filter({ hasText: optionText }).first().click();
+    await page.waitForTimeout(150);
+};
+
 const rectOf = (page, id) => page.evaluate((wid) => {
     const e = document.querySelector(`[data-window-id=${wid}]`);
     if (!e) return null;
@@ -610,21 +617,19 @@ const runInspectorCommandSuite = async () => {
 
     // Change Role to another role
     const newRole = target.role === 'WARRIOR' ? 'TANK' : 'WARRIOR';
-    const roleSelect = page.locator('label:has-text("職業") + select');
-    await roleSelect.selectOption(newRole);
-    await page.waitForTimeout(300);
+    await chooseOption(page, 'inspector-role', newRole);
+    await page.waitForTimeout(150);
 
     // Change maxHp to 123 (R8: draft + Enter submission)
-    const hpInput = page.locator('label:has-text("生命值") + input');
+    const hpInput = page.locator('[data-testid="inspector-hp"] input');
     await hpInput.fill('123');
     await hpInput.press('Enter');
     await page.waitForTimeout(300);
 
     // Change bodyType (Task A2e)
-    const bodyTypeSelect = page.locator('label:has-text("體型") + select');
-    if (await bodyTypeSelect.isVisible()) {
-        await bodyTypeSelect.selectOption('MALE');
-        await page.waitForTimeout(300);
+    if (await page.locator('[data-testid="inspector-bodytype"]').isVisible()) {
+        await chooseOption(page, 'inspector-bodytype', '男');
+        await page.waitForTimeout(150);
     }
 
     // Assert live engine agent was updated
@@ -1358,8 +1363,7 @@ const runEditorSuite = async () => {
     await page.waitForTimeout(200);
     await page.locator('button[title="指定固定職業"]').click();
     await page.waitForTimeout(200);
-    await page.locator('select').first().selectOption('RANGER');
-    await page.waitForTimeout(200);
+    await chooseOption(page, 'toolbar-draft-role', 'RANGER');
     const draftHex = await getEmptyHexWithCoord();
     await page.mouse.click(draftHex.screenX, draftHex.screenY);
     await page.waitForTimeout(300);

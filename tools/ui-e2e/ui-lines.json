@@ -2,7 +2,8 @@
   "L1": [
     "components/ui/PlaybackHUD.tsx",
     "components/ui/MapEditorToolbar.tsx",
-    "components/ui/SystemMenu.tsx"
+    "components/ui/SystemMenu.tsx",
+    "components/ui/FactionWarning.tsx"
   ],
   "L2": [
     "components/ui/settings/SchemaForm.tsx",
@@ -14,16 +15,15 @@
   "L3": [
     "components/ui/inspector/UnitInspectorBody.tsx",
     "components/inspector/tabs/UnitStatusTab.tsx",
-    "components/ui/DirectorMonitorHUD.tsx",
-    "components/inspector/parts/TreeNode.tsx",
-    "components/inspector/tabs/BehaviorTreeTab.tsx"
+    "components/ui/DirectorMonitorHUD.tsx"
   ],
   "L4": [
     "components/inspector/tabs/SkillDbTab.tsx",
     "components/inspector/parts/SkillNumberInput.tsx",
     "components/inspector/parts/SkillIcon.tsx",
     "components/inspector/tabs/LogTab.tsx",
-    "components/inspector/tabs/VFXMapTab.tsx"
+    "components/inspector/tabs/VFXMapTab.tsx",
+    "components/ui/VictoryOverlay.tsx"
   ],
   "P": [
     "components/ui/primitives"
