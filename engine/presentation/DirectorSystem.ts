@@ -6,14 +6,16 @@
 // ║  [ARCH] targetId 只在 update 開頭改，擊殺不切鏡           ║
 // ║  [ARCH] 主角是榜首：要贏過黏著分、至少看滿最短時間才換，  ║
 // ║  主角失效立刻換。計分在 DirectorRoster，取景在            ║
-// ║  CameraTargetGroup；鏡頭只收 CAMERA_MOVE（CameraSystem）。 ║
+// ║  DirectorFight／DirectorShot；鏡頭只收 CAMERA_MOVE。     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
-import { CameraTargetGroup } from "./CameraTargetGroup";
+import type { ShotMember } from "../../types";
+import { DirectorFight } from "./DirectorFight";
+import { CameraWindow, FocusBlend, ShotZoomController, measureMembers } from "./DirectorShot";
 import { DirectorRoster } from "./DirectorRoster";
-import { DIRECTOR_PARAM, HEX_SIZE, SHAKE_DIRECTOR_PARAM } from "../../constants";
+import { DIRECTOR_PARAM, SHAKE_DIRECTOR_PARAM } from "../../constants";
 import { ShakeDirector } from "./ShakeDirector";
 import { VisualMath } from "../math/VisualMath";
 
@@ -36,17 +38,29 @@ export class DirectorSystem {
 
     // State
     private roster = new DirectorRoster();
-    private targetGroup = new CameraTargetGroup();
-    /** 上次送出的縮放；null＝這局還沒送過 */
-    private frameZoom: number | null = null;
+    private fight = new DirectorFight();
+    private shot = new ShotZoomController();
+    private window = new CameraWindow();
+    private blend = new FocusBlend();
+    private engaged: boolean = false;
+    private framedAnchorId: string | null = null;
+    private lastFocus: { x: number; y: number } | null = null;
+    /** 上一個 tick 能上鏡的人數；變少代表有人倒下 */
+    private eligibleCount = 0;
 
     public reset(engine: GameEngine) {
         const ds = engine.state.director;
         ds.targetId = null;
         ds.focusTimer = 0;
         this.roster.reset();
-        this.targetGroup.clear();
-        this.frameZoom = null;
+        this.fight.reset();
+        this.shot.reset();
+        this.window.reset();
+        this.blend.reset();
+        this.engaged = false;
+        this.framedAnchorId = null;
+        this.lastFocus = null;
+        this.eligibleCount = 0;
         this.shakeDirector.reset();
         this.publishedWatchSide = undefined;
         // Keep enabled state as is
@@ -119,84 +133,103 @@ export class DirectorSystem {
         const top = this.roster.ranked[0];
 
         if (!current || !this.isEligible(engine, current)) {
-            // 榜上沒人（大家都在發呆）時隨便一個能上鏡的，觀看陣營才有值
-            const next = top?.agent ?? engine.agents.find(a => this.isEligible(engine, a));
+            // 主角倒下時接它正在打的人，鏡頭留在同一場架；榜上沒人（大家都在發呆）時隨便一個能上鏡的，觀看陣營才有值
+            const opponent = current?.target && this.isEligible(engine, current.target) ? current.target : undefined;
+            const next = opponent ?? top?.agent ?? engine.agents.find(a => this.isEligible(engine, a));
             ds.targetId = next ? next.id : null;
             ds.focusTimer = DIRECTOR_PARAM.MIN_HOLD_S;
             return;
         }
 
-        if (ds.focusTimer > 0 || !top || top.agent === current) return;
+        if (!top || top.agent === current) return;
+
+        if (ds.focusTimer > 0) {
+            const skill = top.agent.castingSkillIdx !== -1 ? top.agent.skills[top.agent.castingSkillIdx] : undefined;
+            const isUlt = skill?.tag === 'ULT';
+            const heldEnoughForUlt = (DIRECTOR_PARAM.MIN_HOLD_S - ds.focusTimer) >= DIRECTOR_PARAM.ULT_CUT_HOLD_S;
+            if (!isUlt || !heldEnoughForUlt) {
+                return;
+            }
+        }
+
         if (top.score >= this.roster.scoreOf(current.id) + DIRECTOR_PARAM.STICKY_SCORE) {
             ds.targetId = top.agent.id;
             ds.focusTimer = DIRECTOR_PARAM.MIN_HOLD_S;
         }
     }
 
-    private agentVisualY(a: Agent): number {
-        return VisualMath.getVisualBodyCenterY(a.py + a.physics.y, a.physics.z);
-    }
-
-    private wantAgent(a: Agent, weight: number, radius: number) {
-        this.targetGroup.want(a.id, a.px + a.physics.x, this.agentVisualY(a), weight, radius);
-    }
-
-    /** 群組成員：主角、和主角有關的人、所有放奧義的人（和主角無關也算）、榜上前幾名 */
     private buildFrame(engine: GameEngine, anchorId: string | null, dt: number): { x: number, y: number, zoom: number } {
-        const anchor = anchorId ? engine.agents.find(a => a.id === anchorId) : undefined;
-        if (anchor) {
-            this.wantAgent(anchor, DIRECTOR_PARAM.ANCHOR_WEIGHT, DIRECTOR_PARAM.ANCHOR_RADIUS);
-            const target = anchor.target;
-            if (target && this.isEligible(engine, target)) {
-                this.wantAgent(target, DIRECTOR_PARAM.RELATED_WEIGHT, DIRECTOR_PARAM.RELATED_RADIUS);
-            }
-        }
+        const eligibleCount = engine.agents.reduce((n, a) => n + (this.isEligible(engine, a) ? 1 : 0), 0);
+        if (eligibleCount < this.eligibleCount) this.shot.releaseHold();
+        this.eligibleCount = eligibleCount;
 
-        for (const a of engine.agents) {
-            if (!this.isEligible(engine, a) || a.castingSkillIdx === -1) continue;
-            const skill = a.skills[a.castingSkillIdx];
-            if (skill?.tag === 'ULT') {
-                this.wantAgent(a, DIRECTOR_PARAM.ULT_WEIGHT, DIRECTOR_PARAM.ULT_RADIUS);
-                if (skill.type === 'AOE' && a.targetHex) {
-                    const p = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
-                    this.targetGroup.want(`${a.id}:aoe`, p.x, p.y, DIRECTOR_PARAM.AOE_WEIGHT, (skill.aoeRadius || 1) * HEX_SIZE);
+        // 1. 第一次接戰
+        if (!this.engaged) {
+            let hasAction = false;
+            for (const a of engine.agents) {
+                if (this.isEligible(engine, a) && (a.castingSkillIdx !== -1 || a.view.hitFlashTimer > 0)) {
+                    hasAction = true;
+                    break;
                 }
-            } else if (anchor && a.target === anchor) {
-                this.wantAgent(a, DIRECTOR_PARAM.ATTACKER_WEIGHT, DIRECTOR_PARAM.RELATED_RADIUS);
+            }
+            if (hasAction) {
+                this.engaged = true;
+                if (this.lastFocus !== null) {
+                    this.blend.begin(this.lastFocus.x, this.lastFocus.y);
+                }
             }
         }
 
-        let extras = 0;
-        for (const entry of this.roster.ranked) {
-            if (extras >= DIRECTOR_PARAM.TOP_EXTRAS) break;
-            if (entry.agent === anchor) continue;
-            this.wantAgent(entry.agent, DIRECTOR_PARAM.TOP_WEIGHT, DIRECTOR_PARAM.TOP_RADIUS);
-            extras++;
+        // 2. 換主角
+        const anchor = anchorId ? engine.agents.find(a => a.id === anchorId) : undefined;
+        const currentAnchorId = anchor ? anchor.id : null;
+        if (currentAnchorId !== this.framedAnchorId) {
+            this.fight.reset();
+            if (this.framedAnchorId !== null && this.lastFocus !== null) {
+                this.blend.begin(this.lastFocus.x, this.lastFocus.y);
+            }
+            this.framedAnchorId = currentAnchorId;
         }
 
-        this.targetGroup.advance(dt);
+        // 3. 成員
+        let members: ShotMember[] = [];
+        if (!this.engaged) {
+            for (const a of engine.agents) {
+                if (!this.isEligible(engine, a)) continue;
+                members.push({
+                    x: a.px + a.physics.x,
+                    y: VisualMath.getVisualBodyCenterY(a.py + a.physics.y, a.physics.z),
+                    weight: (anchor && a === anchor) ? DIRECTOR_PARAM.ANCHOR_WEIGHT : DIRECTOR_PARAM.RELATED_WEIGHT,
+                });
+            }
+        } else if (anchor) {
+            members = this.fight.collect(anchor, engine.agents, (a) => this.isEligible(engine, a), dt);
+        }
 
-        if (this.targetGroup.size === 0) {
+        // 4. measureMembers
+        const ext = measureMembers(members);
+
+        // 5. 焦點與縮放
+        let rawFocusX: number;
+        let rawFocusY: number;
+        let zoom: number;
+        if (ext === null) {
             const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
             const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
             const centerPx = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
-            return { x: centerPx.x, y: centerPx.y, zoom: this.limitZoom(DIRECTOR_PARAM.EMPTY_ZOOM, dt) };
+            rawFocusX = centerPx.x;
+            rawFocusY = centerPx.y;
+            zoom = this.shot.zoom;
+        } else {
+            rawFocusX = ext.cx;
+            rawFocusY = ext.cy;
+            zoom = this.shot.update(ext, engine.screenW, engine.screenH, dt);
         }
 
-        const solved = this.targetGroup.solve(engine.screenW, engine.screenH);
-        solved.zoom = this.limitZoom(solved.zoom, dt);
-        return solved;
-    }
-
-    /** 縮放的速度上限（比例速度，放大縮小看起來一樣快） */
-    private limitZoom(zoom: number, dt: number): number {
-        if (this.frameZoom === null) {
-            this.frameZoom = zoom;
-            return zoom;
-        }
-        const step = DIRECTOR_PARAM.ZOOM_RATE_PER_S * dt;
-        const delta = Math.max(-step, Math.min(step, Math.log(zoom / this.frameZoom)));
-        this.frameZoom *= Math.exp(delta);
-        return this.frameZoom;
+        // 6. 平滑焦點與視窗死區
+        const focus = this.blend.apply(rawFocusX, rawFocusY, dt);
+        this.lastFocus = focus;
+        const p = this.window.update(focus.x, focus.y, zoom, engine.screenW, engine.screenH);
+        return { x: p.x, y: p.y, zoom };
     }
 }

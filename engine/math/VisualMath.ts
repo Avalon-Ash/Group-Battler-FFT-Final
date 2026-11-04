@@ -136,7 +136,7 @@ export class VisualMath {
         return Math.max(0, 1 - t / FLOAT_BOB.LAUNCH_FADE_T);
     }
 
-    private static smoothstep(edge0: number, edge1: number, x: number): number {
+    public static smoothstep(edge0: number, edge1: number, x: number): number {
         const u = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
         return u * u * (3 - 2 * u);
     }

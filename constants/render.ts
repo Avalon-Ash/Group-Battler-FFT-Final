@@ -184,7 +184,7 @@ export const DIRECTOR_PARAM = {
     /** 普攻施法分（分） */
     BASIC_SCORE: 5,
     /** 受擊加分（分） */
-    HIT_SCORE: 15,
+    HIT_SCORE: 8,
     /** 移動加分（分） */
     MOVING_SCORE: 5,
     /** 逃生加分（分） */
@@ -194,57 +194,59 @@ export const DIRECTOR_PARAM = {
     /** 挑戰者要比主角多這麼多分才換人（分） */
     STICKY_SCORE: 10,
     /** 主角最短維持時間（秒）；主角失效不受此限 */
-    MIN_HOLD_S: 2,
+    MIN_HOLD_S: 5,
+    /** 別處有人放奧義時，主角至少看滿這麼久就可以被搶（秒）；其餘動作要等 MIN_HOLD_S */
+    ULT_CUT_HOLD_S: 3,
     /** 不能上鏡的墜落深度（px） */
     FALL_DEPTH: 50,
     /** 主角取景權重 */
     ANCHOR_WEIGHT: 1,
-    /** 主角取景半徑（px） */
-    ANCHOR_RADIUS: 100,
     /** 主角的目標取景權重 */
-    RELATED_WEIGHT: 0.7,
-    /** 主角的目標與攻擊者取景半徑（px） */
-    RELATED_RADIUS: 80,
-    /** 正在打主角的人取景權重 */
-    ATTACKER_WEIGHT: 0.5,
-    /** 奧義施法者取景權重 */
-    ULT_WEIGHT: 0.8,
-    /** 奧義施法者取景半徑（px） */
-    ULT_RADIUS: 120,
-    /** 奧義範圍中心取景權重 */
-    AOE_WEIGHT: 0.4,
-    /** 榜上前幾名（主角以外）進群組（人） */
-    TOP_EXTRAS: 2,
-    /** 榜上成員取景權重 */
-    TOP_WEIGHT: 0.25,
-    /** 榜上成員取景半徑（px） */
-    TOP_RADIUS: 60,
-    /** 權重到這個值，成員才完全決定縮放；更低的依比例打折 */
-    FULL_INFLUENCE_WEIGHT: 0.5,
-    /** 成員權重從 0 升到 1 的時間（秒） */
-    WEIGHT_IN_S: 0.5,
-    /** 成員權重從 1 降到 0 的時間（秒） */
-    WEIGHT_OUT_S: 1,
-    /** 成員不再被需要後，權重開始下降前多留的時間（秒） */
-    LINGER_S: 1.5,
-    /** 導播縮放的比例速度上限（對數／秒） */
-    ZOOM_RATE_PER_S: 0.35,
+    RELATED_WEIGHT: 0.85,
     /** 空場中央鏡頭縮放（倍） */
     EMPTY_ZOOM: 0.7,
+    /** 主角的目標離主角超過這個距離就不框（px，約 8.5 格） */
+    FIGHT_RADIUS_PX: 720,
+    /** 主角還在走路時，目標要在這個距離內才框（px，約 3.5 格）：走過去的路上不拉全景 */
+    WALK_TARGET_RADIUS_PX: 290,
+    /** 舊目標不再是目標後多留的時間（秒）；死者立刻離開 */
+    MEMBER_LINGER_S: 0.8,
+    /** 每個成員四周要留的邊（px，單位身體加血條） */
+    UNIT_MARGIN_PX: 70,
+    /** 取景留白（倍） */
+    FRAME_PADDING: 1.15,
+    /** 三種景別：畫面短邊的一半看得到多少世界距離（px）；縮放還要再夾 directorMin～directorMax */
+    SHOT_RADIUS_PX: { CLOSE: 170, MID: 290, WIDE: 435 },
+    /** 目前景別要差到剛好框住的這個比例才算放不下（倍）：留白不足但人還在畫面內時不動 */
+    SHOT_OUT_MARGIN: 0.8,
+    /** 要換到更緊的景別，範圍要比剛好框住再小這個比例（倍），避免在邊界來回跳 */
+    SHOT_IN_MARGIN: 1.15,
+    /** 換過景別後至少這麼久不再拉近（秒）；拉遠不受限，主角和目標不能出畫面 */
+    SHOT_MIN_HOLD_S: 4,
+    /** 更緊的景別要持續放得下這麼久才拉近（秒） */
+    SHOT_IN_HOLD_S: 0.5,
+    /** 目前景別放不下持續這麼久才拉遠（秒） */
+    SHOT_OUT_HOLD_S: 0.2,
+    /** 拉近一次的緩進緩出時間（秒） */
+    SHOT_IN_BLEND_S: 1,
+    /** 拉遠一次的緩進緩出時間（秒） */
+    SHOT_OUT_BLEND_S: 1,
+    /** 全景時縮放跟隨範圍的速度上限（對數／秒） */
+    WIDE_ZOOM_RATE_PER_S: 0.5,
+    /** 換主角時焦點從舊位置移到新位置的時間（秒） */
+    SWITCH_BLEND_S: 0.8,
+    /** 鏡頭視窗的半寬（畫面短邊的比例）：焦點在框內鏡頭不動 */
+    WINDOW_X: 0.12,
+    /** 鏡頭視窗的半高（畫面短邊的比例）：比半寬大，跳躍、擊飛時鏡頭不點頭 */
+    WINDOW_Y: 0.2,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */
 export const CAMERA_PARAM = {
     /** 震動衰減速率（每秒） */
     SHAKE_DECAY_RATE: 8.0,
-    /** 導演縮放變化死區（目標縮放的比例） */
-    ZOOM_DEAD_ZONE: 0.05,
     /** 最大震動幅度（px，乘上目前縮放） */
     MAX_SHAKE_PX: 30,
-    /** 目標群組取景留白係數（倍） */
-    GROUP_PADDING_FACTOR: 1.25,
-    /** 無目標或半徑為 0 時的群組縮放（倍） */
-    GROUP_DEFAULT_ZOOM: 0.9,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

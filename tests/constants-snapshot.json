@@ -46,7 +46,7 @@
     "ID_SUFFIX_LENGTH": 4,
     "ID_RADIX": 36,
     "ID_BUCKETS": 100,
-    "ID_TIEBREAK": 0.00001,
+    "ID_TIEBREAK": 1e-05,
     "TOP_Z_THRESHOLD": 600,
     "TOP_SORT_BIAS": 100000000
   },
@@ -93,30 +93,38 @@
     "ULT_SCORE": 50,
     "ACTIVE_SCORE": 20,
     "BASIC_SCORE": 5,
-    "HIT_SCORE": 15,
+    "HIT_SCORE": 8,
     "MOVING_SCORE": 5,
     "EVADE_SCORE": 10,
     "SCORE_DECAY_PER_S": 10,
     "STICKY_SCORE": 10,
-    "MIN_HOLD_S": 2,
+    "MIN_HOLD_S": 5,
     "FALL_DEPTH": 50,
     "ANCHOR_WEIGHT": 1,
-    "ANCHOR_RADIUS": 100,
-    "RELATED_WEIGHT": 0.7,
-    "RELATED_RADIUS": 80,
-    "ATTACKER_WEIGHT": 0.5,
-    "ULT_WEIGHT": 0.8,
-    "ULT_RADIUS": 120,
-    "AOE_WEIGHT": 0.4,
-    "TOP_EXTRAS": 2,
-    "TOP_WEIGHT": 0.25,
-    "TOP_RADIUS": 60,
-    "FULL_INFLUENCE_WEIGHT": 0.5,
-    "WEIGHT_IN_S": 0.5,
-    "WEIGHT_OUT_S": 1,
-    "LINGER_S": 1.5,
-    "ZOOM_RATE_PER_S": 0.35,
-    "EMPTY_ZOOM": 0.7
+    "RELATED_WEIGHT": 0.85,
+    "EMPTY_ZOOM": 0.7,
+    "ULT_CUT_HOLD_S": 3,
+    "FIGHT_RADIUS_PX": 720,
+    "MEMBER_LINGER_S": 0.8,
+    "UNIT_MARGIN_PX": 70,
+    "FRAME_PADDING": 1.15,
+    "SHOT_RADIUS_PX": {
+      "CLOSE": 170,
+      "MID": 290,
+      "WIDE": 435
+    },
+    "SHOT_IN_MARGIN": 1.15,
+    "SHOT_IN_HOLD_S": 0.5,
+    "SHOT_OUT_HOLD_S": 0.2,
+    "SHOT_IN_BLEND_S": 1,
+    "SHOT_OUT_BLEND_S": 1,
+    "WIDE_ZOOM_RATE_PER_S": 0.5,
+    "SWITCH_BLEND_S": 0.8,
+    "WINDOW_X": 0.12,
+    "WINDOW_Y": 0.2,
+    "SHOT_MIN_HOLD_S": 4,
+    "SHOT_OUT_MARGIN": 0.8,
+    "WALK_TARGET_RADIUS_PX": 290
   },
   "DIRECTOR_HUD_PARAM": {
     "BARS": 20,
@@ -666,7 +674,7 @@
     "HIT_CLUSTER_SIZE": 3,
     "HIT_CLUSTER_GAP_MULT": 2.5,
     "HIT_CLUSTER_INTRA_MULT": 0.5,
-    "HIT_TIME_EPSILON_S": 0.000001
+    "HIT_TIME_EPSILON_S": 1e-06
   },
   "CORE_VISUAL": {
     "hoverHeight": 26,
@@ -1688,7 +1696,7 @@
       "min": 0.4,
       "max": 3,
       "directorMin": 0.45,
-      "directorMax": 1.6,
+      "directorMax": 2.2,
       "wheelFactor": 1.15,
       "wheelPixels": 100,
       "linePixels": 16,
@@ -1732,8 +1740,8 @@
     "CAMERA_STIFFNESS": {
       "min": 0.1,
       "max": 20,
-      "followDefault": 0.25,
-      "zoomDefault": 0.2,
+      "followDefault": 3,
+      "zoomDefault": 4,
       "step": 0.1,
       "sliderMax": 5
     },
@@ -2415,10 +2423,7 @@
   },
   "CAMERA_PARAM": {
     "SHAKE_DECAY_RATE": 8,
-    "ZOOM_DEAD_ZONE": 0.05,
-    "MAX_SHAKE_PX": 30,
-    "GROUP_PADDING_FACTOR": 1.25,
-    "GROUP_DEFAULT_ZOOM": 0.9
+    "MAX_SHAKE_PX": 30
   },
   "ENV_COLORS": {
     "HEX_SHADOW_FILL": "rgba(0,0,0,0.3)",

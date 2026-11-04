@@ -2,7 +2,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CameraSystem — 鏡頭控制系統                             ║
 // ║  職責：viewport 平移、縮放、目標追蹤、跟隨平滑           ║
-// ║  多目標取景在 CameraTargetGroup，這裡只追導播給的目標     ║
+// ║  取景在 DirectorFight／DirectorShot，這裡只追導播目標    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { UI_SETTINGS, CAMERA_PARAM, CAMERA_SHAKE_PARAM } from '../../constants';
@@ -102,9 +102,7 @@ export class CameraSystem {
             this.isManualControlling = false;
             this.targetX = x;
             this.targetY = y;
-            
-            // Dead zone：±5% 內的 zoom 變化直接忽略，不觸發追蹤
-            if (!this.manualZoom && Math.abs(this.directorZoom - this.targetZoom) > this.targetZoom * CAMERA_PARAM.ZOOM_DEAD_ZONE) {
+            if (!this.manualZoom) {
                 this.targetZoom = this.directorZoom;
             }
         }

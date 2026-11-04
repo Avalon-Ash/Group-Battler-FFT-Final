@@ -317,6 +317,15 @@ export interface GameEvent {
     hexes?: readonly Hex[];
 }
 
+/** 導播景別：特寫、中景、全景（DIRECTOR_PARAM.SHOT_RADIUS_PX） */
+export type ShotSize = 'CLOSE' | 'MID' | 'WIDE';
+
+/** 導播取景的一個成員：世界座標與權重 */
+export interface ShotMember { x: number; y: number; weight: number; }
+
+/** 取景範圍：加權重心，以及從重心到最遠成員邊緣的半寬、半高（含 UNIT_MARGIN_PX） */
+export interface ShotExtent { cx: number; cy: number; halfW: number; halfH: number; }
+
 /** 鏡頭衝擊種類。MINOR（一般命中等）在非導演焦點單位上會打折；其餘不打折（SHAKE_DIRECTOR_PARAM） */
 export type ImpactKind =
     | 'HIT' | 'CRIT' | 'MASSIVE' | 'PROJECTILE' | 'AOE' | 'SACRIFICE' | 'DEATH'

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { CameraSystem } from '../engine/presentation/CameraSystem';
-import { CameraTargetGroup } from '../engine/presentation/CameraTargetGroup';
 import { UI_SETTINGS } from '../constants';
 
 describe('R6 camera zoom ownership', () => {
@@ -41,7 +40,7 @@ describe('R6 camera zoom ownership', () => {
         expect(camera.getTargetZoom()).toBe(2.5);
     });
 
-    it('clamps manual and snapped values to shared bounds; framing uses the director subrange', () => {
+    it('clamps manual and snapped values to shared bounds', () => {
         const camera = new CameraSystem();
         camera.snapTo(0, 0, 99);
         expect(camera.zoom).toBe(UI_SETTINGS.CAMERA_ZOOM.max);
@@ -51,13 +50,12 @@ describe('R6 camera zoom ownership', () => {
         expect(camera.getTargetZoom()).toBe(UI_SETTINGS.CAMERA_ZOOM.max);
         camera.applyZoom(NaN);
         expect(camera.getTargetZoom()).toBe(UI_SETTINGS.CAMERA_ZOOM.max);
-        const group = new CameraTargetGroup();
-        group.want('near', 0, 0, 1, 1);
-        group.advance(10);
-        expect(group.solve(1000, 1000).zoom).toBe(UI_SETTINGS.CAMERA_ZOOM.directorMax);
-        group.want('near', 0, 0, 1, 1);
-        group.want('far', 100000, 100000, 1, 1);
-        group.advance(10);
-        expect(group.solve(1000, 1000).zoom).toBe(UI_SETTINGS.CAMERA_ZOOM.directorMin);
+    });
+
+    it('the director zoom reaches the camera target with no dead zone: shot sizes already keep it still', () => {
+        const camera = new CameraSystem();
+        camera.setDirectorTarget(0, 0, 1);
+        camera.setDirectorTarget(0, 0, 1.02);
+        expect(camera.getTargetZoom()).toBe(1.02);
     });
 });
