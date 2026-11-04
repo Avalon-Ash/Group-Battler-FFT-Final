@@ -3,7 +3,9 @@
 > 從 `docs/METHODOLOGY.md` §5、§6 移出（2026-10-31）：每輪常駐的文字每一輪都重新計費，只在需要定位時讀本檔。找不到就用 `explorer` 子代理 grep。
 
 ## 1. 各系統在哪
-- **音訊**：`engine/audio/AudioEngine.ts`（共享單例＋擁有者計數＋BGM 請求序號；`?mute` 不建立 AudioContext）、`engine/systems/audio/AudioSystem.ts`（事件→Cue、BGM 切換）、`data/audio/{cues,music}.ts`、素材 `public/assets/audio/`（CC0／CC-BY，見 `docs/ASSET_LEDGER.md`、`CREDITS.md`）。展示模式只播 `SHOWCASE_AMBIENT`；手動：開戰播該地圖的戰鬥曲（`battleTrackForScene`）→存活≤4 `BATTLE_TENSE`→勝敗曲（紅藍分開）→回氛圍。預覽頁 `tools/audio/preview.html`。
+- **音訊**：`engine/audio/AudioEngine.ts`（共享單例＋擁有者計數＋BGM 請求序號；`?mute` 不建立 AudioContext；喚醒規則見 `tests/AudioWake.test.ts`）、`engine/systems/audio/AudioSystem.ts`（事件→Cue、BGM 切換）、`data/audio/{cues,music}.ts`、素材 `public/assets/audio/`（CC0／CC-BY，見 `docs/ASSET_LEDGER.md`、`CREDITS.md`）。展示模式只播 `SHOWCASE_AMBIENT`；手動：開戰播該地圖的戰鬥曲（`battleTrackForScene`）→存活≤4 `BATTLE_TENSE`→勝敗曲（紅藍分開）→回氛圍。預覽頁 `tools/audio/preview.html`。
+- **導播**：`engine/presentation/DirectorRoster.ts`（排分選主角）、`DirectorFight.ts`（框哪一對）、`DirectorShot.ts`（景別與取景）、`DirectorSystem.ts`（串起來）、`CameraSystem.ts`（執行）；參數 `constants/render.ts` 的 `DIRECTOR_PARAM`。
+- **技能**：設計 `docs/SKILL_PIPELINE_DESIGN.md`；動作 handler 在 `engine/systems/combat/`，資料在 `data/skills/`、`skillDatabase.ts`。量測 `npm run balance:sim`。
 - **特效**：登記管線 `data/vfx/VFXRegistry.ts`＋`engine/presentation/vfx`；直接繪製管線在 `engine/renderers/*`；品質階層 `engine/renderers/RenderQuality.ts`＋`constants/render.ts` 的 `RENDER_QUALITY`、`constants/vfx.ts` 的 `VFX_BUDGET`／`DEATH_VFX`。
 - **單位**：精靈 `engine/renderers/units/factions/SpriteUnitRenderer.ts`（圖集 `SpriteAtlasStore`；座標：在 `ctx.scale(UNIT_SCALE)` 之後繪製，需 `/UNIT_SCALE` 補償，腳底錨點 `UNIT_SPRITE.footOffsetLocal`）；地面底座／職業圖示仍由 Token 工廠產生。
 - **UI**：視窗系統 `components/ui/window/*`、展示頁 `components/ui/showcase/ShowcaseOverlay.tsx`（標題卡除按鈕外穿透）。樣式基準 `tools/ui-e2e/style-baseline.json`（改 UI 樣式需 `E2E_UPDATE_STYLE=1 npm run e2e:ui` 並確認只有預期元素變動）。
