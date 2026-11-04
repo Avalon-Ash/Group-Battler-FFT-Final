@@ -189,6 +189,8 @@ export const BT_VIEW_PARAM = {
     /** 彈出視窗高度（px） */
     POPUP_H: 520,
     /** 中期淡出時間（毫秒） */
+    /** 節點結果在檢視器留多久才消失（毫秒） */
+    FADE_OUT_MS: 1000,
     FADE_MID_MS: 200,
     /** 中期淡出不透明度（比例） */
     FADE_MID_OPACITY: 0.7,

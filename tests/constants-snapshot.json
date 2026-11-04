@@ -143,6 +143,7 @@
     "MAX_SCALE": 2,
     "POPUP_W": 680,
     "POPUP_H": 520,
+    "FADE_OUT_MS": 1000,
     "FADE_MID_MS": 200,
     "FADE_MID_OPACITY": 0.7,
     "FADE_OLD_MS": 500,

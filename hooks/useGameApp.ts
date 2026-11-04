@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { selectionStore, usePrimarySelectedId } from './useSelection';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup, FactionLook } from '../types';
@@ -88,7 +89,6 @@ export const useGameApp = () => {
     });
 
     const [hud, setHud] = useState({
-        selectedAgent: null as Agent | null,
         hoveredSkill: null as Skill | null,
         showFactionWarning: false,
         showDirectorMonitor: false 
@@ -192,7 +192,7 @@ export const useGameApp = () => {
         const engine = engineRef.current;
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
-        setHud(prev => ({ ...prev, selectedAgent: null }));
+        selectionStore.clear();
         const newW = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_W + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
         const newH = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_H + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
         const newLayout: HexLayout = random() > 0.5 ? 'FLAT' : 'POINTY';
@@ -316,7 +316,7 @@ export const useGameApp = () => {
     }, [session.timeScale]);
 
     // 點選的單位同步給引擎：導播關閉時擊殺播報只給它的陣營
-    const selectedAgentId = hud.selectedAgent?.id ?? null;
+    const selectedAgentId = usePrimarySelectedId();
     useEffect(() => {
         engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_WATCH_AGENT', agentId: selectedAgentId });
     }, [selectedAgentId]);
@@ -341,7 +341,7 @@ export const useGameApp = () => {
         state: { 
             isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: editor.hexLayout,
-            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
+            selectedAgent: selectedAgentId ? (engineRef.current.agents.find((a) => a.id === selectedAgentId) ?? null) : null, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
             logs: engineRef.current.logs
         },
@@ -354,7 +354,6 @@ export const useGameApp = () => {
             setDraftRole: (draftRole: Role) => setEditor(p => ({...p, draftRole})),
             setDraftBodyType: (draftBodyType?: BodyTypeId) => setEditor(p => ({...p, draftBodyType})),
             setIsShowcaseMode: (isShowcaseMode: boolean) => setSession(p => ({...p, isShowcaseMode})),
-            setSelectedAgent: (selectedAgent: Agent | null) => setHud(p => ({...p, selectedAgent})),
             setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill})),
             setShowDirectorMonitor: (v: boolean) => setHud(p => ({...p, showDirectorMonitor: v}))
         },
@@ -432,7 +431,7 @@ export const useGameApp = () => {
             },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadAll,
-            handleSelectAgent: (a: Agent | null) => setHud(p => ({...p, selectedAgent: a}))
+            handleSelectAgent: (a: Agent | null) => selectionStore.set(a ? [a.id] : [])
         }
     };
 };
