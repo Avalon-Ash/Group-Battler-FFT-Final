@@ -67,6 +67,7 @@
 ## 11. 快取與品質階層
 
 - VFXPartStore 快取鍵由參數與影格數構成，依品質階層限制條目及位元組並以 LRU 淘汰；觸控裝置另有限制策略。（`engine/renderers/vfxparts/VFXPartStore.ts`、`data/vfx/parts/partConfig.ts`）
+- 懸空平面的畫布組每幀借還，同時有幾個平面就只有幾組；觸控裝置另限制每個平面的單邊尺寸與地塊烘焙倍率。離屏畫布依裝置縮放配置，放大鏡頭會讓它們的面積平方變大。（`engine/renderers/GroundDrape.ts`、`engine/renderers/grid/TerrainRenderer.ts`、`constants/vfx.ts`、`constants/render.ts`）
 - RenderQuality 可由查詢參數固定階層，或依視窗平均、降升階等待與冷卻調度；階層影響色調分級與 DPR，最大 DPR 為 {{RENDER_QUALITY.MAX_DPR}}。（`engine/renderers/RenderQuality.ts`、`constants/render.ts`）
 
 ## 12. 亂數與決定性
@@ -79,6 +80,7 @@
 
 - AudioSystem 訂閱遊戲事件及 UI 音訊命令，橋接共享 AudioEngine；戰鬥曲依場景選擇，播報與效果 cue 來自音訊資料表。（`engine/systems/audio/AudioSystem.ts`、`engine/audio/AudioEngine.ts`、`data/audio/music.ts`、`data/audio/cues.ts`）
 - 音訊事件參數與音量相關預設由音訊常數供應。（`constants/audio.ts`、`engine/systems/audio/AudioSystem.ts`）
+- 每次手勢都會檢查 context，沒在跑就再試；被打斷、回到頁面、`pageshow`、解除靜音也會試著喚醒，頁面隱藏時不喚醒。失焦淡掉的總音量在回到頁面或手勢時恢復；context 沒在跑時音效直接丟棄。（`engine/audio/AudioEngine.ts`、`tests/AudioWake.test.ts`）
 
 ## 14. 自動化閘門
 
@@ -92,3 +94,10 @@
 - ConstantsBarrel：鎖定常數匯出集合與各匯出值的結構快照。（`tests/ConstantsBarrel.test.ts`）
 - LayerBoundary：阻擋受掃描模擬檔案匯入表現層；音訊橋接目錄是測試明列的排除範圍。（`tests/LayerBoundary.test.ts`）
 - WhitepaperDrift：阻擋白皮書佔位符無法在常數匯出解析，並驗證未知佔位符的匯出診斷。（`tests/WhitepaperDrift.test.ts`）
+
+## 15. 導播與鏡頭
+
+- 排分清單依單位正在做的事給分並隨時間衰減，榜首要贏過黏著分、看滿最短時間才換主角，主角失效立刻換；計分不看 ID、職業或陣列順序。（`engine/presentation/DirectorRoster.ts`、`engine/presentation/DirectorSystem.ts`）
+- 鏡頭只框主角和它的目標，打主角的人與別處的奧義都不算；舊目標多留一下，死了立刻離開。（`engine/presentation/DirectorFight.ts`）
+- 取景範圍換算成特寫、中景、全景三種景別，以遲滯與最短停留防抖，再經鏡頭視窗死區與焦點平滑轉場；純計算，不依賴引擎與繪製管線。參數在 `DIRECTOR_PARAM`。（`engine/presentation/DirectorShot.ts`、`constants/render.ts`）
+- 導播只決定目標，透過 `CAMERA_MOVE` 交給鏡頭；鏡頭負責平移、縮放與跟隨平滑。（`engine/presentation/CameraSystem.ts`）

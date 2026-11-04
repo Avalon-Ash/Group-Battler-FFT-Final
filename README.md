@@ -25,7 +25,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 ### 展示模式（開機自動啟動）
 
-開機即進入展示模式，引擎將自動生成地形、隨機配置圖場，並由兩隊 AI 開始戰鬥。`DirectorSystem` 會自動偵測高優先事件（死亡、大招施放、連殺）並將鏡頭聚焦至該單位，全程以「觀眾視角」自動播出。
+開機即進入展示模式，引擎將自動生成地形、隨機配置圖場，並由兩隊 AI 開始戰鬥。`DirectorSystem` 依單位正在做的事排分選出主角，鏡頭框住主角和它的目標，依兩者距離切特寫、中景、全景，全程以「觀眾視角」自動播出。
 
 ### 戰場編輯器（`MapEditorToolbar`）
 
@@ -42,7 +42,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 - HP / MP / 移動速度等基礎數值
 - 職業類型（TANK / WARRIOR / RANGER / MAGE / SUPPORT）
-- 攜帶技能組（BASIC / ACTIVE / ULT）
+- 攜帶技能組（BASIC / ACTIVE / ULT / MOBILITY）
 - 技能屬性：元素、範圍、冷卻、控場類型與持續時間
 
 ### 技能資料庫（`SkillDbTab`）
@@ -75,7 +75,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 ### 導播監控（`DirectorMonitorHUD`）
 
-即時顯示 `DirectorSystem` 當前的聚焦目標、鏡頭狀態與優先順序事件佇列，方便觀察導播邏輯是否按預期運作。
+即時顯示 `DirectorSystem` 目前的主角：血量、能量、交戰目標與 AI 執行流程，方便觀察導播選了誰、那個單位在做什麼。
 
 ### VFX 地圖（`VFXMapTab`）
 
@@ -119,6 +119,8 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   │   ├── unit/UnitSystem.ts   ← 單位渲染提交
 │   │   ├── AnimationSystem.ts   ← 動畫狀態推導（tick 最末層；外觀欄位在 agent.view）
 │   │   ├── DirectorSystem.ts / CameraSystem.ts ← 導播決策 / 鏡頭執行
+│   │   ├── DirectorRoster.ts    ← 導播排分清單（選主角）
+│   │   ├── DirectorFight.ts / DirectorShot.ts ← 要框的那一對 / 景別與取景計算
 │   │   ├── hud.ts               ← 浮動文字
 │   │   └── DesignExporter.ts    ← 白皮書與座標規格下載
 │   ├── renderers/
@@ -133,7 +135,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   │   ├── status/              ← 狀態零件層（腳下／身體／頭頂）、護盾稜柱
 │   │   └── hud/                 ← 血條（預烘焙 sprite）、量表、浮動文字
 │   ├── graphics/            ← 程序化材質（materials/NoiseLib、MaterialPainter）、Token／環境 Sprite 工廠
-│   ├── audio/AudioEngine.ts ← Web Audio 共享引擎（擁有者計數、BGM 請求序號）
+│   ├── audio/AudioEngine.ts ← Web Audio 共享引擎（擁有者計數、BGM 請求序號、手勢與被打斷後喚醒）
 │   ├── events/              ← EventBus、GameEventPool（物件池，避免 GC 壓力）
 │   ├── math/                ← VisualMath（ISO 座標 SSOT）、PointerProjector（指標逆投影）、rng（可注入確定性隨機源）
 │   └── physics/             ← 單位物理、碰撞
@@ -176,7 +178,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 `types.ts` 是整個系統的資料契約。TypeScript 靜態型別確保擴充時，介面斷層在編譯期就被捕捉。
 
 ### 5. Director-Camera 分離
-`DirectorSystem` 負責**決策**（聚焦誰、持續多久），`CameraSystem` 負責**執行**（平滑插值、跟隨），兩者可各自調整。
+`DirectorSystem` 負責**決策**（主角是誰、框多大），`CameraSystem` 負責**執行**（平滑插值、跟隨），兩者可各自調整。
 
 ### 6. 視覺管線：座標協議＋預烘焙零件
 - **座標**：`engine/renderers/RenderSpec.ts` 是唯一的座標協議（層序、排序鍵、腳下高度、發射點＝受擊點＝投影中心）。單位座標每幀算一次放進 `UnitFrame`，狀態、HUD、護盾、光環都讀它，不各自算高度。`tests/CoordinateProtocol.test.ts` 以只減不增的基準擋住偏離。
@@ -202,7 +204,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 ## 職業與技能系統
 
-支援 5 種職業，每個職業有獨立的 BASIC / ACTIVE / ULT 技能組：
+支援 5 種職業，每個職業有獨立的 BASIC / ACTIVE / ULT / MOBILITY 技能組：
 
 | 職業 | 定位 | 特色機制 |
 |------|------|----------|
