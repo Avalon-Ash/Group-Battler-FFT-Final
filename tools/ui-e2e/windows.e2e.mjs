@@ -1007,7 +1007,8 @@ const runBottomSheetSuite = async () => {
     ok('narrow screen: width equals viewport width', active && near(active.rect.width, 390, 2), `${active?.rect.width} vs 390`);
 
     // 3. Assert bottom edge flush with viewport bottom (844)
-    ok('narrow screen: bottom edge flush with viewport bottom', active && near(active.rect.bottom, 844, 2), `${active?.rect.bottom} vs 844`);
+    // 手動模式底部面板要讓開播放列（index.css 的 --ui-sheet-bottom = 96px）
+    ok('narrow screen: bottom sheet stays clear of the playback bar', active && near(active.rect.bottom, 844 - 96, 2), `${active?.rect.bottom} vs 748`);
 
     // 4. Assert height <= 72vh (844 * 0.72 = 607.68)
     const maxAllowedHeight = 844 * 0.72 + 2;
