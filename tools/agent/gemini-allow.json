@@ -8,6 +8,7 @@
       "command(git log --oneline -10)",
       "command(npx vitest run tests/DirectorShot.test.ts)",
       "command(npx vitest run tests/DirectorFight.test.ts)",
+      "command(npx vitest run tests/AudioWake.test.ts)",
       "command(npm run lint)",
       "command(npm test)",
       "command(npm run build)",

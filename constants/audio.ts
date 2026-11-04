@@ -45,6 +45,8 @@ export const AUDIO_ENGINE_PARAM = {
     PRELOAD_IDLE_TIMEOUT_MS: 4000,
     /** 視窗焦點變動淡化長度（秒） */
     FOCUS_FADE_S: 0.5,
+    /** 會試著喚醒音訊的手勢事件。觸控的 pointerdown 不算使用者手勢，pointerup、touchend、click 才算（HTML 規範） */
+    GESTURE_EVENTS: ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'],
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

@@ -179,7 +179,14 @@
     "SILENT_GAIN": 0.0001,
     "FADE_CLEANUP_MARGIN_MS": 50,
     "PRELOAD_IDLE_TIMEOUT_MS": 4000,
-    "FOCUS_FADE_S": 0.5
+    "FOCUS_FADE_S": 0.5,
+    "GESTURE_EVENTS": [
+      "pointerdown",
+      "pointerup",
+      "touchend",
+      "click",
+      "keydown"
+    ]
   },
   "MOVEMENT_RULES": {
     "MAX_STUCK_TICKS": 15,

@@ -605,6 +605,19 @@
   現在最大的是 `VFXPartStore` 236 MB，它有依品質階層的位元組上限，這輪沒動。
 - **驗證**：lint、1343 項測試（新增 `tests/GroundDrapePool.test.ts`，舊的 `GroundDrape` 跑同一份會失敗）、build、knip、smoke、`perf:guard` 全過；看過 DPR 3 手機移動中連續畫面，詠唱環沒有破圖。
 - **BM 的疏失**：BM 推送前只比了鏡頭數字，沒量記憶體，而 HANDOFF 早就記著手機分頁會被回收。放大鏡頭會讓所有依裝置縮放配置的畫布變大，動到縮放範圍時要跑 `mem-probe` 比對。
+### BO. 2026-11-04 音訊喚醒：手勢每次都試、被打斷能回來（主代理設計與驗收，agy Flash high 實作）
+結論：使用者 iPhone 有時完全沒聲音，要重新整理才有機會恢復。真瀏覽器重現兩個卡死點，修後都能自己回來；iOS 上是否解決要使用者實機確認。
+
+- **根因（程式碼與重現）**：
+  - 手勢只聽 `pointerdown`、`keydown`，而且只試一次。依 HTML 規範觸控的 `pointerdown` 不算使用者手勢，`resume()` 可能無效，但 `isUnlocked` 照樣設 true、監聽也移除，之後怎麼點都不再試。這點桌機 Chromium 重現不出來（合成事件照樣喚醒），是依規範推論。
+  - `resume()` 只認 `suspended`；iOS 被來電或其他 App 打斷時是 `interrupted`，回不來。探針：context 被停之後再點，仍是 `suspended`。
+  - `blur` 把總音量淡到 0，只有 `focus` 會恢復。探針：`blur` 後回到頁面、再點畫面，總音量都還是 0。
+  - context 停住時 `playCue` 照樣建立 source，`onended` 不會來，24 個發聲槽被佔滿。
+- **修法**（只動 `engine/audio/AudioEngine.ts`）：手勢監聽 `pointerdown`、`pointerup`、`touchend`、`click`、`keydown`，整個生命週期都在；`isUnlocked` 只在 context 真的跑起來才設；`statechange`、回到頁面、`pageshow`、解除靜音都會試著喚醒；總音量在回到頁面、`pageshow`、手勢時也會恢復；context 沒在跑時音效直接丟掉。頁面隱藏時不喚醒。
+- **驗證**：新增 `tests/AudioWake.test.ts` 19 項（派工前 12 項失敗）；lint、測試、build、knip、smoke 全過。`tools/ui-e2e/out/audio-wake-probe.mjs` 用真自動播放政策跑：被停之後 context 回到 `running`；`blur` 後回到頁面總音量 0→0.64。
+- **派工**：主代理先加常數、寫紅色驗收，Flash high 一次過，沒動驗收。主代理收尾把兩份重複的恢復邏輯併成 `tryResume`，拿掉多餘的 `typeof res.then` 防護，整理混雜的行尾。
+- **沒做**：解碼或下載失敗會讓音檔整場標記失敗（`failedAssets`），這輪沒有證據是它，沒動；音樂有合成鋪底，不會全靜音。iPhone 側邊靜音開關會關掉 Web Audio，重新整理也救不回來，要改得用 `navigator.audioSession`，是產品決定，留給使用者。
+- **實機回饋（同日）**：導播焦點、拉近、景別頻率、畫質、記憶體都 OK，分頁不再回收。通常穩定 40～60 FPS，20 人岩漿低於 20。
 
 ## 3. 更早的輪次與審查修補
 

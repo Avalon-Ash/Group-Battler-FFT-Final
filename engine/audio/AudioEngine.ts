@@ -121,8 +121,11 @@ export class AudioEngine {
 
     private unlockListenerBound: (() => void) | null = null;
     private visibilityListenerBound: (() => void) | null = null;
+    private pageShowListenerBound: (() => void) | null = null;
+    private stateChangeListenerBound: (() => void) | null = null;
     private blurListenerBound: (() => void) | null = null;
     private focusListenerBound: (() => void) | null = null;
+    private isMasterFadedByBlur: boolean = false;
     private isDestroyed: boolean = false;
 
     constructor(injected?: {
@@ -218,21 +221,21 @@ export class AudioEngine {
         this.settings.muted = muted;
         this.saveSettings();
         this.applyBusGains();
+        if (!muted) {
+            this.resume();
+        }
     }
 
-    /** 手勢解鎖觸發點（第一次 pointerdown / keydown / touchstart） */
+    /**
+     * 手勢解鎖／喚醒觸發點（手勢事件如 pointerdown/pointerup/touchend/click/keydown）
+     * 恢復因 blur 淡出的總音量，並在 AudioContext 非 running 時嘗試 resume。
+     */
     public unlock(): void {
-        if (this.isMutedByUrl || !this.ctx) return;
-        if (this.isUnlocked) return;
+        if (this.isMutedByUrl || !this.ctx || this.isDestroyed) return;
 
-        this.isUnlocked = true;
-        this.removeUnlockListeners();
+        this.restoreMasterGain();
 
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume().catch((err: unknown) => {
-                this.handleAudioException('ctx.resume on unlock', err);
-            });
-        }
+        this.tryResume();
         this.preloadMusicTracks();
     }
 
@@ -246,14 +249,13 @@ export class AudioEngine {
         }
     }
 
-    /** 恢復播放（分頁重現時） */
+    /**
+     * 恢復播放（分頁重現、解除靜音或 pageshow 時）
+     * 當已解鎖、未靜音且 AudioContext 非 running/closed 時嘗試 resume。
+     */
     public resume(): void {
-        if (this.isMutedByUrl || !this.ctx) return;
-        if (this.isUnlocked && !this.settings.muted && this.ctx.state === 'suspended') {
-            this.ctx.resume().catch((err: unknown) => {
-                this.handleAudioException('ctx.resume', err);
-            });
-        }
+        if (this.isMutedByUrl || !this.ctx || this.isDestroyed) return;
+        if (this.isUnlocked && !this.settings.muted) this.tryResume();
     }
 
     /**
@@ -263,8 +265,8 @@ export class AudioEngine {
      * @returns 是否成功觸發播放
      */
     public playCue(cueId: CueId, opts?: PlayCueOptions): boolean {
-        if (this.isMutedByUrl || !this.ctx || !this.isUnlocked || this.isDestroyed) {
-            // 未解鎖前或靜音時直接靜默丟棄，不排隊
+        if (this.isMutedByUrl || !this.ctx || !this.isUnlocked || this.ctx.state !== 'running' || this.isDestroyed) {
+            // 未解鎖前、context 未在運行或靜音時直接靜默丟棄，不排隊
             return false;
         }
 
@@ -559,6 +561,8 @@ export class AudioEngine {
         this.removeUnlockListeners();
         this.removeVisibilityListeners();
         this.removeFocusListeners();
+        this.removePageShowListeners();
+        this.removeStateChangeListeners();
 
         for (const timer of this.fadingTimers) {
             clearTimeout(timer);
@@ -705,10 +709,18 @@ export class AudioEngine {
     private bindWindowEvents(): void {
         if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-        if (!this.isUnlocked) {
-            this.unlockListenerBound = () => this.unlock();
-            window.addEventListener('pointerdown', this.unlockListenerBound, { capture: true, once: true });
-            window.addEventListener('keydown', this.unlockListenerBound, { capture: true, once: true });
+        this.unlockListenerBound = () => this.unlock();
+        for (const name of AUDIO_ENGINE_PARAM.GESTURE_EVENTS) {
+            window.addEventListener(name, this.unlockListenerBound, { capture: true, passive: true });
+        }
+
+        if (this.ctx) {
+            this.stateChangeListenerBound = () => {
+                this.markRunning();
+                // 頁面隱藏時不動作，否則會和自己的 suspend 打架
+                if (!document.hidden) this.resume();
+            };
+            this.ctx.addEventListener('statechange', this.stateChangeListenerBound);
         }
 
         this.visibilityListenerBound = () => {
@@ -716,12 +728,20 @@ export class AudioEngine {
                 this.suspend();
             } else {
                 this.resume();
+                this.restoreMasterGain();
             }
         };
         document.addEventListener('visibilitychange', this.visibilityListenerBound);
 
+        this.pageShowListenerBound = () => {
+            this.resume();
+            this.restoreMasterGain();
+        };
+        window.addEventListener('pageshow', this.pageShowListenerBound);
+
         this.blurListenerBound = () => {
             if (this.masterGain && this.ctx) {
+                this.isMasterFadedByBlur = true;
                 const now = this.ctx.currentTime;
                 this.masterGain.gain.cancelScheduledValues(now);
                 this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
@@ -729,22 +749,46 @@ export class AudioEngine {
             }
         };
         this.focusListenerBound = () => {
-            if (this.masterGain && this.ctx && !this.settings.muted) {
-                const now = this.ctx.currentTime;
-                const target = Math.pow(Math.max(0, Math.min(1, this.settings.master)), AUDIO.VOLUME_CURVE_EXPONENT);
-                this.masterGain.gain.cancelScheduledValues(now);
-                this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
-                this.masterGain.gain.linearRampToValueAtTime(target, now + AUDIO_ENGINE_PARAM.FOCUS_FADE_S);
-            }
+            this.restoreMasterGain();
         };
         window.addEventListener('blur', this.blurListenerBound);
         window.addEventListener('focus', this.focusListenerBound);
     }
 
+    /** context 不在跑就試著喚醒；iOS 被打斷時狀態是 interrupted，不是 suspended，所以不比對 suspended */
+    private tryResume(): void {
+        const ctx = this.ctx;
+        if (!ctx || ctx.state === 'running' || ctx.state === 'closed') return;
+        ctx.resume().then(() => this.markRunning()).catch((err: unknown) => {
+            this.handleAudioException('ctx.resume', err);
+        });
+        this.markRunning();
+    }
+
+    /** isUnlocked 只代表 context 真的跑起來過 */
+    private markRunning(): void {
+        if (this.ctx?.state === 'running') this.isUnlocked = true;
+    }
+
+    /** blur 淡掉的總音量淡回來；手機上 focus 不一定會來，回到頁面、pageshow、手勢都會呼叫 */
+    private restoreMasterGain(): void {
+        if (!this.isMasterFadedByBlur) return;
+        this.isMasterFadedByBlur = false;
+        if (this.settings.muted) return;
+        if (this.masterGain && this.ctx) {
+            const now = this.ctx.currentTime;
+            const target = Math.pow(Math.max(0, Math.min(1, this.settings.master)), AUDIO.VOLUME_CURVE_EXPONENT);
+            this.masterGain.gain.cancelScheduledValues(now);
+            this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+            this.masterGain.gain.linearRampToValueAtTime(target, now + AUDIO_ENGINE_PARAM.FOCUS_FADE_S);
+        }
+    }
+
     private removeUnlockListeners(): void {
         if (typeof window !== 'undefined' && this.unlockListenerBound) {
-            window.removeEventListener('pointerdown', this.unlockListenerBound, { capture: true });
-            window.removeEventListener('keydown', this.unlockListenerBound, { capture: true });
+            for (const name of AUDIO_ENGINE_PARAM.GESTURE_EVENTS) {
+                window.removeEventListener(name, this.unlockListenerBound, { capture: true });
+            }
             this.unlockListenerBound = null;
         }
     }
@@ -753,6 +797,20 @@ export class AudioEngine {
         if (typeof document !== 'undefined' && this.visibilityListenerBound) {
             document.removeEventListener('visibilitychange', this.visibilityListenerBound);
             this.visibilityListenerBound = null;
+        }
+    }
+
+    private removePageShowListeners(): void {
+        if (typeof window !== 'undefined' && this.pageShowListenerBound) {
+            window.removeEventListener('pageshow', this.pageShowListenerBound);
+            this.pageShowListenerBound = null;
+        }
+    }
+
+    private removeStateChangeListeners(): void {
+        if (this.ctx && this.stateChangeListenerBound) {
+            this.ctx.removeEventListener('statechange', this.stateChangeListenerBound);
+            this.stateChangeListenerBound = null;
         }
     }
 
