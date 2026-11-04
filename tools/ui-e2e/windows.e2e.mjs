@@ -1130,7 +1130,7 @@ const runTouchScrollSuite = async () => {
 
     // Verify touch-action computed styles
     const touchActions = await page.evaluate(() => {
-        const root = document.querySelector('.h-\\[100dvh\\]');
+        const root = document.querySelector('.h-dvh');
         const canvas = document.querySelector('canvas');
         const titlebar = document.querySelector('[data-window-id="db"] [data-window-titlebar="true"]');
         const body = document.querySelector('[data-window-id="db"] [data-window-body="true"]');
