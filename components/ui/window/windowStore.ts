@@ -57,6 +57,28 @@ export function getMaximizedRect(viewport: { width: number; height: number }): W
 }
 
 /**
+ * z-index a window paints at. Only the topmost open window may use the maximized layer: a window
+ * opened or raised over a maximized one must end up in front of it (the behavior tree opened from a
+ * maximized inspector), and the menu button comes back once the maximized window is no longer on top.
+ */
+export function getWindowLayerZ(win: Pick<WindowState, 'id' | 'zIndex' | 'isMaximized'>, topmostOpenId: string | null): number {
+    return win.isMaximized && win.id === topmostOpenId
+        ? UI_Z.WINDOW_MAXIMIZED + (win.zIndex - UI_Z.WINDOW_BASE)
+        : win.zIndex;
+}
+
+/**
+ * The window Esc should restore: the topmost open window, when it is maximized.
+ */
+export function getTopmostMaximizedWindowId(windows: Partial<Record<string, WindowState>>): WindowId | null {
+    let top: WindowState | null = null;
+    for (const win of Object.values(windows)) {
+        if (win?.isOpen && (!top || win.zIndex > top.zIndex)) top = win;
+    }
+    return top?.isMaximized ? top.id : null;
+}
+
+/**
  * Serializes window states to JSON string.
  */
 export function serialize(windows: Record<string, WindowState>): string {
@@ -201,6 +223,10 @@ export class WindowStore {
         }
 
         const restored = restoreState(raw, defs);
+        // 手機一次只顯示一個底部面板：還原開著的視窗會蓋住畫面，開著展示設定時連 START 都會被藏起來
+        if (typeof window !== 'undefined' && window.innerWidth <= UI_WINDOW.SHEET_BREAKPOINT) {
+            for (const state of Object.values(restored)) state.isOpen = false;
+        }
         for (const [id, state] of Object.entries(restored)) {
             if (!this._windows[id]) {
                 this._windows[id] = state;

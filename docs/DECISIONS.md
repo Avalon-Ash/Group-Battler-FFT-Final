@@ -61,3 +61,16 @@
 - 大逃殺（陣營數 ≥3）大招與主動跨職業與隊伍抽、普攻照職業、血量差距減半。混用實驗在 `docs/AI_ROYALE_DESIGN.md` §4。
 - 現在的素材就是正式版（使用者 2026-11-03），待辦不再列「正式版素材」。早先寫「等正式版再換」的是當時的說法。
 - 近戰隔層打人實機確認「還行」（使用者 2026-11-03）。
+
+## UI（2026-11-04，使用者逐題確認）
+- UI 是純投影：元件只吃 selector 產的 view model、只發 `UICommand`，視窗與面板定義放資料表。不把 UI 做成實體，也不把引擎改成標準 ECS。理由：之後要加單位操控與行為設計，UI 不能再持有判斷。
+- UI 裡的條件（陣亡、隊伍色、顯示哪種狀態）放 selector 或資料表，元件只畫結果。
+- UI 魔法數字歸零，由 `tests/UIAudit.test.ts` 擋住：尺寸、字級、圓角、顏色、模糊、動畫時間走 token（`data/ui/tokens.ts` 生成 `styles/tokens.css`）；className 不用任意值與調色盤 class；標籤表放 `data/ui`。
+- 材質分級：HUD、選單、彈出層、聚焦視窗用真模糊，只有 `.mat-blur` 一個來源（Safari 18.2 起 `-webkit-backdrop-filter` 不吃變數，所以是字面值）。沒聚焦、最大化、手機底部面板用純色。內部元件用半透明底、細邊框、頂部高光，不加模糊。理由：手機效能，也避免巢狀模糊。
+- 層級照 `UI_Z`：展示 < HUD < 視窗 < 選單 < 最大化視窗 < 全螢幕覆蓋 < 彈出層。只有最上層視窗能用最大化層，否則最大化的檢查器會蓋住從它開的行為樹。`WindowLayer` 用 `display: contents`，不自成 stacking context。
+- 行為樹是獨立視窗，手動開、跟著選取走；取消選取時保留視窗顯示空狀態。
+- 視窗版面與選取單位留在 UI 層 store，引擎不知道它們。時間倍率的唯一來源是引擎 `targetTimeScale`。
+- 依賴邊界：只有 `GameCanvas` 可碰 renderer；技能圖示、特效縮圖走 `hooks/adapters`；`data/ui` 不 import `components`；元件經 `hooks/useEnginePort` 碰引擎。
+- 標題全用英文大寫等寬（JetBrains Mono），不用中文（使用者：中文不好看）；中文內文用系統字型，font stack 要列中文字型，否則 Windows 退回細明體。
+- 開場標題直接浮在戰場上，和進入按鈕分開，不放玻璃板（使用者 2026-11-04）。設計由 GPT Astra 出方向與實作（校準座標：角標、刻度、TACTICAL 白＋.OS 強調色）。
+- 用現成元件庫：Radix（下拉等）、lucide（圖示）、TanStack Virtual（長列表）、cva。使用者：不重造輪子。JS gzip 約 353 KB 到 400 KB。

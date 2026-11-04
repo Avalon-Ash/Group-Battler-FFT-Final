@@ -6,14 +6,22 @@
 ## 1. 目前狀態
 
 - 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）。最近完成：音訊喚醒（WORKLOG §2 BO，待實機確認）、手機記憶體修正（BN）、導播改框主角與目標（BM）、技能管線重建與機動槽（WORKLOG §2 BL，平衡與實機待確認）、導播改排分清單與緩進緩出群組、切畫質不再瞬跳（WORKLOG §2 BJ，待實機確認）、詠唱環隨單位移動破圖修正（WORKLOG §2 BI）、手機奧義掉幀修好（貼地特效改合成圖＋預烘六角遮罩，WORKLOG §2 BH）、縮圈塌陷不再重置鏡頭、近戰被打回頭、陣營染色、背水一戰改從最後一圈倒數算起（WORKLOG §2 BG）、AI 狀態拓樸與大逃殺規則（WORKLOG §2 BD）、震動收歸導演、大逃殺模式、換場背景淡化（WORKLOG §2 AW）、遮擋剪影灰白修正（AX）。
-- **派工**：同一時間只跑一個 agy（11-01 兩個同時跑，後派的一開始就被拒）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。
-- **額度**：Claude（Pro）每週要省。**Codex 週額度見底（`~/.claude/QUOTA.md`）：暫停派 Codex**（Codex 現在只派美術視覺與邏輯根因）。長線實作走 agy 的 Gemini 3.8 Flash，要判斷的收回 Claude（`agent-prompt` skill）。Antigravity 額度由使用者回報、記在 `~/.claude/QUOTA.md`。
+- **派工**：agy 可多線同跑（11-04 實測 4 條，不同資料夾）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。
+- **額度**：Claude（Pro）每週要省。Codex 到 11 月底有兩次重置要用完（使用者 11-04），美術視覺與邏輯根因多派（額度看 `~/.claude/QUOTA.md`）。長線實作走 agy 的 Gemini 3.8 Flash，要判斷的收回 Claude（`agent-prompt` skill）。Antigravity 額度由使用者回報、記在 `~/.claude/QUOTA.md`。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
 - 本機標籤 `archive/lionheart-skin-trials` 保留 S0 沒收的預覽圖與 OPUS 交接。
 - 逐檔人工審計已由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、`NoLocalHash`），清冊 CSV 已刪（11-02）。
 - 座標 findings：COORD-SINK-01（受擊下坡下陷 1.89 px）使用者 2026-10-26 實機幾乎看不到，**不修**，有新證據（更大的下陷、玩家看得見）才重開；COORD-VOID-01 屬量測工具問題，同樣擱置。已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
 
 ## 2. 下一步
+
+**L. 可玩地基（下一輪，使用者長期方向：從模擬工具走向可玩可編輯）**：UI 改版把投影與指令分好了（DECISIONS「UI」），剩四個缺口：
+1. 指令佇列：`GameCommand` 在 tick 開頭處理，才能回放與 undo（`types.ts` 已分類）。
+2. Controller 抽象：AI 或玩家控制同一單位。
+3. 倍率改成跑多個固定步長。
+4. 行為樹資料化與編輯器。
+
+**M. UI 遺留（WORKLOG §2 BP）**：`WindowDef` 的布林改 `modes`；debug／edit 視窗延遲載入；`Tabs`、`Segmented` 加 `testId` 欄位（目前放在 label 內的 span）；技能下拉加搜尋；`dbSignature` 每秒 10 次組字串的成本；「聖印衝擊」圖示深藍符號融入底板，辨識度低（素材）。
 
 **J. 技能平衡（使用者 2026-11-04：Codex 恢復後一起做，WORKLOG §2 BL 有數據）**：管線與機制都好了，數值還是佔位。
 - **要調的**：機動技每招每場只放 0.3～0.5 次的（`mr_m2`、`sr_m1`、`mb_m2`，都是貼身才放），看條件要不要放寬。極端值見 WORKLOG。
@@ -55,6 +63,7 @@
 - 音檔下載或解碼失敗後整場不重試（`failedAssets`）。這輪沒有證據是它；修完實機還會沒聲音時再查。
 
 ## 3. 待使用者實機確認
+- **UI 改版（2026-11-04，WORKLOG §2 BP）**：手機上模糊的 FPS、開場畫面、底部面板和按鈕好不好按。
 - **技能管線（2026-11-04，WORKLOG §2 BL）**：戰士突進與鉤子、遊俠法師被貼身時後撤、騎士推人看起來對不對，頻率會不會太高；交換位置（`mb_a3`）把法師換進敵陣是否合理；技能編輯面板的控制欄位還能用；新的「0 BLOCK」浮字是否舊就有（打坦克時看得到，這輪沒動那段）。
 - **音訊喚醒（2026-11-04，WORKLOG §2 BO）**：還會不會完全沒聲音、切 App 或來電回來後有沒有恢復。還會的話告訴我當下有沒有開靜音開關、點畫面後有沒有回來。
 

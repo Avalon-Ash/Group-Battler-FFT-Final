@@ -1,198 +1,62 @@
-
-import React, { useRef, useEffect } from 'react';
-import { Agent } from '../../../engine/game';
-import { Role, Skill, Team } from '../../../types';
-import { ROLE_MAP, TAG_MAP } from '../InspectorConstants';
-import { SkillIcon } from '../parts/SkillIcon';
+import React from 'react';
+import { useCommands, useViewOf } from '../../../hooks/useEnginePort';
+import { selectSkillLoadoutView } from '../../../engine/systems/ui/views/l3';
+import { INSPECTOR_TEXT, SKILL_STAT_FIELDS, SKILL_TAG_LABEL, SKILL_TAG_TONE, SKILL_UNASSIGNED_LABEL } from '../../../data/ui/labels/l3';
 import { Icons } from '../../ui/icons';
-import { INSPECTOR_PARAM } from '../../../constants';
+import { Card, EmptyState, SectionHeading, Select, Tag } from '../../ui/primitives';
+import { SkillIcon } from '../parts/SkillIcon';
 
 interface UnitStatusTabProps {
-    agent: Agent;
-    db: Skill[];
-    onHoverSkill?: (skill: Skill | null) => void;
-    /** 換技能槽：父層經 UICommand（SET_AGENT_SKILL）寫入引擎，本元件不直接改 agent */
-    onSetSkill: (slot: number, skillId: string | null) => void;
-    onUpdate: () => void;
+    agentId: string;
 }
 
-export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHoverSkill, onSetSkill, onUpdate }) => {
-    
-    const setSkill = (idx: number, id: string) => {
-        onSetSkill(idx, id || null);
-        onUpdate();
-    };
+/** 技能配置分頁：資料來自 selectSkillLoadoutView，換技能槽經 UICommand（SET_AGENT_SKILL）寫入引擎。 */
+export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agentId }) => {
+    const loadout = useViewOf(selectSkillLoadoutView, agentId);
+    const { send } = useCommands();
 
-    // --- GRAB & DRAG SCROLL LOGIC ---
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const rafRef = useRef<number>(0);
-    const dragState = useRef({
-        isDown: false,
-        startY: 0,
-        scrollTop: 0,
-        lastY: 0,
-        velocity: 0,
-        lastTime: 0
-    });
-
-    const stopMomentum = () => {
-        if (rafRef.current) {
-            cancelAnimationFrame(rafRef.current);
-            rafRef.current = 0;
-        }
-    };
-
-    const handlePointerDown = (e: React.PointerEvent) => {
-        if (!scrollRef.current) return;
-        if ((e.target as HTMLElement).tagName === 'SELECT') return;
-
-        e.stopPropagation();
-        e.preventDefault();
-
-        dragState.current.isDown = true;
-        dragState.current.startY = e.pageY;
-        dragState.current.scrollTop = scrollRef.current.scrollTop;
-        dragState.current.lastY = e.pageY;
-        dragState.current.velocity = 0;
-        dragState.current.lastTime = performance.now();
-        
-        stopMomentum();
-        (e.target as Element).setPointerCapture(e.pointerId);
-        scrollRef.current.style.cursor = 'grabbing';
-        scrollRef.current.style.userSelect = 'none';
-    };
-
-    const handlePointerMove = (e: React.PointerEvent) => {
-        if (!dragState.current.isDown || !scrollRef.current) return;
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const now = performance.now();
-        const y = e.pageY;
-        const delta = y - dragState.current.startY;
-        scrollRef.current.scrollTop = dragState.current.scrollTop - delta;
-
-        const timeDelta = now - dragState.current.lastTime;
-        if (timeDelta > 0) {
-            const dist = y - dragState.current.lastY;
-            dragState.current.velocity = dist; 
-            dragState.current.lastY = y;
-            dragState.current.lastTime = now;
-        }
-    };
-
-    const handlePointerUp = (e: React.PointerEvent) => {
-        if (!dragState.current.isDown) return;
-        dragState.current.isDown = false;
-        (e.target as Element).releasePointerCapture(e.pointerId);
-        if (scrollRef.current) {
-            scrollRef.current.style.cursor = 'grab';
-            scrollRef.current.style.removeProperty('user-select');
-        }
-        startMomentum();
-    };
-
-    const startMomentum = () => {
-        stopMomentum();
-        const step = () => {
-            if (!scrollRef.current) return;
-            dragState.current.velocity *= INSPECTOR_PARAM.SCROLL_FRICTION; 
-            if (Math.abs(dragState.current.velocity) > 0.5) {
-                scrollRef.current.scrollTop -= dragState.current.velocity;
-                rafRef.current = requestAnimationFrame(step);
-            } else {
-                dragState.current.velocity = 0;
-            }
-        };
-        step();
-    };
-
-    useEffect(() => { return () => stopMomentum(); }, []);
+    if (!loadout) {
+        return <EmptyState icon={<Icons.Database className="h-8 w-8" />} title={INSPECTOR_TEXT.noSelectionTitle} />;
+    }
 
     return (
-        <div className="flex flex-col h-full w-full bg-transparent overflow-hidden">
-            
-            <div 
-                ref={scrollRef}
-                className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-4 py-4 cursor-grab active:cursor-grabbing touch-none"
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-            >
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-3 sticky top-0 bg-slate-900/95 backdrop-blur z-10 py-2 border-b border-white/5 pointer-events-none">
-                    <Icons.Database className="w-3 h-3" />
-                    技能神經連結 (SKILL LINKAGE)
-                </div>
-
-                <div className="space-y-3 pb-24">
-                    {['ULT', 'ACTIVE', 'BASIC', 'MOBILITY'].map((tag, i) => {
-                        const currentSkillId = agent.skillIds[i];
-                        const currentSkill = db.find(s => s.id === currentSkillId);
-                        
-                        const availableSkills = db.filter(s => s.tag === tag);
-                        const skillsByRole: Record<string, Skill[]> = {};
-                        availableSkills.forEach(s => {
-                            if(!skillsByRole[s.role]) skillsByRole[s.role] = [];
-                            skillsByRole[s.role].push(s);
-                        });
-                        const roleOrder = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-
-                        return (
-                            <div key={i} className="liquid-card !bg-slate-900/40 border border-white/5 transition-all hover:border-white/20 group !rounded-xl overflow-visible" onMouseEnter={() => onHoverSkill && onHoverSkill(currentSkill || null)} onMouseLeave={() => onHoverSkill && onHoverSkill(null)}>
-                                <div className="flex items-center gap-3 p-3 bg-white/[0.02]">
-                                    <SkillIcon skill={currentSkill || null} className="w-10 h-10 !rounded-lg shadow-lg shrink-0 border border-white/10 bg-black/50" />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className={`text-[11px] font-bold uppercase tracking-wider px-1.5 rounded border ${tag === 'ULT' ? 'text-purple-300 border-purple-500/30 bg-purple-500/10' : (tag === 'ACTIVE' ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : 'text-slate-300 border-slate-500/30 bg-slate-500/10')}`}>
-                                                {TAG_MAP[tag].label} 槽位
-                                            </span>
-                                            {currentSkill && <span className="text-[10px] text-slate-500 font-mono">{currentSkill.id}</span>}
-                                        </div>
-                                        <div className="relative">
-                                            <select 
-                                                className={`liquid-input h-8 w-full text-xs font-bold appearance-none cursor-pointer uppercase tracking-wide !rounded-lg pr-8 text-white ${!currentSkillId ? 'text-slate-500 !bg-black/30' : 'text-slate-200 !bg-black/50 hover:!bg-black/70'}`}
-                                                value={agent.skillIds[i] || ""} 
-                                                onChange={(e) => setSkill(i, e.target.value)}
-                                                onPointerDown={(e) => e.stopPropagation()} 
-                                            >
-                                                <option value="" className="bg-slate-900 text-slate-500">-- 未配置技能 --</option>
-                                                {roleOrder.map(role => {
-                                                    const skills = skillsByRole[role];
-                                                    if (!skills || skills.length === 0) return null;
-                                                    return (
-                                                        <optgroup key={role} label={ROLE_MAP[role].label} className="bg-slate-900 text-slate-400">
-                                                            {skills.map(s => (
-                                                                <option key={s.id} value={s.id} className="text-white bg-slate-900">
-                                                                    {s.name} {s.team !== undefined ? (s.team === Team.BLUE ? '🔵' : '🔴') : ''}
-                                                                </option>
-                                                            ))}
-                                                        </optgroup>
-                                                    );
-                                                })}
-                                            </select>
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">▼</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {currentSkill && (
-                                    <div className="px-3 py-2 text-xs bg-black/20 border-t border-white/5 pointer-events-none">
-                                        <div className="text-slate-400 italic mb-2 leading-relaxed border-l-2 border-white/10 pl-2 text-[11px]">
-                                            {currentSkill.desc}
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-2 text-[10px] font-mono text-slate-400">
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">威力</span> <span className="text-slate-200">{currentSkill.power}</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">冷卻</span> <span className="text-slate-200">{currentSkill.cd}s</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">消耗</span> <span className="text-blue-300">{currentSkill.cost}</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">射程</span> <span className="text-slate-200">{currentSkill.range}</span></div>
-                                        </div>
-                                    </div>
-                                )}
+        <div className="flex flex-col gap-3">
+            <SectionHeading action={<Icons.Database className="h-4 w-4 text-fg-muted" />}>{INSPECTOR_TEXT.skillHeading}</SectionHeading>
+            {loadout.slots.map((slot) => (
+                <Card key={slot.slot} className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                        <SkillIcon skill={slot.skill} className="h-10 w-10 shrink-0" />
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                            <div className="flex items-center justify-between gap-2">
+                                <Tag tone={SKILL_TAG_TONE[slot.tag]}>{SKILL_TAG_LABEL[slot.tag]}</Tag>
+                                {slot.skill && <span className="truncate font-mono text-ui-num text-fg-muted">{slot.skill.id}</span>}
                             </div>
-                        );
-                    })}
-                </div>
-            </div>
+                            <Select
+                                ariaLabel={`${INSPECTOR_TEXT.skillSlot} ${SKILL_TAG_LABEL[slot.tag]}`}
+                                size="sm"
+                                className="w-full"
+                                value={slot.skillId ?? ''}
+                                onValueChange={(skillId) => send({ type: 'SET_AGENT_SKILL', agentId: loadout.agentId, slot: slot.slot, skillId: skillId || null })}
+                                options={[{ value: '', label: SKILL_UNASSIGNED_LABEL }]}
+                                groups={slot.groups}
+                            />
+                        </div>
+                    </div>
+                    {slot.skill && (
+                        <div className="flex flex-col gap-2">
+                            {slot.skill.desc && <p className="text-ui-body text-fg-secondary">{slot.skill.desc}</p>}
+                            <div className="grid grid-cols-4 gap-2">
+                                {SKILL_STAT_FIELDS.map((field) => (
+                                    <div key={field.key} className="well flex flex-col items-center px-1 py-1">
+                                        <span className="text-ui-label text-fg-muted">{field.label}</span>
+                                        <span className="font-mono text-ui-num text-fg-primary">{slot.skill?.[field.key]}{field.suffix}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </Card>
+            ))}
         </div>
     );
 };

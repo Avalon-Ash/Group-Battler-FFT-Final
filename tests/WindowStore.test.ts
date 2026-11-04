@@ -5,6 +5,8 @@ import {
     serialize,
     WindowStore,
     StorageLike,
+    getWindowLayerZ,
+    getTopmostMaximizedWindowId,
 } from '../components/ui/window/windowStore';
 import { WindowDef } from '../types';
 import { UI_WINDOW, UI_Z } from '../constants';
@@ -204,6 +206,43 @@ describe('WindowStore & Window Clamping/Restoration', () => {
             expect(store.getWindow('logs')?.isCollapsed).toBe(true);
             store.collapse('logs');
             expect(store.getWindow('logs')?.isCollapsed).toBe(false);
+        });
+
+        it('layers maximized windows above the system menu and normal windows below it', () => {
+            store.open('logs');
+            store.open('inspector');
+            const normal = store.getWindow('logs')!;
+            expect(getWindowLayerZ(normal, 'inspector')).toBeGreaterThan(UI_Z.HUD);
+            expect(getWindowLayerZ(normal, 'inspector')).toBeLessThan(UI_Z.MENU);
+
+            store.maximize('logs');
+            const maximized = store.getWindow('logs')!;
+            expect(getWindowLayerZ(maximized, 'logs')).toBeGreaterThan(UI_Z.MENU);
+            expect(getWindowLayerZ(maximized, 'logs')).toBeLessThan(UI_Z.OVERLAY);
+        });
+
+        it('lets a window opened over a maximized one come to the front', () => {
+            store.open('inspector');
+            store.maximize('inspector');
+            store.open('logs');
+            const inspector = store.getWindow('inspector')!;
+            const logs = store.getWindow('logs')!;
+            expect(getWindowLayerZ(logs, 'logs')).toBeGreaterThan(getWindowLayerZ(inspector, 'logs'));
+            expect(getTopmostMaximizedWindowId(store.getState())).toBeNull();
+            store.front('inspector');
+            expect(getTopmostMaximizedWindowId(store.getState())).toBe('inspector');
+        });
+
+        it('finds the topmost maximized window for Esc restore', () => {
+            store.open('logs');
+            store.open('inspector');
+            expect(getTopmostMaximizedWindowId(store.getState())).toBeNull();
+            store.maximize('logs');
+            store.maximize('inspector');
+            expect(getTopmostMaximizedWindowId(store.getState())).toBe('inspector');
+            // 還原後最上層不是最大化視窗，Esc 不該動到被蓋住的 logs
+            store.maximize('inspector');
+            expect(getTopmostMaximizedWindowId(store.getState())).toBeNull();
         });
 
         it('renumbers zIndex when reaching WINDOW_MAX without unbounded growth', () => {

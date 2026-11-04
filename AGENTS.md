@@ -71,6 +71,12 @@
 
 ---
 
+## 3a. UI Rules (docs/DECISIONS.md "UI")
+- Components read only through `useView` / `useViewOf` and write only through `useCommands` (`hooks/useEnginePort.tsx`). Conditions live in selectors (`engine/systems/ui/views/`) or data tables, not components.
+- Build with `components/ui/primitives/`. No arbitrary Tailwind values, palette classes, colour literals or emoji in className; tokens live in `data/ui/tokens.ts`. `npm run audit:ui -- all` and `tests/UIAudit.test.ts` must stay at 0.
+- Real blur only via `.mat-blur`, never nested. No `forwards`/`both` animation fill on anything that contains blur. Layers come from `UI_Z`.
+- Window, tab and section titles are uppercase English; no Chinese titles.
+
 ## 4. Rules Learned the Hard Way
 
 - **React StrictMode**: component cleanup runs and the component remounts. Never immediately `destroy()` an object that the remount will reuse; defer it.

@@ -1,60 +1,58 @@
-
 import React, { useEffect, useState, memo, useRef } from 'react';
 import { LogEntry, Team } from '../../../types';
 import { Icons } from '../../ui/icons';
-import type { GameEngine } from '../../../engine/game';
 import { selectLogView } from '../../../engine/systems/ui/selectors';
-import { useEngineView } from '../../../hooks/useEngineView';
+import { useView } from '../../../hooks/useEnginePort';
 import { INSPECTOR_PARAM } from '../../../constants';
-
-interface LogTabProps {
-    engine: GameEngine;
-}
+import { Button, Card, EmptyState, Segmented } from '../../ui/primitives';
+import { cn } from '../../ui/primitives/cn';
+import { LOG_CATEGORY_OPTIONS, LOG_SOURCE_OPTIONS } from '../../../data/ui/labels/l4';
 
 const EMPTY_LOGS: readonly LogEntry[] = [];
 
 const LogItem = memo(({ log }: { log: LogEntry }) => (
-    <div className="relative pl-6 py-2 group pointer-events-none"> 
-        {/* Pointer events none on item to ensure drag goes through to container */}
-        {/* Timeline Line */}
-        <div className="absolute left-[11px] top-0 bottom-0 w-px bg-white/5 group-hover:bg-cyan-500/30 transition-colors"></div>
-        {/* Timeline Dot */}
-        <div className={`absolute left-2 top-4 w-1.5 h-1.5 rounded-full ring-4 ring-slate-950 transition-all ${log.visualColor ? `bg-[${log.visualColor}]` : 'bg-slate-600'} group-hover:scale-125 group-hover:shadow-[0_0_8px_currentColor]`} style={{ backgroundColor: log.visualColor || 'var(--token-literal-slate600)' }}></div>
-
-        <div className="liquid-card !bg-white/[0.02] hover:!bg-white/[0.06] !rounded-xl p-3 border border-white/5 group-hover:border-white/10 transition-all">
-            <div className="flex justify-between items-start mb-1">
-                <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] text-slate-500 bg-black/40 px-1.5 py-0.5 rounded-md border border-white/5">
-                        {log.time}s
-                    </span>
-                    <span className={`font-bold text-xs tracking-tight ${log.team === Team.BLUE ? 'text-blue-400' : (log.team === Team.RED ? 'text-red-400' : 'text-slate-300')}`}>
-                        {log.agentId || 'SYSTEM'}
-                    </span>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-50" style={{ color: log.visualColor }}>
-                    {log.action}
+    <Card padding="sm" className="select-text space-y-1">
+        <div className="flex justify-between items-start">
+            <div className="flex items-center gap-2">
+                <span className="font-mono text-ui-num text-fg-muted bg-surface-slot px-1.5 py-0.5 rounded-ui-tag border border-line-subtle/10">
+                    {log.time}s
+                </span>
+                <span
+                    className={cn(
+                        'font-bold text-ui-body tracking-tight',
+                        log.team === Team.BLUE ? 'text-accent' : log.team === Team.RED ? 'text-danger' : 'text-fg-primary',
+                    )}
+                >
+                    {log.agentId || 'SYSTEM'}
                 </span>
             </div>
-            
-            <div className="text-xs text-slate-400 leading-relaxed pl-1">
-                {log.target && log.target !== '自身' && (
-                    <span className="mr-1.5 bg-white/5 px-1 rounded text-slate-300">
-                        ➜ {log.target}
-                    </span>
-                )}
-                <span className="opacity-80 group-hover:opacity-100 transition-opacity">{log.detail}</span>
-            </div>
+            <span
+                className="text-ui-num font-mono font-bold uppercase tracking-wider text-fg-muted"
+                style={log.visualColor ? { color: log.visualColor } : undefined}
+            >
+                {log.action}
+            </span>
         </div>
-    </div>
+
+        <div className="text-ui-body text-fg-secondary leading-relaxed pl-1">
+            {log.target && log.target !== '自身' && (
+                <span className="mr-1.5 px-1 rounded-ui-tag bg-surface-slot text-fg-primary text-ui-label inline-flex items-center gap-1">
+                    <Icons.DirectionRight className="h-3 w-3" />
+                    <span>{log.target}</span>
+                </span>
+            )}
+            <span className="select-text">{log.detail}</span>
+        </div>
+    </Card>
 ));
 
 type FilterCategory = 'ALL' | 'BATTLE' | 'SKILL' | 'OTHER';
 type SourceCategory = 'ALL' | 'BLUE' | 'RED';
 
-export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
-    const logView = useEngineView(engine, selectLogView);
+export const LogTab: React.FC = () => {
+    const logView = useView(selectLogView);
     const logs = logView?.logs ?? EMPTY_LOGS;
-    
+
     // Filters
     const [filterType, setFilterType] = useState<FilterCategory>('ALL');
     const [filterSource, setFilterSource] = useState<SourceCategory>('ALL');
@@ -68,7 +66,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         scrollTop: 0,
         lastY: 0,
         velocity: 0,
-        lastTime: 0
+        lastTime: 0,
     });
 
     const stopMomentum = () => {
@@ -80,8 +78,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
 
     const handlePointerDown = (e: React.PointerEvent) => {
         if (!scrollRef.current) return;
-        // Allow clicking buttons in header, but catch drag in body
-        if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+        if ((e.target as HTMLElement).closest('button, [role="button"]')) return;
 
         e.stopPropagation();
         e.preventDefault();
@@ -92,7 +89,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         dragState.current.lastY = e.pageY;
         dragState.current.velocity = 0;
         dragState.current.lastTime = performance.now();
-        
+
         stopMomentum();
         (e.target as Element).setPointerCapture(e.pointerId);
         scrollRef.current.style.cursor = 'grabbing';
@@ -102,7 +99,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         if (!dragState.current.isDown || !scrollRef.current) return;
         e.preventDefault();
         e.stopPropagation();
-        
+
         const now = performance.now();
         const y = e.pageY;
         const delta = y - dragState.current.startY;
@@ -111,7 +108,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         const timeDelta = now - dragState.current.lastTime;
         if (timeDelta > 0) {
             const dist = y - dragState.current.lastY;
-            dragState.current.velocity = dist; 
+            dragState.current.velocity = dist;
             dragState.current.lastY = y;
             dragState.current.lastTime = now;
         }
@@ -131,7 +128,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         stopMomentum();
         const step = () => {
             if (!scrollRef.current) return;
-            dragState.current.velocity *= INSPECTOR_PARAM.SCROLL_FRICTION; // Friction
+            dragState.current.velocity *= INSPECTOR_PARAM.SCROLL_FRICTION;
             if (Math.abs(dragState.current.velocity) > 0.5) {
                 scrollRef.current.scrollTop -= dragState.current.velocity;
                 rafRef.current = requestAnimationFrame(step);
@@ -142,18 +139,18 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         step();
     };
 
-    useEffect(() => { return () => stopMomentum(); }, []);
+    useEffect(() => {
+        return () => stopMomentum();
+    }, []);
 
     // --- FILTERING ---
     const getFilteredLogs = () => {
-        return logs.filter(log => {
-            // 1. Source Filter
+        return logs.filter((log) => {
             if (filterSource === 'BLUE' && log.team !== Team.BLUE) return false;
             if (filterSource === 'RED' && log.team !== Team.RED) return false;
 
-            // 2. Type Filter
             if (filterType === 'ALL') return true;
-            
+
             const type = log.actionType;
             if (filterType === 'BATTLE') {
                 return type === 'HIT' || type === 'HEAL' || type === 'DEATH' || type === 'HAZARD';
@@ -170,95 +167,77 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
 
     const filteredLogs = getFilteredLogs();
 
-    // Auto-scroll logic (Only if near bottom AND not dragging)
     useEffect(() => {
         if (dragState.current.isDown || !scrollRef.current) return;
         const div = scrollRef.current;
-        // Tolerance of 100px
         if (div.scrollHeight - div.scrollTop - div.clientHeight < INSPECTOR_PARAM.LOG_AUTO_SCROLL_PX) {
             div.scrollTop = div.scrollHeight;
         }
-    }, [logs.length]); // Trigger on count change, not filtered change
+    }, [logs.length]);
 
     const downloadLogs = () => {
-        const currentLogs = selectLogView(engine).logs;
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentLogs, null, 2));
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(logs, null, 2));
         const anchor = document.createElement('a');
-        anchor.setAttribute("href", dataStr);
-        anchor.setAttribute("download", `battle_logs_${Date.now()}.json`);
+        anchor.setAttribute('href', dataStr);
+        anchor.setAttribute('download', `battle_logs_${Date.now()}.json`);
         anchor.click();
     };
 
     return (
         <div className="flex flex-col h-full bg-transparent overflow-hidden">
-            {/* Control Header */}
-            <div className="p-4 border-b border-white/5 shrink-0 bg-slate-900/50 backdrop-blur-md space-y-3 z-10">
+            <div className="p-4 border-b border-line-subtle/10 shrink-0 space-y-3">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 absolute animate-ping opacity-75"></span>
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 relative block shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">戰鬥事件串流</span>
-                        <span className="text-[10px] font-mono text-cyan-500/80 bg-cyan-950/30 px-2 py-0.5 rounded-md border border-cyan-500/20">
+                        <span className="w-2 h-2 rounded-ui-pill bg-success block" />
+                        <h2 className="ui-heading text-ui-title text-fg-primary">COMBAT LOGS</h2>
+                        <span className="font-mono text-ui-num text-fg-muted bg-surface-slot px-2 py-0.5 rounded-ui-tag border border-line-subtle/10">
                             {filteredLogs.length} / {logs.length}
                         </span>
                     </div>
-                    <button 
-                        onClick={downloadLogs} 
-                        className="touch-target liquid-btn px-3 py-1.5 !text-[10px] !rounded-lg border-white/10 text-slate-400 hover:text-white hover:border-cyan-500/30"
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={downloadLogs}
                         title="匯出戰鬥日誌 JSON"
                     >
-                        <Icons.Save className="w-3 h-3 mr-1.5" /> 匯出記錄
-                    </button>
+                        <Icons.Save className="h-4 w-4" />
+                        <span>匯出記錄</span>
+                    </Button>
                 </div>
 
-                {/* Filters */}
-                <div className="flex flex-wrap gap-2">
-                    <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5 flex-1 min-w-[200px]">
-                        {(['ALL', 'BATTLE', 'SKILL', 'OTHER'] as FilterCategory[]).map(t => (
-                            <button 
-                                key={t}
-                                onClick={() => setFilterType(t)} 
-                                className={`touch-target flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterType === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
-                            >
-                                {t === 'ALL' ? '全部' : t === 'BATTLE' ? '戰鬥' : t === 'SKILL' ? '技能' : '其他'}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5 w-[140px]">
-                        {(['ALL', 'BLUE', 'RED'] as SourceCategory[]).map(s => (
-                            <button 
-                                key={s}
-                                onClick={() => setFilterSource(s)} 
-                                className={`touch-target flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterSource === s ? (s === 'BLUE' ? 'bg-blue-500/20 text-blue-400' : (s==='RED' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white')) : 'text-slate-500 hover:text-slate-300'}`}
-                            >
-                                {s === 'ALL' ? '全軍' : s === 'BLUE' ? '藍軍' : '紅軍'}
-                            </button>
-                        ))}
-                    </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Segmented
+                        ariaLabel="事件類別篩選"
+                        value={filterType}
+                        onValueChange={(v) => setFilterType(v as FilterCategory)}
+                        options={LOG_CATEGORY_OPTIONS}
+                    />
+                    <Segmented
+                        ariaLabel="軍隊陣營篩選"
+                        value={filterSource}
+                        onValueChange={(v) => setFilterSource(v as SourceCategory)}
+                        options={LOG_SOURCE_OPTIONS}
+                    />
                 </div>
             </div>
 
-            {/* Log Stream Area with Drag Scroll */}
-            <div 
+            <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-1 relative cursor-grab active:cursor-grabbing touch-none"
+                className="ui-scroll flex-1 overflow-y-auto px-4 py-4 space-y-2 relative select-text cursor-grab active:cursor-grabbing touch-none"
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerUp}
-                onWheel={() => stopMomentum()} // Stop momentum if user uses wheel
+                onWheel={() => stopMomentum()}
             >
                 {filteredLogs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-40 opacity-30 gap-4 mt-10 pointer-events-none">
-                        <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-600 animate-spin-slow"></div>
-                        <span className="text-xs font-mono tracking-widest text-slate-500">暫無戰鬥記錄 (NO RECORDS)</span>
-                    </div>
+                    <EmptyState
+                        icon={<Icons.Log className="h-8 w-8" />}
+                        title="暫無戰鬥記錄"
+                        description="等待戰鬥事件產生。"
+                    />
                 ) : (
-                    // Reverse map to show newest at bottom, but render order is preserved by array order
-                    // We render from 0 to N.
-                    filteredLogs.map(log => <LogItem key={log.id} log={log} />)
+                    filteredLogs.map((log) => <LogItem key={log.id} log={log} />)
                 )}
             </div>
         </div>

@@ -1,5 +1,4 @@
 import React from 'react';
-import type { GameEngine } from '../../../engine/game';
 import { WindowDef, WindowId } from '../../../types';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { LogTab } from '../../inspector/tabs/LogTab';
@@ -10,21 +9,19 @@ import { DirectorSettingsWindow, GameplaySettingsWindow } from '../settings/Sett
 import { ShowcaseSettings } from '../showcase/ShowcaseSettings';
 import { AudioSettingsWindow } from '../settings/AudioSettingsWindow';
 import { UnitInspectorBody } from '../inspector/UnitInspectorBody';
+import { BehaviorTreeWindow } from '../behaviorTree/BehaviorTreeWindow';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
+import { windowStore } from './windowStore';
 
-/** Everything a window body may need from the host app. */
-export interface WindowRenderContext {
-    engine: GameEngine;
-    selectedAgentId?: string | null;
-    onCloseInspector?: () => void;
-}
+// 視窗定義是純資料，由這裡（UI 組裝層）登錄進 store，data/ui 不反向依賴 components
+windowStore.registerDefs(WINDOW_DEFINITIONS);
 
 interface WindowRegistration {
     icon: React.ReactNode;
     /** Body is edge-to-edge (the tab manages its own padding/scrolling). */
     flush?: boolean;
-    render: (ctx: WindowRenderContext) => React.ReactNode;
+    render: () => React.ReactNode;
 }
 
 /**
@@ -35,12 +32,12 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     logs: {
         icon: <Icons.Log className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <LogTab engine={engine} />,
+        render: () => <LogTab />,
     },
     db: {
         icon: <Icons.Database className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <SkillDbTab engine={engine} />,
+        render: () => <SkillDbTab />,
     },
     vfxmap: {
         icon: <Icons.VFX className="w-4 h-4" />,
@@ -50,34 +47,39 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     inspector: {
         icon: <Icons.Select className="w-4 h-4" />,
         flush: true,
-        render: ({ engine, selectedAgentId }) => (
-            <UnitInspectorBody engine={engine} agentId={selectedAgentId} />
+        render: () => (
+            <UnitInspectorBody />
         ),
+    },
+    behaviorTree: {
+        icon: <Icons.Tree className="w-4 h-4" />,
+        flush: true,
+        render: () => <BehaviorTreeWindow />,
     },
     monitor: {
         icon: <Icons.TV className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <DirectorMonitorHUD engine={engine} />,
+        render: () => <DirectorMonitorHUD />,
     },
     directorSettings: {
         icon: <Icons.TV className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <DirectorSettingsWindow engine={engine} />,
+        render: () => <DirectorSettingsWindow />,
     },
     zoneSettings: {
-        icon: <span className="text-sm">🗺️</span>,
+        icon: <Icons.Map className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <GameplaySettingsWindow engine={engine} />,
+        render: () => <GameplaySettingsWindow />,
     },
     showcaseSettings: {
         icon: <Icons.Settings className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <ShowcaseSettings engine={engine} />,
+        render: () => <ShowcaseSettings />,
     },
     audioSettings: {
-        icon: <span className="text-sm">🔊</span>,
+        icon: <Icons.Volume className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <AudioSettingsWindow engine={engine} />,
+        render: () => <AudioSettingsWindow />,
     },
 };
 
@@ -95,11 +97,7 @@ export function filterWindowDefsByMode(
 }
 
 /** Renders every registered window; closed windows render nothing (their body is unmounted). */
-export const RegisteredWindows: React.FC<
-    WindowRenderContext & { showcaseMode?: boolean; isGameOver?: boolean }
-> = ({
-    engine,
-    selectedAgentId,
+export const RegisteredWindows: React.FC<{ onCloseInspector?: () => void; showcaseMode?: boolean; isGameOver?: boolean }> = ({
     onCloseInspector,
     showcaseMode = false,
     isGameOver = false,
@@ -121,7 +119,7 @@ export const RegisteredWindows: React.FC<
                         contentClassName={reg.flush ? 'p-0' : 'p-3'}
                         onClose={def.id === 'inspector' ? onCloseInspector : undefined}
                     >
-                        {reg.render({ engine, selectedAgentId, onCloseInspector })}
+                        {reg.render()}
                     </ToolWindow>
                 );
             })}

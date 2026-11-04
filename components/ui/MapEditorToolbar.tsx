@@ -1,19 +1,24 @@
-
 import React, { useRef } from 'react';
 import { ToolType, Role, HexLayout, BodyTypeId } from '../../types';
-import { SCENE_DB } from '../../data/scenes';
-import { OBSTACLE_DB } from '../../data/obstacles';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
 import { Icons } from './icons';
-import { ROLE_MAP } from '../inspector/InspectorConstants';
 import { UI_Z, UI_PIN } from '../../constants';
-import { BODY_TYPE_PROFILE } from '../../data/units/appearance/bodyTypes';
+import { IconButton, NumberInput, Segmented, Select } from './primitives';
+import { cn } from './primitives/cn';
+import {
+    ROLE_OPTIONS,
+    SPAWN_MODE_OPTIONS,
+    BODY_TYPE_OPTIONS,
+    LAYOUT_OPTIONS,
+    OBSTACLE_OPTIONS,
+    SCENE_OPTIONS,
+} from '../../data/ui/labels/l1';
 
 interface MapEditorToolbarProps {
     tool: ToolType;
     setTool: (t: ToolType) => void;
-    
+
     // Configs
     mapW: number;
     setMapW: (v: number) => void;
@@ -21,7 +26,7 @@ interface MapEditorToolbarProps {
     setMapH: (v: number) => void;
     currentSceneId: string;
     onSetScene: (id: string) => void;
-    
+
     // Spawn Settings
     spawnMode: 'RANDOM' | 'DRAFT';
     setSpawnMode: (m: 'RANDOM' | 'DRAFT') => void;
@@ -31,7 +36,7 @@ interface MapEditorToolbarProps {
     setDraftBodyType: (b?: BodyTypeId) => void;
     hpInput: number;
     setHpInput: (v: number) => void;
-    
+
     // Obstacle Settings
     selectedObstacle: string;
     setSelectedObstacle: (v: string) => void;
@@ -42,21 +47,30 @@ interface MapEditorToolbarProps {
 }
 
 export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
-    const { 
-        tool, setTool, 
-        currentSceneId, onSetScene,
-        spawnMode, setSpawnMode, draftRole, setDraftRole, draftBodyType, setDraftBodyType, hpInput, setHpInput,
-        selectedObstacle, setSelectedObstacle,
-        hexLayout, onSetLayout
+    const {
+        tool,
+        setTool,
+        currentSceneId,
+        onSetScene,
+        spawnMode,
+        setSpawnMode,
+        draftRole,
+        setDraftRole,
+        draftBodyType,
+        setDraftBodyType,
+        hpInput,
+        setHpInput,
+        selectedObstacle,
+        setSelectedObstacle,
+        hexLayout,
+        onSetLayout,
     } = props;
 
     const isCompact = useCompactViewport();
 
-    // Draggable Hook
     const ref = useRef<HTMLDivElement>(null);
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'top-center',
-        // 手機直向：工具列放在右上角系統選單鈕下方，否則兩者重疊（mobile-audit overlap）
         margin: isCompact ? UI_PIN.TOOLBAR_MARGIN_COMPACT : UI_PIN.TOOLBAR_MARGIN,
         storageKey: UI_PIN.STORAGE_KEYS.mapEditor,
     });
@@ -65,166 +79,176 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
     const isObstacleTool = tool === ToolType.OBSTACLE;
 
     return (
-        <div 
+        <div
             ref={ref}
             className="flex flex-col items-center gap-2"
-            style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
+            style={{ ...style, zIndex: UI_Z.HUD }}
             {...dragHandlers}
         >
             {/* MAIN TOOLBAR */}
-            <div className={`liquid-card !bg-slate-900/90 !backdrop-blur-3xl !rounded-full p-2 flex items-center ${isCompact ? 'gap-1' : 'gap-2'} shadow-[0_10px_40px_rgba(0,0,0,0.5)] cursor-grab ${isDragging ? 'cursor-grabbing ring-2 ring-cyan-500/30' : ''}`}>
-                
+            <div
+                className={`shell shell-hud mat-blur rounded-ui-pill p-2 flex items-center select-none cursor-grab active:cursor-grabbing ${
+                    isCompact ? 'gap-1' : 'gap-1.5'
+                } ${isDragging ? 'cursor-grabbing scale-105' : ''}`}
+            >
                 {/* Drag Handle */}
-                <div className={`w-6 ${isCompact ? 'hidden' : 'flex'} flex-col gap-1 items-center justify-center opacity-30 hover:opacity-100 transition-opacity px-2 border-r border-white/10`} onPointerDown={dragHandlers.onPointerDown}>
-                    <div className="w-1 h-1 bg-white rounded-full"></div>
-                    <div className="w-1 h-1 bg-white rounded-full"></div>
-                    <div className="w-1 h-1 bg-white rounded-full"></div>
+                <div
+                    className={`w-5 ${isCompact ? 'hidden' : 'flex'} items-center justify-center opacity-40 hover:opacity-80 transition-opacity pr-1 text-fg-muted border-r border-line-subtle/20`}
+                    onPointerDown={dragHandlers.onPointerDown}
+                >
+                    <Icons.Menu className="h-4 w-4" />
                 </div>
 
                 {/* 1. SELECT */}
-                <button 
-                    onClick={() => setTool(ToolType.SELECT)} 
+                <IconButton
+                    label="選取 / 移動"
+                    variant={tool === ToolType.SELECT ? 'primary' : 'ghost'}
+                    size="sm"
+                    className="rounded-ui-pill"
+                    onClick={() => setTool(ToolType.SELECT)}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className={`liquid-icon-btn ${tool === ToolType.SELECT ? 'bg-white/20 text-white border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-slate-400 border-transparent bg-transparent hover:bg-white/10'}`}
-                    title="選取 / 移動"
                 >
-                    <Icons.Select className="w-5 h-5" />
-                </button>
-                
-                <div className={`w-px h-6 bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>
-                
+                    <Icons.Select className="h-4 w-4" />
+                </IconButton>
+
+                <div className={`w-px h-5 bg-line-subtle/20 ${isCompact ? '' : 'mx-1'}`} />
+
                 {/* 2. BLUE TEAM */}
-                <button 
-                    onClick={() => setTool(ToolType.ADD_BLUE)} 
+                <IconButton
+                    label="部署藍軍 (帝國)"
+                    variant={tool === ToolType.ADD_BLUE ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className={cn(
+                        'rounded-ui-pill text-team-blue-primary',
+                        tool === ToolType.ADD_BLUE && 'border-team-blue-primary/60 bg-team-blue-primary/25',
+                    )}
+                    onClick={() => setTool(ToolType.ADD_BLUE)}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className={`liquid-icon-btn ${tool === ToolType.ADD_BLUE ? 'bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'text-slate-500 border-transparent bg-transparent hover:text-blue-400 hover:bg-blue-500/10'}`}
-                    title="部署藍軍 (帝國)"
                 >
-                    <Icons.Deploy className="w-5 h-5" />
-                </button>
+                    <Icons.Deploy className="h-4 w-4" />
+                </IconButton>
 
                 {/* 3. RED TEAM */}
-                <button 
-                    onClick={() => setTool(ToolType.ADD_RED)} 
+                <IconButton
+                    label="部署紅軍 (誓約)"
+                    variant={tool === ToolType.ADD_RED ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className={cn(
+                        'rounded-ui-pill text-team-red-primary',
+                        tool === ToolType.ADD_RED && 'border-team-red-primary/60 bg-team-red-primary/25',
+                    )}
+                    onClick={() => setTool(ToolType.ADD_RED)}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className={`liquid-icon-btn ${tool === ToolType.ADD_RED ? 'bg-red-500/20 text-red-400 border-red-400/50 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'text-slate-500 border-transparent bg-transparent hover:text-red-400 hover:bg-red-500/10'}`}
-                    title="部署紅軍 (誓約)"
                 >
-                    <Icons.Deploy className="w-5 h-5" />
-                </button>
-                
-                <div className={`w-px h-6 bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>
+                    <Icons.Deploy className="h-4 w-4" />
+                </IconButton>
+
+                <div className={`w-px h-5 bg-line-subtle/20 ${isCompact ? '' : 'mx-1'}`} />
 
                 {/* 4. OBSTACLE */}
-                <button 
-                    onClick={() => setTool(ToolType.OBSTACLE)} 
+                <IconButton
+                    label="地形編輯"
+                    variant={tool === ToolType.OBSTACLE ? 'primary' : 'ghost'}
+                    size="sm"
+                    className="rounded-ui-pill"
+                    onClick={() => setTool(ToolType.OBSTACLE)}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className={`liquid-icon-btn ${tool === ToolType.OBSTACLE ? 'bg-amber-500/20 text-amber-400 border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'text-slate-500 border-transparent bg-transparent hover:text-amber-400 hover:bg-amber-500/10'}`}
-                    title="地形編輯"
                 >
-                    <Icons.Obstacle className="w-5 h-5" />
-                </button>
+                    <Icons.Obstacle className="h-4 w-4" />
+                </IconButton>
 
                 {/* 5. DELETE */}
-                <button 
-                    onClick={() => setTool(ToolType.DELETE)} 
+                <IconButton
+                    label="移除單位或障礙"
+                    variant={tool === ToolType.DELETE ? 'danger' : 'ghost'}
+                    size="sm"
+                    className="rounded-ui-pill"
+                    onClick={() => setTool(ToolType.DELETE)}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className={`liquid-icon-btn ${tool === ToolType.DELETE ? 'bg-red-900/50 text-red-500 border-red-800 shadow-inner' : 'text-slate-500 border-transparent bg-transparent hover:text-red-500 hover:bg-red-900/20'}`}
-                    title="移除單位或障礙"
                 >
-                    <Icons.Delete className="w-5 h-5" />
-                </button>
+                    <Icons.Delete className="h-4 w-4" />
+                </IconButton>
             </div>
 
             {/* SUB MENU: UNIT SETTINGS */}
             {isUnitTool && (
-                <div className="liquid-card !rounded-2xl p-2 flex flex-wrap justify-center items-center gap-3 max-w-[calc(100vw-1.5rem)] animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
-                    <div className="flex items-center gap-1 bg-black/40 rounded-lg px-2 py-1 border border-white/5" title="初始生命值">
-                        <span className="text-[11px] font-bold text-green-500">HP</span>
-                        <input 
-                            type="number" 
-                            value={hpInput} 
-                            onChange={(e) => setHpInput(Math.max(1, parseInt(e.target.value)))} 
-                            className="touch-target w-12 bg-transparent text-white text-xs font-mono text-center outline-none"
+                <div
+                    className="shell shell-hud mat-blur rounded-ui-card p-2 flex flex-wrap justify-center items-center gap-3 animate-slide-left origin-top"
+                    style={{ maxWidth: 'calc(100vw - 1.5rem)' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <div className="flex items-center gap-1.5 px-2 py-1" title="初始生命值">
+                        <span className="text-ui-num font-bold text-fg-muted">HP</span>
+                        <NumberInput
+                            ariaLabel="初始生命值"
+                            value={hpInput}
+                            onCommit={(v) => setHpInput(Math.max(1, v))}
+                            min={1}
+                            className="w-16"
                         />
                     </div>
-                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
-                        <button onClick={() => setSpawnMode('RANDOM')} title="隨機職業配置" className={`touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'RANDOM' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'}`}>隨機</button>
-                        <button onClick={() => setSpawnMode('DRAFT')} title="指定固定職業" className={`touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'DRAFT' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-500 hover:text-slate-300'}`}>指定</button>
-                    </div>
+
+                    <Segmented
+                        ariaLabel="職業配置模式"
+                        value={spawnMode}
+                        onValueChange={(val) => setSpawnMode(val as 'RANDOM' | 'DRAFT')}
+                        options={SPAWN_MODE_OPTIONS}
+                    />
+
                     {spawnMode === 'DRAFT' && (
-                        <select 
-                            value={draftRole} 
-                            onChange={(e) => setDraftRole(e.target.value as Role)} 
-                            className="touch-target bg-black/40 text-xs text-white rounded-lg px-2 py-1 border border-white/5 outline-none cursor-pointer hover:border-cyan-500/30"
-                        >
-                            {Object.values(Role).map(r => (
-                                <option key={r} value={r}>
-                                    {ROLE_MAP[r]?.label || r}
-                                </option>
-                            ))}
-                        </select>
+                        <Select
+                            ariaLabel="固定職業"
+                            data-testid="toolbar-draft-role"
+                            value={draftRole}
+                            onValueChange={(r) => setDraftRole(r as Role)}
+                            options={ROLE_OPTIONS}
+                            size="sm"
+                            className="w-36"
+                        />
                     )}
-                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5" title="單位體型">
-                        <button 
-                            onClick={() => setDraftBodyType(undefined)} 
-                            title="隨機體型" 
-                            className="touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all"
-                            style={draftBodyType === undefined ? { backgroundColor: 'var(--token-literal-cyan-tint20)', color: 'var(--token-literal-cyan300)' } : { color: 'var(--token-literal-slate500)' }}
-                        >
-                            隨機
-                        </button>
-                        {(Object.entries(BODY_TYPE_PROFILE) as [BodyTypeId, typeof BODY_TYPE_PROFILE[BodyTypeId]][])
-                            .filter(([_, profile]) => profile.enabled)
-                            .map(([typeKey, profile]) => (
-                                <button 
-                                    key={typeKey}
-                                    onClick={() => setDraftBodyType(typeKey)} 
-                                    title={`指定${profile.label}體型`} 
-                                    className="touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all"
-                                    style={draftBodyType === typeKey ? { backgroundColor: 'var(--token-literal-amber-tint20)', color: 'var(--token-literal-amber300)' } : { color: 'var(--token-literal-slate500)' }}
-                                >
-                                    {profile.label}
-                                </button>
-                            ))}
-                    </div>
+
+                    <Segmented
+                        ariaLabel="單位體型"
+                        value={draftBodyType ?? 'RANDOM'}
+                        onValueChange={(val) => setDraftBodyType(val === 'RANDOM' ? undefined : (val as BodyTypeId))}
+                        options={BODY_TYPE_OPTIONS}
+                    />
                 </div>
             )}
 
             {/* SUB MENU: OBSTACLE & LAYOUT SETTINGS */}
             {isObstacleTool && (
-                <div className="liquid-card !rounded-2xl p-2 flex flex-wrap justify-center items-center gap-3 max-w-[calc(100vw-1.5rem)] animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
-                    {/* Layout Toggle */}
-                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 shadow-inner">
-                        <button 
-                            onClick={() => onSetLayout('FLAT')} 
-                            className={`touch-target-icon px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'FLAT' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
-                            title="平頂六邊形佈局 (Flat Top)"
-                        >
-                            平頂
-                        </button>
-                        <button 
-                            onClick={() => onSetLayout('POINTY')} 
-                            className={`touch-target-icon px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'POINTY' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
-                            title="尖頂六邊形佈局 (Pointy Top)"
-                        >
-                            尖頂
-                        </button>
-                    </div>
+                <div
+                    className="shell shell-hud mat-blur rounded-ui-card p-2 flex flex-wrap justify-center items-center gap-3 animate-slide-left origin-top"
+                    style={{ maxWidth: 'calc(100vw - 1.5rem)' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <Segmented
+                        ariaLabel="六邊形佈局"
+                        value={hexLayout}
+                        onValueChange={(val) => onSetLayout(val as HexLayout)}
+                        options={LAYOUT_OPTIONS}
+                    />
 
-                    <div className="h-6 w-px bg-white/10"></div>
+                    <div className="h-5 w-px bg-line-subtle/20" />
 
-                    <select 
-                        value={selectedObstacle} 
-                        onChange={(e) => setSelectedObstacle(e.target.value)} 
-                        className="touch-target bg-black/40 text-xs text-white rounded-lg px-3 py-1.5 border border-white/5 outline-none cursor-pointer hover:border-amber-500/30 w-32"
-                    >
-                        {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                    </select>
-                    
-                    <select value={currentSceneId} onChange={(e) => onSetScene(e.target.value)} className="touch-target bg-black/40 text-xs text-slate-400 rounded-lg px-2 py-1.5 border border-white/5 outline-none cursor-pointer hover:text-white w-24">
-                        {SCENE_DB.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+                    <Select
+                        ariaLabel="障礙物種類"
+                        value={selectedObstacle}
+                        onValueChange={setSelectedObstacle}
+                        options={OBSTACLE_OPTIONS}
+                        size="sm"
+                        className="w-32"
+                    />
+
+                    <Select
+                        ariaLabel="戰場場景"
+                        value={currentSceneId}
+                        onValueChange={onSetScene}
+                        options={SCENE_OPTIONS}
+                        size="sm"
+                        className="w-28"
+                    />
                 </div>
             )}
         </div>

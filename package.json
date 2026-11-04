@@ -10,6 +10,8 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "e2e:ui": "node tools/ui-e2e/windows.e2e.mjs",
+    "e2e:gallery": "node tools/ui-e2e/ui-gallery.e2e.mjs",
+    "audit:ui": "node tools/ui-e2e/ui-audit-static.mjs",
     "perf:profile": "node tools/ui-e2e/perf-profile.mjs",
     "perf:ab": "node tools/ui-e2e/perf-ab.mjs",
     "perf:fidelity": "node tools/ui-e2e/render-fidelity.mjs",
@@ -28,10 +30,16 @@
     "balance:fingerprint": "node tools/balance/sim-fingerprint.mjs"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "@tanstack/react-virtual": "3.14.21",
+    "class-variance-authority": "0.7.1",
+    "lucide-react": "1.61.0",
+    "radix-ui": "1.8.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.6.1",

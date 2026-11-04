@@ -5,14 +5,13 @@ import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
 import { VisualMath } from '../engine/math/VisualMath';
 import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup } from '../types';
-import { getFactionSkin } from '../data/units/factionSkin';
+import { VictoryOverlay } from './ui/VictoryOverlay';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
 import { useCameraControl } from '../hooks/useCameraControl';
 import { useCompactViewport } from '../hooks/useCompactViewport';
-import { Icons } from './ui/icons';
-import { UI_Z, GAME_CANVAS_PARAM } from '../constants';
+import { GAME_CANVAS_PARAM } from '../constants';
 import { getRenderDpr } from '../engine/renderers/RenderQuality';
 import { PedestalGhostPainter } from '../engine/renderers/units/painters/PedestalGhostPainter';
 import { HexUtils } from '../engine/utils';
@@ -134,7 +133,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.translate(-x, -y); 
             const sprite = SpriteManager.getObstacleSprite(type ?? "WALL", engine.mapConfig.layout, draggedObstacle.originQ, draggedObstacle.originR);
             const liftOffset = GAME_CANVAS_PARAM.DRAG_LIFT_PX; 
-            ctx.shadowColor = 'var(--token-literal-black-tint50)';
             ctx.shadowBlur = GAME_CANVAS_PARAM.DRAG_SHADOW_BLUR;
             ctx.shadowOffsetY = GAME_CANVAS_PARAM.DRAG_SHADOW_OFFSET_Y;
             ctx.globalAlpha = GAME_CANVAS_PARAM.DRAG_ALPHA;
@@ -179,7 +177,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     }, [engine.mapConfig.w, engine.mapConfig.h, isShowcaseMode, transitionPhase, centerCamera]);
 
     return (
-        <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-slate-950">
+        <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-surface-base">
             <canvas 
                 ref={canvasRef} 
                 className="block w-full h-full"
@@ -190,47 +188,16 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 onContextMenu={(e) => e.preventDefault()}
             />
             {winner !== null && !isShowcaseMode && (
-                <div className="absolute inset-0 flex overflow-y-auto bg-black/60 backdrop-blur-sm pointer-events-auto" style={{ zIndex: UI_Z.OVERLAY }}>
-                    <div className={`text-center ${isCompact ? 'p-5' : 'p-10'} liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full m-auto border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]`}>
-                        <div className={isCompact ? 'mb-3' : 'mb-6'}>
-                            <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">戰鬥模擬演算結束</span>
-                            <h2 className={`${isCompact ? 'text-3xl' : 'text-5xl md:text-6xl'} font-black tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]'}`}>
-                                {!battleSetup || battleSetup.factions === 2
-                                    ? getFactionSkin(winner).name
-                                    : battleSetup.unitsPerFaction === 1
-                                        ? (winnerId ? `最後倖存者 (${winnerId})` : '最後倖存者')
-                                        : `第 ${(winnerSide ?? 0) + 1} 陣營`}
-                            </h2>
-                            <h2 className={`${isCompact ? 'text-2xl' : 'text-4xl md:text-5xl'} font-black text-white tracking-widest mt-1 opacity-90`}>
-                                獲得勝利 (VICTORY)
-                            </h2>
-                        </div>
-                        <div className={`h-px w-24 mx-auto bg-white/20 rounded-full ${isCompact ? 'mb-4' : 'mb-8'}`}></div>
-                        <div className="flex flex-col gap-3">
-                            <button 
-                                onClick={nextLevel} 
-                                className={`liquid-btn-primary px-8 ${isCompact ? 'py-3' : 'py-4'} rounded-xl text-lg font-bold shadow-lg w-full flex items-center justify-center gap-3 group`}
-                            >
-                                <Icons.Dice className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                <span>前進下一關 (Next Level)</span>
-                            </button>
-                            <button 
-                                onClick={onOpenLogs} 
-                                className="liquid-btn px-8 py-3 rounded-xl text-sm font-bold bg-slate-800/50 hover:bg-slate-700/50 border-white/10 text-cyan-400 shadow-md w-full flex items-center justify-center gap-2 group"
-                            >
-                                <Icons.Log className="w-4 h-4 opacity-80 group-hover:scale-110 transition-transform" />
-                                <span>戰鬥記錄 (Battle Logs)</span>
-                            </button>
-                            <button 
-                                onClick={rematch} 
-                                className="liquid-btn px-8 py-3 rounded-xl text-sm font-bold bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 shadow-lg w-full flex items-center justify-center gap-2 group"
-                            >
-                                <Icons.Restart className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:-rotate-90 transition-all" />
-                                <span>再戰一局 (Rematch)</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <VictoryOverlay
+                    winner={winner}
+                    winnerId={winnerId}
+                    winnerSide={winnerSide}
+                    battleSetup={battleSetup}
+                    isCompact={isCompact}
+                    nextLevel={nextLevel}
+                    onOpenLogs={onOpenLogs}
+                    rematch={rematch}
+                />
             )}
         </div>
     );

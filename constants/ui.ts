@@ -32,17 +32,29 @@ export const UI_WINDOW = {
     FALLBACK_VIEWPORT: { width: 1200, height: 800 },
 } as const;
 
+/**
+ * 畫面層級（由低到高）：展示背景 < HUD < 一般視窗 < 選單 < 最大化視窗 < 全域提示 < 彈出層。
+ * 這些元素都排在同一個 stacking context：WindowLayer 不得再建立 stacking context，否則視窗的層級出不去。
+ */
 export const UI_Z = {
-    INSPECTOR: 30,
     /** 展示模式標題卡與背景：在視窗層之下，展示模式開的設定／音訊等視窗才不會被標題卡蓋住 */
-    SHOWCASE: 35,
+    SHOWCASE: 20,
+    /** 展示主卡：在展示背景之上、HUD 之下 */
+    SHOWCASE_CARD: 21,
+    /** 工具列、播放 HUD：一般視窗會蓋過它們 */
+    HUD: 30,
+    /** 一般視窗的層級範圍；超過 WINDOW_MAX 時 windowStore 會重新編號 */
     WINDOW_BASE: 40,
-    OVERLAY: 50,
-    MENU_BACKDROP: 55,
-    MENU: 60,
-    OVERLAY_CONTROLS: 60,
-    WINDOW_MAX: 80,
-    TOP_OVERLAY: 90,
+    WINDOW_MAX: 89,
+    MENU_BACKDROP: 90,
+    /** 系統選單永遠蓋過一般視窗，只有最大化視窗例外 */
+    MENU: 91,
+    /** 最大化視窗：蓋過選單鈕。內部相對順序沿用視窗原本的層級 */
+    WINDOW_MAXIMIZED: 100,
+    /** 全域提示（部署錯誤等）：最大化時也要看得到 */
+    OVERLAY: 200,
+    /** 下拉面板、提示框等 portal 到 body 的彈出層 */
+    POPOVER: 210,
 } as const;
 
 /**
@@ -158,32 +170,12 @@ export const MATRIX_RAIN_PARAM = {
 export const BT_VIEW_PARAM = {
     /** 檢視器顯示最近幾筆模式轉換。 */
     MODE_TRACE_SHOWN: 5,
-    /** 行為樹初始縮放（倍） */
-    DEFAULT_SCALE: 0.9,
-    /** 自動縮放可用寬度（比例） */
-    FIT_WIDTH: 0.92,
-    /** 自動縮放可用高度（比例） */
-    FIT_HEIGHT: 0.88,
-    /** 自動縮放上限（倍） */
-    FIT_MAX_SCALE: 1.2,
-    /** 每次滾輪縮放步幅（倍） */
-    WHEEL_STEP: 0.05,
-    /** 手動縮放下限（倍） */
-    MIN_SCALE: 0.2,
-    /** 手動縮放上限（倍） */
-    MAX_SCALE: 2,
-    /** 彈出視窗寬度（px） */
-    POPUP_W: 680,
-    /** 彈出視窗高度（px） */
-    POPUP_H: 520,
-    /** 中期淡出時間（毫秒） */
+    /** 節點結果在檢視器留多久才消失（毫秒） */
+    FADE_OUT_MS: 1000,
+    /** 結果開始變淡的時間（毫秒） */
     FADE_MID_MS: 200,
-    /** 中期淡出不透明度（比例） */
-    FADE_MID_OPACITY: 0.7,
-    /** 後期淡出時間（毫秒） */
+    /** 結果轉成弱化色的時間（毫秒） */
     FADE_OLD_MS: 500,
-    /** 後期淡出不透明度（比例） */
-    FADE_OLD_OPACITY: 0.4,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

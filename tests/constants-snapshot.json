@@ -134,20 +134,10 @@
     "BAR_DELAY_S": 0.1
   },
   "BT_VIEW_PARAM": {
-    "DEFAULT_SCALE": 0.9,
-    "FIT_WIDTH": 0.92,
-    "FIT_HEIGHT": 0.88,
-    "FIT_MAX_SCALE": 1.2,
-    "WHEEL_STEP": 0.05,
-    "MIN_SCALE": 0.2,
-    "MAX_SCALE": 2,
-    "POPUP_W": 680,
-    "POPUP_H": 520,
+    "MODE_TRACE_SHOWN": 5,
+    "FADE_OUT_MS": 1000,
     "FADE_MID_MS": 200,
-    "FADE_MID_OPACITY": 0.7,
-    "FADE_OLD_MS": 500,
-    "FADE_OLD_OPACITY": 0.4,
-    "MODE_TRACE_SHOWN": 5
+    "FADE_OLD_MS": 500
   },
   "AUDIO_EVENT_PARAM": {
     "RESULT_FADE_S": 0.2,
@@ -1450,7 +1440,7 @@
       "secondary": "#fde047",
       "glow": "rgba(59, 130, 246, 0.6)",
       "armorLight": "#f1f5f9",
-      "uiAccent": "#60a5fa",
+      "uiAccent": "#8ab8ff",
       "uiBorder": "rgba(59, 130, 246, 0.3)",
       "borderRadius": "1rem"
     },
@@ -1459,7 +1449,7 @@
       "secondary": "#fb923c",
       "glow": "rgba(239, 68, 68, 0.6)",
       "armorLight": "#fca5a5",
-      "uiAccent": "#f87171",
+      "uiAccent": "#ff9ca8",
       "uiBorder": "rgba(239, 68, 68, 0.3)",
       "borderRadius": "0.25rem"
     }
@@ -1825,15 +1815,16 @@
     }
   },
   "UI_Z": {
-    "INSPECTOR": 30,
-    "SHOWCASE": 35,
+    "SHOWCASE": 20,
+    "SHOWCASE_CARD": 21,
+    "HUD": 30,
     "WINDOW_BASE": 40,
-    "OVERLAY": 50,
-    "MENU_BACKDROP": 55,
-    "MENU": 60,
-    "OVERLAY_CONTROLS": 60,
-    "WINDOW_MAX": 80,
-    "TOP_OVERLAY": 90
+    "WINDOW_MAX": 89,
+    "MENU_BACKDROP": 90,
+    "MENU": 91,
+    "WINDOW_MAXIMIZED": 100,
+    "OVERLAY": 200,
+    "POPOVER": 210
   },
   "ULT_FEEL": {
     "IMPACT_BURST_RADIUS_HEX": 2.4,

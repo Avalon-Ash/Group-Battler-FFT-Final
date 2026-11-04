@@ -40,7 +40,7 @@ interface ActionSettingField extends BaseSettingField {
 export type SettingField = HeadingSettingField | ToggleSettingField | SliderSettingField | ActionSettingField;
 
 export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
-    { id: 'headingDirector', label: '自動運鏡', kind: 'heading' },
+    { id: 'headingDirector', label: 'DIRECTOR', kind: 'heading' },
     {
         id: 'directorEnabled',
         label: '自動運鏡狀態',
@@ -52,7 +52,7 @@ export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
     },
     {
         id: 'followStiffness',
-        label: '追蹤力度 (Damping)',
+        label: '追蹤力度',
         kind: 'slider',
         min: UI_SETTINGS.CAMERA_STIFFNESS.min,
         max: UI_SETTINGS.CAMERA_STIFFNESS.sliderMax,
@@ -65,7 +65,7 @@ export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
     },
     {
         id: 'zoomStiffness',
-        label: '縮放阻尼 (Zoom)',
+        label: '縮放阻尼',
         kind: 'slider',
         min: UI_SETTINGS.CAMERA_STIFFNESS.min,
         max: UI_SETTINGS.CAMERA_STIFFNESS.sliderMax,
@@ -76,7 +76,7 @@ export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
             zoomStiffness,
         }),
     },
-    { id: 'headingShake', label: '鏡頭震動', kind: 'heading' },
+    { id: 'headingShake', label: 'CAMERA SHAKE', kind: 'heading' },
     {
         id: 'shakeStrength',
         label: '鏡頭震動強度（0＝關）',
@@ -143,12 +143,12 @@ export const ZONE_SETTINGS_SCHEMA: SettingField[] = [
     },
     {
         id: 'shrinkInterval',
-        label: '縮圈間隔 (秒)',
+        label: '縮圈間隔',
         kind: 'slider',
         min: UI_SETTINGS.ZONE_SHRINK_INTERVAL.min,
         max: UI_SETTINGS.ZONE_SHRINK_INTERVAL.max,
         step: UI_SETTINGS.ZONE_SHRINK_INTERVAL.step,
-        format: (val: number) => String(Math.round(val)),
+        format: (val: number) => `${Math.round(val)} 秒`,
         createCommand: (shrinkInterval: number): UICommand => ({
             type: 'SET_ZONE_CONFIG',
             config: { shrinkInterval },
@@ -171,7 +171,7 @@ export const ZONE_SETTINGS_SCHEMA: SettingField[] = [
 
 /** 遊戲玩法面板：開局陣營（下一局生效，按鈕立即重開）＋縮圈 */
 export const GAMEPLAY_SETTINGS_SCHEMA: SettingField[] = [
-    { id: 'headingFactions', label: '陣營', kind: 'heading' },
+    { id: 'headingFactions', label: 'FACTIONS', kind: 'heading' },
     {
         id: 'battleFactions',
         label: '陣營數量',
@@ -207,6 +207,6 @@ export const GAMEPLAY_SETTINGS_SCHEMA: SettingField[] = [
         kind: 'action',
         createCommand: (): UICommand => ({ type: 'APPLY_BATTLE_SETUP' }),
     },
-    { id: 'headingZone', label: '縮圈', kind: 'heading' },
+    { id: 'headingZone', label: 'ZONE', kind: 'heading' },
     ...ZONE_SETTINGS_SCHEMA,
 ];

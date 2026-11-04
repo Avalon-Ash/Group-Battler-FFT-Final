@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MatrixConfig, LayoutPreset, StreamDirection } from './types';
-import { GameEngine } from '../../../engine/game';
+import type { MatrixConfig, LayoutPreset, StreamDirection } from './types';
 import { SchemaForm } from '../settings/SchemaForm';
 import {
     DIRECTOR_SETTINGS_SCHEMA,
@@ -10,55 +9,121 @@ import {
     useDirectorSettingsValues,
     useGameplaySettingsValues,
 } from '../settings/SettingsWindows';
-import { useEngineView } from '../../../hooks/useEngineView';
-import { useEngineCommands } from '../../../hooks/useEngineCommands';
-import {
-    selectGamePlaybackView,
-} from '../../../engine/systems/ui/selectors';
+import { useCommands, useView } from '../../../hooks/useEnginePort';
+import { selectGamePlaybackView } from '../../../engine/systems/ui/selectors';
 import { UI_SETTINGS } from '../../../constants';
 import {
     showcaseConfigStore,
     useShowcaseConfig,
     useShowcaseLayout,
 } from './showcaseConfigStore';
+import { Icons } from '../icons';
+import {
+    Button,
+    Card,
+    SectionHeading,
+    Segmented,
+    type SegmentedOption,
+    SettingRow,
+    Slider,
+    Switch,
+    Tabs,
+    TabsContent,
+    type TabItem,
+    Textarea,
+} from '../primitives';
 
+// 分頁宣告在外部避免重繪反覆卸載重建（tools/ui-e2e/ui-remount-audit.mjs 量測結果）
 export interface ShowcaseSettingsProps {
-    engine?: GameEngine;
+    engine?: unknown;
 }
 
-type TabKey = 'SYSTEM' | 'CAMERA' | 'MATRIX' | 'GAMEPLAY';
+const SHOWCASE_TABS: TabItem[] = [
+    {
+        value: 'SYSTEM',
+        label: <span data-testid="showcase-tab-system">SYSTEM</span>,
+        title: 'SYSTEM',
+    },
+    {
+        value: 'CAMERA',
+        label: <span data-testid="showcase-tab-camera">CAMERA</span>,
+        title: 'CAMERA',
+    },
+    {
+        value: 'VISUAL',
+        label: (
+            <span data-testid="showcase-tab-visual">
+                <span data-testid="showcase-tab-matrix">VISUAL</span>
+            </span>
+        ),
+        title: 'VISUAL',
+    },
+    {
+        value: 'GAMEPLAY',
+        label: <span data-testid="showcase-tab-gameplay">GAMEPLAY</span>,
+        title: 'GAMEPLAY',
+    },
+];
 
-/**
- * 分頁按鈕。必須宣告在 ShowcaseSettings 外面：宣告在 render 裡每次重繪都是新的元件型別，
- * 設定面板跟著引擎播放狀態每秒重繪多次，按鈕被反覆卸載重建 → 文字閃爍、點擊落不到同一個節點而按不到
- * （tools/ui-e2e/ui-remount-audit.mjs 量到每顆每秒 10 次）。
- */
-const TabButton: React.FC<{ id: TabKey; label: string; icon: string; active: boolean; onSelect: (id: TabKey) => void }> = ({ id, label, icon, active, onSelect }) => (
-    <button
-        onClick={() => onSelect(id)}
-        data-testid={`showcase-tab-${id.toLowerCase()}`}
-        className={`touch-target flex-1 py-2 text-xs font-bold transition-all relative ${
-            active ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
-        }`}
-    >
-        <span className="mr-1">{icon}</span> {label}
-        {active && (
-            <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-cyan-500 shadow-[0_0_8px_cyan]" />
-        )}
-    </button>
-);
+const LAYOUT_OPTIONS: { value: LayoutPreset; label: string; testId: string }[] = [
+    {
+        value: 'CENTER',
+        label: '中央對齊',
+        testId: 'showcase-layout-center',
+    },
+    {
+        value: 'BOTTOM_CENTER',
+        label: '底部中央',
+        testId: 'showcase-layout-bottom_center',
+    },
+    {
+        value: 'BOTTOM_LEFT',
+        label: '左下側',
+        testId: 'showcase-layout-bottom_left',
+    },
+    {
+        value: 'BOTTOM_RIGHT',
+        label: '右下側',
+        testId: 'showcase-layout-bottom_right',
+    },
+];
 
-export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
-    engine,
-}) => {
-    const [activeTab, setActiveTab] = useState<TabKey>('SYSTEM');
+const DIRECTION_OPTIONS: SegmentedOption[] = [
+    {
+        value: 'DOWN',
+        label: <span data-testid="showcase-direction-down" />,
+        icon: <Icons.DirectionDown className="h-4 w-4" />,
+        title: '向下',
+    },
+    {
+        value: 'UP',
+        label: <span data-testid="showcase-direction-up" />,
+        icon: <Icons.DirectionUp className="h-4 w-4" />,
+        title: '向上',
+    },
+    {
+        value: 'LEFT',
+        label: <span data-testid="showcase-direction-left" />,
+        icon: <Icons.DirectionLeft className="h-4 w-4" />,
+        title: '向左',
+    },
+    {
+        value: 'RIGHT',
+        label: <span data-testid="showcase-direction-right" />,
+        icon: <Icons.DirectionRight className="h-4 w-4" />,
+        title: '向右',
+    },
+];
+
+export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = () => {
+    const [activeTab, setActiveTab] = useState('SYSTEM');
     const activeConfig = useShowcaseConfig();
     const activeLayout = useShowcaseLayout();
 
-    const directorSettingsValues = useDirectorSettingsValues(engine);
-    const gameplaySettingsValues = useGameplaySettingsValues(engine);
-    const playbackView = useEngineView(engine, selectGamePlaybackView);
-    const { send } = useEngineCommands(engine);
+    const directorSettingsValues = useDirectorSettingsValues();
+    const gameplaySettingsValues = useGameplaySettingsValues();
+    const playbackView = useView(selectGamePlaybackView);
+    const { send } = useCommands();
 
     const currentTimeScale = playbackView?.timeScale ?? 1.0;
 
@@ -82,196 +147,164 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
 
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none">
-            {/* Tabs Bar */}
-            <div className="flex px-2 border-b border-white/5 bg-black/20 shrink-0">
-                <TabButton id="SYSTEM" label="系統" icon="🖥️" active={activeTab === 'SYSTEM'} onSelect={setActiveTab} />
-                <TabButton id="CAMERA" label="鏡頭" icon="🎥" active={activeTab === 'CAMERA'} onSelect={setActiveTab} />
-                <TabButton id="MATRIX" label="視覺" icon="🔮" active={activeTab === 'MATRIX'} onSelect={setActiveTab} />
-                <TabButton id="GAMEPLAY" label="玩法" icon="🗺️" active={activeTab === 'GAMEPLAY'} onSelect={setActiveTab} />
-            </div>
+            <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                tabs={SHOWCASE_TABS}
+                className="w-full h-full flex flex-col"
+            >
+                <TabsContent value="SYSTEM" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-4">
+                    <Card className="flex flex-col gap-3 p-3">
+                        <SettingRow
+                            label="展示模式總開關"
+                            description={
+                                <span className="font-mono text-ui-label text-accent">
+                                    {isMasterOn ? 'ALL SYSTEMS ONLINE' : 'SYSTEMS OFFLINE'}
+                                </span>
+                            }
+                        >
+                            <Switch
+                                checked={isMasterOn}
+                                onChange={toggleMaster}
+                                ariaLabel="展示模式總開關"
+                                inputTestId="showcase-toggle-master"
+                            />
+                        </SettingRow>
 
-            {/* Content Body */}
-            <div className="p-4 overflow-y-auto custom-scrollbar flex-1 min-h-0">
-                {activeTab === 'SYSTEM' && (
-                    <div className="space-y-5 animate-fade-in">
-                        <div className="bg-cyan-500/5 p-3 rounded-xl border border-cyan-500/20 flex justify-between items-center shadow-inner">
-                            <div className="flex flex-col gap-0.5">
-                                <span className="text-xs font-bold text-white tracking-wide">
-                                    展示模式總開關
+                        <SettingRow
+                            label="動畫速度"
+                            description={
+                                <span className="font-mono text-ui-num text-accent">
+                                    {currentTimeScale.toFixed(1)}x
                                 </span>
-                                <span className="text-[9px] text-cyan-400/70 font-mono">
-                                    ALL SYSTEMS ONLINE
-                                </span>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={isMasterOn}
-                                    data-testid="showcase-toggle-master"
-                                    onChange={(e) => toggleMaster(e.target.checked)}
+                            }
+                        >
+                            <div className="flex items-center gap-2 w-48 max-w-full">
+                                <Slider
+                                    min={UI_SETTINGS.TIME_SCALE.min}
+                                    max={UI_SETTINGS.TIME_SCALE.max}
+                                    step={UI_SETTINGS.TIME_SCALE.step}
+                                    value={currentTimeScale}
+                                    ariaLabel="動畫速度"
+                                    inputTestId="showcase-slider-timescale"
+                                    onChange={handleTimeScaleChange}
                                 />
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500" />
-                            </label>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <div className="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                <span>動畫速度</span>
-                                <span className="font-mono text-cyan-400">
+                                <span className="w-12 text-right font-mono text-ui-num text-fg-secondary shrink-0">
                                     {currentTimeScale.toFixed(1)}x
                                 </span>
                             </div>
-                            <input
-                                type="range"
-                                min={UI_SETTINGS.TIME_SCALE.min}
-                                max={UI_SETTINGS.TIME_SCALE.max}
-                                step={UI_SETTINGS.TIME_SCALE.step}
-                                value={currentTimeScale}
-                                data-testid="showcase-slider-timescale"
-                                onChange={(e) => handleTimeScaleChange(parseFloat(e.target.value))}
-                                className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                        </SettingRow>
+                    </Card>
+
+                    <Card className="flex flex-col gap-3 p-3">
+                        <SectionHeading>展示排版預設</SectionHeading>
+                        <div className="grid grid-cols-2 gap-2">
+                            {LAYOUT_OPTIONS.map((opt) => (
+                                <Button
+                                    key={opt.value}
+                                    size="sm"
+                                    data-testid={opt.testId}
+                                    data-state={activeLayout === opt.value ? 'on' : undefined}
+                                    onClick={() => handleLayoutChange(opt.value)}
+                                >
+                                    {opt.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="CAMERA" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0">
+                    <SchemaForm
+                        fields={DIRECTOR_SETTINGS_SCHEMA}
+                        values={directorSettingsValues}
+                        onChange={send}
+                    />
+                </TabsContent>
+
+                <TabsContent value="VISUAL" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-4">
+                    <Card className="flex flex-col gap-3 p-3">
+                        <SettingRow label="代碼雨視覺開關">
+                            <Switch
+                                checked={activeConfig.enabled}
+                                onChange={(val) => updateConfig('enabled', val)}
+                                ariaLabel="代碼雨視覺開關"
+                                inputTestId="showcase-toggle-matrix"
                             />
-                        </div>
+                        </SettingRow>
+                    </Card>
 
-                        <div className="space-y-2 pt-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                展示排版預設
-                            </span>
-                            <div className="grid grid-cols-2 gap-2">
-                                {(
-                                    [
-                                        'CENTER',
-                                        'BOTTOM_CENTER',
-                                        'BOTTOM_LEFT',
-                                        'BOTTOM_RIGHT',
-                                    ] as LayoutPreset[]
-                                ).map((l) => (
-                                    <button
-                                        key={l}
-                                        onClick={() => handleLayoutChange(l)}
-                                        data-testid={`showcase-layout-${l.toLowerCase()}`}
-                                        className={`touch-target py-2 px-3 rounded-xl border text-[11px] font-bold transition-all ${
-                                            activeLayout === l
-                                                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                                                : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
-                                        }`}
-                                    >
-                                        {l === 'CENTER'
-                                            ? '中央對齊'
-                                            : l === 'BOTTOM_CENTER'
-                                            ? '底部中央'
-                                            : l === 'BOTTOM_LEFT'
-                                            ? '左下側'
-                                            : '右下側'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'CAMERA' && (
-                    <div className="animate-fade-in">
-                        <SchemaForm
-                            fields={DIRECTOR_SETTINGS_SCHEMA}
-                            values={directorSettingsValues}
-                            onChange={send}
+                    <Card className="flex flex-col gap-3 p-3">
+                        <SectionHeading>流向設定</SectionHeading>
+                        <Segmented
+                            ariaLabel="流向設定"
+                            value={activeConfig.direction}
+                            onValueChange={(val) => updateConfig('direction', val as StreamDirection)}
+                            options={DIRECTION_OPTIONS}
+                            className="w-full justify-between"
                         />
-                    </div>
-                )}
+                    </Card>
 
-                {activeTab === 'MATRIX' && (
-                    <div className="space-y-4 animate-fade-in">
-                        <div className="bg-purple-500/5 p-3 rounded-xl border border-purple-500/20 flex justify-between items-center">
-                            <span className="text-xs font-bold text-purple-300">代碼雨視覺開關</span>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={activeConfig.enabled}
-                                    data-testid="showcase-toggle-matrix"
-                                    onChange={(e) => updateConfig('enabled', e.target.checked)}
-                                />
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500" />
-                            </label>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase block">流向設定</span>
-                            <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
-                                {(['DOWN', 'UP', 'LEFT', 'RIGHT'] as StreamDirection[]).map((d) => (
-                                    <button
-                                        key={d}
-                                        onClick={() => updateConfig('direction', d)}
-                                        data-testid={`showcase-direction-${d.toLowerCase()}`}
-                                        className={`touch-target flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                                            activeConfig.direction === d
-                                                ? 'bg-cyan-600 text-white shadow-md'
-                                                : 'text-slate-500 hover:text-slate-300'
-                                        }`}
-                                    >
-                                        {d === 'DOWN' ? '⬇' : d === 'UP' ? '⬆' : d === 'LEFT' ? '⬅' : '➡'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 pt-1">
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] text-slate-400 font-bold">
-                                    <span>下墜速度</span>
-                                    <span className="text-cyan-400">{activeConfig.speed.toFixed(1)}</span>
+                    <Card className="p-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between gap-1">
+                                    <span className="text-ui-body text-fg-primary">下墜速度</span>
+                                    <span className="font-mono text-ui-num text-accent shrink-0">
+                                        {activeConfig.speed.toFixed(1)}
+                                    </span>
                                 </div>
-                                <input
-                                    type="range"
+                                <Slider
                                     min={UI_SETTINGS.MATRIX_SPEED.min}
                                     max={UI_SETTINGS.MATRIX_SPEED.max}
                                     step={UI_SETTINGS.MATRIX_SPEED.step}
                                     value={activeConfig.speed}
-                                    onChange={(e) => updateConfig('speed', parseFloat(e.target.value))}
-                                    className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                    ariaLabel="下墜速度"
+                                    onChange={(val) => updateConfig('speed', val)}
                                 />
                             </div>
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] text-slate-400 font-bold">
-                                    <span>字流密度</span>
-                                    <span className="text-cyan-400">{activeConfig.streamGap.toFixed(2)}</span>
+
+                            <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between gap-1">
+                                    <span className="text-ui-body text-fg-primary">字流密度</span>
+                                    <span className="font-mono text-ui-num text-accent shrink-0">
+                                        {activeConfig.streamGap.toFixed(2)}
+                                    </span>
                                 </div>
-                                <input
-                                    type="range"
+                                <Slider
                                     min={UI_SETTINGS.MATRIX_GAP.min}
                                     max={UI_SETTINGS.MATRIX_GAP.max}
                                     step={UI_SETTINGS.MATRIX_GAP.step}
                                     value={activeConfig.streamGap}
-                                    onChange={(e) => updateConfig('streamGap', parseFloat(e.target.value))}
-                                    className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                    ariaLabel="字流密度"
+                                    onChange={(val) => updateConfig('streamGap', val)}
                                 />
                             </div>
                         </div>
+                    </Card>
 
-                        <div className="space-y-1 pt-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase">自訂矩陣字元集</label>
-                            <textarea
-                                className="w-full h-14 text-[10px] font-mono leading-tight bg-black/40 rounded-xl resize-none border border-white/10 p-2 text-slate-300"
-                                value={activeConfig.charSet}
-                                onChange={(e) => updateConfig('charSet', e.target.value)}
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'GAMEPLAY' && (
-                    <div className="animate-fade-in">
-                        <p className="mb-3 text-xs text-slate-400">展示模式每局隨機（雙陣營或大逃殺，最多 20 人）。這裡按套用只影響下一局，之後回到隨機；回到手動模式時用你的設定。</p>
-                        <SchemaForm
-                            fields={GAMEPLAY_SETTINGS_SCHEMA}
-                            values={gameplaySettingsValues}
-                            onChange={send}
+                    <Card className="flex flex-col gap-2 p-3">
+                        <SectionHeading>自訂矩陣字元集</SectionHeading>
+                        <Textarea
+                            rows={3}
+                            className="h-20 font-mono text-ui-label"
+                            value={activeConfig.charSet}
+                            onChange={(e) => updateConfig('charSet', e.target.value)}
                         />
-                    </div>
-                )}
-            </div>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="GAMEPLAY" className="p-4 pb-4 overflow-y-auto ui-scroll flex-1 min-h-0 space-y-3">
+                    <p className="text-ui-label text-fg-muted">
+                        展示模式每局隨機（雙陣營或大逃殺，最多 20 人）。這裡按套用只影響下一局，之後回到隨機；回到手動模式時用你的設定。
+                    </p>
+                    <SchemaForm
+                        fields={GAMEPLAY_SETTINGS_SCHEMA}
+                        values={gameplaySettingsValues}
+                        onChange={send}
+                    />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };

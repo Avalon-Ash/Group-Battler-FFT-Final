@@ -4,8 +4,9 @@ import { UI_WINDOW } from '../../../constants';
 import { WINDOW_DEF_MAP } from '../../../data/ui/windows';
 import { useWindowState, useWindowActions, useTopmostOpenWindowId } from '../../../hooks/useWindowStore';
 import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowInteraction';
-import { clampRect, getMaximizedRect } from './windowStore';
+import { clampRect, getMaximizedRect, getWindowLayerZ } from './windowStore';
 import { Icons } from '../icons';
+import { IconButton } from '../primitives';
 
 export interface ToolWindowProps {
     id: WindowId;
@@ -116,7 +117,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             position: 'fixed',
             left: 0,
             right: 0,
-            bottom: 0,
+            bottom: 'var(--ui-sheet-bottom, 0px)',
             top: 'auto',
             width: `${viewport.width}px`,
             maxWidth: '100vw',
@@ -136,14 +137,18 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             maxWidth: 'none',
             height: isCollapsed ? 'auto' : `${displayRect.height}px`,
             maxHeight: 'none',
-            zIndex: state.zIndex,
+            zIndex: getWindowLayerZ(state, topmostOpenId),
             pointerEvents: 'auto',
             transition: 'none',
         };
 
-    const windowClasses = isNarrow
-        ? `liquid-card !rounded-t-2xl !rounded-b-none flex flex-col overflow-hidden shadow-2xl border-t border-x border-b-0 border-line-subtle/10 select-none bg-surface-panel/95 backdrop-blur-xl ${className}`
-        : `liquid-card !rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-line-subtle/10 select-none bg-surface-panel/90 backdrop-blur-xl ${className}`;
+    // 材質分級（docs/DECISIONS.md「UI」）：只有桌機聚焦中的視窗用真模糊
+    const material = isNarrow || id !== topmostOpenId
+        ? 'shell-inactive'
+        : isMaximized
+            ? 'shell-maximized'
+            : 'shell-window mat-blur';
+    const windowClasses = `shell ${material} rounded-ui-window flex flex-col overflow-hidden select-none ${className}`;
 
     return (
         <div
@@ -162,14 +167,14 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 onPointerMove={isNarrow ? undefined : handleTitlePointerMove}
                 onPointerUp={isNarrow ? undefined : handleTitlePointerUp}
                 onDoubleClick={isNarrow ? undefined : handleTitleDoubleClick}
-                className={`h-10 px-3 bg-gradient-to-b from-line-subtle/10 to-transparent flex items-center justify-between border-b border-line-subtle/10 shrink-0 ${
+                className={`h-10 px-3 flex items-center justify-between border-b border-line-subtle/10 shrink-0 ${
                     isNarrow || isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
                 }`}
                 style={{ touchAction: 'none' }}
             >
                 <div className="flex items-center gap-2 overflow-hidden pointer-events-none">
                     {icon && <span className="text-accent-hover shrink-0">{icon}</span>}
-                    <span className="font-mono font-bold text-xs text-text-base truncate tracking-tight">
+                    <span className="ui-heading text-fg-primary truncate">
                         {displayTitle}
                     </span>
                 </div>
@@ -177,43 +182,41 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 <div className="flex items-center gap-1 shrink-0" data-no-drag="true">
                     {headerActions}
 
-                    {/* Collapse Button */}
-                    <button
-                        type="button"
+                    <IconButton
+                        size="sm"
+                        variant="ghost"
                         data-window-btn="collapse"
                         onClick={() => actions.collapse(id)}
-                        title={isCollapsed ? '展開視窗' : '收合視窗'}
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
+                        label={isCollapsed ? '展開視窗' : '收合視窗'}
                     >
-                        <Icons.Minimize className="w-3 h-3" />
-                    </button>
+                        <Icons.Minimize className="h-4 w-4" />
+                    </IconButton>
 
-                    {/* Maximize Button: disabled on narrow bottom sheet */}
+                    {/* 手機底部面板沒有最大化 */}
                     {!isNarrow && (
-                        <button
-                            type="button"
+                        <IconButton
+                            size="sm"
+                            variant="ghost"
                             data-window-btn="maximize"
                             onClick={() => actions.maximize(id)}
-                            title={isMaximized ? '還原視窗' : '最大化'}
-                            className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
+                            label={isMaximized ? '還原視窗' : '最大化'}
                         >
-                            <Icons.Expand className="w-3 h-3" />
-                        </button>
+                            <Icons.Expand className="h-4 w-4" />
+                        </IconButton>
                     )}
 
-                    {/* Close Button */}
-                    <button
-                        type="button"
+                    <IconButton
+                        size="sm"
+                        variant="ghost"
                         data-window-btn="close"
                         onClick={() => {
                             onClose?.();
                             actions.close(id);
                         }}
-                        title="關閉視窗"
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-danger-hover hover:bg-danger/10 transition-colors"
+                        label="關閉視窗"
                     >
-                        <Icons.Close className="w-3 h-3" />
-                    </button>
+                        <Icons.Close className="h-4 w-4" />
+                    </IconButton>
                 </div>
             </div>
 

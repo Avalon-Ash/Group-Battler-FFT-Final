@@ -15,7 +15,7 @@ import { SKILL_HAZARD_KIND_OPTIONS, type SkillEditableField } from '../../data/u
 import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
 import { PROJECTILE_VISUALS } from '../../data/vfx/projectile_visuals';
 
-export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
+const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
     [Role.TANK]:    { label: '坦克 (TANK)',    color: 'text-amber-400', border: 'border-amber-500' },
     [Role.WARRIOR]: { label: '戰士 (WARRIOR)', color: 'text-red-400',   border: 'border-red-500' },
     [Role.RANGER]:  { label: '遊俠 (RANGER)',  color: 'text-emerald-400', border: 'border-emerald-500' },
@@ -36,7 +36,7 @@ const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
     }
 };
 
-export const TAG_MAP: Record<string, { label: string; color: string }> = {
+const TAG_MAP: Record<string, { label: string; color: string }> = {
     'ULT':    { label: '奧義大絕', color: 'text-purple-400' },
     'ACTIVE': { label: '戰術主動', color: 'text-cyan-400' },
     'MOBILITY': { label: '機動', color: 'text-emerald-400' },

@@ -1,4 +1,6 @@
 /// <reference types="vite/client" />
+import { UI_SETTINGS } from '../constants';
+import { selectionStore, usePrimarySelectedId } from './useSelection';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup, FactionLook } from '../types';
@@ -68,7 +70,6 @@ export const useGameApp = () => {
         winnerSide: null as number | null,
         /** 目前場上這一局的陣營設定（生成時記下；面板改了但還沒開新局時，結算仍照這個） */
         battleSetup: { ...initialEngine.battleSetup } as BattleSetup,
-        timeScale: 1.0,
         isShowcaseMode: true, 
         transitionPhase: 'IDLE' as 'IDLE' | 'IN' | 'OUT',
         unitCount: 0
@@ -88,7 +89,6 @@ export const useGameApp = () => {
     });
 
     const [hud, setHud] = useState({
-        selectedAgent: null as Agent | null,
         hoveredSkill: null as Skill | null,
         showFactionWarning: false,
         showDirectorMonitor: false 
@@ -192,7 +192,7 @@ export const useGameApp = () => {
         const engine = engineRef.current;
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
-        setHud(prev => ({ ...prev, selectedAgent: null }));
+        selectionStore.clear();
         const newW = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_W + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
         const newH = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_H + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
         const newLayout: HexLayout = random() > 0.5 ? 'FLAT' : 'POINTY';
@@ -237,7 +237,8 @@ export const useGameApp = () => {
             rosterRef.current = [];
             const autoStart = showcaseModeRef.current;
             if (autoStart) engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
-            setSession(p => ({ ...p, winner: null, winnerId: null, winnerSide: null, isPlaying: autoStart, timeScale: 1.0 }));
+            setSession(p => ({ ...p, winner: null, winnerId: null, winnerSide: null, isPlaying: autoStart }));
+            engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             setEditor(p => ({ ...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id }));
         };
         engine.bus.on('BATTLE_SETUP_APPLY', handleApply);
@@ -311,12 +312,9 @@ export const useGameApp = () => {
         return () => clearInterval(interval);
     }, []);
 
-    useEffect(() => { 
-        engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: session.timeScale });
-    }, [session.timeScale]);
 
     // 點選的單位同步給引擎：導播關閉時擊殺播報只給它的陣營
-    const selectedAgentId = hud.selectedAgent?.id ?? null;
+    const selectedAgentId = usePrimarySelectedId();
     useEffect(() => {
         engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_WATCH_AGENT', agentId: selectedAgentId });
     }, [selectedAgentId]);
@@ -339,9 +337,9 @@ export const useGameApp = () => {
     return {
         engineRef,
         state: { 
-            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
+            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: editor.hexLayout,
-            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
+            selectedAgent: selectedAgentId ? (engineRef.current.agents.find((a) => a.id === selectedAgentId) ?? null) : null, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
             logs: engineRef.current.logs
         },
@@ -349,12 +347,10 @@ export const useGameApp = () => {
             setTool: (tool: ToolType) => setEditor(p => ({...p, tool})),
             setSelectedObstacle: (selectedObstacle: string) => setEditor(p => ({...p, selectedObstacle})),
             setHpInput: (hpInput: number) => setEditor(p => ({...p, hpInput})),
-            setTimeScale: (timeScale: number) => setSession(p => ({...p, timeScale})),
             setSpawnMode: (spawnMode: 'RANDOM' | 'DRAFT') => setEditor(p => ({...p, spawnMode})),
             setDraftRole: (draftRole: Role) => setEditor(p => ({...p, draftRole})),
             setDraftBodyType: (draftBodyType?: BodyTypeId) => setEditor(p => ({...p, draftBodyType})),
             setIsShowcaseMode: (isShowcaseMode: boolean) => setSession(p => ({...p, isShowcaseMode})),
-            setSelectedAgent: (selectedAgent: Agent | null) => setHud(p => ({...p, selectedAgent})),
             setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill})),
             setShowDirectorMonitor: (v: boolean) => setHud(p => ({...p, showDirectorMonitor: v}))
         },
@@ -393,12 +389,14 @@ export const useGameApp = () => {
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
                 rosterRef.current = [];
                 internalSpawnTeams();
-                setSession(p => ({...p, winner: null, winnerId: null, isPlaying: false, timeScale: 1.0})); 
+                setSession(p => ({...p, winner: null, winnerId: null, isPlaying: false}));
+                engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
                 setEditor(p => ({...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id})); 
             },
             handleReset: () => {
                 engineRef.current.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
-                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null, timeScale: 1.0}));
+                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null}));
+                engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             togglePlay: () => { 
                 if(session.winner) return;
@@ -422,17 +420,19 @@ export const useGameApp = () => {
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
                 rosterRef.current = [];
                 internalSpawnTeams(); 
-                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null, timeScale: 1.0})); 
+                setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null}));
+                engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             rematch: () => {
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
-                setSession(p => ({...p, isPlaying: true, winner: null, winnerId: null, timeScale: 1.0}));
+                setSession(p => ({...p, isPlaying: true, winner: null, winnerId: null}));
+                engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadAll,
-            handleSelectAgent: (a: Agent | null) => setHud(p => ({...p, selectedAgent: a}))
+            handleSelectAgent: (a: Agent | null) => selectionStore.set(a ? [a.id] : [])
         }
     };
 };

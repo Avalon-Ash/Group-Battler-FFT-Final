@@ -1,7 +1,5 @@
 {
   "components/GameCanvas.tsx": 0,
-  "components/inspector/parts/TreeNode.tsx": 0,
-  "components/inspector/tabs/BehaviorTreeTab.tsx": 0,
   "components/inspector/tabs/LogTab.tsx": 0,
   "components/inspector/tabs/UnitStatusTab.tsx": 0,
   "components/inspector/tabs/VFXMapTab.tsx": 0,

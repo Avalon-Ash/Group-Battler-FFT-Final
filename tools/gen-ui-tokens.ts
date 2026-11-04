@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { UI_LITERAL_TOKENS, UI_TOKENS } from '../data/ui/tokens';
+import { UI_GLASS_BLUR, UI_MATERIAL_TOKENS, UI_SCALE_TOKENS, UI_TOKENS } from '../data/ui/tokens';
 import { TEAM_COLORS } from '../constants';
 import { Team } from '../types';
 
@@ -29,7 +29,8 @@ export function generateTokensCss(): string {
     };
 
     flatten(UI_TOKENS);
-    flatten(UI_LITERAL_TOKENS, '--token-literal');
+    flatten(UI_MATERIAL_TOKENS, '--mat');
+    flatten(UI_SCALE_TOKENS, '--ui');
 
     // Team metadata tokens (glow, border-radius) from TEAM_COLORS SSOT
     lines.push('');
@@ -39,6 +40,12 @@ export function generateTokensCss(): string {
     lines.push(`  --token-team-red-glow: ${TEAM_COLORS[Team.RED].glow};`);
     lines.push(`  --token-team-red-radius: ${TEAM_COLORS[Team.RED].borderRadius};`);
 
+    lines.push('}');
+    lines.push('');
+    // 真模糊寫成字面值：Safari 的 -webkit-backdrop-filter 不吃變數（見 UI_GLASS_BLUR）
+    lines.push('.mat-blur {');
+    lines.push(`  -webkit-backdrop-filter: ${UI_GLASS_BLUR};`);
+    lines.push(`  backdrop-filter: ${UI_GLASS_BLUR};`);
     lines.push('}');
     lines.push('');
     return lines.join('\n');

@@ -120,6 +120,13 @@ const enterManualMode = async (page) => {
     await page.waitForTimeout(800);
 };
 
+/** 共用 Select 是 Radix：點開觸發器，再點文字含 optionText 的選項。 */
+const chooseOption = async (page, testId, optionText) => {
+    await page.locator(`[data-testid="${testId}"]`).click();
+    await page.locator('[role="option"]').filter({ hasText: optionText }).first().click();
+    await page.waitForTimeout(150);
+};
+
 const rectOf = (page, id) => page.evaluate((wid) => {
     const e = document.querySelector(`[data-window-id=${wid}]`);
     if (!e) return null;
@@ -259,7 +266,8 @@ const runMultiWindow = async () => {
         for (let dx = 8; dx < r.width - 8; dx += 4) {
             const px = r.x + dx; const py = r.y + 20;
             const hit = document.elementFromPoint(px, py);
-            if (hit && e.contains(hit)) return { x: px, y: py };
+            // 標題列的三顆鈕不算：按到關閉鈕視窗就沒了
+            if (hit && e.contains(hit) && !hit.closest('[data-window-btn]')) return { x: px, y: py };
         }
         return null;
     }, lowest[0]);
@@ -437,7 +445,7 @@ const runSchemaFormSuite = async () => {
     await openViaMenu(page, 'directorSettings');
     const engFollow = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.followStiffness);
     const uiFollow = await page.locator('[data-testid="setting-slider-followStiffness"]').inputValue();
-    ok('directorSettings: initial followStiffness matches engine (not 3.5)', Math.abs(Number(uiFollow) - engFollow) < 0.05 && Number(uiFollow) < 1.0, `${uiFollow} vs ${engFollow}`);
+    ok('directorSettings: initial followStiffness matches engine (not 3.5)', Math.abs(Number(uiFollow) - engFollow) < 0.05 && Math.abs(Number(uiFollow) - 3.5) > 0.05, `${uiFollow} vs ${engFollow}`);
 
     // Drag followStiffness slider
     const followBox = await page.locator('[data-testid="setting-slider-followStiffness"]').boundingBox();
@@ -610,21 +618,19 @@ const runInspectorCommandSuite = async () => {
 
     // Change Role to another role
     const newRole = target.role === 'WARRIOR' ? 'TANK' : 'WARRIOR';
-    const roleSelect = page.locator('label:has-text("職業") + select');
-    await roleSelect.selectOption(newRole);
-    await page.waitForTimeout(300);
+    await chooseOption(page, 'inspector-role', newRole);
+    await page.waitForTimeout(150);
 
     // Change maxHp to 123 (R8: draft + Enter submission)
-    const hpInput = page.locator('label:has-text("生命值") + input');
+    const hpInput = page.locator('[data-testid="inspector-hp"] input');
     await hpInput.fill('123');
     await hpInput.press('Enter');
     await page.waitForTimeout(300);
 
     // Change bodyType (Task A2e)
-    const bodyTypeSelect = page.locator('label:has-text("體型") + select');
-    if (await bodyTypeSelect.isVisible()) {
-        await bodyTypeSelect.selectOption('MALE');
-        await page.waitForTimeout(300);
+    if (await page.locator('[data-testid="inspector-bodytype"]').isVisible()) {
+        await chooseOption(page, 'inspector-bodytype', '男');
+        await page.waitForTimeout(150);
     }
 
     // Assert live engine agent was updated
@@ -691,6 +697,42 @@ const runInspectorCommandSuite = async () => {
     const reopened = await rectOf(page, 'inspector');
     ok('clicking canvas agent reopens inspector', reopened !== null);
 
+    // 2a. Behavior tree is its own window and follows the selection.
+    await page.locator('[data-testid="inspector-open-bt"]').click();
+    await page.waitForTimeout(400);
+    const btAgent = await page.locator('[data-testid="behavior-tree-agent"]').textContent();
+    const inspectorText = await page.locator('[data-window-id="inspector"]').textContent();
+    ok('behavior tree window shows the unit selected in the inspector', Boolean(btAgent) && inspectorText.includes(btAgent), btAgent);
+    const btBlur = await page.evaluate(() => [...document.querySelectorAll('[data-window-id="behaviorTree"] *')].filter((e) => getComputedStyle(e).backdropFilter !== 'none').length);
+    ok('behavior tree rows have no nested blur', btBlur === 0, `blur=${btBlur}`);
+    ok('behavior tree has a readable tree', (await page.locator('[data-window-id="behaviorTree"] [role="treeitem"]').count()) > 0);
+    await page.locator('[data-window-id="behaviorTree"] [data-window-btn="close"]').click();
+    await page.waitForTimeout(200);
+
+    // 2b. Maximized windows rise above the system menu and the toolbar; Esc restores them.
+    await page.locator('[data-window-id="inspector"] [data-window-btn="maximize"]').click();
+    await page.waitForTimeout(300);
+    const maxHits = await page.evaluate(() => {
+        const root = document.querySelector('[data-window-id="inspector"]');
+        const buttons = {};
+        for (const b of root.querySelectorAll('[data-window-btn]')) {
+            const r = b.getBoundingClientRect();
+            buttons[b.getAttribute('data-window-btn')] = root.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        }
+        const r = root.getBoundingClientRect();
+        let blocked = 0;
+        for (let i = 0; i < 24; i++) for (let j = 0; j < 16; j++) {
+            if (!root.contains(document.elementFromPoint(r.x + (i + .5) * r.width / 24, r.y + (j + .5) * r.height / 16))) blocked++;
+        }
+        return { buttons, blocked };
+    });
+    ok('maximized window: title-bar buttons are not covered', Object.values(maxHits.buttons).length === 3 && Object.values(maxHits.buttons).every(Boolean), JSON.stringify(maxHits.buttons));
+    ok('maximized window: no toolbar or menu on top of it', maxHits.blocked === 0, `blocked=${maxHits.blocked}`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(250);
+    const restored = await rectOf(page, 'inspector');
+    ok('Esc restores a maximized window', restored !== null && restored.width < 1200, `width=${restored?.width}`);
+
     // 3. SystemMenu is layered above inspector
     await page.locator('[data-testid="system-menu-button"]').click();
     await page.waitForTimeout(300);
@@ -747,7 +789,6 @@ const TARGET_ELEMENTS_MANUAL = [
     { id: 'window_inspector', selector: '[data-window-id="inspector"]' },
     { id: 'window_inspector_header', selector: '[data-window-id="inspector"] > div:first-child' },
     { id: 'window_inspector_tab_status', selector: '[data-window-id="inspector"] button[title="\u72c0\u614b\u76e3\u63a7"]' },
-    { id: 'window_inspector_tab_ai', selector: '[data-window-id="inspector"] button[title="\u884c\u70ba\u6a39\u76e3\u63a7 (AI)"]' },
     { id: 'window_inspector_tab_skills', selector: '[data-window-id="inspector"] button[title="\u6280\u80fd\u914d\u7f6e (LINK)"]' },
     { id: 'window_inspector_config_btn', selector: '[data-window-id="inspector"] button[title="\u7de8\u8f2f\u55ae\u4f4d\u5c6c\u6027"]' },
     { id: 'playback_hud', selector: '[data-testid="playback-hud"]' },
@@ -966,7 +1007,8 @@ const runBottomSheetSuite = async () => {
     ok('narrow screen: width equals viewport width', active && near(active.rect.width, 390, 2), `${active?.rect.width} vs 390`);
 
     // 3. Assert bottom edge flush with viewport bottom (844)
-    ok('narrow screen: bottom edge flush with viewport bottom', active && near(active.rect.bottom, 844, 2), `${active?.rect.bottom} vs 844`);
+    // 手動模式底部面板要讓開播放列（index.css 的 --ui-sheet-bottom = 96px）
+    ok('narrow screen: bottom sheet stays clear of the playback bar', active && near(active.rect.bottom, 844 - 96, 2), `${active?.rect.bottom} vs 748`);
 
     // 4. Assert height <= 72vh (844 * 0.72 = 607.68)
     const maxAllowedHeight = 844 * 0.72 + 2;
@@ -1089,7 +1131,7 @@ const runTouchScrollSuite = async () => {
 
     // Verify touch-action computed styles
     const touchActions = await page.evaluate(() => {
-        const root = document.querySelector('.h-\\[100dvh\\]');
+        const root = document.querySelector('.h-dvh');
         const canvas = document.querySelector('canvas');
         const titlebar = document.querySelector('[data-window-id="db"] [data-window-titlebar="true"]');
         const body = document.querySelector('[data-window-id="db"] [data-window-body="true"]');
@@ -1334,8 +1376,7 @@ const runEditorSuite = async () => {
     await page.waitForTimeout(200);
     await page.locator('button[title="指定固定職業"]').click();
     await page.waitForTimeout(200);
-    await page.locator('select').first().selectOption('RANGER');
-    await page.waitForTimeout(200);
+    await chooseOption(page, 'toolbar-draft-role', 'RANGER');
     const draftHex = await getEmptyHexWithCoord();
     await page.mouse.click(draftHex.screenX, draftHex.screenY);
     await page.waitForTimeout(300);
@@ -1372,10 +1413,12 @@ const runEditorSuite = async () => {
         window.__fpsRaf = requestAnimationFrame(loop);
     });
 
-    await page.mouse.move(1250, 350);
+    // 暫停時按在單位或障礙物上是拖曳它們，不是平移；隨機地圖要從空格起手
+    const panStart = await getEmptyHexWithCoord();
+    await page.mouse.move(panStart.screenX, panStart.screenY);
     await page.mouse.down();
     for (let i = 0; i < 10; i++) {
-        await page.mouse.move(1250 - i * 15, 350 - i * 15);
+        await page.mouse.move(panStart.screenX - i * 15, panStart.screenY - i * 15);
         await page.waitForTimeout(20);
     }
     await page.mouse.up();
