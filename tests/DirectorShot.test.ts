@@ -94,6 +94,15 @@ describe('ShotZoomController', () => {
         expect(c.shot).toBe('MID');
     });
 
+    it('a subject slightly past the shot stays put until the out margin', () => {
+        const c = new ShotZoomController();
+        step(c, tight, 1);
+        step(c, extentFor(closeZ * DIRECTOR_PARAM.SHOT_OUT_MARGIN * 1.01), 2);
+        expect(c.shot).toBe('CLOSE');
+        step(c, extentFor(closeZ * DIRECTOR_PARAM.SHOT_OUT_MARGIN * 0.99), DIRECTOR_PARAM.SHOT_OUT_HOLD_S + TICK);
+        expect(c.shot).toBe('MID');
+    });
+
     it('one widening is a single monotonic ease that ends on the new shot', () => {
         const c = new ShotZoomController();
         step(c, tight, 1);
@@ -127,6 +136,19 @@ describe('ShotZoomController', () => {
         const zooms = step(c, roomy, DIRECTOR_PARAM.SHOT_IN_BLEND_S + 2 * TICK);
         for (let i = 1; i < zooms.length; i++) expect(zooms[i]).toBeGreaterThanOrEqual(zooms[i - 1] - 1e-9);
         expect(zooms.at(-1)).toBeCloseTo(closeZ);
+    });
+
+    it('after a shot change it waits before tightening again, but can still widen', () => {
+        const c = new ShotZoomController();
+        step(c, tight, 1);
+        step(c, extentFor(midZ * 1.01), DIRECTOR_PARAM.SHOT_OUT_HOLD_S + TICK);
+        expect(c.shot).toBe('MID');
+        step(c, tight, DIRECTOR_PARAM.SHOT_MIN_HOLD_S - TICK * 2);
+        expect(c.shot).toBe('MID');
+        step(c, extentFor(wideZ * 1.01), DIRECTOR_PARAM.SHOT_OUT_HOLD_S + TICK);
+        expect(c.shot).toBe('WIDE');
+        step(c, tight, DIRECTOR_PARAM.SHOT_MIN_HOLD_S + DIRECTOR_PARAM.SHOT_IN_HOLD_S + TICK);
+        expect(c.shot).toBe('CLOSE');
     });
 
     it('a subject hovering around a shot boundary does not make the shot flip', () => {

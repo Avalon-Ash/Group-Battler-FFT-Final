@@ -58,6 +58,15 @@ function duel() {
     return { ...ctx, blue, red };
 }
 
+/** 主角在打遠處的目標，身邊還有一個相鄰的敵人 */
+function rangedThenAdjacent() {
+    const ctx = duel();
+    const far = ctx.add(Team.RED, 400);
+    ctx.blue.target = far;
+    ctx.lock(ctx.blue);
+    return { ...ctx, far };
+}
+
 describe('the camera frames the fight around the anchor', () => {
     it('two adjacent fighters get the close shot', () => {
         const { run } = duel();
@@ -85,21 +94,63 @@ describe('the camera frames the fight around the anchor', () => {
         expect(run(1).at(-1)).toBeCloseTo(CLOSE_Z);
     });
 
-    it('someone attacking the anchor or its target is framed, unless beyond the fight radius', () => {
-        const near = duel();
-        const a1 = near.add(Team.RED, 400);
-        a1.target = near.blue;
-        expect(near.run(2).at(-1)!).toBeLessThan(CLOSE_Z * 0.8);
+    it('someone attacking the anchor is not framed: the pair alone decides', () => {
+        const ctx = duel();
+        const attacker = ctx.add(Team.RED, 400);
+        attacker.target = ctx.blue;
+        const helper = ctx.add(Team.BLUE, 480);
+        helper.target = ctx.red;
+        expect(ctx.run(2).at(-1)).toBeCloseTo(CLOSE_Z);
+    });
 
-        const onTarget = duel();
-        const a2 = onTarget.add(Team.BLUE, 480);
-        a2.target = onTarget.red;
-        expect(onTarget.run(2).at(-1)!).toBeLessThan(CLOSE_Z * 0.8);
+    it('a target at range is framed with the anchor', () => {
+        const ctx = arena();
+        const blue = ctx.add(Team.BLUE, 0);
+        const red = ctx.add(Team.RED, 400);
+        blue.target = red;
+        ctx.cast(blue, 'BASIC');
+        ctx.lock(blue);
+        expect(ctx.run(1).at(-1)!).toBeLessThan(CLOSE_Z * 0.8);
+        expect(ctx.frame().x).toBeGreaterThan(100);
+    });
 
-        const far = duel();
-        const a3 = far.add(Team.RED, DIRECTOR_PARAM.FIGHT_RADIUS_PX + 50);
-        a3.target = far.blue;
-        expect(far.run(2).at(-1)).toBeCloseTo(CLOSE_Z);
+    it('an anchor still walking to a far target is framed alone, then with the target once it stops', () => {
+        const ctx = arena();
+        const blue = ctx.add(Team.BLUE, 0);
+        const red = ctx.add(Team.RED, 500);
+        blue.target = red;
+        blue.isMoving = true;
+        ctx.cast(red, 'BASIC');
+        ctx.lock(blue);
+        expect(ctx.run(1).at(-1)).toBeCloseTo(CLOSE_Z);
+        blue.isMoving = false;
+        expect(ctx.run(1.5).at(-1)!).toBeLessThan(CLOSE_Z * 0.8);
+    });
+
+    it('a walking anchor keeps a target that is already near', () => {
+        const ctx = arena();
+        const blue = ctx.add(Team.BLUE, 0);
+        const red = ctx.add(Team.RED, DIRECTOR_PARAM.WALK_TARGET_RADIUS_PX - 10);
+        blue.target = red;
+        blue.isMoving = true;
+        ctx.cast(red, 'BASIC');
+        ctx.lock(blue);
+        expect(ctx.run(1).at(-1)!).toBeLessThan(CLOSE_Z * 0.8);
+    });
+
+    it('a death releases the wait, so the last two can be framed tight right after a widening', () => {
+        const ctx = rangedThenAdjacent();
+        ctx.run(0.5);
+        // 先拉近再被迫拉遠，讓 SHOT_MIN_HOLD_S 開始計時
+        ctx.blue.target = ctx.red;
+        ctx.run(DIRECTOR_PARAM.MEMBER_LINGER_S + DIRECTOR_PARAM.SHOT_IN_HOLD_S + DIRECTOR_PARAM.SHOT_IN_BLEND_S + 3 * TICK);
+        ctx.blue.target = ctx.far;
+        ctx.run(DIRECTOR_PARAM.SHOT_OUT_HOLD_S + 2 * TICK);
+        ctx.far.hp = 0;
+        ctx.blue.target = ctx.red;
+        const zooms = ctx.run(DIRECTOR_PARAM.SHOT_IN_HOLD_S + DIRECTOR_PARAM.SHOT_IN_BLEND_S + 3 * TICK);
+        expect(DIRECTOR_PARAM.SHOT_IN_HOLD_S + DIRECTOR_PARAM.SHOT_IN_BLEND_S).toBeLessThan(DIRECTOR_PARAM.SHOT_MIN_HOLD_S);
+        expect(zooms.at(-1)).toBeCloseTo(CLOSE_Z);
     });
 
     it('a target beyond the fight radius does not drag the frame out', () => {
@@ -113,31 +164,26 @@ describe('the camera frames the fight around the anchor', () => {
         expect(ctx.frame().x).toBeCloseTo(0);
     });
 
-    it('when the third fighter dies the shot tightens within the hold plus one blend', () => {
-        const ctx = duel();
-        const attacker = ctx.add(Team.RED, 500);
-        attacker.target = ctx.blue;
+    it('when the far target dies and the anchor turns on its neighbour, the shot tightens within the hold plus one blend', () => {
+        const ctx = rangedThenAdjacent();
         expect(ctx.run(2).at(-1)!).toBeLessThan(CLOSE_Z * 0.8);
-        attacker.hp = 0;
+        ctx.far.hp = 0;
+        ctx.blue.target = ctx.red;
         const zooms = ctx.run(DIRECTOR_PARAM.SHOT_IN_HOLD_S + DIRECTOR_PARAM.SHOT_IN_BLEND_S + 3 * TICK);
         expect(zooms.at(-1)).toBeCloseTo(CLOSE_Z);
     });
 
-    it('an attacker that flickers on and off its target does not make the zoom pump', () => {
-        const ctx = duel();
-        const attacker = ctx.add(Team.RED, 400);
-        attacker.target = ctx.blue;
+    it('a target that flickers on and off does not make the zoom pump', () => {
+        const ctx = rangedThenAdjacent();
         ctx.run(2);
-        const zooms = ctx.run(6, (t) => { attacker.target = Math.floor(t / 0.3) % 2 === 0 ? ctx.blue : null; });
+        const zooms = ctx.run(6, (t) => { ctx.blue.target = Math.floor(t / 0.3) % 2 === 0 ? ctx.far : null; });
         expect(Math.max(...zooms) - Math.min(...zooms)).toBeLessThan(1e-6);
     });
 
-    it('an attacker that really leaves is dropped after the linger', () => {
-        const ctx = duel();
-        const attacker = ctx.add(Team.RED, 400);
-        attacker.target = ctx.blue;
+    it('an old target is dropped after the linger', () => {
+        const ctx = rangedThenAdjacent();
         ctx.run(2);
-        attacker.target = null;
+        ctx.blue.target = ctx.red;
         const zooms = ctx.run(DIRECTOR_PARAM.MEMBER_LINGER_S + DIRECTOR_PARAM.SHOT_IN_HOLD_S + DIRECTOR_PARAM.SHOT_IN_BLEND_S + 3 * TICK);
         expect(zooms.at(-1)).toBeCloseTo(CLOSE_Z);
     });
@@ -183,6 +229,16 @@ describe('before first contact', () => {
 });
 
 describe('switching the anchor', () => {
+    it('when the anchor falls the camera passes to the unit it was fighting, not the top of the list', () => {
+        const ctx = duel();
+        const other = ctx.add(Team.RED, 1000);
+        ctx.cast(other, 'ULT');
+        ctx.run(0.1);
+        ctx.blue.hp = 0;
+        ctx.run(TICK);
+        expect(ctx.engine.state.director.targetId).toBe(ctx.red.id);
+    });
+
     function acrossTheMap() {
         const ctx = arena();
         const blue = ctx.add(Team.BLUE, 0);
@@ -226,13 +282,13 @@ describe('switching the anchor', () => {
 });
 
 describe('safety', () => {
-    it('zoom never jumps while units come and go', () => {
+    it('zoom never jumps while the target keeps changing', () => {
         const ctx = duel();
-        const a1 = ctx.add(Team.RED, 500);
-        const a2 = ctx.add(Team.RED, -600);
+        const near = ctx.add(Team.RED, 200);
+        const far = ctx.add(Team.RED, -600);
         const zooms = ctx.run(10, (t) => {
-            a1.target = Math.floor(t / 1.7) % 2 === 0 ? ctx.blue : null;
-            a2.target = Math.floor(t / 2.3) % 2 === 0 ? ctx.blue : null;
+            const step = Math.floor(t / 1.7) % 3;
+            ctx.blue.target = step === 0 ? near : step === 1 ? far : ctx.red;
         });
         const limit = 1.5 * Math.log(UI_SETTINGS.CAMERA_ZOOM.directorMax / UI_SETTINGS.CAMERA_ZOOM.directorMin) / DIRECTOR_PARAM.SHOT_OUT_BLEND_S * TICK + 1e-9;
         for (let i = 1; i < zooms.length; i++) {

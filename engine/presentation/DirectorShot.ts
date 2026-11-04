@@ -84,11 +84,11 @@ function targetZoom(shot: ShotSize, raw: number, W: number, H: number): number {
 }
 
 /**
- * 檢查給定景別是否能放得下未夾縮放值 raw。WIDE 永遠放得下。
+ * 目前景別還撐得住嗎：差到 SHOT_OUT_MARGIN 才算放不下。WIDE 永遠撐得住。
  */
-function isFitting(shot: ShotSize, raw: number, W: number, H: number): boolean {
+function holdsShot(shot: ShotSize, raw: number, W: number, H: number): boolean {
     if (shot === 'WIDE') return true;
-    return raw >= shotZoom(shot, W, H);
+    return raw >= shotZoom(shot, W, H) * DIRECTOR_PARAM.SHOT_OUT_MARGIN;
 }
 
 /**
@@ -202,6 +202,8 @@ export class ShotZoomController {
     private initialized: boolean = false;
     private outTimer: number = 0;
     private inTimer: number = 0;
+    /** 換過景別後還要等多久才能再拉近（秒） */
+    private tightenCooldown: number = 0;
     private blend: {
         from: number;
         duration: number;
@@ -214,7 +216,13 @@ export class ShotZoomController {
         this.initialized = false;
         this.outTimer = 0;
         this.inTimer = 0;
+        this.tightenCooldown = 0;
         this.blend = null;
+    }
+
+    /** 場面變了（有人倒下）：不必等滿 SHOT_MIN_HOLD_S 就可以拉近 */
+    public releaseHold(): void {
+        this.tightenCooldown = 0;
     }
 
     public update(ext: ShotExtent, W: number, H: number, dt: number): number {
@@ -230,8 +238,10 @@ export class ShotZoomController {
             return this.zoom;
         }
 
-        // 拉遠判定：目前景別放不下時累加 outTimer，一放得下就歸零。
-        if (!isFitting(this.shot, raw, W, H)) {
+        this.tightenCooldown = Math.max(0, this.tightenCooldown - dt);
+
+        // 拉遠判定：目前景別撐不住時累加 outTimer，一撐得住就歸零。
+        if (!holdsShot(this.shot, raw, W, H)) {
             this.inTimer = 0;
             this.outTimer += dt;
             if (this.outTimer >= DIRECTOR_PARAM.SHOT_OUT_HOLD_S) {
@@ -243,7 +253,7 @@ export class ShotZoomController {
         } else {
             this.outTimer = 0;
             // 拉近判定：找比目前緊的最緊景別且滿足 raw >= shotZoom(s) * SHOT_IN_MARGIN。
-            const tighter = findTighteningShot(this.shot, raw, W, H);
+            const tighter = this.tightenCooldown > 0 ? null : findTighteningShot(this.shot, raw, W, H);
             if (tighter !== null) {
                 this.inTimer += dt;
                 if (this.inTimer >= DIRECTOR_PARAM.SHOT_IN_HOLD_S) {
@@ -291,6 +301,7 @@ export class ShotZoomController {
     }
 
     private startBlend(duration: number): void {
+        this.tightenCooldown = DIRECTOR_PARAM.SHOT_MIN_HOLD_S;
         this.blend = {
             from: this.zoom,
             duration,
