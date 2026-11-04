@@ -32,7 +32,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
         <div 
             ref={ref}
             className={`transition-all duration-500 ${hidden ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-            style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
+            style={{ ...style, zIndex: UI_Z.HUD }}
             {...dragHandlers}
         >
             <div data-testid="playback-hud" className={`liquid-card !rounded-full p-2 ${isCompact ? 'pr-3 gap-2' : 'pr-5 gap-4'} flex items-center select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>

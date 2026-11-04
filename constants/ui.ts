@@ -32,17 +32,29 @@ export const UI_WINDOW = {
     FALLBACK_VIEWPORT: { width: 1200, height: 800 },
 } as const;
 
+/**
+ * 畫面層級（由低到高）：展示背景 < HUD < 一般視窗 < 選單 < 最大化視窗 < 全域提示 < 彈出層。
+ * 這些元素都排在同一個 stacking context：WindowLayer 不得再建立 stacking context，否則視窗的層級出不去。
+ */
 export const UI_Z = {
-    INSPECTOR: 30,
     /** 展示模式標題卡與背景：在視窗層之下，展示模式開的設定／音訊等視窗才不會被標題卡蓋住 */
-    SHOWCASE: 35,
+    SHOWCASE: 20,
+    /** 標題卡在展示背景內部的相對層級 */
+    SHOWCASE_CARD: 1,
+    /** 工具列、播放 HUD：一般視窗會蓋過它們 */
+    HUD: 30,
+    /** 一般視窗的層級範圍；超過 WINDOW_MAX 時 windowStore 會重新編號 */
     WINDOW_BASE: 40,
-    OVERLAY: 50,
-    MENU_BACKDROP: 55,
-    MENU: 60,
-    OVERLAY_CONTROLS: 60,
-    WINDOW_MAX: 80,
-    TOP_OVERLAY: 90,
+    WINDOW_MAX: 89,
+    MENU_BACKDROP: 90,
+    /** 系統選單永遠蓋過一般視窗，只有最大化視窗例外 */
+    MENU: 91,
+    /** 最大化視窗：蓋過選單鈕。內部相對順序沿用視窗原本的層級 */
+    WINDOW_MAXIMIZED: 100,
+    /** 全域提示（部署錯誤等）：最大化時也要看得到 */
+    OVERLAY: 200,
+    /** 下拉面板、提示框等 portal 到 body 的彈出層 */
+    POPOVER: 210,
 } as const;
 
 /**

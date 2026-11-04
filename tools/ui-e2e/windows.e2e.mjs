@@ -691,6 +691,30 @@ const runInspectorCommandSuite = async () => {
     const reopened = await rectOf(page, 'inspector');
     ok('clicking canvas agent reopens inspector', reopened !== null);
 
+    // 2b. Maximized windows rise above the system menu and the toolbar; Esc restores them.
+    await page.locator('[data-window-id="inspector"] [data-window-btn="maximize"]').click();
+    await page.waitForTimeout(300);
+    const maxHits = await page.evaluate(() => {
+        const root = document.querySelector('[data-window-id="inspector"]');
+        const buttons = {};
+        for (const b of root.querySelectorAll('[data-window-btn]')) {
+            const r = b.getBoundingClientRect();
+            buttons[b.getAttribute('data-window-btn')] = root.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        }
+        const r = root.getBoundingClientRect();
+        let blocked = 0;
+        for (let i = 0; i < 24; i++) for (let j = 0; j < 16; j++) {
+            if (!root.contains(document.elementFromPoint(r.x + (i + .5) * r.width / 24, r.y + (j + .5) * r.height / 16))) blocked++;
+        }
+        return { buttons, blocked };
+    });
+    ok('maximized window: title-bar buttons are not covered', Object.values(maxHits.buttons).length === 3 && Object.values(maxHits.buttons).every(Boolean), JSON.stringify(maxHits.buttons));
+    ok('maximized window: no toolbar or menu on top of it', maxHits.blocked === 0, `blocked=${maxHits.blocked}`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(250);
+    const restored = await rectOf(page, 'inspector');
+    ok('Esc restores a maximized window', restored !== null && restored.width < 1200, `width=${restored?.width}`);
+
     // 3. SystemMenu is layered above inspector
     await page.locator('[data-testid="system-menu-button"]').click();
     await page.waitForTimeout(300);

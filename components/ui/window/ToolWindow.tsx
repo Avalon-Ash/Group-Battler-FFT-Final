@@ -4,7 +4,7 @@ import { UI_WINDOW } from '../../../constants';
 import { WINDOW_DEF_MAP } from '../../../data/ui/windows';
 import { useWindowState, useWindowActions, useTopmostOpenWindowId } from '../../../hooks/useWindowStore';
 import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowInteraction';
-import { clampRect, getMaximizedRect } from './windowStore';
+import { clampRect, getMaximizedRect, getWindowLayerZ } from './windowStore';
 import { Icons } from '../icons';
 
 export interface ToolWindowProps {
@@ -136,7 +136,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             maxWidth: 'none',
             height: isCollapsed ? 'auto' : `${displayRect.height}px`,
             maxHeight: 'none',
-            zIndex: state.zIndex,
+            zIndex: getWindowLayerZ(state),
             pointerEvents: 'auto',
             transition: 'none',
         };

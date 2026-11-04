@@ -1825,15 +1825,16 @@
     }
   },
   "UI_Z": {
-    "INSPECTOR": 30,
-    "SHOWCASE": 35,
+    "SHOWCASE": 20,
+    "SHOWCASE_CARD": 1,
+    "HUD": 30,
     "WINDOW_BASE": 40,
-    "OVERLAY": 50,
-    "MENU_BACKDROP": 55,
-    "MENU": 60,
-    "OVERLAY_CONTROLS": 60,
-    "WINDOW_MAX": 80,
-    "TOP_OVERLAY": 90
+    "WINDOW_MAX": 89,
+    "MENU_BACKDROP": 90,
+    "MENU": 91,
+    "WINDOW_MAXIMIZED": 100,
+    "OVERLAY": 200,
+    "POPOVER": 210
   },
   "ULT_FEEL": {
     "IMPACT_BURST_RADIUS_HEX": 2.4,

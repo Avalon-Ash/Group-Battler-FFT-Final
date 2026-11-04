@@ -94,7 +94,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
                 </>
             )}
 
-            <div className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`} style={{ zIndex: UI_Z.MENU_BACKDROP }}>
+            <div className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`} style={{ zIndex: UI_Z.SHOWCASE_CARD }}>
                 
                 <div data-testid="showcase-card" className={`p-8 md:p-10 pointer-events-none flex max-w-full transition-opacity duration-300 ${isSettingsOpen && isCompactViewport ? 'opacity-0 invisible' : ''} ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
                     

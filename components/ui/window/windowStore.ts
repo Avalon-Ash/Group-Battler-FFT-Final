@@ -57,6 +57,26 @@ export function getMaximizedRect(viewport: { width: number; height: number }): W
 }
 
 /**
+ * z-index a window paints at. Maximized windows jump above the system menu but keep their relative order.
+ */
+export function getWindowLayerZ(win: Pick<WindowState, 'zIndex' | 'isMaximized'>): number {
+    return win.isMaximized
+        ? UI_Z.WINDOW_MAXIMIZED + (win.zIndex - UI_Z.WINDOW_BASE)
+        : win.zIndex;
+}
+
+/**
+ * Topmost open, maximized window, or null when none is maximized.
+ */
+export function getTopmostMaximizedWindowId(windows: Partial<Record<string, WindowState>>): WindowId | null {
+    let top: WindowState | null = null;
+    for (const win of Object.values(windows)) {
+        if (win?.isOpen && win.isMaximized && (!top || win.zIndex > top.zIndex)) top = win;
+    }
+    return top ? top.id : null;
+}
+
+/**
  * Serializes window states to JSON string.
  */
 export function serialize(windows: Record<string, WindowState>): string {

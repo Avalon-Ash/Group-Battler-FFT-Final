@@ -68,7 +68,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
         <div 
             ref={ref}
             className="flex flex-col items-center gap-2"
-            style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
+            style={{ ...style, zIndex: UI_Z.HUD }}
             {...dragHandlers}
         >
             {/* MAIN TOOLBAR */}

@@ -1,0 +1,37 @@
+{
+  "L1": [
+    "components/ui/PlaybackHUD.tsx",
+    "components/ui/MapEditorToolbar.tsx",
+    "components/ui/SystemMenu.tsx"
+  ],
+  "L2": [
+    "components/ui/settings/SchemaForm.tsx",
+    "components/ui/settings/AudioSettingsWindow.tsx",
+    "components/ui/settings/SettingsWindows.tsx",
+    "components/ui/showcase/ShowcaseSettings.tsx",
+    "components/ui/showcase/ShowcaseOverlay.tsx"
+  ],
+  "L3": [
+    "components/ui/inspector/UnitInspectorBody.tsx",
+    "components/inspector/tabs/UnitStatusTab.tsx",
+    "components/ui/DirectorMonitorHUD.tsx",
+    "components/inspector/parts/TreeNode.tsx",
+    "components/inspector/tabs/BehaviorTreeTab.tsx"
+  ],
+  "L4": [
+    "components/inspector/tabs/SkillDbTab.tsx",
+    "components/inspector/parts/SkillNumberInput.tsx",
+    "components/inspector/parts/SkillIcon.tsx",
+    "components/inspector/tabs/LogTab.tsx",
+    "components/inspector/tabs/VFXMapTab.tsx"
+  ],
+  "P": [
+    "components/ui/primitives"
+  ],
+  "M": [
+    "App.tsx",
+    "components/ui/window/ToolWindow.tsx",
+    "components/ui/window/WindowLayer.tsx",
+    "components/ui/window/windowRegistry.tsx"
+  ]
+}
