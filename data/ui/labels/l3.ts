@@ -27,7 +27,21 @@ export const INSPECTOR_STATUS_TAG: Readonly<Record<InspectorStatusKind, { label:
     SILENCE: { label: '沉默', tone: 'neutral' },
 };
 
-export const ROLE_OPTIONS: { value: Role; label: string }[] = Object.values(Role).map((role) => ({ value: role, label: role }));
+export const ROLE_LABEL: Readonly<Record<Role, string>> = {
+    [Role.TANK]: '坦克',
+    [Role.WARRIOR]: '戰士',
+    [Role.RANGER]: '遊俠',
+    [Role.MAGE]: '法師',
+    [Role.SUPPORT]: '輔助',
+};
+
+export const ROLE_OPTIONS: { value: Role; label: string }[] = [
+    { value: Role.TANK, label: '坦克 TANK' },
+    { value: Role.WARRIOR, label: '戰士 WARRIOR' },
+    { value: Role.RANGER, label: '遊俠 RANGER' },
+    { value: Role.MAGE, label: '法師 MAGE' },
+    { value: Role.SUPPORT, label: '輔助 SUPPORT' },
+];
 
 export const BODY_TYPE_OPTIONS: { value: BodyTypeId; label: string }[] = (Object.keys(BODY_TYPE_PROFILE) as BodyTypeId[])
     .filter((id) => BODY_TYPE_PROFILE[id].enabled)
@@ -55,6 +69,13 @@ export const INSPECTOR_TEXT = {
 
 /** 技能槽順序：skillIds 的索引 0..3 依序對應這四種 tag。 */
 export const SKILL_SLOT_TAGS: readonly Skill['tag'][] = ['ULT', 'ACTIVE', 'BASIC', 'MOBILITY'];
+
+export const SKILL_TAG_LABEL: Readonly<Record<Skill['tag'], string>> = {
+    ULT: '奧義',
+    ACTIVE: '戰術',
+    BASIC: '普攻',
+    MOBILITY: '機動',
+};
 
 export const SKILL_TAG_TONE: Readonly<Record<Skill['tag'], LabelTone>> = {
     ULT: 'warn',

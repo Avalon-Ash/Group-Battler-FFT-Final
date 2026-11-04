@@ -6,7 +6,13 @@ import { useWindowActions } from '../../../hooks/useWindowStore';
 import { selectInspectorView } from '../../../engine/systems/ui/views/l3';
 import type { TeamTone } from '../../../types/ui/l3';
 import {
-    BODY_TYPE_OPTIONS, INSPECTOR_STATUS_TAG, INSPECTOR_TABS, INSPECTOR_TEXT, ROLE_OPTIONS, TEAM_CODE,
+    BODY_TYPE_OPTIONS,
+    INSPECTOR_STATUS_TAG,
+    INSPECTOR_TABS,
+    INSPECTOR_TEXT,
+    ROLE_LABEL,
+    ROLE_OPTIONS,
+    TEAM_CODE,
 } from '../../../data/ui/labels/l3';
 import { Icons } from '../icons';
 import { Helpers } from '../../inspector/InspectorConstants';
@@ -70,35 +76,37 @@ export const UnitInspectorBody: React.FC = () => {
 
     return (
         <div className="flex h-full w-full min-h-0 flex-col select-none">
-            <div className="flex shrink-0 flex-col gap-3 border-b border-line-subtle/10 p-3">
-                <div className="flex items-center gap-3">
-                    <div className={`well flex h-10 w-10 shrink-0 items-center justify-center ${TEAM_TEXT[view.teamTone]}`}>
-                        {ROLE_ICON[view.role]}
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <span className={`truncate font-mono text-ui-title ${TEAM_TEXT[view.teamTone]}`}>{view.id}</span>
-                        <div className="flex items-center gap-2">
-                            <span className="ui-heading truncate text-fg-secondary">{view.role}</span>
-                            <Tag tone={view.teamTone}>{TEAM_CODE[view.teamTone]}</Tag>
-                        </div>
-                    </div>
-                    <IconButton
-                        size="sm"
-                        variant="ghost"
-                        label={INSPECTOR_TEXT.editToggle}
-                        aria-pressed={isConfigExpanded}
-                        data-state={isConfigExpanded ? 'on' : 'off'}
-                        onClick={() => setIsConfigExpanded((v) => !v)}
-                    >
-                        <Icons.Settings className="h-4 w-4" />
-                    </IconButton>
-                    <IconButton size="sm" label={INSPECTOR_TEXT.openBehaviorTree} data-testid="inspector-open-bt" onClick={() => windowActions.open('behaviorTree')}>
-                        <Icons.Tree className="h-4 w-4" />
-                    </IconButton>
+            {/* 標頭 (Header) */}
+            <div className="flex shrink-0 items-center gap-3 border-b border-line-subtle/10 p-3">
+                <div className={`well flex h-10 w-10 shrink-0 items-center justify-center ${TEAM_TEXT[view.teamTone]}`}>
+                    {ROLE_ICON[view.role]}
                 </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className={`truncate font-mono text-ui-title ${TEAM_TEXT[view.teamTone]}`}>{view.id}</span>
+                    <div className="flex items-center gap-2">
+                        <span className="ui-heading truncate text-fg-secondary">{ROLE_LABEL[view.role]}</span>
+                        <Tag tone={view.teamTone}>{TEAM_CODE[view.teamTone]}</Tag>
+                    </div>
+                </div>
+                <IconButton
+                    size="sm"
+                    variant="ghost"
+                    label={INSPECTOR_TEXT.editToggle}
+                    aria-pressed={isConfigExpanded}
+                    data-state={isConfigExpanded ? 'on' : 'off'}
+                    onClick={() => setIsConfigExpanded((v) => !v)}
+                >
+                    <Icons.Settings className="h-4 w-4" />
+                </IconButton>
+                <IconButton size="sm" label={INSPECTOR_TEXT.openBehaviorTree} data-testid="inspector-open-bt" onClick={() => windowActions.open('behaviorTree')}>
+                    <Icons.Tree className="h-4 w-4" />
+                </IconButton>
+            </div>
 
+            {/* 視窗內容區（標頭以下）要能捲動：ui-scroll min-h-0 flex-1 pb-4 */}
+            <div className="ui-scroll min-h-0 flex-1 p-3 pb-4 flex flex-col gap-3">
                 {isConfigExpanded && (
-                    <Card className="grid grid-cols-2 gap-3">
+                    <Card className="grid grid-cols-2 gap-2">
                         <div className="flex min-w-0 flex-col gap-1">
                             <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.role}</span>
                             <Select
@@ -152,49 +160,49 @@ export const UnitInspectorBody: React.FC = () => {
                     <Meter label={INSPECTOR_TEXT.hp} value={view.hp} max={view.maxHp} tone={view.teamTone} showValue />
                     {view.maxMp > 0 && <Meter label={INSPECTOR_TEXT.mp} value={view.mp} max={view.maxMp} tone="accent" size="sm" showValue />}
                 </div>
-            </div>
 
-            <Tabs value={tab} onValueChange={setTab} tabs={INSPECTOR_TABS} className="min-h-0 flex-1 px-3 pt-2">
-                <TabsContent value="STATUS" className="ui-scroll min-h-0 flex-1 pb-3">
-                    <div className="flex flex-col gap-3">
-                        <Card className="flex flex-col gap-2">
-                            <SectionHeading
-                                action={view.statusTags.map((kind) => (
-                                    <Tag key={kind} tone={INSPECTOR_STATUS_TAG[kind].tone}>{INSPECTOR_STATUS_TAG[kind].label}</Tag>
-                                ))}
-                            >
-                                {INSPECTOR_TEXT.aiHeading}
-                            </SectionHeading>
-                            <div className="flex items-center gap-2 font-mono text-ui-body">
-                                <span className="text-text-warn">{Helpers.getAIStateLabel(view.aiState)}</span>
-                                <span className="text-fg-muted">/</span>
-                                <span className="text-text-accent">{Helpers.getActionStateLabel(view.actionState)}</span>
+                <Tabs value={tab} onValueChange={setTab} tabs={INSPECTOR_TABS} className="flex flex-col min-h-0 pt-2">
+                    <TabsContent value="STATUS" className="pt-2">
+                        <div className="flex flex-col gap-3">
+                            <Card className="flex flex-col gap-2">
+                                <SectionHeading
+                                    action={view.statusTags.map((kind) => (
+                                        <Tag key={kind} tone={INSPECTOR_STATUS_TAG[kind].tone}>{INSPECTOR_STATUS_TAG[kind].label}</Tag>
+                                    ))}
+                                >
+                                    {INSPECTOR_TEXT.aiHeading}
+                                </SectionHeading>
+                                <div className="flex items-center gap-2 font-mono text-ui-body">
+                                    <span className="text-text-warn">{Helpers.getAIStateLabel(view.aiState)}</span>
+                                    <span className="text-fg-muted">/</span>
+                                    <span className="text-text-accent">{Helpers.getActionStateLabel(view.actionState)}</span>
+                                </div>
+                            </Card>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Card padding="sm" className="flex flex-col gap-1">
+                                    <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.coordinate}</span>
+                                    <span className="font-mono text-ui-body text-fg-primary">({view.q}, {view.r})</span>
+                                </Card>
+                                <Card padding="sm" className="flex flex-col gap-1">
+                                    <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.shield}</span>
+                                    <span className="font-mono text-ui-body text-fg-primary">{view.shield}</span>
+                                </Card>
+                                <Card padding="sm" className="flex flex-col gap-1">
+                                    <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.hp}</span>
+                                    <span className="font-mono text-ui-body text-fg-primary">{view.hp} / {view.maxHp}</span>
+                                </Card>
+                                <Card padding="sm" className="flex flex-col gap-1">
+                                    <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.mp}</span>
+                                    <span className="font-mono text-ui-body text-fg-primary">{view.mp} / {view.maxMp}</span>
+                                </Card>
                             </div>
-                        </Card>
-                        <div className="grid grid-cols-2 gap-2">
-                            <Card padding="sm" className="flex flex-col gap-1">
-                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.coordinate}</span>
-                                <span className="font-mono text-ui-body text-fg-primary">({view.q}, {view.r})</span>
-                            </Card>
-                            <Card padding="sm" className="flex flex-col gap-1">
-                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.shield}</span>
-                                <span className="font-mono text-ui-body text-fg-primary">{view.shield}</span>
-                            </Card>
-                            <Card padding="sm" className="flex flex-col gap-1">
-                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.hp}</span>
-                                <span className="font-mono text-ui-body text-fg-primary">{view.hp} / {view.maxHp}</span>
-                            </Card>
-                            <Card padding="sm" className="flex flex-col gap-1">
-                                <span className="text-ui-label text-fg-muted">{INSPECTOR_TEXT.mp}</span>
-                                <span className="font-mono text-ui-body text-fg-primary">{view.mp} / {view.maxMp}</span>
-                            </Card>
                         </div>
-                    </div>
-                </TabsContent>
-                <TabsContent value="SKILLS" className="ui-scroll min-h-0 flex-1 pb-3">
-                    <UnitStatusTab agentId={view.id} />
-                </TabsContent>
-            </Tabs>
+                    </TabsContent>
+                    <TabsContent value="SKILLS" className="pt-2">
+                        <UnitStatusTab agentId={view.id} />
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
     );
 };

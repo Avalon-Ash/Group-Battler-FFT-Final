@@ -9,7 +9,7 @@ import type { Skill } from '../../../../types';
 import type { InspectorStatusKind, InspectorView, SkillLoadoutView } from '../../../../types/ui/l3';
 import { displayAiState } from '../../../core/AgentDerived';
 import { resolveBodyType } from '../../../../data/units/appearance/bodyTypes';
-import { SKILL_ROLE_ORDER, SKILL_SLOT_TAGS, SKILL_TEAM_SUFFIX, TEAM_TONE } from '../../../../data/ui/labels/l3';
+import { ROLE_LABEL, SKILL_ROLE_ORDER, SKILL_SLOT_TAGS, SKILL_TEAM_SUFFIX, TEAM_TONE } from '../../../../data/ui/labels/l3';
 
 interface CacheEntry<V> {
     signature: string;
@@ -95,7 +95,7 @@ function groupsByTag(engine: GameEngine, dbSig: string): Map<Skill['tag'], Skill
             const skills = engine.skillDB.filter((s) => s.tag === tag && s.role === role);
             if (skills.length === 0) continue;
             groups.push({
-                label: role,
+                label: ROLE_LABEL[role],
                 options: skills.map((s) => ({
                     value: s.id,
                     label: s.team === undefined ? s.name : `${s.name}${SKILL_TEAM_SUFFIX[s.team]}`,

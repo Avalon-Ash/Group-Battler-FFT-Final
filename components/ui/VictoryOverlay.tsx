@@ -35,12 +35,12 @@ export const VictoryOverlay: React.FC<VictoryOverlayProps> = ({
 
     return (
         <div
-            className="pointer-events-auto absolute inset-0 flex overflow-y-auto"
+            className="pointer-events-auto absolute inset-0 flex overflow-y-auto ui-scrim mat-blur"
             style={{ zIndex: UI_Z.OVERLAY }}
         >
             <div
                 className={cn(
-                    'shell shell-window mat-blur rounded-ui-window m-auto flex w-full max-w-lg flex-col items-center text-center',
+                    'shell shell-window rounded-ui-window m-auto flex w-full max-w-lg flex-col items-center text-center',
                     isCompact ? 'p-5 gap-3' : 'p-8 gap-5',
                 )}
             >
@@ -50,8 +50,7 @@ export const VictoryOverlay: React.FC<VictoryOverlayProps> = ({
                     </span>
                     <h2
                         className={cn(
-                            'font-black tracking-tight',
-                            isCompact ? 'text-ui-title' : 'text-ui-display',
+                            'ui-heading text-ui-display',
                             winner === Team.BLUE ? 'text-accent' : 'text-danger',
                         )}
                     >

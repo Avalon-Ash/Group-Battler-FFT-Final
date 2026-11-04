@@ -14,10 +14,14 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
     fields,
     values,
     onChange,
-    className = 'flex flex-col gap-4',
+    className,
 }) => {
+    const containerClass = className
+        ? `flex flex-col gap-4 max-w-2xl mx-auto w-full pb-4 ${className}`
+        : 'flex flex-col gap-4 max-w-2xl mx-auto w-full pb-4';
+
     return (
-        <div className={className}>
+        <div className={containerClass}>
             {fields.map((field) => {
                 const val = values[field.id];
                 if (field.kind === 'heading') {
@@ -62,26 +66,28 @@ export const SchemaForm: React.FC<SchemaFormProps> = ({
                         : String(numVal);
 
                     return (
-                        <SettingRow
-                            key={field.id}
-                            label={field.label}
-                            description={field.description}
-                        >
-                            <div className="flex items-center gap-2 w-48 max-w-full">
-                                <Slider
-                                    min={sliderField.min}
-                                    max={dynamicMax}
-                                    step={sliderField.step}
-                                    value={numVal}
-                                    ariaLabel={field.label}
-                                    inputTestId={`setting-slider-${field.id}`}
-                                    onChange={(parsed) => onChange(sliderField.createCommand(parsed))}
-                                />
-                                <span className="w-12 text-right font-mono text-ui-num text-fg-secondary shrink-0">
+                        <div key={field.id} className="flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                    <div className="text-ui-body text-fg-primary">{field.label}</div>
+                                    {field.description && (
+                                        <div className="text-ui-label text-fg-muted">{field.description}</div>
+                                    )}
+                                </div>
+                                <span className="font-mono text-ui-num text-fg-secondary shrink-0">
                                     {displayVal}
                                 </span>
                             </div>
-                        </SettingRow>
+                            <Slider
+                                min={sliderField.min}
+                                max={dynamicMax}
+                                step={sliderField.step}
+                                value={numVal}
+                                ariaLabel={field.label}
+                                inputTestId={`setting-slider-${field.id}`}
+                                onChange={(parsed) => onChange(sliderField.createCommand(parsed))}
+                            />
+                        </div>
                     );
                 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCommands, useViewOf } from '../../../hooks/useEnginePort';
 import { selectSkillLoadoutView } from '../../../engine/systems/ui/views/l3';
-import { INSPECTOR_TEXT, SKILL_STAT_FIELDS, SKILL_TAG_TONE, SKILL_UNASSIGNED_LABEL } from '../../../data/ui/labels/l3';
+import { INSPECTOR_TEXT, SKILL_STAT_FIELDS, SKILL_TAG_LABEL, SKILL_TAG_TONE, SKILL_UNASSIGNED_LABEL } from '../../../data/ui/labels/l3';
 import { Icons } from '../../ui/icons';
 import { Card, EmptyState, SectionHeading, Select, Tag } from '../../ui/primitives';
 import { SkillIcon } from '../parts/SkillIcon';
@@ -28,11 +28,11 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agentId }) => {
                         <SkillIcon skill={slot.skill} className="h-10 w-10 shrink-0" />
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
                             <div className="flex items-center justify-between gap-2">
-                                <Tag tone={SKILL_TAG_TONE[slot.tag]}>{slot.tag}</Tag>
+                                <Tag tone={SKILL_TAG_TONE[slot.tag]}>{SKILL_TAG_LABEL[slot.tag]}</Tag>
                                 {slot.skill && <span className="truncate font-mono text-ui-num text-fg-muted">{slot.skill.id}</span>}
                             </div>
                             <Select
-                                ariaLabel={`${INSPECTOR_TEXT.skillSlot} ${slot.tag}`}
+                                ariaLabel={`${INSPECTOR_TEXT.skillSlot} ${SKILL_TAG_LABEL[slot.tag]}`}
                                 size="sm"
                                 className="w-full"
                                 value={slot.skillId ?? ''}
