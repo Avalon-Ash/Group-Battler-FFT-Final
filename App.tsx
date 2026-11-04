@@ -7,11 +7,9 @@ import { SystemMenu } from './components/ui/SystemMenu';
 import { WindowLayer } from './components/ui/window/WindowLayer';
 import { RegisteredWindows } from './components/ui/window/windowRegistry';
 import { useWindowActions, useWindowState } from './hooks/useWindowStore';
-import { Icons } from './components/ui/icons';
+import { FactionWarning } from './components/ui/FactionWarning';
 import { useGameApp } from './hooks/useGameApp';
 import { EngineProvider } from './hooks/useEnginePort';
-import { UI_Z } from './constants';
-
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
@@ -46,17 +44,7 @@ function App() {
   return (
     <EngineProvider engine={engineRef.current}>
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
-      {state.showFactionWarning && (
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 animate-bounce-in pointer-events-none w-[90%] max-w-md" style={{ zIndex: UI_Z.OVERLAY }}>
-                <div className="liquid-glass px-6 py-3 rounded-full border-red-500/50 flex items-center gap-3 shadow-xl text-red-200 bg-red-950/80">
-                    <Icons.Warning className="w-6 h-6 text-red-400" />
-                    <div className="flex flex-col">
-                        <span className="text-xs font-bold tracking-widest text-red-400 uppercase">部署錯誤</span>
-                        <span className="text-xs">請部署雙方單位以開始戰鬥。</span>
-                    </div>
-                </div>
-            </div>
-      )}
+      <FactionWarning show={state.showFactionWarning} />
       
       {state.isShowcaseMode && (
         <ShowcaseOverlay 

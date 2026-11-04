@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons } from './icons';
 import { getRegisteredWindows } from './window/windowRegistry';
 import { useWindowStore, useWindowActions } from '../../hooks/useWindowStore';
 import { UI_Z } from '../../constants';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
+import { Button, IconButton } from './primitives';
+import { cn } from './primitives/cn';
+import { MENU_DOT_CLASSES, MENU_SECTIONS } from '../../data/ui/labels/l1';
 
 interface SystemMenuProps {
     onDownloadSpec: () => void;
@@ -21,6 +24,17 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
     const windowActions = useWindowActions();
     const registeredWindows = getRegisteredWindows(mode);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isOpen]);
+
     return (
         <>
             {/* Backdrop to close dropdown on click outside */}
@@ -33,91 +47,98 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
             )}
 
             <div
-                className={`absolute flex flex-col items-end gap-3 pointer-events-auto ${isCompact ? 'top-3 right-3' : 'top-6 right-6'}`}
+                className={`absolute flex flex-col items-end gap-2 pointer-events-auto ${isCompact ? 'top-3 right-3' : 'top-6 right-6'}`}
                 style={{ zIndex: UI_Z.MENU }}
             >
-                <button
+                <IconButton
                     data-testid="system-menu-button"
+                    label={isOpen ? '關閉選單' : '開啟系統選單'}
+                    variant={isOpen ? 'primary' : 'secondary'}
+                    size="md"
+                    className="rounded-ui-pill"
                     onClick={() => setIsOpen(!isOpen)}
-                    title={isOpen ? '關閉選單' : '開啟系統選單'}
-                    className={`w-12 h-12 rounded-full liquid-card flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 active:scale-95 ${
-                        isOpen
-                            ? 'bg-white/10 text-white border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
-                            : 'text-slate-400 hover:text-white'
-                    }`}
                 >
-                    {isOpen ? <Icons.Close className="w-6 h-6" /> : <Icons.Menu className="w-6 h-6" />}
-                </button>
+                    {isOpen ? <Icons.Close className="h-5 w-5" /> : <Icons.Menu className="h-5 w-5" />}
+                </IconButton>
 
                 {isOpen && (
-                    <div className={`flex flex-col gap-2 animate-slide-down origin-top-right ${isCompact ? 'max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain' : ''}`}>
-                        {/* Registered Windows in Registry */}
-                        {registeredWindows.map((win) => {
-                            const isWinOpen = windowStates[win.id]?.isOpen ?? false;
-                            return (
-                                <button
-                                    key={win.id}
-                                    data-testid={`menu-item-${win.id}`}
-                                    onClick={() => {
-                                        windowActions.toggle(win.id);
-                                        setIsOpen(false);
-                                    }}
-                                    className="liquid-card px-5 py-3 !rounded-2xl flex items-center justify-between gap-4 text-slate-300 hover:text-cyan-400 hover:bg-black/60 hover:border-cyan-500/30 transition-all group min-w-[180px]"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-5 h-5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                            {win.icon}
+                    <div
+                        className={cn(
+                            'shell shell-popover mat-blur rounded-ui-card flex flex-col p-2 gap-2 animate-slide-left origin-top-right w-56',
+                            isCompact && 'overflow-y-auto ui-scroll',
+                        )}
+                        style={isCompact ? { maxHeight: 'calc(100dvh - 5.5rem)' } : undefined}
+                    >
+                        {/* WINDOWS */}
+                        <div className="flex flex-col gap-0.5">
+                            <span className="ui-heading px-3 py-1 text-fg-muted">{MENU_SECTIONS.windows}</span>
+                            {registeredWindows.map((win) => {
+                                const isWinOpen = windowStates[win.id]?.isOpen ?? false;
+                                return (
+                                    <Button
+                                        key={win.id}
+                                        data-testid={`menu-item-${win.id}`}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full justify-between px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                        onClick={() => {
+                                            windowActions.toggle(win.id);
+                                            setIsOpen(false);
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="w-4 h-4 flex items-center justify-center text-fg-muted">
+                                                {win.icon}
+                                            </span>
+                                            <span className="font-bold">
+                                                {win.title}
+                                            </span>
                                         </div>
-                                        <span className="text-xs font-bold tracking-wider text-white group-hover:text-cyan-300">
-                                            {win.title}
-                                        </span>
-                                    </div>
-                                    <div
-                                        className={`w-2 h-2 rounded-full transition-all ${
-                                            isWinOpen
-                                                ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]'
-                                                : 'bg-slate-600'
-                                        }`}
-                                    />
-                                </button>
-                            );
-                        })}
+                                        <span className={cn('w-2 h-2', isWinOpen ? MENU_DOT_CLASSES.active : MENU_DOT_CLASSES.inactive)} />
+                                    </Button>
+                                );
+                            })}
+                        </div>
 
-                        {/* Reset layout action */}
-                        <button
-                            data-testid="menu-item-reset-layout"
-                            onClick={() => {
-                                windowActions.resetLayout();
-                                setIsOpen(false);
-                            }}
-                            className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-400 hover:text-amber-400 hover:bg-black/60 hover:border-amber-500/30 transition-all group min-w-[180px]"
-                        >
-                            <Icons.Restart className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
-                            <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold tracking-widest text-slate-300 group-hover:text-amber-300">
-                                    重設版面 (RESET LAYOUT)
-                                </span>
-                                <span className="text-[10px] text-slate-500 uppercase">清除視窗位置記憶</span>
-                            </div>
-                        </button>
+                        <div className="h-px bg-line-subtle/15 my-0.5" />
 
-                        {/* Non-window export action */}
-                        <button
-                            data-testid="menu-item-spec"
-                            onClick={() => {
-                                onDownloadSpec();
-                                setIsOpen(false);
-                            }}
-                            className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-emerald-400 hover:bg-black/60 hover:border-emerald-500/30 transition-all group min-w-[180px]"
-                        >
-                            <Icons.Save className="w-5 h-5 group-hover:scale-110 transition-transform filter drop-shadow-md" />
-                            <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-emerald-300">
-                                    下載架構白皮書
-                                </span>
-                                <span className="text-[10px] text-slate-500 uppercase">白皮書與座標規格（Markdown）</span>
-                            </div>
-                        </button>
+                        {/* ACTIONS */}
+                        <div className="flex flex-col gap-0.5">
+                            <span className="ui-heading px-3 py-1 text-fg-muted">{MENU_SECTIONS.actions}</span>
+                            <Button
+                                data-testid="menu-item-reset-layout"
+                                variant="ghost"
+                                size="md"
+                                className="w-full justify-start gap-2.5 px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                onClick={() => {
+                                    windowActions.resetLayout();
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <Icons.Restart className="w-4 h-4 text-fg-muted shrink-0" />
+                                <div className="flex flex-col items-start text-left">
+                                    <span className="font-bold">重設版面</span>
+                                    <span className="font-mono text-ui-num text-fg-muted">清除視窗位置記憶</span>
+                                </div>
+                            </Button>
+
+                            <Button
+                                data-testid="menu-item-spec"
+                                variant="ghost"
+                                size="md"
+                                className="w-full justify-start gap-2.5 px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                onClick={() => {
+                                    onDownloadSpec();
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <Icons.Save className="w-4 h-4 text-fg-muted shrink-0" />
+                                <div className="flex flex-col items-start text-left">
+                                    <span className="font-bold">下載架構白皮書</span>
+                                    <span className="font-mono text-ui-num text-fg-muted">白皮書與座標規格</span>
+                                </div>
+                            </Button>
+                        </div>
                     </div>
                 )}
             </div>
