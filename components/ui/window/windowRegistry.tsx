@@ -66,22 +66,22 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     directorSettings: {
         icon: <Icons.TV className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <DirectorSettingsWindow engine={engine} />,
+        render: () => <DirectorSettingsWindow />,
     },
     zoneSettings: {
         icon: <span className="text-sm">🗺️</span>,
         flush: true,
-        render: ({ engine }) => <GameplaySettingsWindow engine={engine} />,
+        render: () => <GameplaySettingsWindow />,
     },
     showcaseSettings: {
         icon: <Icons.Settings className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <ShowcaseSettings engine={engine} />,
+        render: () => <ShowcaseSettings />,
     },
     audioSettings: {
         icon: <span className="text-sm">🔊</span>,
         flush: true,
-        render: ({ engine }) => <AudioSettingsWindow engine={engine} />,
+        render: () => <AudioSettingsWindow />,
     },
 };
 
