@@ -329,6 +329,70 @@
 .bt-failure { color: var(--mat-danger-fg); }
 .bt-age-2 { color: rgb(var(--token-fg-muted)); }
 
+/* 展示模式大標題：不放玻璃板，直接浮在戰場上。暗場沒有邊界，看起來不是一塊板子 */
+.hero-block {
+  position: relative;
+  isolation: isolate;
+  --hero-tint: var(--token-accent);
+}
+.hero-block[data-tone='danger'] { --hero-tint: var(--token-danger-hover); }
+.hero-block::before {
+  content: '';
+  position: absolute;
+  inset: -48px -96px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(6, 10, 18, 0.62), rgba(6, 10, 18, 0.34) 60%, transparent);
+}
+.hero-title {
+  font-family: theme('fontFamily.mono');
+  font-size: var(--ui-font-hero);
+  line-height: var(--ui-font-hero-lh);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: transparent;
+  background: linear-gradient(180deg, rgb(var(--token-fg-primary)) 38%, rgb(var(--hero-tint)) 108%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 0 22px rgb(var(--hero-tint) / 0.38));
+}
+/* 刻度線：和戰場鏡頭框的角標同一套語言 */
+.hero-rule {
+  width: 100%;
+  height: 9px;
+  margin-top: 6px;
+  background:
+    linear-gradient(90deg, rgb(var(--hero-tint)), rgb(var(--hero-tint) / 0.15) 72%, transparent) top / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, rgb(var(--hero-tint) / 0.7) 0 1px, transparent 1px 12px) top / 100% 5px no-repeat;
+}
+.hero-sub {
+  margin-top: 2px;
+  font-family: theme('fontFamily.mono');
+  font-size: var(--ui-font-label);
+  line-height: var(--ui-font-label-lh);
+  letter-spacing: 0.32em;
+  color: rgb(var(--token-fg-secondary));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+/* 進入按鈕是獨立的玻璃鍵：文字用主要色，強調色只放邊框與圖示（玻璃上的強調色文字對比不足） */
+.hero-cta {
+  height: 56px;
+  padding-inline: 32px;
+  gap: 16px;
+  border-color: rgb(var(--token-accent) / 0.7);
+  box-shadow: var(--mat-shell-highlight), var(--mat-shell-shadow), 0 0 24px rgb(var(--token-accent) / 0.18);
+  color: rgb(var(--token-fg-primary));
+  font-family: theme('fontFamily.mono');
+  font-size: var(--ui-font-title);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.hero-cta:hover:not(:disabled) {
+  background: rgb(var(--token-accent) / 0.22);
+  border-color: rgb(var(--token-accent));
+}
+.hero-cta-icon { color: rgb(var(--token-accent)); }
+
 /* 結算畫面的底：戰鬥已結束，全螢幕模糊不影響操作 */
 .ui-scrim { background: rgba(0, 0, 0, 0.6); }
 

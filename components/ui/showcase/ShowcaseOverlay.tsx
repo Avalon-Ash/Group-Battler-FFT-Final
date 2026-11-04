@@ -115,39 +115,38 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
             >
                 <div
                     data-testid="showcase-card"
-                    className={`shell shell-hud mat-blur rounded-ui-window p-8 md:p-10 pointer-events-none flex max-w-full transition-opacity duration-300 ${
+                    className={`pointer-events-none flex max-w-full transition-opacity duration-300 ${
                         isSettingsOpen && isCompactViewport ? 'opacity-0 invisible' : ''
-                    } ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}
+                    } ${isWideBar ? 'w-full flex-col md:flex-row items-center md:items-end justify-between gap-8' : 'flex-col items-center gap-8 w-full'}`}
                 >
-                    <div className={`relative flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left flex-1' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}>
+                    {/* 標題直接浮在戰場上，不放進玻璃板；可讀性靠柔和的暗場與描影 */}
+                    <div
+                        data-tone={isRoyale ? 'danger' : 'accent'}
+                        className={`hero-block flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}
+                    >
                         <Tag
                             data-testid="showcase-mode-tag"
                             tone={isRoyale ? 'danger' : 'accent'}
-                            className="mb-4 gap-2"
+                            className="mb-3 gap-2"
                         >
                             <span className="w-1.5 h-1.5 rounded-ui-pill animate-pulse bg-current" />
                             <span>{modeLabel}</span>
                         </Tag>
 
-                        <h1 className="ui-heading text-ui-hero font-black tracking-tighter text-fg-primary">
-                            TACTICAL.OS
-                        </h1>
-                        
-                        <div className="ui-heading text-ui-label text-fg-muted tracking-widest mt-2">
-                            SSOT CORE ONLINE
-                        </div>
+                        <h1 className="hero-title">TACTICAL.OS</h1>
+                        <div className="hero-rule" aria-hidden />
+                        <div className="hero-sub">SSOT CORE ONLINE</div>
                     </div>
 
                     <div className={`relative shrink-0 pointer-events-auto ${isCompact && !isWideBar ? 'w-full' : ''}`}>
                         <Button
-                            variant="primary"
                             data-testid="showcase-enter-btn"
                             onClick={onEnter}
                             title="START SIMULATION"
-                            className={`group text-ui-title ${isWideBar ? 'px-12 py-4 w-full md:w-auto' : 'w-full px-8 py-4'}`}
+                            className={`hero-cta shell-hud mat-blur group ${isWideBar ? 'w-full md:w-auto' : 'w-full'}`}
                         >
                             <span className="whitespace-nowrap">START SIMULATION</span>
-                            <Icons.Play className="w-5 h-5 fill-current group-hover:translate-x-1 transition-transform" />
+                            <Icons.Play className="hero-cta-icon w-5 h-5 fill-current group-hover:translate-x-1 transition-transform" />
                         </Button>
                     </div>
                 </div>
