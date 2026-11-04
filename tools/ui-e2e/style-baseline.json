@@ -211,23 +211,23 @@
   },
   "showcase_card": {
     "color": "rgb(205, 213, 224)",
-    "backgroundColor": "rgba(16, 24, 38, 0.74)",
-    "borderTopColor": "rgba(220, 235, 255, 0.18)",
-    "boxShadow": "rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.36) 0px 12px 32px 0px, rgba(0, 0, 0, 0.24) 0px 2px 8px 0px",
-    "backdropFilter": "blur(20px) saturate(1.3)",
-    "opacity": "1",
-    "borderRadius": "16px",
-    "fontSize": "16px"
-  },
-  "showcase_enter_btn": {
-    "color": "rgb(16, 32, 43)",
-    "backgroundColor": "rgb(103, 217, 232)",
-    "borderTopColor": "rgba(255, 255, 255, 0.24)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
     "boxShadow": "none",
     "backdropFilter": "none",
     "opacity": "1",
-    "borderRadius": "8px",
+    "borderRadius": "0px",
     "fontSize": "16px"
+  },
+  "showcase_enter_btn": {
+    "color": "rgb(241, 245, 249)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgba(103, 217, 232, 0.65)",
+    "boxShadow": "rgba(255, 255, 255, 0.22) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.35) 0px 8px 24px 0px",
+    "backdropFilter": "blur(20px) saturate(1.3)",
+    "opacity": "1",
+    "borderRadius": "10px",
+    "fontSize": "14px"
   },
   "window_showcase_settings": {
     "color": "rgb(205, 213, 224)",
