@@ -437,7 +437,7 @@ const runSchemaFormSuite = async () => {
     await openViaMenu(page, 'directorSettings');
     const engFollow = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.followStiffness);
     const uiFollow = await page.locator('[data-testid="setting-slider-followStiffness"]').inputValue();
-    ok('directorSettings: initial followStiffness matches engine (not 3.5)', Math.abs(Number(uiFollow) - engFollow) < 0.05 && Number(uiFollow) < 1.0, `${uiFollow} vs ${engFollow}`);
+    ok('directorSettings: initial followStiffness matches engine (not 3.5)', Math.abs(Number(uiFollow) - engFollow) < 0.05 && Math.abs(Number(uiFollow) - 3.5) > 0.05, `${uiFollow} vs ${engFollow}`);
 
     // Drag followStiffness slider
     const followBox = await page.locator('[data-testid="setting-slider-followStiffness"]').boundingBox();

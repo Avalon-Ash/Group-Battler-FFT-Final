@@ -1450,7 +1450,7 @@
       "secondary": "#fde047",
       "glow": "rgba(59, 130, 246, 0.6)",
       "armorLight": "#f1f5f9",
-      "uiAccent": "#60a5fa",
+      "uiAccent": "#8ab8ff",
       "uiBorder": "rgba(59, 130, 246, 0.3)",
       "borderRadius": "1rem"
     },
@@ -1459,7 +1459,7 @@
       "secondary": "#fb923c",
       "glow": "rgba(239, 68, 68, 0.6)",
       "armorLight": "#fca5a5",
-      "uiAccent": "#f87171",
+      "uiAccent": "#ff9ca8",
       "uiBorder": "rgba(239, 68, 68, 0.3)",
       "borderRadius": "0.25rem"
     }

@@ -141,9 +141,13 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             transition: 'none',
         };
 
-    const windowClasses = isNarrow
-        ? `liquid-card !rounded-t-2xl !rounded-b-none flex flex-col overflow-hidden shadow-2xl border-t border-x border-b-0 border-line-subtle/10 select-none bg-surface-panel/95 backdrop-blur-xl ${className}`
-        : `liquid-card !rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-line-subtle/10 select-none bg-surface-panel/90 backdrop-blur-xl ${className}`;
+    // 材質分級（docs/UI_REFRESH_PLAN.md）：只有桌機聚焦中的視窗用真模糊
+    const material = isNarrow || id !== topmostOpenId
+        ? 'shell-inactive'
+        : isMaximized
+            ? 'shell-maximized'
+            : 'shell-window mat-blur';
+    const windowClasses = `shell ${material} ${isNarrow ? 'rounded-t-ui-window border-b-0' : 'rounded-ui-window'} flex flex-col overflow-hidden select-none ${className}`;
 
     return (
         <div
@@ -162,14 +166,14 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 onPointerMove={isNarrow ? undefined : handleTitlePointerMove}
                 onPointerUp={isNarrow ? undefined : handleTitlePointerUp}
                 onDoubleClick={isNarrow ? undefined : handleTitleDoubleClick}
-                className={`h-10 px-3 bg-gradient-to-b from-line-subtle/10 to-transparent flex items-center justify-between border-b border-line-subtle/10 shrink-0 ${
+                className={`h-10 px-3 flex items-center justify-between border-b border-line-subtle/10 shrink-0 ${
                     isNarrow || isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
                 }`}
                 style={{ touchAction: 'none' }}
             >
                 <div className="flex items-center gap-2 overflow-hidden pointer-events-none">
                     {icon && <span className="text-accent-hover shrink-0">{icon}</span>}
-                    <span className="font-mono font-bold text-xs text-text-base truncate tracking-tight">
+                    <span className="ui-heading text-fg-primary truncate">
                         {displayTitle}
                     </span>
                 </div>

@@ -36,15 +36,130 @@
     height: 100%;
   }
   body {
-    @apply bg-slate-950 text-slate-200 overflow-hidden select-none;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    @apply bg-slate-950 text-slate-200 overflow-hidden select-none font-sans;
     height: 100%;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  code, pre, .font-mono {
-    font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+  :focus-visible {
+    outline: 2px solid var(--mat-focus);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* 新材質（docs/UI_REFRESH_PLAN.md）。真模糊只有 .mat-blur 一個來源（styles/tokens.css）。 */
+@layer components {
+  .shell {
+    border: 1px solid var(--mat-shell-border);
+    box-shadow: var(--mat-shell-highlight), var(--mat-shell-shadow);
+  }
+  .shell-window { background: var(--mat-shell-window); }
+  .shell-hud { background: var(--mat-shell-hud); }
+  .shell-popover { background: var(--mat-shell-popover); }
+  /* 沒聚焦、手機底部面板：純色，不模糊 */
+  .shell-inactive {
+    background: var(--mat-solid-inactive);
+    box-shadow: var(--mat-solid-highlight), var(--mat-shell-shadow);
+  }
+  /* 最大化：面積最大又蓋住戰場，模糊只是白花 GPU */
+  .shell-maximized {
+    background: var(--mat-solid-maximized);
+    box-shadow: var(--mat-solid-highlight);
+  }
+
+  .ctl {
+    background: var(--mat-control-bg);
+    border: 1px solid var(--mat-control-border);
+    box-shadow: var(--mat-control-highlight);
+    border-radius: var(--ui-radius-control);
+    color: rgb(var(--token-fg-secondary));
+    transition: background-color 120ms, border-color 120ms, color 120ms;
+  }
+  .ctl:hover:not(:disabled):not([data-disabled]) {
+    background: var(--mat-control-hover-bg);
+    border-color: var(--mat-control-hover-border);
+    color: rgb(var(--token-fg-primary));
+  }
+  .ctl:active:not(:disabled):not([data-disabled]) {
+    background: var(--mat-control-press-bg);
+    border-color: var(--mat-control-press-border);
+    box-shadow: none;
+  }
+  .ctl[data-state='on'], .ctl[data-state='active'], .ctl[data-state='checked'] {
+    background: var(--mat-control-on-bg);
+    border-color: var(--mat-control-on-border);
+    color: rgb(var(--token-fg-primary));
+  }
+  .ctl:disabled, .ctl[data-disabled] {
+    background: var(--mat-control-off-bg);
+    border-color: var(--mat-control-off-border);
+    color: rgb(var(--token-fg-disabled));
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .ctl-ghost {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .ctl-primary {
+    background: var(--mat-primary-bg);
+    border-color: var(--mat-primary-border);
+    color: var(--mat-primary-fg);
+  }
+  .ctl-primary:hover:not(:disabled) {
+    background: var(--mat-primary-hover);
+    border-color: var(--mat-primary-border);
+    color: var(--mat-primary-fg);
+  }
+  .ctl-primary:active:not(:disabled) {
+    background: var(--mat-primary-press);
+    color: var(--mat-primary-fg);
+  }
+  .ctl-danger {
+    background: var(--mat-danger-bg);
+    border-color: var(--mat-danger-border);
+    color: var(--mat-danger-fg);
+  }
+  .ctl-danger:hover:not(:disabled) {
+    background: var(--mat-danger-hover);
+    border-color: var(--mat-danger-border);
+    color: var(--mat-danger-fg);
+  }
+  .ctl-danger:active:not(:disabled) {
+    background: var(--mat-danger-press);
+    color: var(--mat-danger-fg);
+  }
+  .well {
+    background: var(--mat-well-bg);
+    border: 1px solid var(--mat-well-border);
+    box-shadow: var(--mat-well-shadow);
+    border-radius: var(--ui-radius-control);
+    color: rgb(var(--token-fg-primary));
+  }
+  .card {
+    background: var(--mat-card-bg);
+    border: 1px solid var(--mat-card-border);
+    box-shadow: var(--mat-control-highlight);
+    border-radius: var(--ui-radius-card);
+  }
+  /* 視窗、分頁、區塊標題：英文全大寫等寬 */
+  .ui-heading {
+    font-family: theme('fontFamily.mono');
+    font-size: var(--ui-font-label);
+    line-height: var(--ui-font-label-lh);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ui-scroll {
+    overflow: auto;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
   }
 }
 
@@ -98,9 +213,14 @@
   }
 }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
+/* 設了 scrollbar-width 會讓 ::-webkit-scrollbar 失效，所以只給不支援 ::-webkit-scrollbar 的瀏覽器（Firefox） */
+::-webkit-scrollbar { width: var(--ui-scrollbar); height: var(--ui-scrollbar); }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors; }
+::-webkit-scrollbar-thumb { background: var(--mat-scroll-thumb); border-radius: var(--ui-radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--mat-scroll-thumb-hover); }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--mat-scroll-thumb) transparent; }
+}
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -120,14 +240,30 @@
   50% { transform: translateY(-5px); }
 }
 
-.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+/* 只用 backwards：forwards／both 留著的動畫會讓子孫的 backdrop-filter 失效（2026-11-04 選單 A/B 實測） */
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards; }
+.animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.animate-slide-down { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 .animate-pulse-glow { animation: pulseGlow 3s infinite; }
-.animate-bounce-in { animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-bounce-in { animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 
+/* 使用者開「減少透明度」：外殼全部改純色。Safari 不支援這個查詢，預設樣式本身也要可讀 */
+@media (prefers-reduced-transparency: reduce) {
+  .mat-blur {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--mat-solid-inactive);
+  }
+}
+
 @media (pointer: coarse) {
+  :root {
+    --ui-control-h: var(--touch-target-min);
+    --ui-font-body: 14px;
+    --ui-font-body-lh: 22px;
+    --ui-scrollbar: 4px;
+  }
   [data-window-id] [data-window-titlebar="true"] {
     min-height: var(--touch-target-min);
   }

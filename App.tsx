@@ -9,6 +9,7 @@ import { RegisteredWindows } from './components/ui/window/windowRegistry';
 import { useWindowActions, useWindowState } from './hooks/useWindowStore';
 import { Icons } from './components/ui/icons';
 import { useGameApp } from './hooks/useGameApp';
+import { EngineProvider } from './hooks/useEnginePort';
 import { UI_Z } from './constants';
 
 
@@ -43,6 +44,7 @@ function App() {
   };
 
   return (
+    <EngineProvider engine={engineRef.current}>
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
       {state.showFactionWarning && (
             <div className="absolute top-24 left-1/2 -translate-x-1/2 animate-bounce-in pointer-events-none w-[90%] max-w-md" style={{ zIndex: UI_Z.OVERLAY }}>
@@ -138,6 +140,7 @@ function App() {
           />
       )}
     </div>
+    </EngineProvider>
   );
 }
 

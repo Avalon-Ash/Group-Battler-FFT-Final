@@ -12,6 +12,10 @@ import { AudioSettingsWindow } from '../settings/AudioSettingsWindow';
 import { UnitInspectorBody } from '../inspector/UnitInspectorBody';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
+import { windowStore } from './windowStore';
+
+// 視窗定義是純資料，由這裡（UI 組裝層）登錄進 store，data/ui 不反向依賴 components
+windowStore.registerDefs(WINDOW_DEFINITIONS);
 
 /** Everything a window body may need from the host app. */
 export interface WindowRenderContext {

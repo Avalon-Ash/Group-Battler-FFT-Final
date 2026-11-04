@@ -11,7 +11,37 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // 中文一律接微軟正黑體 UI／蘋方：等寬清單沒有中文字型時，Windows 會退回細明體（2026-11-04 實測）
+        sans: ['system-ui', '-apple-system', '"Segoe UI"', '"Microsoft JhengHei UI"', '"PingFang TC"', '"Noto Sans TC"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'Consolas', '"Microsoft JhengHei UI"', '"PingFang TC"', '"Noto Sans TC"', 'monospace'],
+      },
+      fontSize: {
+        'ui-num': ['var(--ui-font-num)', 'var(--ui-font-num-lh)'],
+        'ui-label': ['var(--ui-font-label)', 'var(--ui-font-label-lh)'],
+        'ui-body': ['var(--ui-font-body)', 'var(--ui-font-body-lh)'],
+        'ui-title': ['var(--ui-font-title)', 'var(--ui-font-title-lh)'],
+        'ui-display': ['var(--ui-font-display)', 'var(--ui-font-display-lh)'],
+        'ui-hero': ['var(--ui-font-hero)', 'var(--ui-font-hero-lh)'],
+      },
+      borderRadius: {
+        'ui-window': 'var(--ui-radius-window)',
+        'ui-card': 'var(--ui-radius-card)',
+        'ui-control': 'var(--ui-radius-control)',
+        'ui-tag': 'var(--ui-radius-tag)',
+        'ui-pill': 'var(--ui-radius-pill)',
+      },
+      spacing: {
+        control: 'var(--ui-control-h)',
+        'control-sm': 'var(--ui-control-h-sm)',
+      },
       colors: {
+        fg: {
+          primary: 'rgb(var(--token-fg-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--token-fg-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--token-fg-muted) / <alpha-value>)',
+          disabled: 'rgb(var(--token-fg-disabled) / <alpha-value>)',
+        },
         surface: {
           base: 'rgb(var(--token-surface-base) / <alpha-value>)',
           panel: 'rgb(var(--token-surface-panel) / <alpha-value>)',
@@ -78,7 +108,7 @@ export default {
       },
       animation: {
         'spin-slow': 'spin 8s linear infinite',
-        'slide-left': 'slideLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'slide-left': 'slideLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards',
       },
       keyframes: {
         slideLeft: {
