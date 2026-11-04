@@ -43,7 +43,7 @@ function App() {
 
   return (
     <EngineProvider engine={engineRef.current}>
-    <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
+    <div className="h-dvh w-screen bg-surface-base text-fg-secondary overflow-hidden font-sans flex flex-col relative select-none">
       <FactionWarning show={state.showFactionWarning} />
       
       {state.isShowcaseMode && (
@@ -75,15 +75,13 @@ function App() {
       {/* Floating tool windows. RegisteredWindows filters by visibleInShowcase in showcase mode. */}
       <WindowLayer>
           <RegisteredWindows
-              engine={engineRef.current}
-              selectedAgentId={state.selectedAgent?.id ?? null}
               onCloseInspector={() => actions.handleSelectAgent(null)}
               showcaseMode={state.isShowcaseMode}
               isGameOver={isGameOver}
           />
       </WindowLayer>
 
-      <div className="flex-1 min-h-0 relative z-0 bg-slate-900 touch-none">
+      <div className="flex-1 min-h-0 relative z-0 bg-surface-panel touch-none">
             <GameCanvas 
                 engine={engineRef.current} 
                 tool={state.tool}

@@ -13,14 +13,14 @@ export const AUDIO_BUS_SLIDERS: readonly AudioBusSliderDef[] = [
     { bus: 'ui', label: '介面音效', desc: '按鈕點擊與狀態提示' },
 ];
 
-export const SHOWCASE_LAYOUT_LABELS = [
+const SHOWCASE_LAYOUT_LABELS = [
     { value: 'CENTER', label: '中央對齊', title: '中央對齊' },
     { value: 'BOTTOM_CENTER', label: '底部中央', title: '底部中央' },
     { value: 'BOTTOM_LEFT', label: '左下側', title: '左下側' },
     { value: 'BOTTOM_RIGHT', label: '右下側', title: '右下側' },
 ] as const;
 
-export const SHOWCASE_DIRECTION_LABELS = [
+const SHOWCASE_DIRECTION_LABELS = [
     { value: 'DOWN', title: '向下' },
     { value: 'UP', title: '向上' },
     { value: 'LEFT', title: '向左' },

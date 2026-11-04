@@ -20,7 +20,7 @@ export interface GameplaySettingsViewModel {
     readonly battleUnitsMax?: number;
 }
 
-export interface AudioSettingsViewModel {
+interface AudioSettingsViewModel {
     readonly master: number;
     readonly music: number;
     readonly sfx: number;
@@ -29,4 +29,4 @@ export interface AudioSettingsViewModel {
     readonly announcer: boolean;
 }
 
-export type ShowcaseTabKey = 'SYSTEM' | 'CAMERA' | 'VISUAL' | 'GAMEPLAY';
+type ShowcaseTabKey = 'SYSTEM' | 'CAMERA' | 'VISUAL' | 'GAMEPLAY';

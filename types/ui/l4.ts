@@ -5,7 +5,7 @@ export interface SkillDbView {
     readonly totalCount: number;
 }
 
-export interface L4LogView {
+interface L4LogView {
     readonly logs: readonly LogEntry[];
     readonly totalCount: number;
 }

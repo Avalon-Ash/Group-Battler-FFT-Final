@@ -5,8 +5,8 @@
   "directRendererAccess": 1,
   "asAny": 0,
   "setIntervalCount": 2,
-  "tailwindPaletteClasses": 369,
-  "zIndexClasses": 8,
+  "tailwindPaletteClasses": 22,
+  "zIndexClasses": 1,
   "directEngineMethodCalls": 0,
   "directPoseWrites": 6
 }

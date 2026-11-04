@@ -133,7 +133,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.translate(-x, -y); 
             const sprite = SpriteManager.getObstacleSprite(type ?? "WALL", engine.mapConfig.layout, draggedObstacle.originQ, draggedObstacle.originR);
             const liftOffset = GAME_CANVAS_PARAM.DRAG_LIFT_PX; 
-            ctx.shadowColor = 'var(--token-literal-black-tint50)';
             ctx.shadowBlur = GAME_CANVAS_PARAM.DRAG_SHADOW_BLUR;
             ctx.shadowOffsetY = GAME_CANVAS_PARAM.DRAG_SHADOW_OFFSET_Y;
             ctx.globalAlpha = GAME_CANVAS_PARAM.DRAG_ALPHA;
@@ -178,7 +177,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     }, [engine.mapConfig.w, engine.mapConfig.h, isShowcaseMode, transitionPhase, centerCamera]);
 
     return (
-        <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-slate-950">
+        <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-surface-base">
             <canvas 
                 ref={canvasRef} 
                 className="block w-full h-full"

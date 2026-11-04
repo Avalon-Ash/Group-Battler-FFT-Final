@@ -266,7 +266,8 @@ const runMultiWindow = async () => {
         for (let dx = 8; dx < r.width - 8; dx += 4) {
             const px = r.x + dx; const py = r.y + 20;
             const hit = document.elementFromPoint(px, py);
-            if (hit && e.contains(hit)) return { x: px, y: py };
+            // 標題列的三顆鈕不算：按到關閉鈕視窗就沒了
+            if (hit && e.contains(hit) && !hit.closest('[data-window-btn]')) return { x: px, y: py };
         }
         return null;
     }, lowest[0]);
@@ -788,7 +789,6 @@ const TARGET_ELEMENTS_MANUAL = [
     { id: 'window_inspector', selector: '[data-window-id="inspector"]' },
     { id: 'window_inspector_header', selector: '[data-window-id="inspector"] > div:first-child' },
     { id: 'window_inspector_tab_status', selector: '[data-window-id="inspector"] button[title="\u72c0\u614b\u76e3\u63a7"]' },
-    { id: 'window_inspector_tab_ai', selector: '[data-window-id="inspector"] button[title="\u884c\u70ba\u6a39\u76e3\u63a7 (AI)"]' },
     { id: 'window_inspector_tab_skills', selector: '[data-window-id="inspector"] button[title="\u6280\u80fd\u914d\u7f6e (LINK)"]' },
     { id: 'window_inspector_config_btn', selector: '[data-window-id="inspector"] button[title="\u7de8\u8f2f\u55ae\u4f4d\u5c6c\u6027"]' },
     { id: 'playback_hud', selector: '[data-testid="playback-hud"]' },

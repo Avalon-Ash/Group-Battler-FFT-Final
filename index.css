@@ -5,14 +5,6 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --glass-bg: rgb(var(--token-surface-panel) / 0.45);
-    --glass-border: rgb(var(--token-line-subtle) / 0.12);
-    --glass-highlight: rgb(var(--token-line-subtle) / 0.05);
-    --neon-primary: rgb(var(--token-accent));
-    --neon-secondary: rgb(var(--token-warn));
-    --neon-danger: rgb(var(--token-danger));
-  }
   [data-team="blue"] {
     --team-primary: rgb(var(--token-team-blue-primary));
     --team-secondary: rgb(var(--token-team-blue-secondary));
@@ -280,55 +272,6 @@
   }
 }
 
-@layer components {
-  .liquid-card {
-    @apply bg-surface-panel/60 backdrop-blur-2xl backdrop-saturate-150 
-           border border-line-subtle/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] 
-           ring-1 ring-line-subtle/5 rounded-3xl transition-all duration-300;
-  }
-  .liquid-card-dark {
-    @apply bg-surface-dark/40 backdrop-blur-md border border-line-subtle/5 rounded-2xl;
-  }
-  .liquid-btn {
-    @apply relative overflow-hidden flex items-center justify-center transition-all duration-200
-           bg-line-subtle/5 border border-line-subtle/10 text-slate-300 backdrop-blur-md font-bold tracking-wider
-           hover:bg-line-subtle/15 hover:border-line-subtle/25 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]
-           active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100;
-  }
-  .liquid-btn-primary {
-    @apply liquid-btn bg-accent/10 border-accent/30 text-accent-hover
-           hover:bg-accent/20 hover:border-accent-hover/50 hover:text-accent-faint hover:shadow-[0_0_20px_rgba(6,182,212,0.4)];
-  }
-  .liquid-btn-danger {
-    @apply liquid-btn bg-danger/10 border-danger/30 text-danger-hover
-           hover:bg-danger/20 hover:border-danger-hover/50 hover:text-danger-faint hover:shadow-[0_0_20px_rgba(239,68,68,0.4)];
-  }
-  .liquid-icon-btn {
-    @apply w-10 h-10 rounded-full liquid-btn text-lg shadow-lg;
-  }
-  .liquid-input {
-    @apply bg-surface-dark/20 border border-line-subtle/10 rounded-xl px-4 py-2 text-slate-200 font-mono text-sm
-           focus:border-accent/50 focus:bg-surface-dark/40 focus:ring-2 focus:ring-accent/20 
-           outline-none transition-all placeholder-slate-600 shadow-inner;
-  }
-  .liquid-tag {
-    @apply px-2 py-0.5 rounded-full text-[10px] font-bold border backdrop-blur-sm uppercase tracking-wider;
-  }
-}
-
-@layer utilities {
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  .text-glow-cyan { text-shadow: 0 0 10px rgb(var(--token-accent) / 0.6); }
-  .text-glow-red { text-shadow: 0 0 10px rgb(var(--token-danger) / 0.6); }
-  .text-glow-amber { text-shadow: 0 0 10px rgb(var(--token-warn) / 0.6); }
-  .text-glow-imperial {
-    text-shadow: 0 0 12px rgb(var(--token-team-blue-primary) / 0.7), 0 0 4px rgb(var(--token-team-blue-secondary) / 0.4);
-  }
-  .text-glow-covenant {
-    text-shadow: 0 0 12px rgb(var(--token-team-red-primary) / 0.7), 0 0 4px rgb(var(--token-team-red-secondary) / 0.4);
-  }
-}
 
 /* 設了 scrollbar-width 會讓 ::-webkit-scrollbar 失效，所以只給不支援 ::-webkit-scrollbar 的瀏覽器（Firefox） */
 ::-webkit-scrollbar { width: var(--ui-scrollbar); height: var(--ui-scrollbar); }

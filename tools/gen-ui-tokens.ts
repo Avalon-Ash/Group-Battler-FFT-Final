@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { UI_GLASS_BLUR, UI_LITERAL_TOKENS, UI_MATERIAL_TOKENS, UI_SCALE_TOKENS, UI_TOKENS } from '../data/ui/tokens';
+import { UI_GLASS_BLUR, UI_MATERIAL_TOKENS, UI_SCALE_TOKENS, UI_TOKENS } from '../data/ui/tokens';
 import { TEAM_COLORS } from '../constants';
 import { Team } from '../types';
 
@@ -29,7 +29,6 @@ export function generateTokensCss(): string {
     };
 
     flatten(UI_TOKENS);
-    flatten(UI_LITERAL_TOKENS, '--token-literal');
     flatten(UI_MATERIAL_TOKENS, '--mat');
     flatten(UI_SCALE_TOKENS, '--ui');
 

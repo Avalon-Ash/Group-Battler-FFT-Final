@@ -14,11 +14,6 @@ export const EngineProvider: React.FC<{ engine: GameEngine; children: React.Reac
     <EngineContext.Provider value={engine}>{children}</EngineContext.Provider>
 );
 
-/** 只給 hooks 層的轉接函式用（技能圖示、特效縮圖等）；components 不准呼叫。 */
-export function useEngineHandle(): GameEngine | null {
-    return useContext(EngineContext);
-}
-
 export function useView<T>(selector: (engine: GameEngine) => T): T | null {
     return useEngineView(useContext(EngineContext), selector);
 }

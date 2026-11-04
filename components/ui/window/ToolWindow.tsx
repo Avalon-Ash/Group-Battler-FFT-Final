@@ -6,6 +6,7 @@ import { useWindowState, useWindowActions, useTopmostOpenWindowId } from '../../
 import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowInteraction';
 import { clampRect, getMaximizedRect, getWindowLayerZ } from './windowStore';
 import { Icons } from '../icons';
+import { IconButton } from '../primitives';
 
 export interface ToolWindowProps {
     id: WindowId;
@@ -181,43 +182,41 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 <div className="flex items-center gap-1 shrink-0" data-no-drag="true">
                     {headerActions}
 
-                    {/* Collapse Button */}
-                    <button
-                        type="button"
+                    <IconButton
+                        size="sm"
+                        variant="ghost"
                         data-window-btn="collapse"
                         onClick={() => actions.collapse(id)}
-                        title={isCollapsed ? '展開視窗' : '收合視窗'}
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
+                        label={isCollapsed ? '展開視窗' : '收合視窗'}
                     >
-                        <Icons.Minimize className="w-3 h-3" />
-                    </button>
+                        <Icons.Minimize className="h-4 w-4" />
+                    </IconButton>
 
-                    {/* Maximize Button: disabled on narrow bottom sheet */}
+                    {/* 手機底部面板沒有最大化 */}
                     {!isNarrow && (
-                        <button
-                            type="button"
+                        <IconButton
+                            size="sm"
+                            variant="ghost"
                             data-window-btn="maximize"
                             onClick={() => actions.maximize(id)}
-                            title={isMaximized ? '還原視窗' : '最大化'}
-                            className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
+                            label={isMaximized ? '還原視窗' : '最大化'}
                         >
-                            <Icons.Expand className="w-3 h-3" />
-                        </button>
+                            <Icons.Expand className="h-4 w-4" />
+                        </IconButton>
                     )}
 
-                    {/* Close Button */}
-                    <button
-                        type="button"
+                    <IconButton
+                        size="sm"
+                        variant="ghost"
                         data-window-btn="close"
                         onClick={() => {
                             onClose?.();
                             actions.close(id);
                         }}
-                        title="關閉視窗"
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-danger-hover hover:bg-danger/10 transition-colors"
+                        label="關閉視窗"
                     >
-                        <Icons.Close className="w-3 h-3" />
-                    </button>
+                        <Icons.Close className="h-4 w-4" />
+                    </IconButton>
                 </div>
             </div>
 

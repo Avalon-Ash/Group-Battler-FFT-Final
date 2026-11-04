@@ -20,7 +20,7 @@ export interface BattleSetupView {
     readonly maxUnitsPerFaction: number;
 }
 
-export interface ShakeTuningView {
+interface ShakeTuningView {
     readonly strength: number;
     readonly offFocusScale: number;
     readonly maxTrauma: number;
@@ -234,7 +234,7 @@ export function selectCameraTuningView(engine: GameEngine): CameraTuningView {
 /**
  * Returns a stable read-only ShakeTuningView snapshot.
  */
-export function selectShakeTuningView(engine: GameEngine): ShakeTuningView {
+function selectShakeTuningView(engine: GameEngine): ShakeTuningView {
     const tuning = engine.director.getShakeTuning();
 
     if (

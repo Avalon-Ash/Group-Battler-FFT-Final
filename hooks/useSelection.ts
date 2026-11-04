@@ -29,7 +29,7 @@ export class SelectionStore {
 
 export const selectionStore = new SelectionStore();
 
-export function useSelectedIds(): readonly string[] {
+function useSelectedIds(): readonly string[] {
     return useSyncExternalStore(selectionStore.subscribe, selectionStore.getIds, selectionStore.getIds);
 }
 
