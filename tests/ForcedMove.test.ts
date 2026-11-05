@@ -189,6 +189,7 @@ describe('ForcedMove', () => {
     });
 
     it('DASH respects the climb rule end to end', () => {
+        for (const k of engine.map.mapKeys) engine.map.heightMap.set(k, 0);
         setHeight(1, 3);
         const caster = spawn(Team.RED, -2);
         const enemy = spawn(Team.BLUE, 3);
@@ -196,7 +197,10 @@ describe('ForcedMove', () => {
         caster.target = enemy;
         caster.targetHex = { q: 3, r: 0 };
         runCastActions(caster, dash, { q: 3, r: 0 }, hexEventPos(3, 0, engine), engine);
-        expect(caster.q).toBe(0);
+        // 落點規劃：牆擋住直線就換一格走得到的（tests/MobilityLanding.test.ts），絕不爬上牆
+        expect(HexUtils.dist(caster, enemy)).toBe(1);
+        expect(engine.getTerrainHeight(caster.q, caster.r)).toBe(0);
+        expect(HexUtils.line({ q: -2, r: 0 }, caster).some((h) => h.q === 1 && h.r === 0)).toBe(false);
     });
 
     it('canStepUp matches the Pathfinder rule', () => {

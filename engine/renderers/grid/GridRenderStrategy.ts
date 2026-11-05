@@ -1,6 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // [ARCH] Sole writer of GroundPriority per-cell budgets; both teams use progress-driven zone fills (section 12).
 // ║  GridRenderStrategy — 地塊／障礙／危害／疊層 RenderOp 提交 ║
+// ║  射程高亮：getSkillRange，機動技不吃高度。                ║
 // ║  職責：每格提交 TERRAIN、OBSTACLE、HAZARD、OVERLAY         ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
 // ║  op.y＝足跡 Y（不含高度，與單位同一把尺），op.ty＝繪製 Y  ║
@@ -187,6 +188,6 @@ export class GridRenderStrategy {
 
     private checkIsRange(q: number, r: number, h: number, skill: Skill | null, highlight: Agent | null, engine: GameEngine): boolean {
         if (!skill || !highlight) return false;
-        return HexUtils.dist(highlight, { q, r }) <= engine.getEffectiveRange(highlight, q, r, skill.range);
+        return HexUtils.dist(highlight, { q, r }) <= engine.getSkillRange(highlight, q, r, skill);
     }
 }
