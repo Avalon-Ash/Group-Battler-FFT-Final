@@ -673,3 +673,10 @@
   3. **地形烘焙卡頓**（熔岩地圖個位數 FPS 的主因）：快取鍵含浮動相位×縮放級距，容量滿時**整個清空**造成重烘焙風暴。已加「每時間窗烘焙預算＋借用相鄰縮放級距 sprite」與「只丟舊縮放級距」（`RENDER_CACHE.BAKE_BUDGET_MS`／`BAKE_WINDOW_MS`、`TerrainBlockCache.ts`）。**使用者仍需在熔岩圖實測**；若仍卡，開 `?perf` 重現後在 console 貼 `JSON.stringify(window.__PERF_SPIKES__)`（尖峰記錄器已內建，含各階段耗時與 `terrainCache` hits／misses／evictions）。
   4. **BGM 疊音**：AI Studio 的共享引擎＋擁有者計數＋請求序號修法**使用者已確認修好**。
   5. 其他：角色大小 `UNIT_SPRITE.targetHeightCanvasUnits=59`（護盾稜柱為上限，測試遍歷全部影格）；護盾高度現在**自動貼合角色頭頂**（`SHIELD_VISUAL.headMargin`、`computeShieldGeometry`，飛行單位跟隨 body center）；`battle_frozen` 基準因單位變大已重錄一次（5 個地形基準仍 0 差異）。
+
+### BR. 2026-11-06 單位狀態美術與 Inspector 狀態面板（GPT Astra 設計與原型、GPT Sol 實作，agy Sonnet 與 Sol 初審，主代理裁定）
+- 使用者要求：狀態表現在模型本身，不在單位身上貼圖示（第一版身側符號被否決），參考 LoL。原型三輪，使用者只採用點名的：暈眩（頭上小星環＋失衡）、變羊（Blender 重烘、腿剩 30%、無項圈）、定身（粗藤蔓）、燃燒（火舌附身）、中毒（全身染綠＋泡泡）。其餘狀態、圖示列、血條、浮字維持原樣（同環境 A/B 0 像素差異）。未採用的原型與評語見 HANDOFF N。
+- 中毒用固定 8 頁的外觀快取（8.0 MiB），draw 路徑無逐單位裁切、filter、離屏；20 人實戰 8 種外觀同時中毒，顯色後退回原色 849→0 幀，首次顯色最多晚 13 幀。定身改四段深度帶，不再重疊兩次。
+- 資料：`StatusQueries` 正規化 17 槽＋護盾、`STATUS_OBSERVATION` 顯示用觀測事件（不派送 HUD／音效）與 `StatusPresentationSystem` 記錄來源；放逐不再被 Inspector 當成死亡。指紋三模式 60/60 相同，觀測開關 3600 tick 的 sourceId、DR、RNG 零差異。
+- Inspector STATUS 分頁新增 ACTIVE EFFECTS：依 CONTROL／DAMAGE & WEAKEN／RECOVERY & PROTECT 分組，剩餘時間、施加者、來源跳轉（只改選取，不改觀看陣營）；手機底部面板。面板圖示用正確置中重烘，圖示列的舊烘焙不動。
+- 驗證（GPT 在沙盒、主代理在沙盒外補跑完整測試）：lint、build、knip、audit:ui、e2e:ui（style 0 差異）、runtime-smoke、verify:coords、perf:guard、perf:mem。iPhone 實機未測。
