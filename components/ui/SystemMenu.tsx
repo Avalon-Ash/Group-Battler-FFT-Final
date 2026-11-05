@@ -80,7 +80,8 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                                         data-testid={`menu-item-${win.id}`}
                                         variant="ghost"
                                         size="sm"
-                                        className="w-full justify-between gap-2 px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                        align="between"
+                                        className="w-full gap-2 px-3 text-fg-secondary hover:text-fg-primary rounded-ui-control"
                                         onClick={() => {
                                             windowActions.toggle(win.id);
                                             setIsOpen(false);
@@ -108,8 +109,9 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                             <Button
                                 data-testid="menu-item-reset-layout"
                                 variant="ghost"
-                                size="sm"
-                                className="w-full justify-start gap-2.5 px-3 py-1.5 h-auto text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                size="auto"
+                                align="start"
+                                className="w-full gap-2.5 px-3 py-1.5 text-fg-secondary hover:text-fg-primary rounded-ui-control"
                                 onClick={() => {
                                     windowActions.resetLayout();
                                     setIsOpen(false);
@@ -127,8 +129,9 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                             <Button
                                 data-testid="menu-item-spec"
                                 variant="ghost"
-                                size="sm"
-                                className="w-full justify-start gap-2.5 px-3 py-1.5 h-auto text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                size="auto"
+                                align="start"
+                                className="w-full gap-2.5 px-3 py-1.5 text-fg-secondary hover:text-fg-primary rounded-ui-control"
                                 onClick={() => {
                                     onDownloadSpec();
                                     setIsOpen(false);

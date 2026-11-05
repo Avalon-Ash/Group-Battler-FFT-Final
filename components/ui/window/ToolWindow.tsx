@@ -148,6 +148,8 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         : isMaximized
             ? 'shell-maximized'
             : 'shell-window mat-blur';
+    // 把手貼在視窗邊緣且在最上層：內容要讓開，否則會蓋住貼邊的卷軸。觸控的卷軸不靠拖，不必讓
+    const handleInset = !isMaximized && !isNarrow && !isCoarsePointer ? UI_WINDOW.HANDLE_PX : 0;
     const windowClasses = `shell ${material} rounded-ui-window flex flex-col overflow-hidden select-none ${className}`;
 
     return (
@@ -225,7 +227,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 <div
                     data-window-body="true"
                     className={`flex-1 overflow-auto relative text-text-base ${contentClassName}`}
-                    style={{ touchAction: 'pan-y pan-x' }}
+                    style={{ touchAction: 'pan-y pan-x', marginRight: handleInset, marginBottom: handleInset }}
                 >
                     {children}
                 </div>

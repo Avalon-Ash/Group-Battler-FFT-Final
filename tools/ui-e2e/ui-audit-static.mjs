@@ -68,6 +68,18 @@ for (const file of files) {
     if (!inPrimitives) rules.push(RAW_CONTROL);
     if (file !== ENGINE_HOST) rules.push(ENGINE_IMPORT);
     const lines = stripComments(readFileSync(join(ROOT, file), 'utf8')).split('\n');
+    // 按鈕內建的對齊、高度、字級不能用 className 覆寫：cn 不解衝突，誰贏看 CSS 順序。改用 Button 的變體
+    if (!inPrimitives) {
+        const text = lines.join('\n');
+        for (const m of text.matchAll(/<(?:Button|IconButton)\b[\s\S]*?className=(?:"([^"]*)"|\{`([^`]*)`\})/g)) {
+            if (m[0].includes('/>') || m[0].slice(1).includes('<')) continue;
+            const hit = (m[1] ?? m[2]).split(/\s+/).filter((t) => /^(?:justify-|items-|h-|text-ui-)/.test(t));
+            if (hit.length === 0) continue;
+            violations++;
+            perRule['button-override'] = (perRule['button-override'] ?? 0) + 1;
+            console.log(`${file}:${text.slice(0, m.index).split('\n').length} button-override ${hit.join(' ')}`);
+        }
+    }
     lines.forEach((line, i) => {
         for (const rule of rules) {
             if (!rule.re.test(line)) continue;
