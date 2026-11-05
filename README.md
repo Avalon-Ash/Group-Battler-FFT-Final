@@ -238,6 +238,7 @@ npm run build        # 生產環境打包（dist/）
 npm run e2e:ui       # UI e2e（無頭 Edge）
 npm run perf:guard   # 渲染保真與效能回歸檢查（改渲染時必跑）
 npm run balance:sim  # 雙陣營批次模擬（技能與勝率）
+npm run balance:mobility # 機動技位移、落點與墜落死的實戰驗收
 npm run balance:idle # AI 發呆、繞圈、職業勝率（--scenario=TEAMS|MELEE|ROYALE|TANK_ROYALE）
 npm run verify:coords # 執行期座標守門（加 --order 跑景深順序預言）
 npm run perf:frames  # 真實幀間隔（平穩戰鬥／特效壓力／展示，2560×1440，請放在高更新率主螢幕）

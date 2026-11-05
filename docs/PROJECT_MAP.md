@@ -5,7 +5,7 @@
 ## 1. 各系統在哪
 - **音訊**：`engine/audio/AudioEngine.ts`（共享單例＋擁有者計數＋BGM 請求序號；`?mute` 不建立 AudioContext；喚醒規則見 `tests/AudioWake.test.ts`）、`engine/systems/audio/AudioSystem.ts`（事件→Cue、BGM 切換）、`data/audio/{cues,music}.ts`、素材 `public/assets/audio/`（CC0／CC-BY，見 `docs/ASSET_LEDGER.md`、`CREDITS.md`）。展示模式只播 `SHOWCASE_AMBIENT`；手動：開戰播該地圖的戰鬥曲（`battleTrackForScene`）→存活≤4 `BATTLE_TENSE`→勝敗曲（紅藍分開）→回氛圍。預覽頁 `tools/audio/preview.html`。
 - **導播**：`engine/presentation/DirectorRoster.ts`（排分選主角）、`DirectorFight.ts`（框哪一對）、`DirectorShot.ts`（景別與取景）、`DirectorSystem.ts`（串起來）、`CameraSystem.ts`（執行）；參數 `constants/render.ts` 的 `DIRECTOR_PARAM`。
-- **技能**：設計 `docs/SKILL_PIPELINE_DESIGN.md`；動作 handler 在 `engine/systems/combat/`，資料在 `data/skills/`、`skillDatabase.ts`。量測 `npm run balance:sim`。
+- **技能**：設計 `docs/SKILL_PIPELINE_DESIGN.md`；動作 handler 在 `engine/systems/combat/`，資料在 `data/skills/`、`skillDatabase.ts`。量測 `npm run balance:sim`；機動技落點與墜落死 `npm run balance:mobility`。
 - **特效**：登記管線 `data/vfx/VFXRegistry.ts`＋`engine/presentation/vfx`；直接繪製管線在 `engine/renderers/*`；品質階層 `engine/renderers/RenderQuality.ts`＋`constants/render.ts` 的 `RENDER_QUALITY`、`constants/vfx.ts` 的 `VFX_BUDGET`／`DEATH_VFX`。
 - **單位**：精靈 `engine/renderers/units/factions/SpriteUnitRenderer.ts`（圖集 `SpriteAtlasStore`；座標：在 `ctx.scale(UNIT_SCALE)` 之後繪製，需 `/UNIT_SCALE` 補償，腳底錨點 `UNIT_SPRITE.footOffsetLocal`）；地面底座／職業圖示仍由 Token 工廠產生。
 - **UI**（規則見 DECISIONS「UI」）：共用元件 `components/ui/primitives/`、token `data/ui/tokens.ts`（生成 `styles/tokens.css`）、引擎入口 `hooks/useEnginePort.tsx`、selector `engine/systems/ui/views/`、稽核 `npm run audit:ui -- all`。視窗系統 `components/ui/window/*`、展示頁 `components/ui/showcase/ShowcaseOverlay.tsx`（標題卡除按鈕外穿透）。樣式基準 `tools/ui-e2e/style-baseline.json`（改 UI 樣式需 `E2E_UPDATE_STYLE=1 npm run e2e:ui` 並確認只有預期元素變動）。

@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  SkillActions — 技能動作清單的執行者                      ║
 // ║  職責：每種動作一個 handler，依四個時機執行：              ║
-// ║        onCast 出手（突進）、onImpact 落點（危害區）、      ║
+// ║        onCast 出手（落點見 LandingPlanner）、onImpact 落點（危害區）、║
 // ║        onHit 打中每個目標、onEnd 結束（施法者自己的狀態）。║
 // ║  [ARCH] DISPEL 以回傳 mask 送純量 receipt，不改清除判斷。║
 // ║  上游：SkillExecutor、ProjectileSystem                    ║
@@ -17,7 +17,7 @@ import type { CastAction, EndAction, HitAction, ImpactAction, Skill, StatusActio
 import type { HitOptions, SkillExecutor } from "./SkillExecutor";
 import { isSkillTarget } from "../../core/SkillQueries";
 import { CCManager } from "./CCManager";
-import { planDashPath, planRetreatPath, resolveForcedMove } from "./ForcedMove";
+import { isSafeLanding, planDashLanding, planRetreatLanding } from "./LandingPlanner";
 import { HazardManager } from "./HazardManager";
 import { applyDirectDamage, breakShield } from "./DirectDamage";
 import { dashTo, lungeToward, stopMovement, teleportTo } from "../movement/MotionCommands";
@@ -40,6 +40,7 @@ function run<A extends { action: string }, C>(handlers: Handlers<A, C>, actions:
 // ── onCast ──
 
 interface CastContext {
+    skill: Skill;
     source: Agent;
     targetHex: { q: number; r: number };
     origin: { x: number; y: number };
@@ -52,6 +53,7 @@ const CAST_HANDLERS: Handlers<CastAction, CastContext> = {
         let bestDist = -Infinity;
         for (const n of HexUtils.neighbors(targetHex)) {
             if (!engine.isValid(n.q, n.r) || engine.hasObstacle(n.q, n.r) || engine.getAgentAt(n.q, n.r)) continue;
+            if (!isSafeLanding(source, n, engine)) continue;
             const d = HexUtils.dist(source, n);
             if (d > bestDist) {
                 bestDist = d;
@@ -70,18 +72,14 @@ const CAST_HANDLERS: Handlers<CastAction, CastContext> = {
             targetId: source.id,
         });
     },
-    RETREAT: ({ source, targetHex, engine }, a) => {
-        const path = planRetreatPath(source, targetHex, a.tiles, engine);
-        const dash = resolveForcedMove(source, path, path.length, 'DASH', engine);
-        if (dash.stepsTaken > 0) {
-            dashTo(source, dash.finalHex.q, dash.finalHex.r, engine);
-        }
+    RETREAT: ({ source, engine }, a) => {
+        const landing = planRetreatLanding(source, a.tiles, engine);
+        if (landing) dashTo(source, landing.q, landing.r, engine);
     },
-    // 高度／障礙／單位由 ForcedMove 裁決
-    DASH: ({ source, targetHex, origin, engine }) => {
-        const dashPath = planDashPath(source, targetHex, engine);
-        const dash = resolveForcedMove(source, dashPath, dashPath.length, 'DASH', engine);
-        const bestH = dash.stepsTaken > 0 ? dash.finalHex : null;
+    // 落點在出手時重算（詠唱中目標可能跑了）；高度／障礙／單位由 ForcedMove 裁決
+    DASH: ({ source, skill, targetHex, origin, engine }) => {
+        const aim = source.target && source.target.hp > 0 ? source.target : targetHex;
+        const bestH = planDashLanding(source, aim, skill, engine);
         if (!bestH) {
             lungeToward(source, origin, PHYSICS.LUNGE_SPEED_ACTIVE);
             return;
@@ -102,7 +100,7 @@ const CAST_HANDLERS: Handlers<CastAction, CastContext> = {
 };
 
 export function runCastActions(source: Agent, skill: Skill, targetHex: { q: number; r: number }, origin: { x: number; y: number }, engine: GameEngine): void {
-    run(CAST_HANDLERS, skill.onCast, { source, targetHex, origin, engine });
+    run(CAST_HANDLERS, skill.onCast, { source, skill, targetHex, origin, engine });
 }
 
 // ── onImpact ──

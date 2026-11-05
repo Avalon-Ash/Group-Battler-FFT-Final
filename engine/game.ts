@@ -407,6 +407,10 @@ export class GameEngine implements SpatialProvider {
         return this.movement.getEffectiveRange(a, targetQ, targetR, baseRange, this);
     }
 
+    public getSkillRange(a: Hex & { jump?: number }, targetQ: number, targetR: number, skill: Pick<Skill, 'range' | 'tag'>): number {
+        return this.movement.targeting.getSkillRange(a, targetQ, targetR, skill, this);
+    }
+
     public calculateOptimalTarget(source: Agent, skill: Skill) {
         return this.movement.calculateOptimalTarget(source, skill, this);
     }

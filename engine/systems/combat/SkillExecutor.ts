@@ -1,6 +1,12 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║ SkillExecutor — 機動突進：單體要貼身才打中，範圍以落地格為 ║
+// ║ 中心。後撤技打的是跳開前瞄準的目標，落地超出射程也算。     ║
+// ║ 上游：CombatSystem 已完成 onCast 位移；其餘技能射程不變。  ║
+// ╚══════════════════════════════════════════════════════════╝
 import { Agent, GameEngine } from "../../game";
 import { Skill, SkillStatus, Hex } from "../../../types";
 import { HexUtils } from "../../utils";
+import { isMeleeAttackCell } from "../../ai/MeleeAttack";
 import { DamageCalculator } from "./DamageCalculator";
 import { hasAnyStatus, hasStatusIn, isSkillTarget } from "../../core/SkillQueries";
 import { runEndActions, runHitActions, runImpactActions } from "./SkillActions";
@@ -80,7 +86,9 @@ export class SkillExecutor {
         let targets: Agent[] = [];
         
         // 1. 確定施法中心點
-        const targetHex = deferred ? deferred.center : SkillExecutor.castCenter(source, skill);
+        const mobilityDash = skill.tag === 'MOBILITY' && (skill.onCast?.some(a => a.action === 'DASH') ?? false);
+        const retreated = skill.onCast?.some(a => a.action === 'RETREAT') ?? false;
+        const targetHex = deferred ? deferred.center : mobilityDash && skill.type === 'AOE' ? { q: source.q, r: source.r } : SkillExecutor.castCenter(source, skill);
 
         // 普攻沒有 CAST_START；近戰斬擊與瞬發光束由 VISUAL_BEAM 事件觸發技能序列（SkillSequences）
         if (skill.tag === 'BASIC' && source.target) {
@@ -130,8 +138,11 @@ export class SkillExecutor {
                     }
                 }
 
-                const effRange = engine.movement.getEffectiveRange(source, primary.q, primary.r, skill.range, engine);
-                if (shouldPush && (deferred || HexUtils.dist(source, primary) <= effRange + COMBAT_PARAM.RANGE_TOLERANCE)) {
+                const effRange = engine.getSkillRange(source, primary.q, primary.r, skill);
+                const inRange = deferred || retreated || (mobilityDash
+                    ? isMeleeAttackCell(engine.movement.targeting, source, primary.q, primary.r, COMBAT_PARAM.MELEE_RANGE, engine, source.jump)
+                    : HexUtils.dist(source, primary) <= effRange + COMBAT_PARAM.RANGE_TOLERANCE);
+                if (shouldPush && inRange) {
                     targets.push(primary);
                 }
             }

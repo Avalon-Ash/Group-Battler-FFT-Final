@@ -1,10 +1,15 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║ BTRegistry — 技能射程走 getSkillRange；機動施放前檢查落點。║
+// ║ 上游：AI 模式樹；DASH／RETREAT 共用 LandingPlanner。       ║
+// ╚══════════════════════════════════════════════════════════╝
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
-import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
+import { NodeState, AIState, MovementType, ActionState, Hex, Skill } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isActionBlocked, isIncapacitated } from "../core/Effects";
+import { planDashLanding, planRetreatLanding } from "../systems/combat/LandingPlanner";
 import { activationBlock } from "../systems/combat/SkillStateMachine";
 import { hasIntentIn } from "../core/SkillQueries";
 import type { SkillIntent } from "../../types";
@@ -98,6 +103,15 @@ const PUSH_PULL: ReadonlySet<SkillIntent> = new Set<SkillIntent>(['HOOK', 'PEEL'
 
 function isThreat(a: Agent, e: Agent, within: number): boolean {
     return !sameSide(e, a) && e.hp > 0 && !e.banished && !e.outOfBounds && HexUtils.dist(a, e) <= within;
+}
+
+/** 技能的出手位移現在有沒有地方落（沒有位移動作就算有）。 */
+function hasLanding(a: Agent, s: Skill, engine: GameEngine): boolean {
+    for (const action of s.onCast ?? []) {
+        if (action.action === 'DASH' && (!a.target || !planDashLanding(a, a.target, s, engine))) return false;
+        if (action.action === 'RETREAT' && !planRetreatLanding(a, action.tiles, engine)) return false;
+    }
+    return true;
 }
 
 export const BTConditions: Record<string, BTConditionFn> = {
@@ -246,15 +260,16 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const s = a.skills[args.slot];
         if (!s) return false;
         const need = s.activation;
-        if (!need) return true;
-        if (need.targetBeyond !== undefined) {
+        if (need?.targetBeyond !== undefined) {
             if (!a.target || a.target.hp <= 0) return false;
             const dist = HexUtils.dist(a, a.target);
             if (dist <= need.targetBeyond) return false;
-            if (dist > engine.getEffectiveRange(a, a.target.q, a.target.r, s.range) + COMBAT_PARAM.RANGE_TOLERANCE) return false;
+            if (dist > engine.getSkillRange(a, a.target.q, a.target.r, s) + COMBAT_PARAM.RANGE_TOLERANCE) return false;
         }
-        if (need.enemyWithin !== undefined && !engine.agents.some((e) => isThreat(a, e, need.enemyWithin as number))) return false;
-        return true;
+        if (need?.enemyWithin !== undefined && !engine.agents.some((e) => isThreat(a, e, need.enemyWithin as number))) return false;
+        // 落點規劃最貴，放最後；冷卻中交給後面的 SkillReady，詠唱中不重判（出手時會重算）
+        if (a.castingSkillIdx === args.slot || (a.curCDs[args.slot] || 0) > COMBAT_PARAM.READY_CD_TOLERANCE) return true;
+        return hasLanding(a, s, engine);
     },
 
     "FindOptimalTarget": (a, engine, args) => {
@@ -269,7 +284,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
                 if (a.target && !sameSide(a.target, a)) {
                     a._savedCombatTarget = a.target;
                 }
-                const effRange = engine.getEffectiveRange(a, result.targetAgent.q, result.targetAgent.r, skill.range);
+                const effRange = engine.getSkillRange(a, result.targetAgent.q, result.targetAgent.r, skill);
                 const inRange = HexUtils.dist(a, result.targetAgent) <= effRange + COMBAT_PARAM.RANGE_TOLERANCE;
                 if (inRange) {
                     a.target = result.targetAgent;
@@ -310,7 +325,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         else if (a.target) { tQ = a.target.q; tR = a.target.r; }
         else return false;
         
-        const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
+        const effRange = engine.getSkillRange(a, tQ, tR, skill);
         const gridDist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
         
         // [FIX] 使用更嚴格的容差，與 SkillExecutor 保持同步，避免 AI 誤判射程導致空放
@@ -858,7 +873,7 @@ export const BTActions: Record<string, BTActionFn> = {
         // 檢查射程
         let tQ = a.targetHex ? a.targetHex.q : a.target!.q;
         let tR = a.targetHex ? a.targetHex.r : a.target!.r;
-        const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
+        const effRange = engine.getSkillRange(a, tQ, tR, skill);
         const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
         
         if (dist <= effRange + COMBAT_PARAM.RANGE_TOLERANCE) {

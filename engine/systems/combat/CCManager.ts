@@ -1,4 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
+// ║ CCManager — 拉扯無 origin 時止於施法者身邊；拉扯不出場。   ║
+// ║ 規則：機動擊退停在 EDGE 且不算撞擊；其他擊退可 ring-out。 ║
+// ║ 上游：SkillActions；ForcedMove 裁決路徑，MotionCommands 寫位移。║
 // ║ CCManager — 原控制流程；成功寫入後附純量觀測，不寫 view。 ║
 // ║ [ARCH] provenance 分開時間／強度／變體；不改 sourceId。   ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -270,7 +273,7 @@ export const CCManager = {
 
             case 'KNOCKBACK':
             case 'PULL':
-                const result = this.calculateKnockback(target, force || 0, source, origin, type, engine, repeatHit);
+                const result = this.calculateKnockback(target, force || 0, source, origin, type, engine, skill, repeatHit);
                 if (result.applied) {
                     const visual = type === 'PULL' ? STATUS_VISUALS.PULL : STATUS_VISUALS.KNOCKBACK;
                     statusText = visual.label;
@@ -393,13 +396,15 @@ export const CCManager = {
         return { effectiveDuration: baseDuration * multiplier, isImmune: false };
     },
 
-    calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine, repeatHit: boolean = false) {
+    calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine, skill: Pick<Skill, 'tag'>, repeatHit: boolean = false) {
         const rawForce = Math.max(1, force);
         let tilesToPush = Math.max(rawForce >= FORCED_MOVE.MIN_ONE_TILE_FORCE ? 1 : 0, rawForce - target.weight);
         // 拉向一個點（AOE 牽引的中心）最多拉到那一格，不會穿過去；已經在中心就不動（多段牽引每段都拉）
-        if (type === 'PULL' && origin) {
-            const centre = HexUtils.fromPx(origin.x, origin.y, engine.mapConfig);
-            tilesToPush = Math.min(tilesToPush, HexUtils.dist(target, centre));
+        if (type === 'PULL') {
+            const limit = origin
+                ? HexUtils.dist(target, HexUtils.fromPx(origin.x, origin.y, engine.mapConfig))
+                : Math.max(0, HexUtils.dist(target, source) - 1);
+            tilesToPush = Math.min(tilesToPush, limit);
         }
         if (tilesToPush === 0) return { applied: false };
 
@@ -409,7 +414,12 @@ export const CCManager = {
         const kind: ForcedMoveKind = type === 'PULL' ? 'PULL' : 'KNOCKBACK';
 
         // 高度／障礙／單位的判定全在 ForcedMove（與 Pathfinder 共用爬高規則）
-        const { finalHex: finalH, blocked } = resolveForcedMove(target, vector, tilesToPush, kind, engine);
+        // 單體鉤子沿六角直線拉，才會正好停在施法者身邊；像素方向會滑到旁邊的格
+        const pullPath = type === 'PULL' && !origin
+            ? HexUtils.line(target, source).slice(1, tilesToPush + 1).map(h => ({ q: h.q || 0, r: h.r || 0 }))
+            : null;
+        const ringOut = kind === 'KNOCKBACK' && skill.tag !== 'MOBILITY';
+        const { finalHex: finalH, blocked } = resolveForcedMove(target, pullPath ?? vector, tilesToPush, kind, engine, ringOut);
 
         const moved = finalH.q !== target.q || finalH.r !== target.r;
         if (moved) {
