@@ -44,6 +44,8 @@ export interface AgentView {
     visualStatus: SpecialVisualStatus;
     hitFlashTimer: number;
     visualOffset: Point;
+    /** Fixed receipts; runtime writer: StatusPresentationSystem; lifecycle: ViewCommands. */
+    statusPresentation: StatusPresentation;
 }
 
 export interface Skill {
@@ -169,10 +171,32 @@ export type EffectKind =
     | 'HASTE' | 'REFLECT' | 'LIFESTEAL' | 'SLOW'
     | 'DOT' | 'HOT';
 
+/** Presentation observations only: never used to resolve combat. */
+export const STATUS_CHANGE = { DURATION: 1, VALUE: 2, VARIANT: 4 } as const;
+type DotVariant = 'DOT' | 'POISON' | 'BLEED' | 'BURN';
+export interface StatusOrigin {
+    recorded: boolean;
+    sourceId: string | null;
+    sourceSide: number | null;
+    skillId: string | null;
+    skillName: string | null;
+    element: Skill['element'] | null;
+}
+export interface StatusReceipt {
+    duration: StatusOrigin;
+    value: StatusOrigin;
+    variant: StatusOrigin;
+}
+interface StatusPresentation {
+    effects: Record<EffectKind, StatusReceipt>;
+    shieldGrant: { origin: StatusOrigin; grantedAmount: number };
+    feedback: { kind: GameEvent['feedbackKind'] | null; removedMask: number };
+}
+
 export interface EffectSlot {
     remaining: number;     // 原 xxxTimer
     max: number;           // 原 xxxMax（沒有 Max 欄位的效果也記，給 UI 用）
-    value: number;         // DOT＝每跳傷害、HOT＝每跳回復、SLOW＝減速比例（0.65＝慢 65%），其餘 0
+    value: number;         // DOT＝每秒傷害、HOT＝每秒回復、SLOW＝減速比例（0.65＝慢 65%），其餘 0
     tag: string | null;    // DOT＝'BURN'／'POISON'，其餘 null
     sourceId: string | null; // TAUNT＝嘲諷者 id、DOT＝施放者 id，其餘 null
 }
@@ -296,7 +320,7 @@ export interface SpatialHazard {
     skill?: Skill;
 }
 
-export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK' | 'KILL_SPREE' | 'HAZARD_SPAWN' | 'GROUND_IMPACT' | 'LAST_STAND_TRIGGERED' | 'HIT_FX';
+export type GameEventType = 'STATUS_OBSERVATION' | 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK' | 'KILL_SPREE' | 'HAZARD_SPAWN' | 'GROUND_IMPACT' | 'LAST_STAND_TRIGGERED' | 'HIT_FX';
 
 export interface GameEvent {
     type: GameEventType;
@@ -315,6 +339,23 @@ export interface GameEvent {
     crit?: boolean;
     /** CAST_BREAK：被中斷的 AOE 技能預警範圍（中斷當下的 telegraph），供崩解特效逐格播放 */
     hexes?: readonly Hex[];
+    /** Status receipt scalars: copied before pooled events are released. */
+    effectKind?: EffectKind;
+    skillId?: string;
+    skillName?: string;
+    sourceSide?: number;
+    element?: Skill['element'];
+    statusResult?: 'APPLIED' | 'REFRESHED' | 'UNCHANGED' | 'IMMUNE';
+    statusChanges?: number;
+    statusNew?: boolean;
+    grantedAmount?: number;
+    removedKindMask?: number;
+    periodicKind?: 'DOT' | 'HOT' | 'HAZARD';
+    rate?: number;
+    dotVariant?: DotVariant;
+    hazardKind?: SpatialHazard['type'];
+    feedbackKind?: 'IMMUNE' | 'INTERRUPTED' | 'CLEANSED' | 'REFLECT' | 'LIFESTEAL';
+    statusReason?: 'DR';
 }
 
 /** 導播景別：特寫、中景、全景（DIRECTOR_PARAM.SHOT_RADIUS_PX） */

@@ -2,11 +2,13 @@
 // ║  views/l3 — 單位檢查器與技能配置的唯讀快照                ║
 // ║  職責：把 Agent 與技能庫轉成純資料，UI 不碰 Agent         ║
 // ║  [ARCH] 內容沒變就回傳同一個物件，useSyncExternalStore    ║
+// ║ [ARCH] 放逐／出界用 availability，不假報陣亡。            ║
 // ║  才不會無限重繪；陣亡、隊伍色、顯示哪種狀態在這裡判斷     ║
 // ╚══════════════════════════════════════════════════════════╝
 import type { GameEngine } from '../../../game';
 import type { Skill } from '../../../../types';
 import type { InspectorStatusKind, InspectorView, SkillLoadoutView } from '../../../../types/ui/l3';
+import { statusAvailability } from '../../../core/StatusQueries';
 import { displayAiState } from '../../../core/AgentDerived';
 import { resolveBodyType } from '../../../../data/units/appearance/bodyTypes';
 import { ROLE_LABEL, SKILL_ROLE_ORDER, SKILL_SLOT_TAGS, SKILL_TEAM_SUFFIX, TEAM_TONE } from '../../../../data/ui/labels/l3';
@@ -39,7 +41,8 @@ export function selectInspectorView(engine: GameEngine, agentId: string | null |
     if (agent.effects.STUN.remaining > 0) statusTags.push('STUN');
     if (agent.effects.SILENCE.remaining > 0) statusTags.push('SILENCE');
 
-    const isDead = agent.hp <= 0 || agent.banished || agent.fullyDead;
+    const availability = statusAvailability(agent);
+    const isDead = availability === 'DEAD';
     const aiState = displayAiState(agent);
     const bodyType = resolveBodyType(agent);
     const hp = Math.round(agent.hp);
@@ -49,7 +52,7 @@ export function selectInspectorView(engine: GameEngine, agentId: string | null |
     const shield = Math.round(agent.shield);
     const signature = [
         agent.id, agent.team, agent.role, bodyType, hp, maxHp, mp, maxMp, shield, agent.q, agent.r,
-        isDead, statusTags.join(','), aiState, agent.actionState,
+        isDead, availability, statusTags.join(','), aiState, agent.actionState,
     ].join('|');
 
     const cache = cacheOf(inspectorCaches, engine);
@@ -70,6 +73,7 @@ export function selectInspectorView(engine: GameEngine, agentId: string | null |
         q: agent.q,
         r: agent.r,
         isDead,
+        availability,
         statusTags,
         aiState,
         actionState: agent.actionState,

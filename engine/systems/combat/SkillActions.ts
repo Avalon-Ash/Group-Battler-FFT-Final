@@ -3,6 +3,7 @@
 // ║  職責：每種動作一個 handler，依四個時機執行：              ║
 // ║        onCast 出手（突進）、onImpact 落點（危害區）、      ║
 // ║        onHit 打中每個目標、onEnd 結束（施法者自己的狀態）。║
+// ║  [ARCH] DISPEL 以回傳 mask 送純量 receipt，不改清除判斷。║
 // ║  上游：SkillExecutor、ProjectileSystem                    ║
 // ║  [ARCH] 新增動作：types.ts 加型別，這裡加 handler（表的    ║
 // ║  型別會要求補上），engine/core/SkillQueries.ts 視需要加    ║
@@ -179,8 +180,13 @@ const HIT_HANDLERS: Handlers<HitAction, HitContext> = {
     BREAK_SHIELD: ({ target }) => {
         breakShield(target);
     },
-    DISPEL: ({ target }, a) => {
-        CCManager.dispelEffects(target, a.polarity);
+    DISPEL: ({ source, target, skill, engine }, a) => {
+        const removedKindMask = CCManager.dispelEffects(target, a.polarity);
+        if (removedKindMask !== 0) engine.pushEvent('STATUS_OBSERVATION', unitEventPos(target, engine), {
+            sourceId: source.id, targetId: target.id, sourceSide: source.side,
+            skillId: skill.id, skillName: skill.name, element: skill.element,
+            removedKindMask, feedbackKind: 'CLEANSED',
+        });
     },
     CHANCE: (ctx, a) => {
         if (random() < a.chance) {

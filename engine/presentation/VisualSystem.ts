@@ -16,11 +16,13 @@
 // ║    和 SkillExecutor.deliverHits 的鎖定原目標一致；不改任何座標規則 ║
 // ║                                                                  ║
 // ║  子系統分工 (SSOT 邊界)：                                        ║
+// ║    StatusPresentationSystem → 先複製純量至 view 固定 receipt    ║
 // ║    EventHUDMapper  → DAMAGE / HEAL / CC / CAST 事件 → HUDSystem  ║
 // ║    EventVFXMapper  → 粒子特效事件 → VFXSystem                    ║
 // ║    SequenceSystem  → CAST_START 技能序列排程                      ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
+import { StatusPresentationSystem } from "./StatusPresentationSystem";
 import { GameEngine } from "../game";
 import { GameEvent } from "../../types";
 import type { VFXSequence } from "../../types/VFXSchema";
@@ -74,6 +76,7 @@ export class VisualSystem {
         if (events.length === 0) return;
         const impacts = this.getImpactSink(engine);
         events.forEach(event => {
+            StatusPresentationSystem.process(event, engine.agents);
             this.hudMapper.process(event, engine, hud, grid, impacts);
             if (event.type === 'PROJECTILE_HIT' && event.skill?.id) {
                 const impact = SKILL_SEQUENCES[event.skill.id]?.impact;

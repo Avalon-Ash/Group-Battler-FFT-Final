@@ -1,4 +1,7 @@
-
+// ╔══════════════════════════════════════════════════════════╗
+// ║ CCManager — 原控制流程；成功寫入後附純量觀測，不寫 view。 ║
+// ║ [ARCH] provenance 分開時間／強度／變體；不改 sourceId。   ║
+// ╚══════════════════════════════════════════════════════════╝
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
 import { Vector, HexUtils } from "../../utils";
@@ -13,7 +16,7 @@ import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedM
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 import { EFFECT_DEFS } from "../../../data/status/effect_defs";
 import { EFFECT_KINDS } from "../../core/Effects";
-import type { EffectKind } from "../../../types";
+import { STATUS_CHANGE, type EffectKind } from "../../../types";
 import { sameSide } from '../../core/Allegiance';
 
 export const CCManager = {
@@ -39,6 +42,11 @@ export const CCManager = {
         if (isBuff && !sameSide(source, target)) return;
         if (isDebuff && sameSide(source, target)) return;
         
+        const kind = def ? type as EffectKind : undefined;
+        const previousRemaining = kind ? target.effects[kind].remaining : 0;
+        const previousValue = kind ? target.effects[kind].value : 0;
+        const previousVisual = target.ccVisual;
+        let changes = 0;
         const amount = force || CC_RULES.DEFAULT_SHIELD_AMOUNT;
         let isImmune = false;
         let effectiveDuration = dur || 0;
@@ -72,7 +80,11 @@ export const CCManager = {
                 text: STATUS_VISUALS.IMMUNE.label, 
                 color: STATUS_VISUALS.IMMUNE.primaryColor,
                 sourceId: source.id,
-                targetId: target.id
+                targetId: target.id,
+                effectKind: kind, skillId: skill.id, skillName: skill.name,
+                sourceSide: source.side, element: skill.element,
+                statusResult: 'IMMUNE', statusChanges: 0, statusNew: false,
+                feedbackKind: 'IMMUNE', statusReason: 'DR',
             });
             return;
         }
@@ -86,6 +98,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.STUN.remaining) {
                     target.effects.STUN.remaining = effectiveDuration;
                     target.effects.STUN.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 stopMovement(target);
                 // SSOT: AnimState.STUN is derived from effects.STUN
@@ -99,6 +112,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.SILENCE.remaining) {
                     target.effects.SILENCE.remaining = effectiveDuration;
                     target.effects.SILENCE.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 statusText = STATUS_VISUALS.SILENCE.label;
                 statusColor = STATUS_VISUALS.SILENCE.primaryColor;
@@ -108,6 +122,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.BANISH.remaining) {
                     target.effects.BANISH.remaining = effectiveDuration;
                     target.effects.BANISH.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 syncBanished(target);
                 stopMovement(target);
@@ -130,6 +145,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.ROOT.remaining) {
                     target.effects.ROOT.remaining = effectiveDuration;
                     target.effects.ROOT.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 stopMovement(target);
                 statusText = STATUS_VISUALS.ROOT.label;
@@ -140,6 +156,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.FEAR.remaining) {
                     target.effects.FEAR.remaining = effectiveDuration;
                     target.effects.FEAR.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 statusText = STATUS_VISUALS.FEAR.label;
                 statusColor = STATUS_VISUALS.FEAR.primaryColor;
@@ -149,6 +166,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.TAUNT.remaining) {
                     target.effects.TAUNT.remaining = effectiveDuration;
                     target.effects.TAUNT.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                     target.effects.TAUNT.sourceId = source.id; 
                     
                     // --- 2. State Machine Overrides ---
@@ -167,6 +185,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.BLIND.remaining) {
                     target.effects.BLIND.remaining = effectiveDuration;
                     target.effects.BLIND.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 statusText = STATUS_VISUALS.BLIND.label;
                 statusColor = STATUS_VISUALS.BLIND.primaryColor;
@@ -176,6 +195,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.POLYMORPH.remaining) {
                     target.effects.POLYMORPH.remaining = effectiveDuration;
                     target.effects.POLYMORPH.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 stopMovement(target);
                 statusText = STATUS_VISUALS.POLYMORPH.label;
@@ -187,6 +207,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.INVINCIBLE.remaining) {
                     target.effects.INVINCIBLE.remaining = effectiveDuration;
                     target.effects.INVINCIBLE.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 statusText = STATUS_VISUALS.INVINCIBLE.label;
                 statusColor = STATUS_VISUALS.INVINCIBLE.primaryColor;
@@ -197,6 +218,7 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.VULNERABLE.remaining) {
                     target.effects.VULNERABLE.remaining = effectiveDuration;
                     target.effects.VULNERABLE.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 statusText = STATUS_VISUALS.VULNERABLE.label;
                 statusColor = STATUS_VISUALS.VULNERABLE.primaryColor;
@@ -206,7 +228,9 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.HASTE.remaining) {
                     target.effects.HASTE.remaining = effectiveDuration;
                     target.effects.HASTE.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                     target.effects.HASTE.value = force || 0;
+                    changes |= STATUS_CHANGE.VALUE;
                 }
                 statusText = STATUS_VISUALS.HASTE.label;
                 statusColor = STATUS_VISUALS.HASTE.primaryColor;
@@ -216,7 +240,9 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.REFLECT.remaining) {
                     target.effects.REFLECT.remaining = effectiveDuration;
                     target.effects.REFLECT.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                     target.effects.REFLECT.value = force || 0;
+                    changes |= STATUS_CHANGE.VALUE;
                 }
                 statusText = STATUS_VISUALS.REFLECT.label;
                 statusColor = STATUS_VISUALS.REFLECT.primaryColor;
@@ -226,7 +252,9 @@ export const CCManager = {
                 if (effectiveDuration > target.effects.LIFESTEAL.remaining) {
                     target.effects.LIFESTEAL.remaining = effectiveDuration;
                     target.effects.LIFESTEAL.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                     target.effects.LIFESTEAL.value = force || 0;
+                    changes |= STATUS_CHANGE.VALUE;
                 }
                 statusText = STATUS_VISUALS.LIFESTEAL.label;
                 statusColor = STATUS_VISUALS.LIFESTEAL.primaryColor;
@@ -259,9 +287,11 @@ export const CCManager = {
                 // 續約取較長時間與較大減速（不吃遞減、不算硬控）；已過期的舊值不留
                 const slow = target.effects.SLOW;
                 slow.value = Math.max(slow.remaining > 0 ? slow.value : 0, force || 0);
+                if (previousRemaining <= 0 || slow.value !== previousValue) changes |= STATUS_CHANGE.VALUE;
                 if (effectiveDuration > slow.remaining) {
                     slow.remaining = effectiveDuration;
                     slow.max = effectiveDuration;
+                    changes |= STATUS_CHANGE.DURATION;
                 }
                 slow.sourceId = source.id;
                 statusText = STATUS_VISUALS.SLOW.label;
@@ -270,6 +300,7 @@ export const CCManager = {
             }
 
             case 'DOT':
+                changes |= STATUS_CHANGE.DURATION | STATUS_CHANGE.VALUE | STATUS_CHANGE.VARIANT;
                 target.effects.DOT.remaining = effectiveDuration;
                 target.effects.DOT.max = effectiveDuration;
                 target.effects.DOT.value = force || 10;
@@ -286,6 +317,7 @@ export const CCManager = {
                 break;
 
             case 'HOT':
+                changes |= STATUS_CHANGE.DURATION | STATUS_CHANGE.VALUE | STATUS_CHANGE.VARIANT;
                 target.effects.HOT.remaining = effectiveDuration;
                 target.effects.HOT.max = effectiveDuration;
                 target.effects.HOT.value = force || 10;
@@ -294,6 +326,8 @@ export const CCManager = {
                 break;
         }
 
+        if (target.ccVisual !== previousVisual) changes |= STATUS_CHANGE.VARIANT;
+        if (kind && previousRemaining <= 0 && target.effects[kind].remaining > 0) changes |= STATUS_CHANGE.VARIANT;
         if (statusText) {
             // Append DR info if applicable
             let displayEffectText = statusText;
@@ -308,8 +342,22 @@ export const CCManager = {
                 text: displayEffectText, 
                 color: statusColor,
                 sourceId: source.id,
-                targetId: target.id
+                targetId: target.id,
+                effectKind: kind, skillId: skill.id, skillName: skill.name,
+                sourceSide: source.side, element: skill.element,
+                statusResult: kind ? (changes === 0 ? 'UNCHANGED' : previousRemaining > 0 ? 'REFRESHED' : 'APPLIED') : undefined,
+                statusChanges: changes, statusNew: previousRemaining <= 0,
+                grantedAmount: type === 'SHIELD' ? amount : undefined,
             });
+            // STASIS has a separate live slot, written unconditionally by the BANISH branch.
+            if (type === 'BANISH' && skill.specialVisualStatus === 'STASIS') {
+                engine.pushEvent('STATUS_OBSERVATION', unitEventPos(target, engine), {
+                    targetId: target.id, sourceId: source.id, sourceSide: source.side,
+                    skillId: skill.id, skillName: skill.name, element: skill.element,
+                    effectKind: 'STASIS', statusResult: 'APPLIED', statusNew: true,
+                    statusChanges: STATUS_CHANGE.DURATION | STATUS_CHANGE.VARIANT,
+                });
+            }
             if (noDurationLog) {
                 engine.log(source, 'CC', type, target.id, `施加 ${statusText}`);
             } else {
@@ -412,13 +460,16 @@ export const CCManager = {
         engine.bus.emit('CAMERA_IMPACT', { kind: 'KNOCKBACK', intensity: FORCED_MOVE.IMPACT_SHAKE });
     },
 
-    dispelEffects(target: Agent, polarity: 'BUFF' | 'DEBUFF'): void {
+    dispelEffects(target: Agent, polarity: 'BUFF' | 'DEBUFF'): number {
+        let removedKindMask = 0;
         for (let i = 0; i < EFFECT_KINDS.length; i++) {
             const kind = EFFECT_KINDS[i];
             if (EFFECT_DEFS[kind].polarity === polarity) {
+                if (target.effects[kind].remaining > 0) removedKindMask |= 1 << i;
                 target.effects[kind].remaining = 0;
                 target.effects[kind].max = 0;
             }
         }
+        return removedKindMask;
     }
 };
