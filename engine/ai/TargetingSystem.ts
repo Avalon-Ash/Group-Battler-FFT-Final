@@ -1,4 +1,8 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║ TargetingSystem — 技能選靶以 getSkillRange 統一射程。       ║
+// ║ 規則：機動技不吃高度，普攻與其他技能維持高度規則。         ║
+// ╚══════════════════════════════════════════════════════════╝
 import { Agent } from "../core/Agent";
 import type { SkillIntent, SkillStatus } from "../../types";
 import { appliesStatusOnHit, hasHitAction, hasIntentIn, hasStatusIn } from "../core/SkillQueries";
@@ -339,7 +343,7 @@ export class TargetingSystem {
 
         if (targetIsAlly && skill.type === 'SINGLE') {
             if (validStickyTarget && source.target) {
-                const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
+                const effRange = this.getSkillRange(source, source.target.q, source.target.r, skill, spatial);
                 if (HexUtils.dist(source, source.target) <= effRange) {
                     return { targetAgent: source.target, targetHex: null };
                 }
@@ -372,7 +376,7 @@ export class TargetingSystem {
             if (declared) return { targetAgent: declared, targetHex: null };
             // 普通敵方目標黏著邏輯
             if (validStickyTarget && source.target) {
-                const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
+                const effRange = this.getSkillRange(source, source.target.q, source.target.r, skill, spatial);
                 if (HexUtils.dist(source, source.target) <= effRange) {
                     return { targetAgent: source.target, targetHex: null };
                 }
@@ -393,7 +397,7 @@ export class TargetingSystem {
         let bestScore = -Infinity;
         for (const e of enemies) {
             const dist = HexUtils.dist(source, e);
-            if (dist > this.getEffectiveRange(source, e.q, e.r, skill.range, spatial) + COMBAT_PARAM.RANGE_TOLERANCE) continue;
+            if (dist > this.getSkillRange(source, e.q, e.r, skill, spatial) + COMBAT_PARAM.RANGE_TOLERANCE) continue;
             const score = within !== undefined ? -dist : e.hp;
             if (score > bestScore) {
                 bestScore = score;
@@ -416,7 +420,6 @@ export class TargetingSystem {
      * 尋找能覆蓋最多高價值目標的座標
      */
     private findBestAOELocation(source: Agent, skill: Skill, spatial: SpatialProvider) {
-        const range = skill.range;
         const radius = skill.aoeRadius || 1;
         
         // 取得所有有效敵軍
@@ -444,7 +447,7 @@ export class TargetingSystem {
             if (!spatial.isValid(q, r)) return;
             
             // 2. 射程檢查 (嚴格遵守 Skill.range)
-            const effRange = this.getEffectiveRange(source, q, r, range, spatial);
+            const effRange = this.getSkillRange(source, q, r, skill, spatial);
             if (HexUtils.dist(source, targetHex) > effRange) return;
 
             // 3. 模擬衝擊評分
@@ -481,7 +484,7 @@ export class TargetingSystem {
         // 若找不到完美AOE點，退化為攻擊當前單體目標的位置
         if (!bestHex && source.target) {
             const t = source.target;
-            const effRange = this.getEffectiveRange(source, t.q, t.r, range, spatial);
+            const effRange = this.getSkillRange(source, t.q, t.r, skill, spatial);
             if (HexUtils.dist(source, t) <= effRange) {
                 bestHex = { q: t.q, r: t.r };
             }

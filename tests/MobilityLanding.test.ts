@@ -212,6 +212,14 @@ describe('後撤：看全場威脅選落點', () => {
         cast(w.engine, a, e, retreat());
         expect(HexUtils.dist(a, e)).toBeGreaterThan(1);
     });
+    it('跳開前瞄準的敵人照樣打中，落地超出射程也一樣', () => {
+        const w = arena();
+        const a = w.spawn(Team.BLUE, 0, 0);
+        const e = w.spawn(Team.RED, 1, 0);
+        cast(w.engine, a, e, retreat(3, { range: 3 }));
+        expect(HexUtils.dist(a, e)).toBeGreaterThan(3);
+        expect(e.hp).toBeLessThan(HP);
+    });
     it('不跳進警告格', () => {
         const w = arena();
         const a = w.spawn(Team.BLUE, 0, 0);
@@ -309,10 +317,10 @@ describe('拉扯：最多拉到身邊，任何技能都不會拉出場', () => {
     it('斜向拉扯不會穿過施法者', () => {
         const w = arena();
         const src = w.spawn(Team.BLUE, 2, -2);
-        const t = w.spawn(Team.RED, 3, 0, Role.MAGE); // 距離 2、力道 4
+        const t = w.spawn(Team.RED, 3, 0, Role.MAGE); // 距離 3、力道 4：舊規則拉 4 格，穿過去
         CCManager.applyCC(src, t, pull('MOBILITY'), 'PULL', 0, 4, undefined, w.engine);
         expect(HexUtils.dist(t, src)).toBe(1);
-        expect(HexUtils.dist(t, { q: 3, r: 0 })).toBe(1);
+        expect(HexUtils.dist(t, { q: 3, r: 0 })).toBe(2);
     });
     it.each(['MOBILITY', 'ULT'] as const)('%s：路上是虛空就停在原地前一格', (tag) => {
         const w = arena();

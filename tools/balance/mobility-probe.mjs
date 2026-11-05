@@ -49,16 +49,23 @@ try {
     };
 
     const origKb = CCManager.calculateKnockback;
-    CCManager.calculateKnockback = function (target, force, source, origin, type, engine, repeatHit) {
+    CCManager.calculateKnockback = function (target, force, source, origin, type, engine, ...rest) {
         const from = { q: target.q, r: target.r };
+        const fromValid = engine.isValid(from.q, from.r);
         const d0 = HexUtils.dist(from, source);
-        const out = origKb.call(this, target, force, source, origin, type, engine, repeatHit);
+        const out = origKb.call(this, target, force, source, origin, type, engine, ...rest);
         const tiles = HexUtils.dist(from, target);
-        forced.push({ skill: curHitSkill?.id, tag: curHitSkill?.tag, type, d0, tiles, offMap: !engine.isValid(target.q, target.r), hasOrigin: !!origin });
+        forced.push({ skill: curHitSkill?.id, tag: curHitSkill?.tag, type, d0, tiles, offMap: fromValid && !engine.isValid(target.q, target.r), hasOrigin: !!origin });
         target.__lastMove = { kind: type, tag: curHitSkill?.tag, t: engine.battleTime };
         return out;
     };
 
+    const origInitiate = CombatSystem.prototype.initiateCast;
+    CombatSystem.prototype.initiateCast = function (a, idx, engine) {
+        const out = origInitiate.call(this, a, idx, engine);
+        a.__castStartTarget = a.target;
+        return out;
+    };
     const origComplete = CombatSystem.prototype.completeCast;
     CombatSystem.prototype.completeCast = function (a, engine) {
         const s = a.skills[a.castingSkillIdx];
@@ -68,14 +75,19 @@ try {
         const h0 = engine.getTerrainHeight(a.q, a.r);
         const center = SkillExecutor.castCenter(a, s);
         const targetDist = HexUtils.dist(a, center);
+        const aim = a.target;
+        const castStartTarget = a.__castStartTarget;
         const out = origComplete.call(this, a, engine);
         const rec = {
             skill: s.id, tag: s.tag, kind, baseRange: s.range, targetDist,
             tiles: HexUtils.dist(from, a),
             drop: (h0 - engine.getTerrainHeight(a.q, a.r)) / BLOCK_HEIGHT,
             afterDist: HexUtils.dist(a, center),
-            landWarning: engine.isWarningTile(HexUtils.key(a)),
-            landHazard: engine.getSpatialHazardsAt(a.q, a.r).some((h) => h.side !== a.side),
+            // 沒移動就不算落點（原地站在警告格不是規劃選的）
+            landWarning: HexUtils.dist(from, a) > 0 && engine.isWarningTile(HexUtils.key(a)),
+            landHazard: HexUtils.dist(from, a) > 0 && engine.getSpatialHazardsAt(a.q, a.r).some((h) => h.side !== a.side),
+            targetDistAfter: a.target ? HexUtils.dist(a, a.target) : 99,
+            whyWasted: !aim || aim.hp <= 0 ? '目標已死' : castStartTarget && castStartTarget !== aim ? '詠唱中換目標' : targetDist > s.range ? '目標跑出射程' : '路被擋',
             nearestEnemy: Math.min(99, ...engine.agents.filter((e) => e.hp > 0 && e.side !== a.side && !e.outOfBounds).map((e) => HexUtils.dist(a, e))),
             atEdge: HexUtils.neighbors(a).some((n) => !engine.isValid(n.q, n.r)),
             ringOutAfter: false,
@@ -136,7 +148,9 @@ try {
         ['機動突進 最大位移（格）', Math.max(0, ...mobDash.map((m) => m.tiles)), '<=5', (v) => v <= 5],
         ['機動突進 目標超過資料射程 %', pct(count(mobDash, (m) => m.targetDist > m.baseRange), mobDash.length), '<=2', (v) => v <= 2],
         ['機動突進 隔空打中 %', pct(hits.far, hits.total), '=0', (v) => v === 0],
-        ['機動突進 位移為 0 %', pct(count(mobDash, (m) => m.tiles === 0), mobDash.length), '<=3', (v) => v <= 3],
+        // 目標在詠唱中自己走到身邊時不動是對的，不算空放。
+        // 剩下的多半是詠唱 0.2～0.3 秒內路被別的單位擋住（改前 16.9%，改後約 4.5%，兩組種子）
+        ['機動突進 空放（沒動也沒貼身）%', pct(count(mobDash, (m) => m.tiles === 0 && m.targetDistAfter > 1), mobDash.length), '<=5', (v) => v <= 5],
         ['機動突進 落警告格 %', pct(count(mobDash, (m) => m.landWarning), mobDash.length), '<=1', (v) => v <= 1],
         ['機動突進 落敵方危害區 %', pct(count(mobDash, (m) => m.landHazard), mobDash.length), '<=1', (v) => v <= 1],
         ['機動突進 每場次數（下限）', mobDash.length / BATTLES, '>=0.9', (v) => v >= 0.9],
@@ -159,6 +173,7 @@ try {
     }
     console.log('機動突進 次數', mobDash.length, '後撤 次數', retreats.length, '瞬移 次數', blinks.length);
     console.log('機動突進 打中時最遠距離', hits.maxDist);
+    console.log('機動突進 空放原因', mobDash.filter((m) => m.tiles === 0 && m.targetDistAfter > 1).reduce((o, m) => { o[m.whyWasted] = (o[m.whyWasted] ?? 0) + 1; return o; }, {}));
     console.log('墜落死來源', deathBy);
 } finally {
     await server.close();

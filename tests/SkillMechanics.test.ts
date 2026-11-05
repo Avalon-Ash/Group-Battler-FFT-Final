@@ -317,12 +317,12 @@ describe('出手動作：不管瞬發、投射物、天降都會生效', () => {
         expect(HexUtils.dist(w.source, far)).toBe(1);
         expect(far.hp).toBe(HP);
     });
-    it('RETREAT：往遠離目標的方向走 tiles 格；投射物技能也會', () => {
+    it('RETREAT：離開貼身的敵人；投射物技能也會', () => {
         const w = arena();
         const near = w.spawn(Team.RED, 4, 0);
         const shooter = w.spawn(Team.BLUE, 3, 0);
         cast(w, shooter, near, makeSkill({ projectileSpeed: 300, onCast: [{ action: 'RETREAT', tiles: 2 }] }));
-        expect(HexUtils.dist(shooter, near)).toBe(3);
+        expect(HexUtils.dist(shooter, near)).toBeGreaterThan(1);
     });
     it('RETREAT：後面被擋住就走到擋住為止，不會穿過去', () => {
         const w = arena();

@@ -4,8 +4,8 @@
 // ║  規則：向上高度差 > max(1,jump)×BLOCK_HEIGHT → WALL 擋下       ║
 // ║        （飛行單位無視高度，與 Pathfinder 共用 ClimbRule）；     ║
 // ║        障礙物 → OBSTACLE；單位 → UNIT；向下任意高度皆可。       ║
-// ║        虛空格：擊退／拉扯照舊推出去（ring-out，落地傷害歸物理）；║
-// ║        突進絕不停在虛空（EDGE）。                               ║
+// ║        虛空格：只有非機動擊退可 ring-out（墜落歸物理）；      ║
+// ║        拉扯、突進與機動擊退停在場內（EDGE，不算撞擊）。       ║
 // ║  [ARCH] 本檔不寫 Agent 欄位、不發事件；位置與傷害由呼叫端套用。 ║
 // ║  撞擊傷害公式見 computeImpactDamage（參數在 FORCED_MOVE）。     ║
 // ╚══════════════════════════════════════════════════════════════╝
@@ -72,7 +72,8 @@ export function resolveForcedMove(
     dirOrPath: Point | readonly Hex[],
     tiles: number,
     kind: ForcedMoveKind,
-    spatial: ForcedMoveSpatial
+    spatial: ForcedMoveSpatial,
+    allowRingOut: boolean = kind === 'KNOCKBACK'
 ): ForcedMoveResult {
     const path = Array.isArray(dirOrPath) ? (dirOrPath as readonly Hex[]) : null;
     const dir = path ? null : (dirOrPath as Point);
@@ -96,8 +97,8 @@ export function resolveForcedMove(
         });
 
         if (!spatial.isValid(next.q, next.r)) {
-            if (kind === 'DASH') return block('EDGE');
-            // 擊退／拉扯：被推出邊界（ring-out），到此為止，墜落由物理處理
+            if (!allowRingOut) return block('EDGE');
+            // 非機動擊退：被推出邊界（ring-out），到此為止，墜落由物理處理
             return { finalHex: next, stepsTaken: stepsTaken + 1, blocked: null };
         }
         if (spatial.hasObstacle(next.q, next.r)) return block('OBSTACLE');
@@ -126,31 +127,6 @@ export function planDashPath(agent: Agent, targetHex: Hex, spatial: ForcedMoveSp
     const occupant = spatial.getAgentAt(last.q, last.r);
     if (occupant && occupant !== agent) line.pop();
     return line;
-}
-
-/**
- * 後撤路徑規劃：每一步在目前格走得進去的鄰格裡，選離 fromHex 最遠的一格（同距離取先出現的），
- * 共 tiles 步；沒有比現在更遠的格子就停。高度由 resolveForcedMove 裁決。
- */
-export function planRetreatPath(agent: Agent, fromHex: Hex, tiles: number, spatial: ForcedMoveSpatial): Hex[] {
-    const path: Hex[] = [];
-    let current: Hex = { q: agent.q, r: agent.r };
-    for (let i = 0; i < tiles; i++) {
-        let best: Hex | null = null;
-        let bestDist = HexUtils.dist(current, fromHex);
-        for (const n of HexUtils.neighbors(current)) {
-            if (!spatial.isValid(n.q, n.r) || spatial.hasObstacle(n.q, n.r) || spatial.getAgentAt(n.q, n.r)) continue;
-            const d = HexUtils.dist(n, fromHex);
-            if (d > bestDist) {
-                bestDist = d;
-                best = { q: n.q || 0, r: n.r || 0 };
-            }
-        }
-        if (!best) break;
-        path.push(best);
-        current = best;
-    }
-    return path;
 }
 
 /** 撞擊是否造成傷害：只有被擋下且還有沒走完的格數。突進不受傷。 */
