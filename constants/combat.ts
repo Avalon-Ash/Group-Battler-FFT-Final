@@ -104,6 +104,12 @@ export const PHYSICS = {
     LUNGE_SPEED_ACTIVE: 540,
 };
 
+/** 機動技的落點規劃（engine/systems/combat/LandingPlanner.ts）。 */
+export const MOBILITY_LANDING = {
+    /** 後撤：離最近的敵人這麼多格就夠了，不必走滿 tiles。 */
+    ESCAPE_SAFE_DIST: 4,
+} as const;
+
 /**
  * 強制位移（擊退／拉扯）的撞擊傷害，仿 Tactics Ogre：撞上爬不上去的高牆、障礙物或其他單位時，
  * 沒走完的格數越多、牆越高，傷害越大。全部以「目標最大 HP 的比例」表示，才不會對高血量單位無感、

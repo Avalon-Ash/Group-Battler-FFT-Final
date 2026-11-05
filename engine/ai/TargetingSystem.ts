@@ -51,6 +51,12 @@ export class TargetingSystem {
         return spatial.isWarningTile(key);
     }
 
+    /** 技能的射程：機動技就是資料寫的值，高低差不增減（避免站高地突進橫跨全場）；其餘走 getEffectiveRange。 */
+    public getSkillRange(a: Hex & { jump?: number }, targetQ: number, targetR: number, skill: Pick<Skill, 'range' | 'tag'>, spatial: SpatialProvider): number {
+        if (skill.tag === 'MOBILITY') return skill.range;
+        return this.getEffectiveRange(a, targetQ, targetR, skill.range, spatial);
+    }
+
     /**
      * 射程 SSOT：近戰在跳躍力以內的高低差照常打，超過才把層數扣出水平射程（可為負）；遠程保留高地加成。
      * a 帶 jump 時用它判斷（單位，或代單位試算的格子）；只傳格子就照每層扣一格。

@@ -28,7 +28,8 @@
     "balance:idle": "node tools/balance/ai-idle-sim.mjs",
     "balance:sim": "node tools/balance/batch-sim.mjs",
     "balance:report": "node tools/balance/report.mjs",
-    "balance:fingerprint": "node tools/balance/sim-fingerprint.mjs"
+    "balance:fingerprint": "node tools/balance/sim-fingerprint.mjs",
+    "balance:mobility": "node tools/balance/mobility-probe.mjs"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "5.3.0",

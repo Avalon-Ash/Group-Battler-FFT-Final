@@ -46,7 +46,7 @@
     "ID_SUFFIX_LENGTH": 4,
     "ID_RADIX": 36,
     "ID_BUCKETS": 100,
-    "ID_TIEBREAK": 1e-05,
+    "ID_TIEBREAK": 0.00001,
     "TOP_Z_THRESHOLD": 600,
     "TOP_SORT_BIAS": 100000000
   },
@@ -671,7 +671,7 @@
     "HIT_CLUSTER_SIZE": 3,
     "HIT_CLUSTER_GAP_MULT": 2.5,
     "HIT_CLUSTER_INTRA_MULT": 0.5,
-    "HIT_TIME_EPSILON_S": 1e-06
+    "HIT_TIME_EPSILON_S": 0.000001
   },
   "CORE_VISUAL": {
     "hoverHeight": 26,
@@ -2498,5 +2498,8 @@
   "ROYALE_RULES": {
     "MIN_FACTIONS": 3,
     "HP_GAP_SCALE": 0.5
+  },
+  "MOBILITY_LANDING": {
+    "ESCAPE_SAFE_DIST": 4
   }
 }
