@@ -1,5 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  StatusPartPainter — 狀態／控制效果的六角零件繪製           ║
+// ║  [ARCH] 用 isStatusVisible 保留既有外觀成立條件。          ║
 // ║  職責：依 STATUS_PARTS 把預烘焙零件（PartSprite）畫在單位    ║
 // ║        腳下／投影中心／頭頂；執行期只有 drawImage 與變換     ║
 // ║  [ARCH] 疊加規則：頭頂標記（HEAD 層）與腳下圈（flat 的 GROUND   ║
@@ -23,7 +24,7 @@ import { projectionCenterHeight, projectionTopHeight } from "../../../../data/un
 import { getQualityTier } from "../../RenderQuality";
 import { resolvePartLayer, drawPartLayer, layoutAlign, type ResolvedPartLayer } from "../../vfxparts/PartLayerPainter";
 import type { UnitFrame } from "../../frame/UnitFrame";
-import { isStatusActive } from "../StatusActivity";
+import { isStatusVisible as isStatusActive } from "../StatusActivity";
 
 type ResolvedLayer = ResolvedPartLayer<StatusPartLayer>;
 

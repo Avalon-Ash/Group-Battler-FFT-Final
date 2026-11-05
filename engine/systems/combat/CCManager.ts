@@ -4,6 +4,7 @@
 // ║ 上游：SkillActions；ForcedMove 裁決路徑，MotionCommands 寫位移。║
 // ║ CCManager — 原控制流程；成功寫入後附純量觀測，不寫 view。 ║
 // ║ [ARCH] provenance 分開時間／強度／變體；不改 sourceId。   ║
+// ║ [ARCH] STASIS 觀測依獨立槽舊時間分類；不改寫入規則。     ║
 // ╚══════════════════════════════════════════════════════════╝
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
@@ -49,6 +50,7 @@ export const CCManager = {
         const previousRemaining = kind ? target.effects[kind].remaining : 0;
         const previousValue = kind ? target.effects[kind].value : 0;
         const previousVisual = target.ccVisual;
+        const previousStasisRemaining = target.effects.STASIS.remaining;
         let changes = 0;
         const amount = force || CC_RULES.DEFAULT_SHIELD_AMOUNT;
         let isImmune = false;
@@ -357,7 +359,8 @@ export const CCManager = {
                 engine.pushEvent('STATUS_OBSERVATION', unitEventPos(target, engine), {
                     targetId: target.id, sourceId: source.id, sourceSide: source.side,
                     skillId: skill.id, skillName: skill.name, element: skill.element,
-                    effectKind: 'STASIS', statusResult: 'APPLIED', statusNew: true,
+                    effectKind: 'STASIS', statusResult: previousStasisRemaining > 0 ? 'REFRESHED' : 'APPLIED',
+                    statusNew: previousStasisRemaining <= 0,
                     statusChanges: STATUS_CHANGE.DURATION | STATUS_CHANGE.VARIANT,
                 });
             }

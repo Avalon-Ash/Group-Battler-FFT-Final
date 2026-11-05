@@ -2,6 +2,7 @@
 // ║  StatusActivity — 「這個狀態現在成立嗎」的純判斷           ║
 // ║  職責：Agent 欄位 → STATUS_PARTS 鍵是否成立、剩餘時間比例    ║
 // ║ [ARCH] 持續狀態委派 core/StatusQueries，live slots 為準。 ║
+// ║ [ARCH] isStatusVisible 保留既有戰場外觀；完整資料查詢不截斷。║
 // ║        （唯讀、零配置；單位身上的零件層與 HUD 圖示列共用）    ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -26,5 +27,17 @@ export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
         case 'CAST_ACTIVE': return castingAiState(a) === AIState.CASTING_ACTIVE;
         case 'EVADING': return a.aiState === AIState.EVADING_URGENT;
         default: return false;
+    }
+}
+
+/** 定案範圍要求戰場圖示與零件維持現行，與面板完整槽位投影分開。 */
+export function isStatusVisible(key: StatusPartKey, a: Agent): boolean {
+    switch (key) {
+        case 'BANISH': return a.banished && a.effects.BANISH.remaining > 0 && a.effects.STASIS.remaining <= 0;
+        case 'FROZEN': return a.view.visualStatus === 'FROZEN';
+        case 'STUN': return a.effects.STUN.remaining > 0 && a.view.visualStatus !== 'FROZEN';
+        case 'POLYMORPH': return a.view.visualStatus === 'POLYMORPH';
+        case 'INVINCIBLE': return a.view.visualStatus === 'INVINCIBLE';
+        default: return isStatusActive(key, a);
     }
 }

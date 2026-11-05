@@ -1,5 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  StatusStripPainter — 血條上方的狀態圖示列                   ║
+// ║  [ARCH] 用 isStatusVisible 保留既有外觀成立條件與截斷順序。║
 // ║  職責：列出單位身上全部增減益（減益在左、增益在右，邊框顏色    ║
 // ║        區分），每個圖示有剩餘時間的扇形遮罩；取代舊的單一圓形   ║
 // ║        控制量表（詠唱進度仍由 GaugePainter 畫）                ║
@@ -16,7 +17,7 @@ import type { Agent } from "../../core/Agent";
 import { HUD_BAR, HUD_STATUS_STRIP } from "../../../constants";
 import { STATUS_PARTS, STATUS_STRIP_ORDER, type StatusPartKey } from "../../../data/vfx/status_parts";
 import { createCanvas } from "../../graphics/CanvasUtils";
-import { isStatusActive, statusFraction } from "../status/StatusActivity";
+import { isStatusVisible as isStatusActive, statusFraction } from "../status/StatusActivity";
 import { getQualityTier, getRenderDpr } from "../RenderQuality";
 import { vfxPartStore, drawPart } from "../vfxparts/VFXPartStore";
 
