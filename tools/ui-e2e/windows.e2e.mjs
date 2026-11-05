@@ -127,6 +127,44 @@ const chooseOption = async (page, testId, optionText) => {
     await page.waitForTimeout(150);
 };
 
+/**
+ * 操作列（播放列、工具列）的版面合約：純圖示、單列、不超出畫面。
+ * 文字會撐寬面板、面板不夠就換行或拉伸，這個問題每次改版都回來，所以用檢查擋住。
+ * 說明放 aria-label 與 title；數值讀數（1.0x）不是按鈕，可以留。
+ */
+const CONTROL_BAR_MAX_HEIGHT_PX = 64;
+async function checkControlBars(page, where) {
+    const bars = await page.evaluate(() => ['playback-hud', 'map-toolbar'].map((id) => {
+        const bar = document.querySelector(`[data-testid="${id}"]`);
+        if (!bar) return { id, missing: true };
+        const r = bar.getBoundingClientRect();
+        const buttons = [...bar.querySelectorAll('button')].map((b) => {
+            const br = b.getBoundingClientRect();
+            return { text: b.textContent.trim(), label: b.getAttribute('aria-label'), centerY: br.top + br.height / 2 };
+        });
+        const ys = buttons.map((b) => b.centerY);
+        return {
+            id,
+            height: r.height,
+            left: r.left,
+            right: r.right,
+            viewport: window.innerWidth,
+            count: buttons.length,
+            withText: buttons.filter((b) => b.text !== '').map((b) => b.text),
+            unlabelled: buttons.filter((b) => !b.label).length,
+            rowSpread: Math.max(...ys) - Math.min(...ys),
+        };
+    }));
+    for (const b of bars) {
+        const detail = JSON.stringify(b);
+        ok(`${where} ${b.id}: exists with buttons`, !b.missing && b.count > 0, detail);
+        if (b.missing) continue;
+        ok(`${where} ${b.id}: buttons are icon-only and labelled`, b.withText.length === 0 && b.unlabelled === 0, detail);
+        ok(`${where} ${b.id}: stays on one row`, b.rowSpread <= 2 && b.height <= CONTROL_BAR_MAX_HEIGHT_PX, detail);
+        ok(`${where} ${b.id}: fits the viewport`, b.left >= 0 && b.right <= b.viewport, detail);
+    }
+}
+
 const rectOf = (page, id) => page.evaluate((wid) => {
     const e = document.querySelector(`[data-window-id=${wid}]`);
     if (!e) return null;
@@ -1046,6 +1084,7 @@ const runBottomSheetSuite = async () => {
     // 3. Assert bottom edge flush with viewport bottom (844)
     // 手動模式底部面板要讓開播放列（index.css 的 --ui-sheet-bottom = 96px）
     ok('narrow screen: bottom sheet stays clear of the playback bar', active && near(active.rect.bottom, 844 - 96, 2), `${active?.rect.bottom} vs 748`);
+    await checkControlBars(page, 'phone');
 
     // 4. Assert height <= 72vh (844 * 0.72 = 607.68)
     const maxAllowedHeight = 844 * 0.72 + 2;
@@ -1471,6 +1510,8 @@ const runEditorSuite = async () => {
 
     ok('drag pan: camera position changed', fpsResult.x !== initialCamPos.x || fpsResult.y !== initialCamPos.y, `${JSON.stringify(initialCamPos)} vs ${JSON.stringify(fpsResult)}`);
     console.log(`INFO: Baseline Pan FPS: ${fpsResult.fps}`);
+
+    await checkControlBars(page, 'desktop');
 
     // ⑨ PlaybackHUD Restart & Random buttons
     await page.locator('button[title="重新開始"]').click();

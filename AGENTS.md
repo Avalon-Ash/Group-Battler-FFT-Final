@@ -76,6 +76,7 @@
 - Build with `components/ui/primitives/`. No arbitrary Tailwind values, palette classes, colour literals or emoji in className; tokens live in `data/ui/tokens.ts`. `npm run audit:ui -- all` and `tests/UIAudit.test.ts` must stay at 0.
 - Real blur only via `.mat-blur`, never nested. No `forwards`/`both` animation fill on anything that contains blur. Layers come from `UI_Z`.
 - Window, tab and section titles are uppercase English; no Chinese titles.
+- Control bars (`PlaybackHUD`, `MapEditorToolbar`, any new bar) are icon-only and single-row: no visible button text, no wrapping; explanations go in `label`, numeric readouts may stay, and the slider shrinks when space runs out. Register new bars in `CONTROL_BAR_FILES` and `checkControlBars`.
 
 ## 4. Rules Learned the Hard Way
 

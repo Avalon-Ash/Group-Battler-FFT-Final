@@ -72,5 +72,6 @@
 - 視窗版面與選取單位留在 UI 層 store，引擎不知道它們。時間倍率的唯一來源是引擎 `targetTimeScale`。
 - 依賴邊界：只有 `GameCanvas` 可碰 renderer；技能圖示、特效縮圖走 `hooks/adapters`；`data/ui` 不 import `components`；元件經 `hooks/useEnginePort` 碰引擎。
 - 標題全用英文大寫等寬（JetBrains Mono），不用中文（使用者：中文不好看）；中文內文用系統字型，font stack 要列中文字型，否則 Windows 退回細明體。
+- 操作列（播放列、工具列）純圖示、單列，不放可見文字（使用者 2026-11-05：文字佔位、面板不夠就拉伸，每次改版都回來）。說明放 `aria-label`／`title`，數值讀數可以留，放不下時縮滑桿。由 `ui-audit-static` 的 `CONTROL_BAR_FILES` 與 `windows.e2e` 的 `checkControlBars` 擋住，新增操作列要一起加進去。
 - 開場標題直接浮在戰場上，和進入按鈕分開，不放玻璃板（使用者 2026-11-04）。設計由 GPT Astra 出方向與實作（校準座標：角標、刻度、TACTICAL 白＋.OS 強調色）。
 - 用現成元件庫：Radix（下拉等）、lucide（圖示）、TanStack Virtual（長列表）、cva。使用者：不重造輪子。JS gzip 約 353 KB 到 400 KB。

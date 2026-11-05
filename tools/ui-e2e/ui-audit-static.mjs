@@ -61,12 +61,16 @@ const files = target === 'all'
     : LINES[target].flatMap(listTsx);
 
 let violations = 0;
+// 操作列只放圖示按鈕（文字會撐寬面板）；要文字的放選單或視窗
+const CONTROL_BAR_FILES = new Set(['components/ui/PlaybackHUD.tsx', 'components/ui/MapEditorToolbar.tsx']);
+const CONTROL_BAR_TEXT_BUTTON = { id: 'control-bar-text-button', re: /<Button\b/ };
 const perRule = {};
 for (const file of files) {
     const inPrimitives = file.startsWith(PRIMITIVES_DIR);
     const rules = [...RULES];
     if (!inPrimitives) rules.push(RAW_CONTROL);
     if (file !== ENGINE_HOST) rules.push(ENGINE_IMPORT);
+    if (CONTROL_BAR_FILES.has(file)) rules.push(CONTROL_BAR_TEXT_BUTTON);
     const lines = stripComments(readFileSync(join(ROOT, file), 'utf8')).split('\n');
     // 按鈕內建的對齊、高度、字級不能用 className 覆寫：cn 不解衝突，誰贏看 CSS 順序。改用 Button 的變體
     if (!inPrimitives) {
