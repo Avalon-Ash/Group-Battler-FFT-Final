@@ -113,6 +113,7 @@ export const UI_SCALE_TOKENS = {
         display: '40px', displayLh: '44px',
         hero: '72px', heroLh: '76px',
     },
+    status: { row: '48px', rowMobile: '56px', icon: '24px', iconMobile: '32px', time: '56px', timeFont: '14px', inset: '8px', sheetBottom: '136px', progress: '2px', action: '44px' },
     scrollbar: '8px',
 } as const;
 

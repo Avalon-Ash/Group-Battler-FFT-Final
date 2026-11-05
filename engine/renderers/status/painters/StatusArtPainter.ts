@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║ StatusArtPainter — 暈眩、粗藤、貼身火舌與毒泡附件         ║
 // ║ [ARCH] 原點是精靈腳底，局部 UNIT_SCALE 反補償；不查地形。 ║
-// ║ ROOT 後片→本體→火／泡→ROOT 前片→星環；都隨 UNIT op 排序。 ║
+// ║ ROOT 不重疊深度帶→本體→火／泡→ROOT 前帶→星環，同 UNIT op。║
 // ║ 上游 UnitBodyPainter；時間僅由 battleTime 傳入，無 timer。 ║
 // ╚══════════════════════════════════════════════════════════╝
 import type { Agent } from '../../../core/Agent';
@@ -13,27 +13,30 @@ import { isStatusVisible } from '../StatusActivity';
 import { SpriteUnitRenderer } from '../../units/factions/SpriteUnitRenderer';
 
 function blit(ctx: CanvasRenderingContext2D, first: number, count: number, t: number,
-    sx = 1, sy = 1, offsetY = 0): void {
+    sx = 1, sy = 1, offsetY = 0, top = 0, bottom: number = A.cell): void {
     const image = statusArtStore.image;
     if (!image) return;
     const fps = A.fpsByTier[getQualityTier()];
     // Lower tiers sample the same one-second sequence, not a different animation speed.
     const phase = Math.floor(t * fps) / fps;
     const slot = first + Math.floor(phase * count) % count;
-    ctx.drawImage(image, slot % A.columns * A.cell, Math.floor(slot / A.columns) * A.cell,
-        A.cell, A.cell, -A.anchorX / A.pixelsPerUnit * sx / UNIT_SCALE,
-        UNIT_SPRITE.footOffsetLocal + (-A.anchorY / A.pixelsPerUnit * sy + offsetY) / UNIT_SCALE,
-        A.cell / A.pixelsPerUnit * sx / UNIT_SCALE, A.cell / A.pixelsPerUnit * sy / UNIT_SCALE);
+    ctx.drawImage(image, slot % A.columns * A.cell, Math.floor(slot / A.columns) * A.cell + top,
+        A.cell, bottom - top, -A.anchorX / A.pixelsPerUnit * sx / UNIT_SCALE,
+        UNIT_SPRITE.footOffsetLocal + ((top - A.anchorY) / A.pixelsPerUnit * sy + offsetY) / UNIT_SCALE,
+        A.cell / A.pixelsPerUnit * sx / UNIT_SCALE, (bottom - top) / A.pixelsPerUnit * sy / UNIT_SCALE);
 }
 
 export const StatusArtPainter = {
     stunned(a: Agent): boolean {
         return a.view.visualStatus !== 'POLYMORPH' && (isStatusVisible('STUN', a) || isStatusVisible('CC_INTERRUPT', a));
     },
-    root(ctx: CanvasRenderingContext2D, a: Agent, t: number): void {
+    root(ctx: CanvasRenderingContext2D, a: Agent, t: number, front = false): void {
         if (!isStatusVisible('ROOT', a)) return;
         const width = a.view.visualStatus === 'POLYMORPH' ? A.sheep.rootScaleX : STATUS_ART_FIT[a.role].rootX;
-        blit(ctx, A.root.first, A.root.count, t, width);
+        const bands = front ? A.root.frontBands : A.root.backBands;
+        for (let i = 0; i < bands.length; i++) {
+            blit(ctx, A.root.first, A.root.count, t, width, 1, 0, bands[i][0], bands[i][1]);
+        }
     },
     torso(ctx: CanvasRenderingContext2D, a: Agent, t: number): void {
         const fit = STATUS_ART_FIT[a.role], sheep = a.view.visualStatus === 'POLYMORPH';

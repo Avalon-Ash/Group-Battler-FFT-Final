@@ -274,8 +274,8 @@ export class RenderSpec {
         s += "  - 障礙物：本幀 OBSTACLE op 的 snap 位置減 sprite 錨點；剪影先畫在暫存畫布，再用障礙物圖 destination-in，只留不透明像素。\n";
         s += "- 座標一律取本幀 op，不自己重算高度或漂浮；判定寬鬆也不會讓露在外面的部分變色（裁切區和本體沒重疊就什麼都不畫）。\n\n";
         s += "\n## 14. 核可狀態附件（§4 單位 assembly）\n\n";
-        s += "STUN／ROOT／BURN／POISON 在 UnitBodyPainter 的精靈腳底（UNIT_SPRITE.footOffsetLocal）繪製，隨 UNIT op 的 UnitFrame 座標、轉場、高差、遮擋與排序，不新增 sortBias 或全場 overlay。藤後片 → 本體／毒材質／羊 → 火舌或毒泡 → 藤前片 → 星環。暈眩本體繞腳底 sin(2πt)×0.065rad、scaleY=0.96；星環在實際 sprite 頭頂上方 7 world units。尺寸、職業對位與抽幀讀 data/vfx/statusArt.ts；時間只有 battleTime，暫停不流逝。其餘狀態仍走原 StatusPartPainter／ShieldPainter，原優先序勝者及截斷不變；HUD 不變。\n";
-        s += "短腿羊四向各四幀，8fps，沿用 selectSpriteDirection；裁邊 draw rect 保留 Blender 腳錨，無項圈、無陣營上色、不另加跳躍。毒材質固定 768×1024（3MiB），十個六幀頁，以含 hue 的外觀鍵＋動作／方向頁識別；活躍頁保護，僅 update 排程的分批 task 可準備，draw miss 畫原人物＋毒泡。\n";
+        s += "STUN／ROOT／BURN／POISON 在 UnitBodyPainter 的精靈腳底（UNIT_SPRITE.footOffsetLocal）繪製，隨 UNIT op 的 UnitFrame 座標、轉場、高差、遮擋與排序，不新增 sortBias 或全場 overlay。藤後帶（圖格 y < 90、100 ≤ y < 106）→ 本體／毒材質／羊 → 火舌或毒泡 → 藤前帶（90 ≤ y < 100、y ≥ 106）→ 星環；兩片共用本體失衡變換，不重疊 alpha。暈眩本體繞腳底 sin(2πt)×0.065rad、scaleY=0.96；星環在實際 sprite 頭頂上方 7 world units。尺寸、職業對位與抽幀讀 data/vfx/statusArt.ts；時間只有 battleTime，暫停不流逝。其餘狀態仍走原 StatusPartPainter／ShieldPainter，原優先序勝者及截斷不變；HUD 不變。\n";
+        s += "短腿羊四向各四幀，8fps，沿用 selectSpriteDirection；裁邊 draw rect 保留 Blender 腳錨，無項圈、無陣營上色、不另加跳躍。戰鬥毒材質固定 2048×1024（8MiB），八個完整外觀頁（每頁 512×512），以含 hue 的外觀鍵＋來源圖集／mip 識別，全頁準備後同時啟用全部動作／方向；活躍頁保護，僅 update 排程的分批 task 可準備，draw miss 畫原人物＋毒泡。\n";
         return s;
     }
 

@@ -107,6 +107,16 @@
   --ui-font-display-lh: 44px;
   --ui-font-hero: 72px;
   --ui-font-hero-lh: 76px;
+  --ui-status-row: 48px;
+  --ui-status-row-mobile: 56px;
+  --ui-status-icon: 24px;
+  --ui-status-icon-mobile: 32px;
+  --ui-status-time: 56px;
+  --ui-status-time-font: 14px;
+  --ui-status-inset: 8px;
+  --ui-status-sheet-bottom: 136px;
+  --ui-status-progress: 2px;
+  --ui-status-action: 44px;
   --ui-scrollbar: 8px;
 
   /* Team metadata from constants.ts TEAM_COLORS SSOT */

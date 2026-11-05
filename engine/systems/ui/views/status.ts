@@ -15,7 +15,10 @@ const seconds = (value: number): number => Math.ceil(value * STATUS_TIME_STEPS) 
 
 function sourceView(origin: Readonly<StatusOrigin>, engine: GameEngine): StatusRowView['durationSource'] {
     const source = origin.sourceId === null ? undefined : engine.agents.find(a => a.id === origin.sourceId);
-    return { ...origin, availability: origin.sourceId === null ? 'UNKNOWN' : source ? statusAvailability(source) : 'LEFT' };
+    const availability = origin.sourceId === null ? 'UNKNOWN' : source ? statusAvailability(source) : 'LEFT';
+    const summary = origin.sourceId === null ? '來源未記錄' : origin.sourceId + (availability === 'ACTIVE' ? '' : '（已離場）');
+    return { ...origin, availability, canSelect: availability === 'ACTIVE', summary,
+        detail: summary + ' / SIDE ' + (origin.sourceSide ?? '?') + ' / ' + (origin.skillName ?? origin.skillId ?? '技能未記錄') };
 }
 
 export function selectUnitStatusView(engine: GameEngine, agentId: string | null | undefined, referenceSide: number | null = engine.director.getWatchSide(engine)): UnitStatusView | null {
@@ -44,6 +47,7 @@ export function selectUnitStatusView(engine: GameEngine, agentId: string | null 
     }
     let cache = caches.get(engine);
     if (!cache) { cache = new WeakMap(); caches.set(engine, cache); }
+    signature += JSON.stringify(agent.drStacks) + JSON.stringify(Object.fromEntries(Object.entries(agent.drTimers).map(([key, value]) => [key, seconds(value)])));
     const prev = cache.get(agent);
     if (prev && prev.signature === signature) return prev.view;
     const effects: StatusRowView[] = [];
@@ -70,12 +74,16 @@ export function selectUnitStatusView(engine: GameEngine, agentId: string | null 
         const progress = Math.max(0, Math.min(1, rawProgress));
         const valueText = kind === 'SHIELD' ? `${Math.round(agent.shield)}` : slot && (kind === 'DOT' || kind === 'HOT') ? `${slot.value}/s`
             : slot && ['SLOW', 'HASTE', 'REFLECT', 'LIFESTEAL'].includes(kind) ? `${slot.value}` : '';
-        const sourceSummary = primary.sourceId === null ? '來源未記錄' : `${primary.sourceId}${primary.availability === 'LEFT' || primary.availability === 'DEAD' || primary.availability === 'OUT_OF_BOUNDS' ? '（已離場）' : ''}`;
+        const sourceSummary = primary.summary;
         effects.push({
             id: `${agent.id}:${kind}`, kind, displayKey: key, label: descriptor.label, category: descriptor.category,
             remainingSeconds, maxSeconds, progress, valueText, stacks: null, sourceSummary, durationSource, valueSource,
             sourceSkill: primary.skillId === null ? null : { id: primary.skillId, name: primary.skillName },
             sourceAvailability: primary.availability,
+            primarySource: primary,
+            group: descriptor.category === 'HARD_CC' ? 'CONTROL' : descriptor.category === 'BUFF' || descriptor.category === 'HOT' ? 'RECOVERY & PROTECT' : 'DAMAGE & WEAKEN',
+            timeText: remainingSeconds === null ? valueText : (remainingSeconds >= 10 ? Math.ceil(remainingSeconds).toFixed(0) : remainingSeconds.toFixed(1)) + 's',
+            timeDetail: remainingSeconds === null ? '消耗型；無固定期限' : remainingSeconds.toFixed(1) + ' / ' + maxSeconds.toFixed(1) + 's' + (valueText ? ' / ' + valueText : ''),
             detailLines: kind === 'SHIELD' && valueSource.recorded ? [descriptor.description, `最近 +${agent.view.statusPresentation.shieldGrant.grantedAmount}；${sourceSummary}`] : [descriptor.description],
         });
     }
@@ -84,6 +92,11 @@ export function selectUnitStatusView(engine: GameEngine, agentId: string | null 
         agentId: agent.id, side: agent.side, referenceSide,
         relation: referenceSide === null ? 'UNALIGNED' : referenceSide === agent.side ? 'ALLY' : 'ENEMY',
         availability: statusAvailability(agent), effects,
+        availabilityText: { ACTIVE: '在場', BANISHED: '暫時離場', OUT_OF_BOUNDS: '已出界', DEAD: '單位已陣亡' }[statusAvailability(agent)],
+        relationLabel: referenceSide === null ? null : referenceSide === agent.side ? 'ALLY' : 'ENEMY',
+        noticeText: statusAvailability(agent) === 'ACTIVE' ? null : { BANISHED: '暫時離場', OUT_OF_BOUNDS: '已出界', DEAD: '單位已陣亡' }[statusAvailability(agent)],
+        resistance: Object.entries(agent.drStacks).filter(([key, stacks]) => stacks > 0 && agent.drTimers[key] > 0)
+            .map(([key, stacks]) => key.toUpperCase() + ' / DR ' + stacks + ' / ' + seconds(agent.drTimers[key]).toFixed(1) + 's'),
     };
     cache.set(agent, { signature, view });
     return view;

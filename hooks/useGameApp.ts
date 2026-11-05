@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { UI_SETTINGS } from '../constants';
-import { selectionStore, usePrimarySelectedId } from './useSelection';
+import { selectionStore, usePrimarySelectedId, useWatchSelectedId } from './useSelection';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup, FactionLook } from '../types';
@@ -315,9 +315,10 @@ export const useGameApp = () => {
 
     // 點選的單位同步給引擎：導播關閉時擊殺播報只給它的陣營
     const selectedAgentId = usePrimarySelectedId();
+    const watchSelectedAgentId = useWatchSelectedId();
     useEffect(() => {
-        engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_WATCH_AGENT', agentId: selectedAgentId });
-    }, [selectedAgentId]);
+        engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_WATCH_AGENT', agentId: watchSelectedAgentId });
+    }, [watchSelectedAgentId]);
 
     const enterManualMode = () => {
         const engine = engineRef.current;
