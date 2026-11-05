@@ -329,6 +329,15 @@
 .bt-failure { color: var(--mat-danger-fg); }
 .bt-age-2 { color: rgb(var(--token-fg-muted)); }
 
+/* 操作列：永遠單列，內容不換行也不撐出畫面；放不下時由滑桿縮短 */
+.control-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+}
+
 /* 展示模式大標題：不放玻璃板，直接浮在戰場上。暗場沒有邊界，看起來不是一塊板子 */
 .hero-rain {
   position: absolute;

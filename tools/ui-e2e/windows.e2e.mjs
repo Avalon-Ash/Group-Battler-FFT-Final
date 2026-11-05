@@ -127,6 +127,44 @@ const chooseOption = async (page, testId, optionText) => {
     await page.waitForTimeout(150);
 };
 
+/**
+ * 操作列（播放列、工具列）的版面合約：純圖示、單列、不超出畫面。
+ * 文字會撐寬面板、面板不夠就換行或拉伸，這個問題每次改版都回來，所以用檢查擋住。
+ * 說明放 aria-label 與 title；數值讀數（1.0x）不是按鈕，可以留。
+ */
+const CONTROL_BAR_MAX_HEIGHT_PX = 64;
+async function checkControlBars(page, where) {
+    const bars = await page.evaluate(() => ['playback-hud', 'map-toolbar'].map((id) => {
+        const bar = document.querySelector(`[data-testid="${id}"]`);
+        if (!bar) return { id, missing: true };
+        const r = bar.getBoundingClientRect();
+        const buttons = [...bar.querySelectorAll('button')].map((b) => {
+            const br = b.getBoundingClientRect();
+            return { text: b.textContent.trim(), label: b.getAttribute('aria-label'), centerY: br.top + br.height / 2 };
+        });
+        const ys = buttons.map((b) => b.centerY);
+        return {
+            id,
+            height: r.height,
+            left: r.left,
+            right: r.right,
+            viewport: window.innerWidth,
+            count: buttons.length,
+            withText: buttons.filter((b) => b.text !== '').map((b) => b.text),
+            unlabelled: buttons.filter((b) => !b.label).length,
+            rowSpread: Math.max(...ys) - Math.min(...ys),
+        };
+    }));
+    for (const b of bars) {
+        const detail = JSON.stringify(b);
+        ok(`${where} ${b.id}: exists with buttons`, !b.missing && b.count > 0, detail);
+        if (b.missing) continue;
+        ok(`${where} ${b.id}: buttons are icon-only and labelled`, b.withText.length === 0 && b.unlabelled === 0, detail);
+        ok(`${where} ${b.id}: stays on one row`, b.rowSpread <= 2 && b.height <= CONTROL_BAR_MAX_HEIGHT_PX, detail);
+        ok(`${where} ${b.id}: fits the viewport`, b.left >= 0 && b.right <= b.viewport, detail);
+    }
+}
+
 const rectOf = (page, id) => page.evaluate((wid) => {
     const e = document.querySelector(`[data-window-id=${wid}]`);
     if (!e) return null;
@@ -306,6 +344,14 @@ const runToolMenuSuite = async () => {
     ok('menu item exists: audioSettings', await page.locator('[data-testid="menu-item-audioSettings"]').isVisible());
     ok('menu item exists: reset-layout', await page.locator('[data-testid="menu-item-reset-layout"]').isVisible());
     ok('menu item exists: spec', await page.locator('[data-testid="menu-item-spec"]').isVisible());
+    const menuRows = await page.evaluate(() => ['menu-item-reset-layout', 'menu-item-spec'].map((id) => {
+        const el = document.querySelector(`[data-testid="${id}"]`);
+        const rowLeft = el.getBoundingClientRect().left;
+        const iconLeft = el.firstElementChild.getBoundingClientRect().left;
+        return { id, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, iconInset: iconLeft - rowLeft };
+    }));
+    ok('system menu: two-line actions fit inside their rows', menuRows.every((r) => r.scrollHeight <= r.clientHeight), JSON.stringify(menuRows));
+    ok('system menu: actions are left-aligned', menuRows.every((r) => r.iconInset <= 16), JSON.stringify(menuRows));
 
     // 2. Click backdrop outside menu to dismiss
     await page.mouse.click(100, 100);
@@ -664,7 +710,11 @@ const runInspectorCommandSuite = async () => {
                 const sy = rect.top + (u.py - terrainH - cam.y) * cam.zoom + cy;
                 return sx > 380 && sx < rect.width - 100 && sy > 120 && sy < rect.height - 120;
             });
-            const agent = (candidates.length > 0 ? candidates[idx % candidates.length] : null) || alive[idx % alive.length];
+            // 點擊是先換算成格子再找單位：相鄰格有人就可能選到別人，後面的斷言會驗錯對象
+            const isolated = candidates.filter(u => !alive.some(o => o !== u
+                && (Math.abs(o.q - u.q) + Math.abs(o.r - u.r) + Math.abs(o.q + o.r - u.q - u.r)) / 2 <= 1));
+            const pool = isolated.length > 0 ? isolated : candidates;
+            const agent = (pool.length > 0 ? pool[idx % pool.length] : null) || alive[idx % alive.length];
             if (!agent) return null;
             const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
             const worldX = agent.px;
@@ -732,6 +782,31 @@ const runInspectorCommandSuite = async () => {
     await page.waitForTimeout(250);
     const restored = await rectOf(page, 'inspector');
     ok('Esc restores a maximized window', restored !== null && restored.width < 1200, `width=${restored?.width}`);
+
+    // 2c. 視窗內的卷軸要拖得動：縮放把手不能蓋在卷軸上
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('[data-testid="menu-item-db"]').click();
+    await page.waitForTimeout(400);
+    // 無頭模式預設隱藏卷軸，拖不到，所以驗卷軸那一條上按得到的是捲動容器本身
+    const scrollbarHits = await page.evaluate(() => {
+        const el = document.querySelector('[data-window-id="db"] .ui-scroll');
+        const r = el.getBoundingClientRect();
+        const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scrollbar'));
+        const points = [];
+        for (let dx = 1; dx < bar; dx += 2) {
+            // 右下角把手要夠大才抓得到（圓角會裁掉邊緣），它蓋住卷軸最底部幾 px，滑塊仍抓得到
+            for (const y of [r.top + 8, r.top + r.height / 2, r.bottom - 12]) {
+                const hit = document.elementFromPoint(r.right - dx, y);
+                points.push({ dx, y: Math.round(y), onScroller: hit === el || el.contains(hit), handle: hit?.getAttribute?.('data-handle-direction') ?? null });
+            }
+        }
+        return { bar, overflow: el.scrollHeight - el.clientHeight, blocked: points.filter((p) => !p.onScroller) };
+    });
+    ok('skill database has enough rows to scroll', scrollbarHits.overflow > 0, `overflow=${scrollbarHits.overflow}`);
+    ok('scrollbar is not covered by a resize handle', scrollbarHits.bar > 0 && scrollbarHits.blocked.length === 0, JSON.stringify(scrollbarHits.blocked.slice(0, 4)));
+    await page.locator('[data-window-id="db"] [data-window-btn="close"]').click();
+    await page.waitForTimeout(200);
 
     // 3. SystemMenu is layered above inspector
     await page.locator('[data-testid="system-menu-button"]').click();
@@ -1009,6 +1084,7 @@ const runBottomSheetSuite = async () => {
     // 3. Assert bottom edge flush with viewport bottom (844)
     // 手動模式底部面板要讓開播放列（index.css 的 --ui-sheet-bottom = 96px）
     ok('narrow screen: bottom sheet stays clear of the playback bar', active && near(active.rect.bottom, 844 - 96, 2), `${active?.rect.bottom} vs 748`);
+    await checkControlBars(page, 'phone');
 
     // 4. Assert height <= 72vh (844 * 0.72 = 607.68)
     const maxAllowedHeight = 844 * 0.72 + 2;
@@ -1434,6 +1510,8 @@ const runEditorSuite = async () => {
 
     ok('drag pan: camera position changed', fpsResult.x !== initialCamPos.x || fpsResult.y !== initialCamPos.y, `${JSON.stringify(initialCamPos)} vs ${JSON.stringify(fpsResult)}`);
     console.log(`INFO: Baseline Pan FPS: ${fpsResult.fps}`);
+
+    await checkControlBars(page, 'desktop');
 
     // ⑨ PlaybackHUD Restart & Random buttons
     await page.locator('button[title="重新開始"]').click();

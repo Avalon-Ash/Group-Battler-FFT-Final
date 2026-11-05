@@ -21,7 +21,7 @@
 3. 倍率改成跑多個固定步長。
 4. 行為樹資料化與編輯器。
 
-**M. UI 遺留（WORKLOG §2 BP）**：`WindowDef` 的布林改 `modes`；debug／edit 視窗延遲載入；`Tabs`、`Segmented` 加 `testId` 欄位（目前放在 label 內的 span）；技能下拉加搜尋；`dbSignature` 每秒 10 次組字串的成本；「聖印衝擊」圖示深藍符號融入底板，辨識度低（素材）。
+**M. UI 遺留（WORKLOG §2 BP）**：`WindowDef` 的布林改 `modes`；debug／edit 視窗延遲載入；`Tabs`、`Segmented` 加 `testId` 欄位（目前放在 label 內的 span）；技能下拉加搜尋；`dbSignature` 每秒 10 次組字串的成本；「聖印衝擊」圖示深藍符號融入底板，辨識度低（素材）；平板寬度的觸控操作下，視窗左右縮放把手 44px 蓋住內容邊緣，點不到也滑不動（`HANDLE_PX_COARSE`，手機是底部面板不受影響）。
 
 **J. 技能平衡（使用者 2026-11-04：Codex 恢復後一起做，WORKLOG §2 BL 有數據）**：管線與機制都好了，數值還是佔位。
 - **要調的**：機動技每招每場只放 0.3～0.5 次的（`mr_m2`、`sr_m1`、`mb_m2`，都是貼身才放），看條件要不要放寬。極端值見 WORKLOG。

@@ -87,6 +87,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
         >
             {/* MAIN TOOLBAR */}
             <div
+                data-testid="map-toolbar"
                 className={`shell shell-hud mat-blur rounded-ui-pill p-2 flex items-center select-none cursor-grab active:cursor-grabbing ${
                     isCompact ? 'gap-1' : 'gap-1.5'
                 } ${isDragging ? 'cursor-grabbing scale-105' : ''}`}
