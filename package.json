@@ -22,6 +22,7 @@
     "perf:frames": "node tools/ui-e2e/perf-frames.mjs",
     "perf:attribution": "node tools/ui-e2e/perf-vfx-attribution.mjs",
     "perf:mobile": "node tools/ui-e2e/perf-mobile-emu.mjs",
+    "perf:mem": "node tools/ui-e2e/mem-probe.mjs",
     "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts",
     "knip": "knip",
     "balance:idle": "node tools/balance/ai-idle-sim.mjs",
