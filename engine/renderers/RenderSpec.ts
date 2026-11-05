@@ -1,6 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // [ARCH] §3: capped corpse slide endpoint uses fixed initial velocity direction.
 // [ARCH] Section 12 also defines per-cell ground information priority.
+// [ARCH] §4: approved status attachments are part of the UNIT assembly.
 // ║  RenderSpec — 渲染座標協議 SSOT（層序、排序鍵、座標、錨點）║
 // ║  職責：記錄所有「位置／高度／排序／發射點」規則的唯一文件 ║
 // ║  [ARCH] 改到任何一條規則，必須在同一個 commit 更新本檔與  ║
@@ -272,6 +273,9 @@ export class RenderSpec {
         s += "  - 地塊：頂面中心＝本幀 TERRAIN op 的 snap(tx)、snap(ty) − th（含漂浮與轉場），外形＝頂面六角（HEX_SIZE）往下 SILHOUETTE_MASK.COLUMN_DEPTH 的凸包。\n";
         s += "  - 障礙物：本幀 OBSTACLE op 的 snap 位置減 sprite 錨點；剪影先畫在暫存畫布，再用障礙物圖 destination-in，只留不透明像素。\n";
         s += "- 座標一律取本幀 op，不自己重算高度或漂浮；判定寬鬆也不會讓露在外面的部分變色（裁切區和本體沒重疊就什麼都不畫）。\n\n";
+        s += "\n## 14. 核可狀態附件（§4 單位 assembly）\n\n";
+        s += "STUN／ROOT／BURN／POISON 在 UnitBodyPainter 的精靈腳底（UNIT_SPRITE.footOffsetLocal）繪製，隨 UNIT op 的 UnitFrame 座標、轉場、高差、遮擋與排序，不新增 sortBias 或全場 overlay。藤後片 → 本體／毒材質／羊 → 火舌或毒泡 → 藤前片 → 星環。暈眩本體繞腳底 sin(2πt)×0.065rad、scaleY=0.96；星環在實際 sprite 頭頂上方 7 world units。尺寸、職業對位與抽幀讀 data/vfx/statusArt.ts；時間只有 battleTime，暫停不流逝。其餘狀態仍走原 StatusPartPainter／ShieldPainter，原優先序勝者及截斷不變；HUD 不變。\n";
+        s += "短腿羊四向各四幀，8fps，沿用 selectSpriteDirection；裁邊 draw rect 保留 Blender 腳錨，無項圈、無陣營上色、不另加跳躍。毒材質固定 768×1024（3MiB），十個六幀頁，以含 hue 的外觀鍵＋動作／方向頁識別；活躍頁保護，僅 update 排程的分批 task 可準備，draw miss 畫原人物＋毒泡。\n";
         return s;
     }
 

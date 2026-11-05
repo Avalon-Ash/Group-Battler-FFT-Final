@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { buildCcBodyEntries, CcBodyStore, type CcBodyManifest, type CcBodyDeps } from '../engine/renderers/units/CcBodyStore';
 import { Team } from '../types';
-import { getFactionSkin } from '../data/units/factionSkin';
 
 const ROOT = path.resolve(__dirname, '..');
 const DIRS = ['SE', 'SW', 'NE', 'NW'] as const;
@@ -31,14 +30,14 @@ const fakeManifest: CcBodyManifest = {
     pxPerHex: 192,
     elevationDeg: 30,
     types: {
-        SHEEP: { file: 'sheep.webp', maskFile: 'sheep_mask.webp', atlas: { w: 40, h: 12 }, heightHex: 1, frames: { SE: frame(0), SW: frame(10), NE: frame(20), NW: frame(30) } },
+        SHEEP: { file: 'sheep-short.png', atlas: { w: 40, h: 12 }, heightHex: 1, frames: { SE: frame(0), SW: frame(10), NE: frame(20), NW: frame(30) } },
         ICE_BLOCK: { file: 'ice_block.webp', atlas: { w: 40, h: 12 }, heightHex: 1.4, frames: { SE: frame(0), SW: frame(10), NE: frame(20), NW: frame(30) } },
     },
 };
-const fakeImages = { 'sheep.webp': {} as CanvasImageSource, 'sheep_mask.webp': {} as CanvasImageSource, 'ice_block.webp': {} as CanvasImageSource };
+const fakeImages = { 'sheep-short.png': {} as CanvasImageSource, 'ice_block.webp': {} as CanvasImageSource };
 
 describe('CC body atlas (Blender-baked sheep and ice cage)', () => {
-    it('the shipped manifest describes four native directions per type, inside the atlas, with a mask for the sheep collar', () => {
+    it('the shipped manifest describes four native directions per type and four sheep poses per direction without a collar mask', () => {
         const dir = path.join(ROOT, 'public/assets/cc_bodies');
         const manifest = JSON.parse(readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as CcBodyManifest;
         expect(Object.keys(manifest.types).sort()).toEqual(['ICE_BLOCK', 'SHEEP']);
@@ -57,26 +56,44 @@ describe('CC body atlas (Blender-baked sheep and ice cage)', () => {
                 expect(f.ay).toBeLessThanOrEqual(f.h);
             }
         }
-        expect(manifest.types.SHEEP!.maskFile).toBeTruthy();
+        expect(manifest.types.SHEEP!.maskFile).toBeUndefined();
+        const sheep = manifest.types.SHEEP!;
+        expect(Object.keys(sheep.animationFrames!).sort()).toEqual([...DIRS].sort());
+        const slots = new Set<string>();
+        for (const d of DIRS) {
+            const poses = sheep.animationFrames![d];
+            expect(poses).toHaveLength(4);
+            expect(poses[0]).toEqual(sheep.frames[d]);
+            for (const f of poses) {
+                expect(f.w).toBeGreaterThan(0); expect(f.h).toBeGreaterThan(0);
+                expect(f.x + f.w).toBeLessThanOrEqual(sheep.atlas.w);
+                expect(f.y + f.h).toBeLessThanOrEqual(sheep.atlas.h);
+                expect(f.drawW).toBeGreaterThan(0); expect(f.drawH).toBeGreaterThan(0);
+                expect(f.drawX).toBeLessThan(0); expect(f.drawY).toBeLessThan(0);
+                slots.add(`${f.x},${f.y}`);
+            }
+        }
+        expect(slots.size).toBe(16);
+        const painter = readFileSync(path.join(ROOT, 'engine/renderers/units/painters/PolymorphPainter.ts'), 'utf8');
+        expect(painter).not.toMatch(/agent\.(team|look)|getFactionSkin|retintRgb/);
         expect(manifest.types.ICE_BLOCK!.maskFile).toBeUndefined();
     });
 
-    it('builds per-team sheep sheets (collar tinted by FACTION_SKINS) and one silhouette, once, without gradients or shadowBlur', () => {
+    it('shares the unchanged sheep sheet across teams and builds exactly one white silhouette without tinting, gradients or shadowBlur', () => {
         const s = fakeSurface();
         const entries = buildCcBodyEntries(fakeManifest, fakeImages, s.make);
         const sheep = entries.SHEEP!;
         expect(sheep.colorByTeam).toHaveLength(2);
-        expect(sheep.colorByTeam[Team.BLUE]).not.toBe(sheep.colorByTeam[Team.RED]);
+        expect(sheep.colorByTeam[Team.BLUE]).toBe(sheep.colorByTeam[Team.RED]);
+        expect(sheep.colorByTeam[Team.BLUE]).toBe(fakeImages['sheep-short.png']);
         expect(sheep.silhouette).toBeTruthy();
-        expect(s.sets.fillStyle).toContain(getFactionSkin(Team.BLUE).fallbackBodyColor);
-        expect(s.sets.fillStyle).toContain(getFactionSkin(Team.RED).fallbackBodyColor);
-        expect(s.sets.globalCompositeOperation).toContain('multiply');
+        expect(s.sets.fillStyle).toEqual(['#ffffff']);
+        expect(s.sets.globalCompositeOperation).toEqual(['source-in']);
         expect(s.sets.globalCompositeOperation).toContain('source-in');
         expect(s.calls).not.toContain('createLinearGradient');
         expect(s.calls).not.toContain('createRadialGradient');
         expect(s.sets.shadowBlur).toBeUndefined();
-        // 2 隊 × (合成＋遮罩層) ＋ 剪影 = 5 張離屏畫布；之後執行期不再建立
-        expect(s.made).toHaveLength(5);
+        expect(s.made).toHaveLength(1);
     });
 
     it('the ice cage is one shared sheet for both teams and has no silhouette (never drawn as an outline)', () => {

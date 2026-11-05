@@ -136,3 +136,220 @@ asset_ready_timeout_ignored=0; probe_PRNG=engine/math/hash.ts exports
 | Later packages / Inspector effect components | Implemented=0; this batch=P1/P2. |
 | verify:coords | Executions=0; position/height/sort/emission changes=0. |
 | Commit / merge / push | Executions=0; sandbox .git read-only. |
+
+```text
+2026-11-06
+batch=5-status-art
+implementation_files_changed=0
+existing_tests_modified=0
+assets_changed=0
+baseline_writes=0
+threshold_changes=0
+commit=0 push=0 merge=0
+STOP=existing-test-requires-old-sheep-collar-mask
+tests/CcBodyPainters.test.ts:41
+tests/CcBodyPainters.test.ts:60
+expect(manifest.types.SHEEP!.maskFile).toBeTruthy();
+tests/CcBodyPainters.test.ts:64
+tests/CcBodyPainters.test.ts:79
+expect(s.made).toHaveLength(5);
+public/assets/cc_bodies/manifest.json:47
+"maskFile": "sheep_mask.webp"
+C:/Git/_wt_status_art/tools/assets/blender/render_status_art.py:68
+C:/Git/_wt_status_art/tools/assets/blender/render_status_art.py:92
+approved_sheep_directions=4
+approved_sheep_frames_per_direction=4
+approved_sheep_collar_mask_files=0
+empty_mask_workaround=0
+retained_unused_old_sheep_workaround=0
+command=git -c safe.directory=C:/Git/_wt_status_visuals diff --stat
+EXIT=0
+stdout_bytes=0
+command=npm run lint
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=npx vitest run --exclude "**/AgentRunner.test.ts"
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=npm run build
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=npm run knip
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=npm run balance:fingerprint -- --battles=60
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=node tools/ui-e2e/runtime-smoke.mjs
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=npm run verify:coords
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=npm run perf:mem -- 120 mute
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=npm run perf:guard
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+command=node tools/ui-e2e/perf-ab.mjs --assert
+EXIT=NOT_RUN STOP=tests/CcBodyPainters.test.ts:60
+origin_main_memory_comparisons=0
+ingame_visual_checks=0
+ingame_screenshots=0
+prototype_board_images_inspected=2
+implemented_STUN=0
+implemented_POLYMORPH=0
+implemented_ROOT=0
+implemented_BURN=0
+implemented_POISON=0
+```
+```text
+2026-11-06 resume=1
+PLAN_FILES
+1 data/vfx/statusArt.ts
+2 engine/renderers/status/StatusArtStore.ts
+3 engine/renderers/status/painters/StatusArtPainter.ts
+4 engine/renderers/status/PoisonMaterialStore.ts
+5 engine/renderers/status/painters/StatusPartPainter.ts
+6 engine/renderers/units/painters/UnitBodyPainter.ts
+7 engine/renderers/units/painters/PolymorphPainter.ts
+8 engine/renderers/units/CcBodyStore.ts
+9 engine/renderers/units/factions/SpriteUnitRenderer.ts
+10 data/units/appearance/ccBody.ts
+11 engine/renderers/RenderPipeline.ts
+12 engine/renderers/RenderSpec.ts
+13 public/assets/cc_bodies/manifest.json
+14 public/assets/cc_bodies/sheep-short.png
+15 public/assets/cc_bodies/status-effects.png
+16 tools/assets/blender/render_status_art.py
+17 tools/assets/blender/pack_status_art.mjs
+18 tests/CcBodyPainters.test.ts
+19 tests/StatusArt.test.ts
+20 tools/ui-e2e/out/status_art/*
+simulation_changes=0
+retained_status_table_changes=0
+HUD_changes=0
+baseline_changes=0
+```
+```text
+PLAN_FILES_ADD data/units/appearance/selectSpriteFrame.ts data/units/appearance/sprite.ts engine/renderers/units/SpriteAtlasStore.ts docs/ASSET_LEDGER.md
+```
+
+
+```text
+2026-11-06 batch=5-status-art resume=1
+implementation_status=STOPPED_AFTER_2_SUPPLEMENTAL_CACHE_PROBE_FAILURES
+source_files=15 tests=2 tooling=2 asset_files_added=2 asset_manifests=1 asset_files_deleted=2 documents=2
+simulation_changes=0 existing_non_sheep_tests_modified=0 dependencies_added=0 baseline_writes=0 thresholds_changed=0 commit=0 push=0 merge=0
+data/vfx/statusArt.ts:7
+engine/renderers/status/StatusArtStore.ts:8
+engine/renderers/status/PoisonMaterialStore.ts:18
+engine/renderers/status/painters/StatusArtPainter.ts:29
+engine/renderers/status/painters/StatusPartPainter.ts:107
+engine/renderers/units/painters/UnitBodyPainter.ts:109
+engine/renderers/units/painters/PolymorphPainter.ts:25
+engine/renderers/units/CcBodyStore.ts:74
+engine/renderers/units/factions/SpriteUnitRenderer.ts:221
+engine/renderers/units/SpriteAtlasStore.ts:93
+engine/renderers/RenderPipeline.ts:119
+engine/renderers/RenderSpec.ts:276
+data/units/appearance/ccBody.ts:29
+data/units/appearance/selectSpriteFrame.ts:53
+data/units/appearance/sprite.ts:86
+public/assets/cc_bodies/manifest.json:7
+tools/assets/blender/render_status_art.py:4
+tools/assets/blender/pack_status_art.mjs:1
+tests/CcBodyPainters.test.ts:40
+tests/StatusArt.test.ts:10
+docs/ASSET_LEDGER.md:176
+public/assets/cc_bodies/sheep-short.png
+public/assets/cc_bodies/status-effects.png
+DELETED public/assets/cc_bodies/sheep.webp
+DELETED public/assets/cc_bodies/sheep_mask.webp
+command=git -c safe.directory=C:/Git/_wt_status_visuals grep -n -E "sheep.webp|sheep_mask.webp|composeTinted" -- engine data public tests tools docs/ASSET_LEDGER.md
+EXIT=1 stdout_bytes=0
+command=npm run lint
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-final-lint.log
+command=npx vitest run --exclude "**/AgentRunner.test.ts"
+EXIT=1 log=tools/ui-e2e/out/status_art/logs/status-art-final-static.log
+command=npm run build
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-final-build.log
+command=npm run knip
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-final-knip.log
+command=npm run balance:fingerprint -- --battles=60
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-fingerprint.log
+command=node tools/ui-e2e/runtime-smoke.mjs
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-runtime.log
+command=npm run verify:coords
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-coords.log
+command=npm run perf:mem -- 120 mute
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-mem-current.log
+command=node tools/ui-e2e/out/status_art/memory-origin-main.mjs 120 mute
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-mem-main.log
+command=npm run perf:guard
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-guard.log
+command=node tools/assets/blender/pack_status_art.mjs C:/Git/_wt_status_art/docs/status_art
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-pack.log
+command=node tools/ui-e2e/out/status_art/gallery.mjs
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-gallery-final.log
+command=node tools/ui-e2e/out/status_art/combat.mjs
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-combat-css.log
+command=node tools/ui-e2e/out/status_art/unchanged-ab.mjs
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-unchanged.log
+command=node tools/ui-e2e/out/status_art/terrain-scene-ab.mjs
+EXIT=0 log=tools/ui-e2e/out/status_art/logs/status-art-terrain-ab.log
+command=node tools/ui-e2e/out/status_art/cache.mjs
+EXIT=1 log=tools/ui-e2e/out/status_art/logs/status-art-cache.log
+command=node tools/ui-e2e/out/status_art/cache.mjs
+EXIT=1 log=tools/ui-e2e/out/status_art/logs/status-art-cache-stepped.log
+Test Files 1 failed | 141 passed (142)
+Tests 1 failed | 1443 passed (1444)
+tests/DocDrift.test.ts:99 known_missing_path_references=26
+initial_suite_added_failure=1 initial_suite_fixed_failure=1 data/vfx/statusArt.ts:2
+TEAMS: 60/60 identical
+ROYALE: 60/60 identical
+SQUADS: 60/60 identical
+[smoke] agents=10 running=true battleTime 0.52 -> 4.60 s
+PASS: runtime smoke (0 page errors, engine advancing, canvas changing)
+[PERF_ASSERT] ALL performance guardrails PASSED.
+perf_guard_fidelity VOID=0.000 FOREST=0.651 ICE=0.253 MAGMA=0.249 DESERT=0.534 battle_frozen=0.005
+terrain_same_environment_AB VOID=0 FOREST=0 ICE=0 MAGMA=0 DESERT=0
+retained_status_same_environment_AB tiers=0,3 classes_teams_bodies=20 single_statuses=15 combinations=4 changedPixels=0 sumAbsDiff=0
+HUD_same_environment_AB tiers=0,3 changedPixels=0 sumAbsDiff=0
+VOID: units=3 frames=90 bobbing=true constantGap=true -> PASS
+MAGMA: units=3 frames=90 bobbing=true constantGap=true -> PASS
+coordinate_sink_violations=0 over_void_samples=2 oscillation_events=126 static_oscillation_events=4
+coordinate_assert_flag=0 coordinate_runtime_warning_baseline_comparisons=0
+memory_origin_main_seconds=120 generations=5 page_errors=0 canvas_median_MiB=396 canvas_peak_MiB=555 canvas_last_MiB=503 heap_median_MiB=50 heap_peak_MiB=118
+memory_current_seconds=120 generations=4 page_errors=0 canvas_median_MiB=465 canvas_peak_MiB=570 canvas_last_MiB=413 heap_median_MiB=53 heap_peak_MiB=73
+memory_canvas_median_delta_MiB=69 memory_canvas_peak_delta_MiB=15 memory_roster_matched=0
+poison_pool_bytes=3145728 poison_scratch_bytes=49152 poison_page_capacity=10 pose_slots_reserved=60 pose_slots_capacity=64
+accepted_effect_atlas_bytes=1572864 sheep_color_atlas_bytes=1048576 sheep_silhouette_bytes=1048576
+art_resource_logical_bytes=6864896 old_asset_memory_credit_bytes=0
+gallery_cases=1600 hue_cases=1200 hues=135,42,285,175,325,15
+accepted_effect_atlas_sumAbsDiff=0 approved_short_sheep_atlas_sumAbsDiff=0 nonempty_sheep_frames=16
+unit_draw_audit clip=0 Path2D=0 gradient=0 filter=0 shadowBlur=0 newCanvas=0 drawImage=200
+combat_viewports=1280x900,393x852 DPR=1,3 samples_per_viewport=16 screenshots_per_viewport=8 agents=20 statuses_seen=5
+combat_seed=4488 injected_via_production_CCManager=1 organically_rolled_initial_statuses=0 START_button_clicks_custom_probes=0
+combat_production_skills STUN=wb_b4 POLYMORPH=mr_a3 ROOT=tb_a3 BURN=rr_b4 POISON=rr_b3
+combat_moving_active_units_peak=1 slope_samples_peak=2 mixed_status_units_peak=4 occluded_units_peak=12 page_errors=0
+combat_observed_height_transitions BURN=0->96 STUN+ROOT+POISON=24->0 POISON=0->24 POLYMORPH=48->72
+pause_battleTime_before=2.1499999999999972 pause_battleTime_after=2.1499999999999972 pause_body_pixels_equal=1
+prototype_geometry_fit data/vfx/statusArt.ts:21
+prototype_runtime_motion_and_sort engine/renderers/units/painters/UnitBodyPainter.ts:109 engine/renderers/RenderSpec.ts:276
+prototype_material_miss_draw_original engine/renderers/status/PoisonMaterialStore.ts:52
+supplemental_cache_attempt_1 EXIT=1 page.evaluate: Error: Protected page changed
+supplemental_cache_attempt_2 EXIT=1 page.waitForFunction: Timeout 30000ms exceeded.
+supplemental_cache_attempt_2_manual_raf=1 supplemental_cache_attempt_2_wait_polling=raf
+supplemental_cache_attempts=2 supplemental_cache_active_page_protection_completed=0 supplemental_cache_eviction_completed=0 supplemental_cache_probe_retries_remaining=0
+standalone_perf_ab_command_executions=0 perf_ab_executions_inside_perf_guard=1 perf_fidelity_failures=0
+tools/ui-e2e/out/status_art/ingame-board.png
+tools/ui-e2e/out/status_art/mobile-gallery.png
+tools/ui-e2e/out/status_art/combat-desktop-00.png
+tools/ui-e2e/out/status_art/combat-desktop-07.png
+tools/ui-e2e/out/status_art/combat-mobile-00.png
+tools/ui-e2e/out/status_art/combat-mobile-07.png
+tools/ui-e2e/out/status_art/gallery-evidence.json
+tools/ui-e2e/out/status_art/combat-evidence.json
+tools/ui-e2e/out/status_art/ab/report.json
+tools/ui-e2e/out/status_art/terrain-ab/report.json
+tools/ui-e2e/out/status_art/coord_guard.json
+tools/ui-e2e/out/status_art/perf_ab.json
+```
+
+```text
+command=git -c safe.directory=C:/Git/_wt_status_visuals diff --check
+EXIT=0
+```

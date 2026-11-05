@@ -90,17 +90,13 @@ export function selectMipLevel(
     mipLevels: readonly number[] = UNIT_SPRITE.mipLevels
 ): number {
     if (!mipLevels || mipLevels.length === 0) return 1.0;
-    // 降序排列
-    const sorted = [...mipLevels].sort((a, b) => b - a);
-    let best = sorted[0];
-    for (const level of sorted) {
-        if (level >= desiredScale) {
-            best = level;
-        } else {
-            break;
-        }
+    // Same nearest-not-smaller rule, without a sorted copy on every unit draw.
+    let largest = mipLevels[0], best = Infinity;
+    for (const level of mipLevels) {
+        largest = Math.max(largest, level);
+        if (level >= desiredScale) best = Math.min(best, level);
     }
-    return best;
+    return best === Infinity ? largest : best;
 }
 
 type AtlasImage = HTMLImageElement | ImageBitmap;

@@ -15,6 +15,8 @@
 // ║  [ARCH] 純繪製動態（浮動、傾斜、奧義脈動、出生下落）參數在  ║
 // ║  UNIT_BODY_MOTION；只動局部座標，不進 UnitFrame／排序鍵，   ║
 // ║  發射點不跟著浮動（RenderSpec §4）                          ║
+// ║  [ARCH] 新狀態附件在 UNIT assembly：藤後→本體→火／毒泡→藤前→星。║
+// ║  精靈腳底取 footOffsetLocal；暈眩繞腳底失衡，HUD／排序不變。║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../../game";
@@ -28,6 +30,8 @@ import { getAgentSkin } from "../../../../data/units/factionTint";
 import { UnitAfterimagePainter } from "./UnitAfterimagePainter";
 import type { UnitFrame } from "../../frame/UnitFrame";
 import { unitFallProgress } from "../../../../data/units/appearance/fallMotion";
+import { StatusArtPainter } from '../../status/painters/StatusArtPainter';
+import { STATUS_ART } from '../../../../data/vfx/statusArt';
 
 export const UnitBodyPainter = {
     draw(
@@ -102,6 +106,16 @@ export const UnitBodyPainter = {
 
         ctx.translate(0, bodyFloat);
 
+        const showArt = !isSilhouette && fall === 0;
+        if (showArt) StatusArtPainter.root(ctx, agent, t);
+        ctx.save();
+        if (StatusArtPainter.stunned(agent)) {
+            ctx.translate(0, UNIT_SPRITE.footOffsetLocal);
+            ctx.rotate(Math.sin(t * Math.PI * 2) * STATUS_ART.stun.sway);
+            ctx.scale(1, STATUS_ART.stun.scaleY);
+            ctx.translate(0, -UNIT_SPRITE.footOffsetLocal);
+        }
+
         // 變羊：圖集已載入就換成羊；未載入時（回傳 false）畫原本的單位
         if (!(agent.view.visualStatus === 'POLYMORPH' && PolymorphPainter.draw(ctx, agent, t, isSilhouette))) {
             // Layer 2: Main Body (Sprite Atlas with 5-line team circle fallback on load failure)
@@ -119,6 +133,12 @@ export const UnitBodyPainter = {
                 FrozenPainter.draw(ctx, agent, t);
             }
         }
+        if (showArt) {
+            StatusArtPainter.torso(ctx, agent, t);
+            StatusArtPainter.root(ctx, agent, t);
+        }
+        ctx.restore();
+        if (showArt) StatusArtPainter.stars(ctx, agent, t);
         
         ctx.restore(); 
     }

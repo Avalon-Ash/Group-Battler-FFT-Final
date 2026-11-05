@@ -9,6 +9,7 @@
  *  - idle / walk 以 t * fps 循環，並依 agent.id 進行相位偏移避免整隊同步
  *  - 方向：依 agent.facing (+1 右, -1 左) 與垂直相對方向選取原生 SE/SW/NE/NW
  *  - 垂直方向滯後（Hysteresis）防止目標位置微動時來回閃爍
+ *  - renderer 可傳入 out 重用選格物件；選格與時間規則不變。
  */
 
 /** 動畫／序列參數 SSOT，保持原值。 */
@@ -47,6 +48,15 @@ export interface SpriteFrameSelection {
     dir: SpriteDirection;
     frameIndex: number;
     isDeathFinished?: boolean;
+}
+
+function writeSelection(out: SpriteFrameSelection | undefined, anim: string, dir: SpriteDirection,
+    frameIndex: number, isDeathFinished?: boolean): SpriteFrameSelection {
+    const result = out ?? { anim, dir, frameIndex };
+    result.anim = anim; result.dir = dir; result.frameIndex = frameIndex;
+    if (isDeathFinished === undefined) delete result.isDeathFinished;
+    else result.isDeathFinished = isDeathFinished;
+    return result;
 }
 
 // 預設每種動畫之標準影格數（對齊 KayKit manifest）
@@ -155,7 +165,8 @@ export function selectSpriteFrame(
     agent: Agent,
     t: number,
     hasCastAnim?: boolean,
-    frameCounts: Record<string, number> = DEFAULT_FRAME_COUNTS
+    frameCounts: Record<string, number> = DEFAULT_FRAME_COUNTS,
+    out?: SpriteFrameSelection
 ): SpriteFrameSelection {
     const dir = selectSpriteDirection(agent, t);
 
@@ -176,12 +187,7 @@ export function selectSpriteFrame(
         const tDead = Math.max(0, agent.deathTimer);
         const progress = animDuration > 0 ? tDead / animDuration : 1.0;
         const frameIndex = Math.min(totalFrames - 1, Math.floor(progress * totalFrames));
-        return {
-            anim,
-            dir,
-            frameIndex,
-            isDeathFinished: progress >= 1.0
-        };
+        return writeSelection(out, anim, dir, frameIndex, progress >= 1.0);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -195,7 +201,7 @@ export function selectSpriteFrame(
         // hitFlashTimer 從 flashDur 倒數至 0
         const progress = Math.max(0, Math.min(1, 1 - (agent.view.hitFlashTimer / flashDur)));
         const frameIndex = Math.min(totalFrames - 1, Math.floor(progress * totalFrames));
-        return { anim, dir, frameIndex };
+        return writeSelection(out, anim, dir, frameIndex);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -219,11 +225,11 @@ export function selectSpriteFrame(
             // 無進度計時器時，沿用 t 循環
             const fps = UNIT_SPRITE.attackFps || SPRITE_FRAME_PARAM.ATTACK_FPS;
             const idx = Math.floor(t * fps) % totalFrames;
-            return { anim, dir, frameIndex: idx };
+            return writeSelection(out, anim, dir, idx);
         }
 
         const frameIndex = Math.min(totalFrames - 1, Math.floor(progress * totalFrames));
-        return { anim, dir, frameIndex };
+        return writeSelection(out, anim, dir, frameIndex);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -240,7 +246,7 @@ export function selectSpriteFrame(
         const fps = UNIT_SPRITE.walkFps || SPRITE_FRAME_PARAM.WALK_FPS;
         const phase = getAgentPhaseOffset(agent.id);
         const frameIndex = Math.floor((t + phase) * fps) % totalFrames;
-        return { anim, dir, frameIndex };
+        return writeSelection(out, anim, dir, frameIndex);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -251,5 +257,5 @@ export function selectSpriteFrame(
     const fps = UNIT_SPRITE.idleFps || SPRITE_FRAME_PARAM.IDLE_FPS;
     const phase = getAgentPhaseOffset(agent.id);
     const frameIndex = Math.floor((t + phase) * fps) % totalFrames;
-    return { anim, dir, frameIndex };
+    return writeSelection(out, anim, dir, frameIndex);
 }

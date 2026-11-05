@@ -1,21 +1,19 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CcBodyStore — 變羊／冰塊的 Blender 烘焙圖集（四向）         ║
 // ║  職責：載入 public/assets/cc_bodies/manifest.json 與圖集，   ║
-// ║        載入後各產生一次：羊每隊一張（項圈遮罩依陣營上色）、   ║
+// ║        羊兩隊共用一張，載入後產生一次白色剪影；無項圈遮罩。 ║
 // ║        羊的白色剪影；執行期（painter）只有 drawImage          ║
 // ║  上游：PolymorphPainter、FrozenPainter（UnitBodyPainter）。   ║
 // ║  [ARCH] 圖集由 tools/assets/blender/render_cc_body.py →       ║
-// ║  pack_cc_body.py 產生；錨點（ax／ay）＝格子中心的地面點，      ║
+// ║  pack_status_art.mjs 產生新羊四向各四幀；冰籠仍由 pack_cc_body.py。║
 // ║  座標規則見 data/units/appearance/ccBody.ts 與 RenderSpec §4。 ║
 // ║  純衍生資源快取，不持遊戲狀態；圖集未載入時 get() 回傳 null，  ║
 // ║  呼叫端畫原本的單位（不保留第二套程式繪製）。                 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { HEX_SIZE } from "../../../constants";
-import { Team } from "../../../types";
 import { CC_BODY_ASSETS, SHEEP_BODY, type CcBodyType } from "../../../data/units/appearance/ccBody";
 import type { SpriteDirection } from "../../../data/units/appearance/selectSpriteFrame";
-import { getFactionSkin } from "../../../data/units/factionSkin";
 import { createCanvas } from "../../graphics/CanvasUtils";
 import { resolveAssetUrl } from "../grid/TerrainTextureStore";
 
@@ -23,7 +21,11 @@ type Surface = { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D };
 export type SurfaceFactory = (w: number, h: number) => Surface;
 
 /** manifest 內一個方向的影格：atlas 矩形與錨點（像素） */
-interface CcFrameDef { x: number; y: number; w: number; h: number; ax: number; ay: number }
+interface CcFrameDef {
+    x: number; y: number; w: number; h: number; ax: number; ay: number;
+}
+/** Approved trimmed sheep rect, in feet-relative world units. */
+interface CcAnimationFrame extends CcFrameDef { drawX: number; drawY: number; drawW: number; drawH: number }
 
 interface CcTypeDef {
     file: string;
@@ -31,6 +33,7 @@ interface CcTypeDef {
     atlas: { w: number; h: number };
     heightHex: number;
     frames: Record<SpriteDirection, CcFrameDef>;
+    animationFrames?: Record<SpriteDirection, CcAnimationFrame[]>;
 }
 
 export interface CcBodyManifest {
@@ -44,6 +47,7 @@ export interface CcBodyManifest {
 /** 一個類型載入後的繪製資料 */
 export interface CcBodyEntry {
     frames: Record<SpriteDirection, CcFrameDef>;
+    animationFrames?: Record<SpriteDirection, CcAnimationFrame[]>;
     /** 依 Team 取用的彩色圖集（冰塊兩隊共用同一張） */
     colorByTeam: readonly CanvasImageSource[];
     /** 純白剪影（受擊閃白、被遮擋輪廓）；沒有時為 null */
@@ -55,23 +59,6 @@ export interface CcBodyDeps {
     fetchManifest: () => Promise<CcBodyManifest | null>;
     loadImage: (relativePath: string) => Promise<HTMLImageElement | null>;
     createSurface: SurfaceFactory;
-}
-
-const TEAMS: readonly Team[] = [Team.BLUE, Team.RED];
-
-/** 羊的項圈：遮罩有值的像素乘上陣營色（multiply 只改這些像素） */
-function composeTinted(base: CanvasImageSource, mask: CanvasImageSource, w: number, h: number, tint: string, createSurface: SurfaceFactory): HTMLCanvasElement {
-    const out = createSurface(w, h);
-    out.ctx.drawImage(base, 0, 0);
-    const layer = createSurface(w, h);
-    layer.ctx.drawImage(mask, 0, 0);
-    layer.ctx.globalCompositeOperation = 'source-in';
-    layer.ctx.fillStyle = tint;
-    layer.ctx.fillRect(0, 0, w, h);
-    out.ctx.globalCompositeOperation = 'multiply';
-    out.ctx.drawImage(layer.canvas, 0, 0);
-    out.ctx.globalCompositeOperation = 'source-over';
-    return out.canvas;
 }
 
 function composeSilhouette(base: CanvasImageSource, w: number, h: number, createSurface: SurfaceFactory): HTMLCanvasElement {
@@ -95,12 +82,10 @@ export function buildCcBodyEntries(
         const img = def && images[def.file];
         if (!def || !img) continue;
         const { w, h } = def.atlas;
-        const mask = def.maskFile ? images[def.maskFile] : undefined;
-        const colorByTeam = TEAMS.map((team) => (mask
-            ? composeTinted(img, mask, w, h, getFactionSkin(team).fallbackBodyColor, createSurface)
-            : img));
+        const colorByTeam = [img, img];
         out[type] = {
             frames: def.frames,
+            animationFrames: def.animationFrames,
             colorByTeam,
             silhouette: type === 'SHEEP' ? composeSilhouette(colorByTeam[0], w, h, createSurface) : null,
         };
@@ -152,7 +137,6 @@ export class CcBodyStore {
             for (const def of Object.values(manifest.types)) {
                 if (!def) continue;
                 files.add(def.file);
-                if (def.maskFile) files.add(def.maskFile);
             }
             const names = [...files];
             const loaded = await Promise.all(names.map((f) => deps.loadImage(f)));
