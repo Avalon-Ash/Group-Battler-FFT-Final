@@ -1,3 +1,4 @@
+import type { StatusAvailability } from './status';
 import type { ActionState, AIState, BodyTypeId, Role, Skill, Team } from '../../types';
 
 /** 隊伍色語意：元件只用它挑 Tag／Meter 的 tone 與文字 class，不自己比對 Team。 */
@@ -20,8 +21,9 @@ export interface InspectorView {
     readonly shield: number;
     readonly q: number;
     readonly r: number;
-    /** 血量歸零、放逐或已完全消失：檢查器改顯示「單位已陣亡」。 */
+    /** 血量歸零或已完全消失：檢查器改顯示「單位已陣亡」。 */
     readonly isDead: boolean;
+    readonly availability: StatusAvailability;
     readonly statusTags: InspectorStatusKind[];
     readonly aiState: AIState;
     readonly actionState: ActionState;

@@ -83,6 +83,9 @@ export function lookupSpriteAppearance(
     const roleBodies = teamRoles[r];
     if (!roleBodies) return null;
 
+    // Enabled appearance is the draw-path common case; no fallback Set allocation.
+    if (BODY_TYPE_PROFILE[body]?.enabled && roleBodies[body]) return roleBodies[body]!;
+
     let current: BodyTypeId | null = body;
     const visited = new Set<BodyTypeId>();
 

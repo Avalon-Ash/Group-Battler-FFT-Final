@@ -1,4 +1,7 @@
-
+// ╔══════════════════════════════════════════════════════════╗
+// ║ EffectSystem — 原逐 tick 結算與 0.5s 回饋。              ║
+// ║ [ARCH] periodicKind/rate/tag 只補事件，不改結算或頻率。   ║
+// ╚══════════════════════════════════════════════════════════╝
 import { Agent, GameEngine } from "../../game";
 import { DOT_COLORS, DAMAGE_TEXT_COLORS, COMBAT_PARAM } from "../../../constants";
 import { applyDirectDamage, applyHeal } from "../combat/DirectDamage";
@@ -44,7 +47,9 @@ export class EffectSystem {
                         value: -Math.floor(rateAbsorb), 
                         color: DAMAGE_TEXT_COLORS.ABSORB, 
                         text: "ABSORB",
-                        targetId: agent.id
+                        targetId: agent.id,
+                        periodicKind: 'DOT', rate: damagePerSec,
+                        dotVariant: agent.effects.DOT.tag === 'BURN' ? 'BURN' : 'DOT'
                     });
                 }
                 
@@ -56,7 +61,9 @@ export class EffectSystem {
                         value: -Math.floor(damagePerSec), 
                         color: dotColor, 
                         skill: { onHit: [{ action: 'STATUS', status: 'DOT' }], dotType: agent.effects.DOT.tag ?? undefined },
-                        targetId: agent.id
+                        targetId: agent.id,
+                        periodicKind: 'DOT', rate: damagePerSec,
+                        dotVariant: agent.effects.DOT.tag === 'BURN' ? 'BURN' : 'DOT'
                     });
                 }
                 engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (${agent.effects.DOT.tag})`);
@@ -82,7 +89,8 @@ export class EffectSystem {
                     pos: unitEventPos(agent, engine), 
                     value: Math.floor(healPerSec), 
                     color: DAMAGE_TEXT_COLORS.HEAL,
-                    targetId: agent.id
+                    targetId: agent.id,
+                    periodicKind: 'HOT', rate: healPerSec
                 });
                 engine.log(null, 'HEAL', '持續治療', agent.id, `回復 ${Math.floor(healPerSec)} HP (再生)`);
                 // Reset timer now

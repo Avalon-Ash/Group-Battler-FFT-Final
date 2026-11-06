@@ -173,7 +173,8 @@ Rendered by `tools/assets/blender/render_cc_body.py` (shared camera/toon setup i
 
 | Asset Path | Used for | Source models | Author | License | Added Date |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `assets/cc_bodies/sheep.webp`, `sheep_mask.webp` | POLYMORPH body (sheep; the mask is the collar, tinted per faction at load) | Scripted low-poly meshes (no external model) | project | own work | 2026-10-30 |
+| `assets/cc_bodies/sheep-short.png` | Approved short-legged POLYMORPH sheep, four directions × four poses; no collar or faction tint. `render_status_art.py` → `pack_status_art.mjs`. | Scripted low-poly meshes (no external model) | project | own work | 2026-11-06 |
+| `assets/cc_bodies/status-effects.png` | Approved STUN, ROOT, BURN, POISON attachments, 21 original raster cells | Project status-art prototype | project | own work | 2026-11-06 |
 | `assets/cc_bodies/ice_block.webp` | FROZEN body (translucent hex ice cage around the unit) | Scripted low-poly meshes (no external model) | project | own work | 2026-10-30 |
 
 ## 7. Local-only audio (NOT in repo, NOT deployed)

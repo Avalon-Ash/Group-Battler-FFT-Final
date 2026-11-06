@@ -5,6 +5,7 @@
 // ║  [ARCH] spatialHazard 的 VFX hexKey 由此寫入             ║
 // ║  [ARCH] 減速不寫 Agent：getHazardSpeedMult 是純函式，     ║
 // ║         由 MovementSystem 每 tick 算出再交給 MotionEngine ║
+// ║  [ARCH] 週期事件補 HAZARD/kind/source，不偽裝身上 DOT。 ║
 // ║  關聯：ZoneSystem（格子陷落時清除此系統資料）             ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -141,7 +142,8 @@ export class HazardSystem {
                 color: DAMAGE_TEXT_COLORS.ABSORB, 
                 text: "ABSORB",
                 sourceId: hazard.sourceId,
-                targetId: agent.id
+                targetId: agent.id,
+                periodicKind: 'HAZARD', hazardKind: hazard.type
             });
         }
 
@@ -153,7 +155,8 @@ export class HazardSystem {
                 color: hazard.color,
                 skill: { color: hazard.color, onHit: [{ action: 'STATUS', status: 'DOT' }] },
                 sourceId: hazard.sourceId,
-                targetId: agent.id
+                targetId: agent.id,
+                periodicKind: 'HAZARD', hazardKind: hazard.type
             });
         }
         

@@ -8,6 +8,7 @@
  *  - 依縮放選用預烘焙層級（UNIT_SPRITE.mipLevels，目前只有 0.5），零執行期離屏分配。
  *  - 受擊閃白直接 blit 預烘焙之白色剪影，被遮擋輪廓以 low alpha 剪影 blit。
  *  - 嚴格遵守零 magic number、零體型字面值、無 shadowBlur。
+ *  - [ARCH] 重用選格／矩形；POISON 只取固定材質頁，缺頁畫原圖。
  */
 
 import { Agent } from '../../../core/Agent';
@@ -15,8 +16,10 @@ import { UNIT_SPRITE, UNIT_SCALE } from '../../../../constants';
 import { spriteAtlasStore, selectMipLevel, UnitFrameDef } from '../SpriteAtlasStore';
 import { resolveBodyType, BODY_TYPE_PROFILE } from '../../../../data/units/appearance/bodyTypes';
 import { lookupSpriteAppearance } from '../../../../data/units/appearance/sprite';
-import { selectSpriteFrame } from '../../../../data/units/appearance/selectSpriteFrame';
+import { selectSpriteFrame, type SpriteFrameSelection } from '../../../../data/units/appearance/selectSpriteFrame';
 import { variantKey } from '../../../../data/units/factionTint';
+import { poisonMaterialStore } from '../../status/PoisonMaterialStore';
+import { isStatusVisible } from '../../status/StatusActivity';
 
 /** 受擊抖動頻率（弧度／秒） */
 const HIT_SHAKE_FREQ = 80;
@@ -62,7 +65,8 @@ export function computeSpriteDrawRect(
     refHeight: number = UNIT_SPRITE.referenceHeightPx,
     heightScale: number = 1.0,
     anchorYOffset: number = 0,
-    targetHeightCanvasUnits: number = UNIT_SPRITE.targetHeightCanvasUnits
+    targetHeightCanvasUnits: number = UNIT_SPRITE.targetHeightCanvasUnits,
+    out?: SpriteDrawRect
 ): SpriteDrawRect {
     const screenScale = computeSpriteScreenScale(refHeight, heightScale, targetHeightCanvasUnits);
     const localScale = screenScale / UNIT_SCALE;
@@ -70,7 +74,10 @@ export function computeSpriteDrawRect(
     const dy = (frame.oy + anchorYOffset) * localScale + UNIT_SPRITE.footOffsetLocal;
     const dw = frame.w * localScale;
     const dh = frame.h * localScale;
-    return { dx, dy, dw, dh, screenScale, localScale };
+    const result = out ?? { dx, dy, dw, dh, screenScale, localScale };
+    result.dx = dx; result.dy = dy; result.dw = dw; result.dh = dh;
+    result.screenScale = screenScale; result.localScale = localScale;
+    return result;
 }
 
 /** resolveFrame 的輸出（draw 與殘影共用；呼叫端自備或用模組內暫存，不跨呼叫保存） */
@@ -80,13 +87,15 @@ export interface ResolvedSpriteFrame {
     rect: SpriteDrawRect | null;
     mipLevel: number;
     flashStrength: number;
+    animationFrames: readonly UnitFrameDef[] | null;
 }
 
 export function createResolvedSpriteFrame(): ResolvedSpriteFrame {
-    return { manifestKey: '', frame: null, rect: null, mipLevel: 1, flashStrength: 1 };
+    return { manifestKey: '', frame: null, rect: null, mipLevel: 1, flashStrength: 1, animationFrames: null };
 }
 
 const scratchFrame = createResolvedSpriteFrame();
+const scratchSelection: SpriteFrameSelection = { anim: 'idle', dir: 'SE', frameIndex: 0 };
 
 export const SpriteUnitRenderer = {
     /**
@@ -144,7 +153,7 @@ export const SpriteUnitRenderer = {
 
         // 影格選取
         const hasCastAnim = 'cast' in unitDef.anims;
-        const selection = selectSpriteFrame(agent, t, hasCastAnim);
+        const selection = selectSpriteFrame(agent, t, hasCastAnim, undefined, scratchSelection);
         const frame = spriteAtlasStore.getFrame(
             manifestKey,
             selection.anim,
@@ -154,9 +163,11 @@ export const SpriteUnitRenderer = {
         if (!frame) return false;
 
         // 目標繪製矩形（補償外層 UNIT_SCALE 並加上 footOffsetLocal 使腳底落在 surfaceY）
-        const rect = computeSpriteDrawRect(frame, refHeight, heightScale, anchorYOffset);
+        const rect = computeSpriteDrawRect(frame, refHeight, heightScale, anchorYOffset,
+            UNIT_SPRITE.targetHeightCanvasUnits, out.rect ?? undefined);
         out.manifestKey = manifestKey;
         out.frame = frame;
+        out.animationFrames = unitDef.anims[selection.anim]?.frames[selection.dir] ?? null;
         out.rect = rect;
         // Mip 層級選取（以實際螢幕縮放 screenScale 為準）
         out.mipLevel = selectMipLevel(rect.screenScale);
@@ -206,7 +217,10 @@ export const SpriteUnitRenderer = {
             return;
         }
 
-        ctx.drawImage(atlasImage, sx, sy, sw, sh, dx, dy, dw, dh);
+        if (!(isStatusVisible('POISON', agent) && r.animationFrames &&
+            poisonMaterialStore.draw(ctx, manifestKey, r.animationFrames, frame, mipLevel, rect, dx))) {
+            ctx.drawImage(atlasImage, sx, sy, sw, sh, dx, dy, dw, dh);
+        }
 
         // 受擊閃白疊層（預烘焙剪影直接 blit）
         if (agent.view.hitFlashTimer > 0) {

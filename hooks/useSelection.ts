@@ -6,9 +6,11 @@ import { useSyncExternalStore } from 'react';
  */
 export class SelectionStore {
     private ids: readonly string[] = [];
+    private watchId: string | null = null;
     private readonly listeners = new Set<() => void>();
 
     getIds = (): readonly string[] => this.ids;
+    getWatchId = (): string | null => this.watchId;
 
     subscribe = (listener: () => void): (() => void) => {
         this.listeners.add(listener);
@@ -17,8 +19,18 @@ export class SelectionStore {
 
     set(ids: readonly string[]): void {
         const next = [...new Set(ids)];
-        if (next.length === this.ids.length && next.every((id, i) => id === this.ids[i])) return;
-        this.ids = next;
+        const unchanged = next.length === this.ids.length && next.every((id, i) => id === this.ids[i]);
+        const watchId = next[0] ?? null;
+        if (unchanged && watchId === this.watchId) return;
+        if (!unchanged) this.ids = next;
+        this.watchId = watchId;
+        this.listeners.forEach((l) => l());
+    }
+
+    /** Inspector provenance jumps change selection while retaining the viewing side. */
+    inspect(id: string): void {
+        if (this.ids.length === 1 && this.ids[0] === id) return;
+        this.ids = [id];
         this.listeners.forEach((l) => l());
     }
 
@@ -35,4 +47,8 @@ function useSelectedIds(): readonly string[] {
 
 export function usePrimarySelectedId(): string | null {
     return useSelectedIds()[0] ?? null;
+}
+
+export function useWatchSelectedId(): string | null {
+    return useSyncExternalStore(selectionStore.subscribe, selectionStore.getWatchId, selectionStore.getWatchId);
 }

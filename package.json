@@ -23,7 +23,7 @@
     "perf:attribution": "node tools/ui-e2e/perf-vfx-attribution.mjs",
     "perf:mobile": "node tools/ui-e2e/perf-mobile-emu.mjs",
     "perf:mem": "node tools/ui-e2e/mem-probe.mjs",
-    "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts",
+    "gen:tokens": "node tools/run-ui-token-generator.mjs tools/gen-ui-tokens.ts",
     "knip": "knip",
     "balance:idle": "node tools/balance/ai-idle-sim.mjs",
     "balance:sim": "node tools/balance/batch-sim.mjs",

@@ -11,6 +11,7 @@
 // ║  邊界不跳變；進入 IN 時 TerrainRenderer.forgetTileHistory。 ║
 // ║  剪影只畫在擋住單位的地塊柱與障礙物上（SilhouetteMask，§13）。║
 // ║  轉場黑幕：最上層、只在轉場中（OUT 漸黑、IN 漸亮）。         ║
+// ║  [ARCH] 毒材質在 update 排程準備，draw 只登記活躍頁。     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -37,6 +38,9 @@ import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { UltWorldRenderer } from "./ult/UltWorldRenderer";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
+import { poisonMaterialStore } from './status/PoisonMaterialStore';
+import { statusArtStore } from './status/StatusArtStore';
+import { ccBodyStore } from './units/CcBodyStore';
 import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM, RENDER_PIPELINE_PARAM, BACKGROUND_FX } from "../../constants";
 
 let allAssetsReady = typeof Image === 'undefined';
@@ -45,6 +49,8 @@ void Promise.all([
     spriteAtlasStore.readyPromise,
     terrainTextureStore.readyPromise,
     obstacleSpriteStore.readyPromise,
+    statusArtStore.readyPromise,
+    ccBodyStore.readyPromise,
 ]).then(() => {
     allAssetsReady = true;
     if (typeof window !== 'undefined') {
@@ -110,6 +116,7 @@ export class RenderPipeline {
     }
 
     public update(dt: number, engine: GameEngine) { 
+        poisonMaterialStore.prepare();
         this.tactical.update(dt, engine); 
         this.lastDt = dt;
 
@@ -133,6 +140,7 @@ export class RenderPipeline {
     }
 
     public draw(rawCtx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
+        poisonMaterialStore.beginFrame();
         spriteAtlasStore.syncRoster(engine.agents);
         const { width: pW, height: pH } = rawCtx.canvas;
         if (pW === 0 || pH === 0) return;

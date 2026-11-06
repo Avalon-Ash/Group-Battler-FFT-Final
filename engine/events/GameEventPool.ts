@@ -57,6 +57,22 @@ class GameEventPool {
         event.team = opts.team;
         event.absorbed = opts.absorbed;
         event.hexes = opts.hexes;
+        event.effectKind = opts.effectKind;
+        event.skillId = opts.skillId;
+        event.skillName = opts.skillName;
+        event.sourceSide = opts.sourceSide;
+        event.element = opts.element;
+        event.statusResult = opts.statusResult;
+        event.statusChanges = opts.statusChanges;
+        event.statusNew = opts.statusNew;
+        event.grantedAmount = opts.grantedAmount;
+        event.removedKindMask = opts.removedKindMask;
+        event.periodicKind = opts.periodicKind;
+        event.rate = opts.rate;
+        event.dotVariant = opts.dotVariant;
+        event.hazardKind = opts.hazardKind;
+        event.feedbackKind = opts.feedbackKind;
+        event.statusReason = opts.statusReason;
 
         return event;
     }
@@ -69,6 +85,22 @@ class GameEventPool {
         event.team = undefined;
         event.absorbed = undefined;
         event.hexes = undefined;
+        event.effectKind = undefined;
+        event.skillId = undefined;
+        event.skillName = undefined;
+        event.sourceSide = undefined;
+        event.element = undefined;
+        event.statusResult = undefined;
+        event.statusChanges = undefined;
+        event.statusNew = undefined;
+        event.grantedAmount = undefined;
+        event.removedKindMask = undefined;
+        event.periodicKind = undefined;
+        event.rate = undefined;
+        event.dotVariant = undefined;
+        event.hazardKind = undefined;
+        event.feedbackKind = undefined;
+        event.statusReason = undefined;
         this.pool.push(event);
     }
 }

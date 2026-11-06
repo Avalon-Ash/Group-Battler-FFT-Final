@@ -121,7 +121,9 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             top: 'auto',
             width: `${viewport.width}px`,
             maxWidth: '100vw',
-            height: isCollapsed ? 'auto' : `${Math.min(displayRect.height, maxSheetHeightPx)}px`,
+            height: isCollapsed ? 'auto' : id === 'inspector'
+                ? `min(${Math.min(displayRect.height, maxSheetHeightPx)}px, calc(100dvh - var(--ui-sheet-bottom) - var(--ui-status-inset)))`
+                : `${Math.min(displayRect.height, maxSheetHeightPx)}px`,
             maxHeight: `${UI_WINDOW.SHEET_MAX_VH}vh`,
             zIndex: state.zIndex,
             pointerEvents: 'auto',

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { UnitEffectsPanel } from './UnitEffectsPanel';
 import { Role } from '../../../types';
 import { useCommands, useViewOf } from '../../../hooks/useEnginePort';
 import { usePrimarySelectedId } from '../../../hooks/useSelection';
 import { useWindowActions } from '../../../hooks/useWindowStore';
+import { selectUnitStatusView } from '../../../engine/systems/ui/views/status';
 import { selectInspectorView } from '../../../engine/systems/ui/views/l3';
 import type { TeamTone } from '../../../types/ui/l3';
 import {
@@ -38,6 +40,7 @@ const MIN_MAX_MP = 0;
 export const UnitInspectorBody: React.FC = () => {
     const agentId = usePrimarySelectedId();
     const view = useViewOf(selectInspectorView, agentId);
+    const status = useViewOf(selectUnitStatusView, agentId);
     const { editAgent, send } = useCommands();
     const windowActions = useWindowActions();
 
@@ -75,14 +78,17 @@ export const UnitInspectorBody: React.FC = () => {
     };
 
     return (
-        <div className="flex h-full w-full min-h-0 flex-col select-none">
+        <div className="inspector-status flex h-full w-full min-h-0 flex-col select-none">
             {/* 標頭 (Header) */}
-            <div className="flex shrink-0 items-center gap-3 border-b border-line-subtle/10 p-3">
+            <div className="inspector-header flex shrink-0 items-center gap-3 border-b border-line-subtle/10 p-3">
                 <div className={`well flex h-10 w-10 shrink-0 items-center justify-center ${TEAM_TEXT[view.teamTone]}`}>
                     {ROLE_ICON[view.role]}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className={`truncate font-mono text-ui-title ${TEAM_TEXT[view.teamTone]}`}>{view.id}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span className={`truncate font-mono text-ui-title ${TEAM_TEXT[view.teamTone]}`}>{view.id}</span>
+                        {status?.relationLabel && <Tag data-testid="inspector-relation" tone="neutral">{status.relationLabel}</Tag>}
+                    </div>
                     <div className="flex items-center gap-2">
                         <span className="ui-heading truncate text-fg-secondary">{ROLE_LABEL[view.role]}</span>
                         <Tag tone={view.teamTone}>{TEAM_CODE[view.teamTone]}</Tag>
@@ -104,7 +110,7 @@ export const UnitInspectorBody: React.FC = () => {
             </div>
 
             {/* 視窗內容區（標頭以下）要能捲動：ui-scroll min-h-0 flex-1 pb-4 */}
-            <div className="ui-scroll min-h-0 flex-1 p-3 pb-4 flex flex-col gap-3">
+            <div className="inspector-content min-h-0 flex-1 p-3 pb-4 flex flex-col gap-3">
                 {isConfigExpanded && (
                     <Card className="grid grid-cols-2 gap-2">
                         <div className="flex min-w-0 flex-col gap-1">
@@ -156,14 +162,15 @@ export const UnitInspectorBody: React.FC = () => {
                     </Card>
                 )}
 
-                <div className="flex flex-col gap-2">
+                <div className="inspector-resources flex shrink-0 flex-col gap-2">
                     <Meter label={INSPECTOR_TEXT.hp} value={view.hp} max={view.maxHp} tone={view.teamTone} showValue />
                     {view.maxMp > 0 && <Meter label={INSPECTOR_TEXT.mp} value={view.mp} max={view.maxMp} tone="accent" size="sm" showValue />}
                 </div>
 
-                <Tabs value={tab} onValueChange={setTab} tabs={INSPECTOR_TABS} className="flex flex-col min-h-0 pt-2">
-                    <TabsContent value="STATUS" className="pt-2">
-                        <div className="flex flex-col gap-3">
+                <Tabs value={tab} onValueChange={setTab} tabs={INSPECTOR_TABS} className="inspector-tabs flex flex-1 flex-col min-h-0 pt-2">
+                    <TabsContent value="STATUS" className="ui-scroll min-h-0 flex-1 pt-2">
+                        <div className="flex min-w-0 flex-col gap-3">
+                            <UnitEffectsPanel key={view.id} agentId={view.id} />
                             <Card className="flex flex-col gap-2">
                                 <SectionHeading
                                     action={view.statusTags.map((kind) => (
@@ -198,7 +205,7 @@ export const UnitInspectorBody: React.FC = () => {
                             </div>
                         </div>
                     </TabsContent>
-                    <TabsContent value="SKILLS" className="pt-2">
+                    <TabsContent value="SKILLS" className="ui-scroll min-h-0 flex-1 pt-2">
                         <UnitStatusTab agentId={view.id} />
                     </TabsContent>
                 </Tabs>
