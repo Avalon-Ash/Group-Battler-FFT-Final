@@ -37,8 +37,9 @@ jobs:
 
       - name: Unit tests
         # AgentRunner tests the Windows-only agent harness (tools/agent/run.mjs: PowerShell/taskkill);
-        # it still runs in the local npm test.
-        run: npx vitest run --exclude "**/AgentRunner.test.ts"
+        # StatusResume drives a local msedge through Playwright, which the Linux runner does not have.
+        # Both still run in the local npm test.
+        run: npx vitest run --exclude "**/AgentRunner.test.ts" --exclude "**/StatusResume.test.ts"
 
       - name: Build
         run: npm run build
