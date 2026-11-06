@@ -1,0 +1,2 @@
+# Upload dist/ even though the repo .gitignore excludes it.
+.gcloudignore
