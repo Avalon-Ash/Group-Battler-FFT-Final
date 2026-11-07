@@ -35,6 +35,8 @@ npm run perf:guard      # 保真 6 張 + perf A/B；失敗時差異圖在 tools/
 
 ## 5. 專題探針
 現存可沿用的截圖腳本：`tools/ui-e2e/faction-shot.mjs`（固定種子＋`__stepFrames` 的範本）、`render-fidelity.mjs`、`runtime-smoke.mjs`。新的一次性探針寫在 `tools/ui-e2e/out/`（不進版控，AGENTS §3）；要長期保留就掛 npm script。
+- **截圖要配同一幀的狀態**：用 `tools/ui-e2e/lib/diag.mjs`。`captureDiag` 在同一次 evaluate 裡取畫布和引擎狀態（battleTime、鏡頭、單位的格子／座標／血量／AI／效果），寫成同名的 `.png`＋`.json`；判斷時兩邊互相對照，數字對但畫面舊、畫面對但規則錯都要抓。
+- **多步驟行為用情境鏈**：`createScenario` 從固定狀態出發，每一步推進固定幀數，再擷取並檢查中間狀態（例：施放 → 位移 → 落點 → 沒掉出場外），不只看最後結果。場上 0 個單位會直接判失敗（METHODOLOGY §4.11），結尾印 `Summary:` 行並回傳退出碼。修完用同一條情境重跑。
 
 ## 回報格式
 一行一項：`lint/test/build`、`runtime-smoke`（battleTime 起訖）、`perf:guard`（各場景 meanAbsDiff）、`verify:coords`（有跑才寫）。沒跑的寫「未跑＋原因」。每一項標驗證四級（實跑／靜態／備妥未跑／未驗證，定義在 `agent-prompt` 回報格式）；手機與實機項目沒在實機跑過的，只能標「備妥未跑」或「未驗證」。

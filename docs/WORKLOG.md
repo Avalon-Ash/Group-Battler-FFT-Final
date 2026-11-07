@@ -686,6 +686,9 @@
 - 驗證分四級（實跑／靜態／備妥未跑／未驗證）寫進 `agent-prompt` 回報格式與範本、`review-round` 審查與 HANDOFF §3、`render-verify` 回報。
 - 驗證：`art-board.py` 用羊素材加四張保真截圖實跑，並測試不透明候選（退出碼 1）、缺檔（退出碼 2）；`npm test` 147 檔 1462 項通過；lint 通過；Codex 副本已同步。
 
+- 探針狀態快照 `tools/ui-e2e/lib/diag.mjs`：`captureDiag` 讓截圖和狀態 JSON 一定是同一幀，`createScenario` 逐步檢查中間狀態、0 單位直接判失敗、結尾印 `Summary:` 並回傳退出碼；寫進 `render-verify` §5。一次性探針實跑：3 步通過時退出碼 0，加一步故意失敗時退出碼 1，截圖上的追蹤 ID 與 JSON 過濾出的單位一致。檢查腳本盤點：runtime-smoke、fidelity、coords、perf-ab、audit:ui、e2e:ui、perf:mem、fingerprint、mobility 失敗時都已經回非零，不改。
+
 | 合約改動 | 實際造成的行為差異 | 判定 |
 | :-- | :-- | :-- |
 | `art-round` skill、驗證四級 | 尚未有一輪用過；下一個美術輪（羊重做，HANDOFF F）再判定 | no effect（待觀察） |
+| `render-verify` §5 探針快照與情境鏈 | 尚未有一輪用過 | no effect（待觀察） |
