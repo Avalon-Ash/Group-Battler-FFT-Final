@@ -51,3 +51,14 @@ node tools/assets/process-terrain.mjs
 ## 3. Blender Offline Assets (`tools/assets/blender/`)
 
 Refer to `tools/assets/blender/README.md` for instructions on the offline 3D rendering and packing scripts (`render_unit.py`, `pack_sprites.py`).
+
+---
+
+## 3. Art Candidate Board (`art-board.py`)
+
+Pastes candidate images onto real game captures at their on-screen height, plus a grayscale cell and a nearest-neighbor zoom per candidate. Used by the `art-round` skill for the hero-asset gate. Exit 1 when a candidate has no transparent pixel (baked background).
+
+### Command:
+```bash
+python tools/assets/art-board.py <candidate.png ...> --bg tools/ui-e2e/baseline/fidelity/FOREST.png tools/ui-e2e/baseline/fidelity/MAGMA.png --height 43 --out tools/ui-e2e/out/board.png
+```

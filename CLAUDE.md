@@ -60,6 +60,7 @@
 | 開新一輪、寫 Gemini／Codex 提示詞 | `agent-prompt` |
 | 某一輪跑完要審查，或合併後收尾 | `review-round` |
 | 呼叫 Codex，或改了 `.claude/skills`、`.claude/agents` 要同步副本 | `codex-dispatch` |
+| 開美術輪（新素材、概念稿、狀態或特效外觀改版），先過代表素材關卡 | `art-round` |
 
 ## 文件分工
 - `docs/HANDOFF.md`：只放 TBD（待確認、待決定、待辦）。做完就刪。
