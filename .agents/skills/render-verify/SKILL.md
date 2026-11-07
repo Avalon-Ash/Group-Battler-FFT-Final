@@ -37,4 +37,4 @@ npm run perf:guard      # 保真 6 張 + perf A/B；失敗時差異圖在 tools/
 現存可沿用的截圖腳本：`tools/ui-e2e/faction-shot.mjs`（固定種子＋`__stepFrames` 的範本）、`render-fidelity.mjs`、`runtime-smoke.mjs`。新的一次性探針寫在 `tools/ui-e2e/out/`（不進版控，AGENTS §3）；要長期保留就掛 npm script。
 
 ## 回報格式
-一行一項：`lint/test/build`、`runtime-smoke`（battleTime 起訖）、`perf:guard`（各場景 meanAbsDiff）、`verify:coords`（有跑才寫）。沒跑的寫「未跑＋原因」。
+一行一項：`lint/test/build`、`runtime-smoke`（battleTime 起訖）、`perf:guard`（各場景 meanAbsDiff）、`verify:coords`（有跑才寫）。沒跑的寫「未跑＋原因」。每一項標驗證四級（實跑／靜態／備妥未跑／未驗證，定義在 `agent-prompt` 回報格式）；手機與實機項目沒在實機跑過的，只能標「備妥未跑」或「未驗證」。

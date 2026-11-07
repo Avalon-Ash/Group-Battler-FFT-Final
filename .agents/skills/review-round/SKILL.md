@@ -22,6 +22,7 @@ description: 審查 Gemini（或子工作階段）跑完的分支 diff、決定�
    - `git diff main...<branch> | grep -E "^\+.*(0x6D2B79F5|9301|Math\.imul)"`：有新寫的 PRNG／雜湊就退回，改用 `engine/math/rng.ts`。
    - 新增的數字與顏色在 `constants/`、`data/` 以外 → 要求改成具名常數。
 5. 渲染／生命週期改動 → `render-verify` skill。基準檔有變 → `rebaseline-fidelity` skill。
+   報告裡每一項「通過」，都要對照驗證四級（`agent-prompt` 回報格式）：沒標級的、或把靜態寫成實跑的，一律當成未驗證，主代理自己補跑或要求重做。給使用者的回報也照四級寫。
 6. 修完問使用者能不能合併；push 另外問（hook 只攔破壞性 push，一般 push／merge 靠這條規則）。
 
 ## 2. 收尾（合併後）
@@ -32,7 +33,7 @@ description: 審查 Gemini（或子工作階段）跑完的分支 diff、決定�
 - 這一輪有重複踩到的環境錯誤（指令寫法、編碼、路徑、工具行為，2 次以上或一次造成損失）→ 在 `docs/METHODOLOGY.md` §6 環境事實補一條；被推翻的舊事實同時刪掉（規則見該節）。
 - 約每 5 輪跑一次 `node tools/agent/tool-usage-audit.mjs`（工具修剪證據）；有建議時問使用者要不要加進 `.claude/settings.json` 的 `permissions.deny`，在工作階段結尾才改。
 - `docs/WORKLOG.md` 加一節：日期＋一句話結論＋commit／報告位置。
-- `docs/HANDOFF.md` 刪掉做完的 TBD，加上新的「待使用者實機確認」。**逐行重讀 §1「目前狀態」**，把不再成立的句子改掉或刪掉；§1 不寫 commit SHA、分支清單這類每次合併都會過時的快照（以 `git log` 為準）。2026-10-29 發現 §1 停在 10-26 三天沒更新，原因是這條只要求更新 TBD、沒要求檢查 §1。
+- `docs/HANDOFF.md` 刪掉做完的 TBD，加上新的「待使用者實機確認」，並寫明主代理已經驗到哪一級（例如「桌機實跑；手機備妥未跑」）。**逐行重讀 §1「目前狀態」**，把不再成立的句子改掉或刪掉；§1 不寫 commit SHA、分支清單這類每次合併都會過時的快照（以 `git log` 為準）。2026-10-29 發現 §1 停在 10-26 三天沒更新，原因是這條只要求更新 TBD、沒要求檢查 §1。
 
 ## 3. 合約效果紀錄（這輪有改到合約時才寫）
 合約＝`CLAUDE.md`、`AGENTS.md`、`.claude/**`、`tools/hooks/**`、提示詞範本。在 WORKLOG 那一節加一張小表（取自 Harness² 反思者規則）：
