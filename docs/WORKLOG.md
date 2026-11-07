@@ -680,3 +680,12 @@
 - 資料：`StatusQueries` 正規化 17 槽＋護盾、`STATUS_OBSERVATION` 顯示用觀測事件（不派送 HUD／音效）與 `StatusPresentationSystem` 記錄來源；放逐不再被 Inspector 當成死亡。指紋三模式 60/60 相同，觀測開關 3600 tick 的 sourceId、DR、RNG 零差異。
 - Inspector STATUS 分頁新增 ACTIVE EFFECTS：依 CONTROL／DAMAGE & WEAKEN／RECOVERY & PROTECT 分組，剩餘時間、施加者、來源跳轉（只改選取，不改觀看陣營）；手機底部面板。面板圖示用正確置中重烘，圖示列的舊烘焙不動。
 - 驗證（GPT 在沙盒、主代理在沙盒外補跑完整測試）：lint、build、knip、audit:ui、e2e:ui（style 0 差異）、runtime-smoke、verify:coords、perf:guard、perf:mem。iPhone 實機未測。
+
+### BS. 2026-11-07 美術輪關卡與驗證四級（主代理，借鑑 awesome-gamedev-agent-skills）
+- 新增 `art-round` skill：先寫視覺系統簡報，先讓一個代表素材通過，才成組量產；並列出風格跑掉的訊號（跑掉就回基準圖重做）。起因是狀態美術第二、三版整組做完才被整組否決（BR）。新增 `tools/assets/art-board.py`：把候選圖以實際高度貼在真實戰場截圖上，附灰階與放大格；候選沒有透明像素時退出碼 1。
+- 驗證分四級（實跑／靜態／備妥未跑／未驗證）寫進 `agent-prompt` 回報格式與範本、`review-round` 審查與 HANDOFF §3、`render-verify` 回報。
+- 驗證：`art-board.py` 用羊素材加四張保真截圖實跑，並測試不透明候選（退出碼 1）、缺檔（退出碼 2）；`npm test` 147 檔 1462 項通過；lint 通過；Codex 副本已同步。
+
+| 合約改動 | 實際造成的行為差異 | 判定 |
+| :-- | :-- | :-- |
+| `art-round` skill、驗證四級 | 尚未有一輪用過；下一個美術輪（羊重做，HANDOFF F）再判定 | no effect（待觀察） |
