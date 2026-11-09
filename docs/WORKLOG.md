@@ -701,4 +701,4 @@
 - `engine/core/CommandQueue.ts`：戰鬥中的 `GameCommand` 排到下一個 tick 開頭套用（`GameEngine.tick` 開頭 `uiCommands.flushQueued()`），連同 `state.time.tick`（新欄位，唯一寫入者 `TimeSystem.tick`）記進 `engine.commands.log`；畫面指令（`VIEW_COMMAND_TYPES`，型別檢查與 `ViewCommand` 一致）立即套用不記錄；`STOP_GAME`、`SET_TIME_SCALE`、`SET_BATTLE_SETUP`、`SET_SHOWCASE_MODE` 戰鬥中也立即套用，立即套用前先清佇列保持順序。`clear()` 清紀錄。
 - `engine/core/FixedStep.ts`＋`useGameLoop`：每個 tick 固定 1/60 秒（`GAME_LOOP_PARAM.SIM_HZ`），倍率只決定每幀跑幾個 tick，上限 15（`MAX_TICKS_PER_FRAME`，取代 `MAX_ACCUMULATOR_MS` 250）。
 - `tests/CommandQueue.test.ts` 9 則：步長規劃、佇列時序與順序、同種子＋紀錄重播出同一場（600 tick，含戰鬥中的 `EDIT_AGENT`、`SET_OBSTACLE`）、不送指令結果不同（防空測）、倍率 5 倍與 1 倍結果相同。`UltCastTiming` 一則改成送指令後跑一個 tick 再檢查（語意改變，規則不變）。
-- 驗證：lint、`npm test`、build、knip 通過；`balance:fingerprint` TEAMS／ROYALE／SQUADS 各 60/60 完全相同。
+- 驗證：lint、`npm test`、build、knip 通過；`balance:fingerprint` TEAMS／ROYALE／SQUADS 各 60/60 完全相同；runtime-smoke、perf:guard 通過；實跑探針（真實 rAF）battleTime／真實時間在 0.5／1／5 倍是 0.50／1.00／4.97，戰鬥中的 `EDIT_AGENT` 先排隊、下一幀套用並記錄。還沒在手機上試高倍率（5 倍時每幀跑 5 個 tick）。
