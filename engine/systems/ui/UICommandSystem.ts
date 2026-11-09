@@ -1,5 +1,7 @@
 import { GameEngine } from '../../game';
 import { UICommand, Role, Team } from '../../../types';
+import type { GameCommand } from '../../../types';
+import { isDeferredWhileRunning, isViewCommand } from '../../core/CommandQueue';
 import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
 import { SCENE_DB } from '../../../data/scenes';
@@ -31,9 +33,36 @@ export class UICommandSystem {
         this.engine.bus.off('UI_COMMAND', this.handleCommand);
     }
 
+    /**
+     * 匯流排入口。ViewCommand 立即套用、不記錄；GameCommand 在戰鬥中排到下一個 tick 開頭（flushQueued），
+     * 其餘情況立即套用。立即套用前先清掉佇列，保持指令的先後順序（engine/core/CommandQueue.ts）。
+     */
     public handleCommand = (cmd: UICommand): void => {
         if (!cmd || typeof cmd !== 'object') return;
+        if (isViewCommand(cmd)) {
+            this.apply(cmd);
+            return;
+        }
+        if (this.engine.isRunning && isDeferredWhileRunning(cmd)) {
+            this.engine.commands.enqueue(cmd);
+            return;
+        }
+        this.flushQueued();
+        this.applyGame(cmd);
+    };
 
+    /** 依序套用排隊中的 GameCommand（GameEngine.tick 開頭呼叫）。 */
+    public flushQueued(): void {
+        if (this.engine.commands.pendingCount === 0) return;
+        for (const cmd of this.engine.commands.drain()) this.applyGame(cmd);
+    }
+
+    private applyGame(cmd: GameCommand): void {
+        this.engine.commands.record(this.engine.state.time.tick, cmd);
+        this.apply(cmd);
+    }
+
+    private apply(cmd: UICommand): void {
         switch (cmd.type) {
             case 'SET_SHAKE_TUNING': {
                 this.engine.director.setShakeTuning({
@@ -385,5 +414,5 @@ export class UICommandSystem {
                 break;
             }
         }
-    };
+    }
 }

@@ -236,8 +236,10 @@ export const GAME_INPUT_PARAM = {
 export const GAME_LOOP_PARAM = {
     /** 視窗縮放防抖延遲（毫秒） */
     RESIZE_DEBOUNCE_MS: 50,
-    /** 遊戲迴圈最大累加器時間（毫秒） */
-    MAX_ACCUMULATOR_MS: 250,
+    /** 模擬固定步長頻率（每秒 tick 數）；倍率只改每幀跑幾個 tick，不改 dt */
+    SIM_HZ: 60,
+    /** 每幀最多跑幾個 tick（積欠超過就丟掉，掉幀時遊戲變慢而不追趕）。60 Hz 下約 250 毫秒 */
+    MAX_TICKS_PER_FRAME: 15,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

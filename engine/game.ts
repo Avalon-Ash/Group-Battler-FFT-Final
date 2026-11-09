@@ -45,6 +45,7 @@ import { ControlSystem } from "./systems/status/ControlSystem";
 import { AnimationSystem } from "./presentation/AnimationSystem";
 import { validateAllVFXBindings } from "./systems/VFXValidator";
 import { UICommandSystem } from "./systems/ui/UICommandSystem";
+import { CommandQueue } from "./core/CommandQueue";
 import { AudioSystem } from "./systems/audio/AudioSystem";
 import type { GameRenderer } from "./renderer";
 
@@ -63,7 +64,8 @@ export class GameEngine implements SpatialProvider {
         director: { focusTimer: 0, targetId: null as string | null },
         spatialHazards: [] as SpatialHazard[],
         victory: { victoryTimer: 0, winningTeam: null as Team | null, winnerId: null as string | null, isFinishing: false },
-        time: { battleTime: 0, timeScale: 1.0, targetTimeScale: 1.0 },
+        /** tick：已跑完的 tick 數（唯一寫入者 TimeSystem.tick；restart／clear 歸零），指令紀錄用它定位 */
+        time: { battleTime: 0, tick: 0, timeScale: 1.0, targetTimeScale: 1.0 },
         isLastStand: false,
         finalHex: null as Hex | null
     };
@@ -132,6 +134,8 @@ export class GameEngine implements SpatialProvider {
     public controls: ControlSystem = new ControlSystem();
     public animation: AnimationSystem = new AnimationSystem();
     public timeSystem: TimeSystem = new TimeSystem();
+    /** 遊戲指令佇列與紀錄（唯一的寫入者 UICommandSystem） */
+    public commands: CommandQueue = new CommandQueue();
     public uiCommands: UICommandSystem = new UICommandSystem(this);
     public audio?: AudioSystem;
 
@@ -258,6 +262,7 @@ export class GameEngine implements SpatialProvider {
         this.state.isLastStand = false;
         this.state.finalHex = null;
         this.state.time.battleTime = 0;
+        this.state.time.tick = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.map.clearAgents();
@@ -301,11 +306,13 @@ export class GameEngine implements SpatialProvider {
         this.victorySystem.reset(this); 
         this.effects.reset();
         this.state.time.battleTime = 0;
+        this.state.time.tick = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.sessionState.killStreaks.clear();
         this.sessionState.sideKills.clear();
         this.sessionState.firstBloodTriggered = false;
+        this.commands.resetLog();
         
         if (!skipRebuild) {
             if (!keepScene) this.map.randomizeEnvironment(this); 
@@ -315,6 +322,9 @@ export class GameEngine implements SpatialProvider {
     }
 
     public tick(dt: number) {
+        if (!this.isRunning) return;
+        // 戰鬥中收到的遊戲指令在 tick 開頭依序套用（engine/core/CommandQueue.ts）；套用後可能已停機
+        this.uiCommands.flushQueued();
         if (!this.isRunning) return;
         
         const deadCountBefore = this.agents.length;

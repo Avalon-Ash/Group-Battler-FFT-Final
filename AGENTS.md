@@ -37,6 +37,7 @@
    - Combat and status changes go through their System pipelines.
    - *Deliberate exception*: ring-out / void fall (zone shrink) writes `hp = 0` and `banished` directly as a terrain outcome.
    - UI writes to the engine only through `UICommandSystem` (`engine/systems/ui/UICommandSystem.ts`, via `UI_COMMAND` events).
+   - While a battle runs, a `GameCommand` is queued and applied at the start of the next tick, then logged with its tick number (`engine/core/CommandQueue.ts`); same seed + same log = same battle. Do not read engine state right after emitting a `GameCommand` during battle, and do not mutate simulation state outside a tick. `engine.tick(dt)` always gets the fixed step; time scale only changes how many ticks run per frame (`engine/core/FixedStep.ts`), so no system may read `timeScale` to change simulation results.
    - *Deliberate UI exceptions*: drag-preview transient coordinates (`px/py/dragOverQ/dragOverR`); the state change itself still goes through a command (e.g. `MOVE_AGENT`). The composition-root binding `engine.renderer = ...` stays in `GameCanvas`.
 
 ---

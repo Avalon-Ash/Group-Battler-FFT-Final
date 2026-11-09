@@ -696,3 +696,9 @@
 ### BT. 2026-11-09 圖示列置中修正；I-3 攻擊格認領查無根因、撤銷（主代理）
 - `StatusStripPainter.bakeIcon` 把零件錨點放在 `c + (w/2 − anchorX)·k`，外框中心反而偏兩倍；旋轉零件的位移向量也要跟著轉。一次性探針（烘焙 60 px）：外框中心最大偏移 22→3.5 px，被裁圖示 4→0（BANISH、VULNERABLE、BURN、HASTE），對照圖肉眼確認。runtime-smoke 通過、perf:guard 通過、lint／test／build 綠。
 - I-3 基準（main 31cbd7a5，`ai-idle-sim` 200 場 seed 21）：全戰士繞圈 1.03%（目標 1.5% 已達；HANDOFF 的 1.90% 是 11-03 的數字）、路徑重算 0.40／秒、≥3 秒發呆 0。雙陣營戰士繞圈 3.54%。在 CIRCDIAG 加「目標鄰格是否全被佔」標記重跑 TEAMS：前 14 類繞圈樣本全部是鄰格有空位（佔滿 0 秒），約 6 成是目標在鄰格、自己沒在走路卻有位移（攻擊或技能位移），約 4 成是走路中繞著靜止目標（有空格）。攻擊格認領沒有對應的根因，不做；診斷改動只在一次性 clone，沒進版控。
+
+### BU. 2026-11-09 可玩地基 L1 指令佇列＋L3 固定步長（主代理）
+- `engine/core/CommandQueue.ts`：戰鬥中的 `GameCommand` 排到下一個 tick 開頭套用（`GameEngine.tick` 開頭 `uiCommands.flushQueued()`），連同 `state.time.tick`（新欄位，唯一寫入者 `TimeSystem.tick`）記進 `engine.commands.log`；畫面指令（`VIEW_COMMAND_TYPES`，型別檢查與 `ViewCommand` 一致）立即套用不記錄；`STOP_GAME`、`SET_TIME_SCALE`、`SET_BATTLE_SETUP`、`SET_SHOWCASE_MODE` 戰鬥中也立即套用，立即套用前先清佇列保持順序。`clear()` 清紀錄。
+- `engine/core/FixedStep.ts`＋`useGameLoop`：每個 tick 固定 1/60 秒（`GAME_LOOP_PARAM.SIM_HZ`），倍率只決定每幀跑幾個 tick，上限 15（`MAX_TICKS_PER_FRAME`，取代 `MAX_ACCUMULATOR_MS` 250）。
+- `tests/CommandQueue.test.ts` 9 則：步長規劃、佇列時序與順序、同種子＋紀錄重播出同一場（600 tick，含戰鬥中的 `EDIT_AGENT`、`SET_OBSTACLE`）、不送指令結果不同（防空測）、倍率 5 倍與 1 倍結果相同。`UltCastTiming` 一則改成送指令後跑一個 tick 再檢查（語意改變，規則不變）。
+- 驗證：lint、`npm test`、build、knip 通過；`balance:fingerprint` TEAMS／ROYALE／SQUADS 各 60/60 完全相同；runtime-smoke、perf:guard 通過；實跑探針（真實 rAF）battleTime／真實時間在 0.5／1／5 倍是 0.50／1.00／4.97，戰鬥中的 `EDIT_AGENT` 先排隊、下一幀套用並記錄。還沒在手機上試高倍率（5 倍時每幀跑 5 個 tick）。

@@ -4,6 +4,7 @@ import { GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { getRenderDpr, getDefaultQualityGovernor } from '../engine/renderers/RenderQuality';
 import { GAME_LOOP_PARAM } from '../constants';
+import { planFixedSteps } from '../engine/core/FixedStep';
 
 export const useGameLoop = (
     engine: GameEngine,
@@ -79,8 +80,8 @@ export const useGameLoop = (
     useEffect(() => {
         let lastTime = 0;
         let acc = 0;
-        const targetFPS = 60;
-        const step = 1000 / targetFPS;
+        const step = 1000 / GAME_LOOP_PARAM.SIM_HZ;
+        const stepSeconds = 1 / GAME_LOOP_PARAM.SIM_HZ;
         let frameCount = 0;
         let lastFpsTime = 0;
         let lastDpr = getRenderDpr();
@@ -135,14 +136,13 @@ export const useGameLoop = (
             }
 
             if (engine.isRunning) {
-                acc += dt;
-                if (acc > GAME_LOOP_PARAM.MAX_ACCUMULATOR_MS) acc = GAME_LOOP_PARAM.MAX_ACCUMULATOR_MS; 
-                
-                while (acc >= step) {
-                    const sdt = (step / 1000) * engine.timeScale;
+                // 固定步長：倍率只決定跑幾個 tick，每個 tick 的 dt 都一樣（engine/core/FixedStep.ts）。
+                // 倍率在 tick 裡緩動（TimeSystem），這一幀讀到的倍率套用到整幀，變化下一幀才反映。
+                const plan = planFixedSteps(acc, dt, engine.timeScale, step, GAME_LOOP_PARAM.MAX_TICKS_PER_FRAME);
+                acc = plan.acc;
+                for (let i = 0; i < plan.ticks && engine.isRunning; i++) {
                     // D13: engine.tick encapsulates battleTime accumulation internally
-                    engine.tick(sdt);
-                    acc -= step;
+                    engine.tick(stepSeconds);
                 }
             }
             
