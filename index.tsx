@@ -24,11 +24,6 @@ if (new URLSearchParams(window.location.search).has('ui-gallery')) {
   });
 }
 
-// 實機 A/B（HANDOFF I-2 的臨時診斷，用完刪除）：只有網址帶 phoneab 才載入
-if (new URLSearchParams(window.location.search).has('phoneab')) {
-  void import('./diagnostics/PhoneAB').then((m) => m.runPhoneAB());
-}
-
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>

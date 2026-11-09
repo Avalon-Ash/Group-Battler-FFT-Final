@@ -702,3 +702,12 @@
 - `engine/core/FixedStep.ts`＋`useGameLoop`：每個 tick 固定 1/60 秒（`GAME_LOOP_PARAM.SIM_HZ`），倍率只決定每幀跑幾個 tick，上限 15（`MAX_TICKS_PER_FRAME`，取代 `MAX_ACCUMULATOR_MS` 250）。
 - `tests/CommandQueue.test.ts` 9 則：步長規劃、佇列時序與順序、同種子＋紀錄重播出同一場（600 tick，含戰鬥中的 `EDIT_AGENT`、`SET_OBSTACLE`）、不送指令結果不同（防空測）、倍率 5 倍與 1 倍結果相同。`UltCastTiming` 一則改成送指令後跑一個 tick 再檢查（語意改變，規則不變）。
 - 驗證：lint、`npm test`、build、knip 通過；`balance:fingerprint` TEAMS／ROYALE／SQUADS 各 60/60 完全相同；runtime-smoke、perf:guard 通過；實跑探針（真實 rAF）battleTime／真實時間在 0.5／1／5 倍是 0.50／1.00／4.97，戰鬥中的 `EDIT_AGENT` 先排隊、下一幀套用並記錄。還沒在手機上試高倍率（5 倍時每幀跑 5 個 tick）。
+
+### BV. 2026-11-10 20 人岩漿掉幀：實機 A/B 四輪查無單一原因；固定階層修正（主代理）
+- 做法：`diagnostics/PhoneAB.ts`（`?phoneab`，已刪，要用從 git 取 commit db9cb667）合併進 main 推上 Pages，使用者在 iPhone 跑。岩漿 20 人、每 4 秒一對奧義、不死。
+- 第一輪（固定階層 1、無導播、無縮圈，每段 14 秒）：現況 52.8 FPS，關液面 49.0／34.9、關漂浮 40.3、關環境粒子 36.9、三項全關 39.8、沙漠 48.0；FPS 隨發熱 52.8→34.9；JS 2.2～4.3 ms 對每幀 19～29 ms。液面不是原因（BH 那輪的「液面在雜訊內」量的是沒有液面的沙漠）。
+- 第二輪（每項前後夾基準）：階層 0 色調分級 45.3 對 52.3／52.8；導播 49.7（手機上沒拉近）；縮圈 42.0、低 5% 19.8（基準低 5% 36.5／25.9）；實際設定 43.5、低 5% 20.6、自動降到階層 3。
+- 第三輪（縮圈全開，每段 24 秒）：關警告疊層 17.8 ms 對 24.5／23.1；塌陷後 1.5 秒平均和警告期相同；每次塌陷重烘 27～54 塊地塊。
+- 第四輪（比較警告格畫法）：現況 19.6／18.2／20.9／25.0 ms，不切混色 23.0、不 save 18.2、**關警告 22.0**——推翻第三輪；同設定的現況四次相差 6.8 ms。
+- 結論：成本分散在 GPU，沒有單一開關能救；這套量法的雜訊約 ±3.5 ms，第三輪的 6 ms 是雜訊。沒改渲染。
+- 修正：`createQualityGovernor` 自己記一份釘死狀態，執行期 `setPinnedTier` 會被它的 `forceSetQualityTier` 蓋掉（第一輪「不漂浮」結束在階層 3、BH 的「釘死的階層會被改掉」都是這個）。現在尊重模組層釘死值，`tests/RenderQuality.test.ts` 加一則。只影響診斷，正式遊玩不呼叫 `setPinnedTier`。
