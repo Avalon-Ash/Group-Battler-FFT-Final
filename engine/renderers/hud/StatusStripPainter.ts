@@ -46,10 +46,16 @@ function bakeIcon(key: StatusPartKey): HTMLCanvasElement {
     ctx.clip();
     for (const part of set.icon ?? []) {
         const sprite = vfxPartStore.get(part.spec, 0);
-        // 縮到字形框內（不放大）；以零件外框中心對齊圖示中心（零件的錨點各不相同）
+        // 縮到字形框內（不放大）；以零件外框中心對齊圖示中心（零件的錨點各不相同）。
+        // drawPart 把錨點放在 (x, y) 並繞錨點旋轉，外框中心落在 (x, y) + R(rotation)·(width/2 − anchorX, height/2 − anchorY)·k，
+        // 所以錨點要往反方向退同一個（旋轉後的）向量
         const fit = Math.min(1, (H.ICON * H.GLYPH_FIT) / Math.max(sprite.width, sprite.height));
         const k = H.BAKE_SCALE * fit * (part.scale ?? 1);
-        drawPart(ctx, sprite, c + (sprite.width / 2 - sprite.anchorX) * k, c + (sprite.height / 2 - sprite.anchorY) * k, { scale: k, rotation: part.rotation, frame: 0 });
+        const ox = (sprite.width / 2 - sprite.anchorX) * k;
+        const oy = (sprite.height / 2 - sprite.anchorY) * k;
+        const cos = Math.cos(part.rotation ?? 0);
+        const sin = Math.sin(part.rotation ?? 0);
+        drawPart(ctx, sprite, c - (ox * cos - oy * sin), c - (ox * sin + oy * cos), { scale: k, rotation: part.rotation, frame: 0 });
     }
     ctx.restore();
     ctx.lineWidth = H.BORDER_WIDTH * H.BAKE_SCALE;
