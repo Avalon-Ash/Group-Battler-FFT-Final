@@ -460,9 +460,8 @@ export type UICommand =
     | { type: 'SET_AUDIO_ANNOUNCER'; enabled: boolean };
 
 /**
- * @public 下一輪「可玩地基」的指令排程會用到。
- * 只影響畫面與聲音的指令：不改模擬，不進回放。
- * 其餘 UICommand 都是 GameCommand，之後要在 tick 開頭處理才能回放與 undo（docs/DECISIONS.md「UI」）。
+ * 只影響畫面與聲音的指令：不改模擬，不進回放，立即套用。
+ * 其餘 UICommand 都是 GameCommand：戰鬥中排到 tick 開頭套用並記錄（engine/core/CommandQueue.ts，執行期清單 VIEW_COMMAND_TYPES 要和這裡一致）。
  */
 export type ViewCommand = Extract<UICommand, { type:
     | 'SET_DIRECTOR_ENABLED'
@@ -478,7 +477,6 @@ export type ViewCommand = Extract<UICommand, { type:
     | 'SET_AUDIO_MUTED'
     | 'SET_AUDIO_ANNOUNCER';
 }>;
-/** @public */
 export type GameCommand = Exclude<UICommand, ViewCommand>;
 
 export * from './types/UIViewModel';

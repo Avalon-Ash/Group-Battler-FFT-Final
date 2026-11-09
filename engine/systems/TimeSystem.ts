@@ -13,5 +13,6 @@ export class TimeSystem {
 
     public tick(dt: number, engine: GameEngine) {
         engine.state.time.battleTime += dt;
+        engine.state.time.tick++;
     }
 }

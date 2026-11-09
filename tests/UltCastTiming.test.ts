@@ -111,15 +111,21 @@ describe('UltCastTiming（ULT-T01）', () => {
         const { caster, slot, skill } = startUlt(engine);
         remember(skill);
         const before = skill.cast;
+        // 戰鬥中的遊戲指令排到下一個 tick 開頭套用（engine/core/CommandQueue.ts）：送出後跑一個 tick 再檢查
         update(engine, skill.id, 'cast', 3.0);
+        expect(engine.commands.pendingCount).toBe(1);
+        engine.tick(1 / 60);
+        expect(caster.castingSkillIdx).toBe(slot);
         expect(skill.cast).toBe(before);
         const other = engine.skillDB.find((s) => s.id !== skill.id && s.role === caster.role && s.tag === 'ULT')!;
         engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: caster.id, slot, skillId: other.id });
+        engine.tick(1 / 60);
         expect(caster.skillIds[slot]).toBe(skill.id);
 
         for (let t = 0; t < before + 0.5 && caster.castingSkillIdx !== -1; t += 1 / 60) engine.tick(1 / 60);
         expect(caster.castingSkillIdx).toBe(-1);
         update(engine, skill.id, 'cast', 3.0);
+        engine.tick(1 / 60);
         expect(skill.cast).toBe(3.0);
     });
 

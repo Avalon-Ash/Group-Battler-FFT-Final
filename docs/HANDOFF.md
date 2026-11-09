@@ -18,15 +18,14 @@
 **排程（主代理 2026-11-09）**：三條線並行，渲染線同時只開一條。關鍵路徑是邏輯線：J 要在 11 月底前用掉 Codex，而平衡數字要等 AI 行為定下來才有意義。
 - **渲染線**：① ~~N 圖示列置中~~（11-09 分支 `fix/status-strip-icon-center`）→ ② I-2 岩漿液面循環，網址旗標做 iPhone 實機 A/B（要使用者跑）→ ③ E 手機底部避讓 `uiHeight` → ④ A 嘲諷、加速零件的方向輸入，順手刪 `BarPainter` 舊控制條。I-1 記憶體只在實機分頁被回收時才做。
 - **邏輯線**：① ~~I-3 攻擊格認領~~（11-09 查無根因撤銷，WORKLOG §2 BT）→ ② J 平衡（Codex 11/11 刷新後；A 的 AOE 平衡、G 的藍方勝率併進來一起調；大逃殺技能強度用 `ai-idle-sim --scenario=ROYALE` 的 `skillTable`）→ ③ L2 Controller，順便拆 G 的 `_savedCombatTarget`（兩者都在動單位的意圖與目標）。
-- **架構線**（不碰渲染）：① L1 指令佇列＋L3 固定步長，驗收要求同 seed 的 `balance:sim` 結果完全相同，才能和 J 並行 → ② M UI 遺留（Flash 小包；聖印衝擊圖示歸美術）→ ③ L4 行為樹資料化與編輯器，最後做，要等 L2 與 M 的 `modes`。
+- **架構線**（不碰渲染）：① ~~L1 指令佇列＋L3 固定步長~~（11-09，`balance:fingerprint` 不變）→ ② M UI 遺留（Flash 小包；聖印衝擊圖示歸美術）→ ③ L4 行為樹資料化與編輯器，最後做，要等 L2 與 M 的 `modes`。
 - **美術**（Codex，和 J 共用額度，排在 J 後面，走 `art-round`）：N 的 `BLOOD`／`PHYSICAL` DoT 畫面、F 羊模型重做、M 聖印衝擊圖示。
 - **等證據才動**：H 戰士互彈（L1 回放做好後可以錄下來重播）、F 擊殺播報、G 繞圈與逃跑未達標、D。
 
-**L. 可玩地基（下一輪，使用者長期方向：從模擬工具走向可玩可編輯）**：UI 改版把投影與指令分好了（DECISIONS「UI」），剩四個缺口：
-1. 指令佇列：`GameCommand` 在 tick 開頭處理，才能回放與 undo（`types.ts` 已分類）。
-2. Controller 抽象：AI 或玩家控制同一單位。
-3. 倍率改成跑多個固定步長。
-4. 行為樹資料化與編輯器。
+**L. 可玩地基（使用者長期方向：從模擬工具走向可玩可編輯）**：指令佇列與固定步長 11-09 做完（DECISIONS「UI」、WORKLOG §2 BU）。剩下：
+1. （L1 續）回放與 undo 本身：紀錄已有（`engine.commands.log`），還缺①實際遊玩時開局要種子化（現在只有工具與測試會呼叫 `seedSimulation`，沒種子化時模擬亂數轉呼叫 `Math.random`）；②`RESET_GAME` 用 `Date.now()` 當 `matchSalt`，要改成記進指令；③回放播放器與 undo（從開局重播到前一個指令，或做快照）的設計。
+2. （L2）Controller 抽象：AI 或玩家控制同一單位。
+3. （L4）行為樹資料化與編輯器。
 
 **M. UI 遺留（WORKLOG §2 BP）**：`WindowDef` 的布林改 `modes`；debug／edit 視窗延遲載入；`Tabs`、`Segmented` 加 `testId` 欄位（目前放在 label 內的 span）；技能下拉加搜尋；`dbSignature` 每秒 10 次組字串的成本；「聖印衝擊」圖示深藍符號融入底板，辨識度低（素材）；平板寬度的觸控操作下，視窗左右縮放把手 44px 蓋住內容邊緣，點不到也滑不動（`HANDLE_PX_COARSE`，手機是底部面板不受影響）。
 
