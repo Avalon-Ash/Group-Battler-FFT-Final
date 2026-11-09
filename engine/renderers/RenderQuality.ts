@@ -231,6 +231,12 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
         if (pinnedTier !== null) {
             return currentTier;
         }
+        // 執行期用 setPinnedTier 釘死（實機診斷）時也不得自動升降：否則下面的 forceSetQualityTier 會蓋掉釘死值
+        if (activePinnedTier !== null) {
+            currentTier = activePinnedTier;
+            clearWindow();
+            return currentTier;
+        }
 
         timeSinceLastDowngrade += dtSec;
         timeSinceLastUpgrade += dtSec;

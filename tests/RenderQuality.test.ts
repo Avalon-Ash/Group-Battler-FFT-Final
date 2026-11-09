@@ -159,6 +159,17 @@ describe('RenderQuality & createQualityGovernor', () => {
             expect(gov.getTier()).toBe(3);
         });
 
+        it('執行期 setPinnedTier 釘死後，持續掉幀也不降階；解除後恢復自動', () => {
+            const gov = createQualityGovernor({ startupGraceS: 0, downMs: 19, downHoldS: 2.0, initialTier: 0, pinnedTier: null });
+            setPinnedTier(1);
+            for (let i = 0; i < 200; i++) gov.feedFrame(25, 0.05);
+            expect(gov.getTier()).toBe(1);
+            expect(getQualityTier()).toBe(1);
+            setPinnedTier(null);
+            for (let i = 0; i < 42; i++) gov.feedFrame(25, 0.05);
+            expect(gov.getTier()).toBe(2);
+        });
+
         it('does not downgrade below Tier 3', () => {
             const gov = createQualityGovernor({
                 startupGraceS: 0,

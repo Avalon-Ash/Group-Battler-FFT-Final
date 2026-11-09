@@ -1,19 +1,18 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  PhoneAB — 實機效能 A/B（HANDOFF I-2 岩漿掉幀的臨時診斷，  ║
 // ║  用完刪除；前一版在 commit 10f5065a）                     ║
-// ║  職責：手機開 ?perf&mute&phoneab，自動在岩漿圖上跑 10v10， ║
-// ║        每段關掉一個嫌疑（液面、地塊漂浮、環境粒子），沙漠  ║
-// ║        當對照，最後列出每段的幀時間。                      ║
+// ║  第二輪：第一輪在固定階層 1、無導播、無縮圈下 20 人岩漿有  ║
+// ║  約 50 FPS，液面／漂浮／環境粒子都不是原因。這輪改量第一輪 ║
+// ║  關掉的條件：階層 0（多色調分級）、導播、縮圈、實際設定（自動畫質）。  ║
+// ║  每個變因前後都夾一段基準，抵銷手機發熱。                  ║
 // ║  只在網址有 phoneab 時由 index.tsx 動態載入，平常不下載。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { GameEngine } from '../engine/game';
 import { RenderStats } from '../engine/renderers/RenderStats';
 import { getQualityTier, setPinnedTier, type QualityTier } from '../engine/renderers/RenderQuality';
-import { SurfacePainter } from '../engine/graphics/painters/SurfacePainter';
-import { VisualMath } from '../engine/math/VisualMath';
-import { VFXAmbience } from '../engine/presentation/vfx/VFXAmbience';
 import { SCENE_DB } from '../data/scenes';
+import { DEFAULT_ZONE_CONFIG } from '../constants';
 import { Role, Team, type UICommand } from '../types';
 
 const DEFAULT_SEGMENT_S = 14;
@@ -23,7 +22,6 @@ const IMMORTAL_HP = 999999;
 const HEAL_BELOW_HP = 500000;
 const SLOW_FRAME_SHARE = 0.05;
 const PER_SIDE = 10;
-const TIER: QualityTier = 1;
 const SETUP_WAIT_MS = 800;
 const ASSET_POLL_MS = 200;
 const ULT_PAIRS = [['mb_u1', 'rr_u2'], ['wb_u4', 'sb_u4'], ['tr_u4', 'mr_u4'], ['rb_u2', 'wr_u5']];
@@ -31,59 +29,33 @@ const ROLES = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
 
 interface Segment {
     label: string;
-    scene: 'MAGMA' | 'DESERT';
-    noLiquid?: boolean;
-    noBob?: boolean;
-    noAmbience?: boolean;
+    /** null＝自動畫質（實際遊玩的設定） */
+    tier: QualityTier | null;
+    director: boolean;
+    zone: boolean;
 }
 
-// 交替排：同一設定前後各一次，抵銷手機發熱降頻
+const BASE: Segment = { label: '基準 階層1', tier: 1, director: false, zone: false };
 const SEGMENTS: Segment[] = [
-    { label: '岩漿 現況', scene: 'MAGMA' },
-    { label: '岩漿 不畫液面', scene: 'MAGMA', noLiquid: true },
-    { label: '岩漿 不漂浮', scene: 'MAGMA', noBob: true },
-    { label: '岩漿 無環境粒子', scene: 'MAGMA', noAmbience: true },
-    { label: '岩漿 三項全關', scene: 'MAGMA', noLiquid: true, noBob: true, noAmbience: true },
-    { label: '沙漠 對照', scene: 'DESERT' },
-    { label: '岩漿 現況2', scene: 'MAGMA' },
-    { label: '岩漿 不畫液面2', scene: 'MAGMA', noLiquid: true },
+    BASE,
+    { label: '階層0 色調', tier: 0, director: false, zone: false },
+    BASE,
+    { label: '開導播', tier: 1, director: true, zone: false },
+    BASE,
+    { label: '開縮圈', tier: 1, director: false, zone: true },
+    BASE,
+    { label: '實際：自動＋導播＋縮圈', tier: null, director: true, zone: true },
+    BASE,
 ];
 
-interface Row { label: string; fps: number; low: number; ms: number; js: number; tier: number; liq: number; amb: number; bob: number; }
-
-/** 每段實際呼叫次數（證明開關生效）：液面繪製、環境粒子更新、非零漂浮位移 */
-const calls = { liq: 0, amb: 0, bob: 0 };
-
-let active: Segment = SEGMENTS[0];
-
-function installGates(): void {
-    const drawLiquid = SurfacePainter.drawLiquid;
-    SurfacePainter.drawLiquid = function (...args) {
-        if (active.noLiquid) return;
-        calls.liq++;
-        drawLiquid.apply(SurfacePainter, args);
-    };
-    const bob = VisualMath.floatBobAt;
-    VisualMath.floatBobAt = (x, y, t) => {
-        if (active.noBob) return 0;
-        const v = bob.call(VisualMath, x, y, t);
-        if (v !== 0) calls.bob++;
-        return v;
-    };
-    const ambience = VFXAmbience.prototype.update;
-    VFXAmbience.prototype.update = function (this: VFXAmbience, ...args) {
-        if (active.noAmbience) return;
-        calls.amb++;
-        ambience.apply(this, args);
-    };
-}
+interface Row { label: string; fps: number; low: number; ms: number; js: number; tier: number; units: number; zoom: number; }
 
 function setUpBattle(e: GameEngine, segment: Segment): void {
     const cmd = (c: UICommand) => e.bus.emit('UI_COMMAND', c);
     cmd({ type: 'STOP_GAME' });
-    cmd({ type: 'SET_DIRECTOR_ENABLED', enabled: false });
-    cmd({ type: 'SET_ZONE_CONFIG', config: { enabled: false } });
-    const scene = SCENE_DB.find((s) => s.id === segment.scene);
+    cmd({ type: 'SET_DIRECTOR_ENABLED', enabled: segment.director });
+    cmd({ type: 'SET_ZONE_CONFIG', config: { ...DEFAULT_ZONE_CONFIG, enabled: segment.zone } });
+    const scene = SCENE_DB.find((s) => s.id === 'MAGMA');
     if (scene) e.currentScene = scene;
     e.map.rebuildMap(e);
     cmd({ type: 'CLEAR_BOARD', keepScene: true });
@@ -121,17 +93,17 @@ function runSegment(e: GameEngine, segment: Segment, seconds: number): Promise<R
     return new Promise((resolve) => {
         const frames: number[] = [];
         const js: number[] = [];
+        const zooms: number[] = [];
         const start = performance.now();
-        let counted = 0;
         let last: number | null = null;
         let nextCast = 0;
         let pair = 0;
         const loop = (now: number) => {
             const elapsed = (now - start) / 1000;
             if (last !== null && elapsed > SETTLE_S) {
-                if (counted++ === 0) { calls.liq = 0; calls.amb = 0; calls.bob = 0; }
                 frames.push(now - last);
                 js.push(RenderStats.getJsTotalMs());
+                zooms.push(e.renderer?.camera.zoom ?? 0);
             }
             last = now;
             for (const a of e.agents) if (a.hp > 0 && a.hp < HEAL_BELOW_HP) a.hp = IMMORTAL_HP;
@@ -144,8 +116,10 @@ function runSegment(e: GameEngine, segment: Segment, seconds: number): Promise<R
                 const sorted = [...frames].sort((x, y) => x - y);
                 const slow = sorted.slice(-Math.max(1, Math.ceil(sorted.length * SLOW_FRAME_SHARE)));
                 const ms = mean(frames);
-                const n = Math.max(1, frames.length);
-                resolve({ label: segment.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js), tier: getQualityTier(), liq: calls.liq / n, amb: calls.amb / n, bob: calls.bob / n });
+                resolve({
+                    label: segment.label, fps: 1000 / ms, low: 1000 / mean(slow), ms, js: mean(js), tier: getQualityTier(),
+                    units: e.agents.filter((a) => a.hp > 0 && !a.outOfBounds && !a.banished).length, zoom: mean(zooms),
+                });
                 return;
             }
             requestAnimationFrame(loop);
@@ -176,21 +150,18 @@ export async function runPhoneAB(): Promise<void> {
         // 沒有 wake lock 只是螢幕可能變暗；量測照跑
     }
 
-    installGates();
     const status = panel();
     document.querySelector<HTMLElement>('[data-testid="showcase-enter-btn"]')?.click();
     await wait(SETUP_WAIT_MS);
     const rows: Row[] = [];
     for (let i = 0; i < SEGMENTS.length; i++) {
         const segment = SEGMENTS[i];
-        active = segment;
         status.textContent = `量測中 ${i + 1}/${SEGMENTS.length}：${segment.label}（約 ${(SEGMENTS.length - i) * seconds} 秒，請別切走）`;
-        setPinnedTier(TIER);
+        setPinnedTier(segment.tier);
         setUpBattle(e, segment);
         rows.push(await runSegment(e, segment, seconds));
     }
-    active = SEGMENTS[0];
     setPinnedTier(null);
-    const lines = rows.map((r) => `${r.label.padEnd(9, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(5)} ${r.js.toFixed(1).padStart(4)} ${String(r.tier).padStart(2)} ${r.liq.toFixed(0).padStart(3)} ${r.amb.toFixed(1).padStart(3)} ${r.bob.toFixed(0).padStart(3)}`);
-    status.textContent = ['跑完了，請截圖這張表', `${'項目'.padEnd(9, '　')}   FPS  低5%  每幀  JS 階層 液面 粒子 漂浮（每幀呼叫數）`, ...lines, `單位 ${e.agents.length}`, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight}`].join('\n');
+    const lines = rows.map((r) => `${r.label.slice(0, 9).padEnd(9, '　')} ${r.fps.toFixed(1).padStart(5)} ${r.low.toFixed(1).padStart(5)} ${r.ms.toFixed(1).padStart(5)} ${r.js.toFixed(1).padStart(4)} ${String(r.tier).padStart(2)} ${String(r.units).padStart(3)} ${r.zoom.toFixed(2).padStart(5)}`);
+    status.textContent = ['第二輪跑完了，請截圖這張表', `${'項目'.padEnd(9, '　')}   FPS  低5%  每幀  JS 階層 人數 縮放`, ...lines, `${navigator.userAgent.slice(0, 50)}`, `dpr ${window.devicePixelRatio} ${window.innerWidth}x${window.innerHeight}`].join('\n');
 }
