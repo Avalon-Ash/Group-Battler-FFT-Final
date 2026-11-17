@@ -69,6 +69,7 @@ function App() {
           <SystemMenu 
               mode={state.isShowcaseMode ? 'showcase' : 'manual'}
               onDownloadSpec={actions.downloadSpec}
+              onLoadReplay={actions.loadReplay}
           />
       )}
 
@@ -99,6 +100,8 @@ function App() {
                 winnerSide={state.winnerSide}
                 battleSetup={state.battleSetup}
                 rematch={actions.rematch}
+                onReplay={actions.rewindToStart}
+                onSaveReplay={actions.saveReplay}
                 nextLevel={actions.handleNextLevel} 
                 transitionPhase={state.transitionPhase}
                 onOpenLogs={() => windowActions.open('logs')}

@@ -22,7 +22,27 @@ export class EventBus {
         }
     }
 
+    /**
+     * 靜音：只放行 allow 裡的事件，其餘直接丟掉。回放快轉時用（engine/core/Replay.ts 是唯一呼叫者）：
+     * 匯流排上除了 UI_COMMAND 以外的監聽者全是表現層（renderer、音訊、導播、UI hook），
+     * 在這一處擋住就不用逐個事件判斷。
+     */
+    public mute(allow: ReadonlySet<keyof EventMap>): void {
+        this.allowWhileMuted = allow;
+    }
+
+    public unmute(): void {
+        this.allowWhileMuted = null;
+    }
+
+    public get muted(): boolean {
+        return this.allowWhileMuted !== null;
+    }
+
+    private allowWhileMuted: ReadonlySet<keyof EventMap> | null = null;
+
     public emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
+        if (this.allowWhileMuted && !this.allowWhileMuted.has(event)) return;
         if (!this.listeners.has(event)) return;
         this.listeners.get(event)!.forEach(fn => fn(data));
     }

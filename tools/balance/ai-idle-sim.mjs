@@ -43,9 +43,10 @@ const server = await createServer({
 });
 
 try {
-    // 預設步長＝遊戲的固定步長（GAME_LOOP_PARAM.SIM_HZ）；--dt 只做 A/B
-    const { GAME_LOOP_PARAM } = await server.ssrLoadModule('/constants.ts');
-    const DT = DT_ARG === null ? 1 / GAME_LOOP_PARAM.SIM_HZ : Number(DT_ARG);
+    // 預設步長＝遊戲的固定步長，走模擬前進的唯一入口（engine/core/Replay.ts）；--dt 只做 A/B，才直接 tick
+    const { SIM_STEP_S, stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
+    const DT = DT_ARG === null ? SIM_STEP_S : Number(DT_ARG);
+    const step = (engine) => (DT_ARG === null ? stepSimulation(engine) : engine.tick(DT));
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
     const { Team, Role, ActionState, AIState } = await server.ssrLoadModule('/types.ts');
@@ -349,7 +350,7 @@ try {
         let lastStandAt = null;
 
         while (gameOverWinner === null && t < MAX_TIME) {
-            engine.tick(DT);
+            step(engine);
             t += DT;
             if (lastStandAt === null && engine.state.isLastStand) lastStandAt = t;
             totalTicks++;

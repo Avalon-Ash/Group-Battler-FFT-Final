@@ -10,11 +10,14 @@ import { MENU_DOT_CLASSES, MENU_SECTIONS } from '../../data/ui/labels/l1';
 
 interface SystemMenuProps {
     onDownloadSpec: () => void;
+    /** 選一份回放檔來播（useGameApp） */
+    onLoadReplay: () => void;
     mode?: 'showcase' | 'manual';
 }
 
 export const SystemMenu: React.FC<SystemMenuProps> = ({
     onDownloadSpec,
+    onLoadReplay,
     mode = 'manual',
 }: SystemMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -123,6 +126,26 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                                 <div className="flex flex-col items-start text-left min-w-0">
                                     <span className="font-bold truncate">重設版面</span>
                                     <span className="font-mono text-ui-num text-fg-muted truncate">清除視窗位置記憶</span>
+                                </div>
+                            </Button>
+
+                            <Button
+                                data-testid="menu-item-load-replay"
+                                variant="ghost"
+                                size="auto"
+                                align="start"
+                                className="w-full gap-2.5 px-3 py-1.5 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                onClick={() => {
+                                    onLoadReplay();
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <span className="w-4 h-4 flex items-center justify-center text-fg-muted shrink-0">
+                                    <Icons.Open className="w-4 h-4" />
+                                </span>
+                                <div className="flex flex-col items-start text-left min-w-0">
+                                    <span className="font-bold truncate">載入回放</span>
+                                    <span className="font-mono text-ui-num text-fg-muted truncate">從頭播一份回放檔</span>
                                 </div>
                             </Button>
 

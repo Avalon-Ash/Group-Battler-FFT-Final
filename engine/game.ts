@@ -241,20 +241,25 @@ export class GameEngine implements SpatialProvider {
     }
 
     public play() {
-        if (!this.isRunning) {
-            this.initialRoster = [...this.agents];
-            this.agents.forEach(a => saveAgentState(a));
-            this.state.time.battleTime = 0;
-            this.logger.clear();
-            this.victorySystem.reset(this);
-            this.effects.reset();
-
-            this.sessionState.killStreaks.clear();
-            this.sessionState.sideKills.clear();
-            this.sessionState.firstBloodTriggered = false;
-            this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
-            this.bus.emit('GAME_START', { sceneId: this.currentScene.id });
+        if (this.isRunning) return;
+        // 暫停後繼續：只恢復運轉，不碰模擬狀態（契約 S3：暫停、繼續不影響模擬，回放時觀看者可以暫停）。
+        // 以前這裡也會重跑開局重設：戰鬥時間歸零、清掉戰鬥紀錄、重建 AI。暫停中生成、換技能的單位由各自的指令備妥（battleStarted）
+        if (this.battleStarted) {
+            this.isRunning = true;
+            return;
         }
+        this.initialRoster = [...this.agents];
+        this.agents.forEach(a => saveAgentState(a));
+        this.state.time.battleTime = 0;
+        this.logger.clear();
+        this.victorySystem.reset(this);
+        this.effects.reset();
+
+        this.sessionState.killStreaks.clear();
+        this.sessionState.sideKills.clear();
+        this.sessionState.firstBloodTriggered = false;
+        this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
+        this.bus.emit('GAME_START', { sceneId: this.currentScene.id });
         this.map.clearAgents();
         this.agents.forEach(a => {
             AgentManager.prepareForBattle(a, this);
@@ -346,8 +351,9 @@ export class GameEngine implements SpatialProvider {
         }
 
         this.timeSystem.update(dt, this);
-        this.events.length = 0; 
-        this.director.update(this, dt);
+        this.events.length = 0;
+        // 回放快轉（匯流排靜音）時不跑導播、不送表現層事件；快轉結束由表現層重新同步一次（engine/core/Replay.ts）
+        if (!this.fastForwarding) this.director.update(this, dt);
         this.zones.update(dt, this); 
         if (this.victorySystem.check(this)) {
             this.victorySystem.updateFinishing(dt, this);
@@ -361,9 +367,18 @@ export class GameEngine implements SpatialProvider {
         this.timeSystem.tick(dt, this); // D13: see above
     }
 
+    /**
+     * 這一場已經開戰（運轉中，或跑過 tick 後暫停）。「開戰前／開戰後」只用這一個判斷：
+     * 開戰後生成或換技能的單位要當場備妥技能與 AI（開戰前由 play 的 prepareForBattle 統一做）。
+     */
+    public get battleStarted(): boolean { return this.isRunning || this.state.time.tick > 0; }
+
+    /** 回放快轉中（契約 S3）。狀態只存在匯流排的靜音裡，這裡只讀 */
+    public get fastForwarding(): boolean { return this.bus.muted; }
+
     private flushVisualEvents() {
         // P1: Visual events should be processed at the end of tick
-        if (this.events.length > 0) {
+        if (this.events.length > 0 && !this.fastForwarding) {
             for (let i = 0; i < this.events.length; i++) {
                 this.bus.emit('GAME_EVENT', this.events[i]);
             }

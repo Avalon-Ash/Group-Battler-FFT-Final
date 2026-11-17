@@ -13,10 +13,10 @@ import { Team, Role } from '../../types';
 import type { UICommand, EffectSlot } from '../../types';
 import { querySpawnableHexes, layoutFactionHexes } from '../../engine/systems/ui/editorQueries';
 import { random } from '../../engine/math/rng';
-import { GAME_LOOP_PARAM } from '../../constants';
+import { SIM_STEP_S } from '../../engine/core/Replay';
 
-/** 模擬步長＝遊戲的固定步長。 */
-export const DT = 1 / GAME_LOOP_PARAM.SIM_HZ;
+/** 模擬步長＝遊戲的固定步長（engine/core/Replay.ts 的 SIM_STEP_S，不另算）。 */
+export const DT = SIM_STEP_S;
 
 /**
  * 情境表。順序有意義：指紋工具用索引算種子（TEAMS、ROYALE、SQUADS），

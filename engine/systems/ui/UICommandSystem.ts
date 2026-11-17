@@ -1,7 +1,7 @@
 import { GameEngine } from '../../game';
 import { UICommand, Role, Team } from '../../../types';
 import type { GameCommand } from '../../../types';
-import { isDeferredWhileRunning, isViewCommand } from '../../core/CommandQueue';
+import { isDeferredWhileRunning, isSimNeutral, isViewCommand } from '../../core/CommandQueue';
 import { pending } from '../../core/ContractPending';
 import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
@@ -56,6 +56,8 @@ export class UICommandSystem {
             this.apply(cmd);
             return;
         }
+        // 回放進行中只吃紀錄裡的指令；暫停、繼續、倍率照常（契約 S3，engine/core/Replay.ts）
+        if (this.engine.commands.blocksExternal && !isSimNeutral(cmd)) return;
         if (this.engine.isRunning && isDeferredWhileRunning(cmd)) {
             this.engine.commands.enqueue(cmd);
             return;
@@ -84,7 +86,7 @@ export class UICommandSystem {
      * 只有開新的一場才擷取快照、播種；繼續只是恢復運轉。
      */
     private startsNewMatch(): boolean {
-        return !this.engine.isRunning && this.engine.state.time.tick === 0;
+        return !this.engine.battleStarted;
     }
 
     private apply(cmd: UICommand): void {
@@ -209,6 +211,8 @@ export class UICommandSystem {
                 // 正在詠唱這一格時不換：計時與演出已依這一招排定（ULT-T01）
                 if (agent.castingSkillIdx === cmd.slot) break;
                 agent.skillIds[cmd.slot] = cmd.skillId;
+                // 開戰後當下就換上技能物件（繼續不再重跑 prepareForBattle）；開戰前 skills 還是空的，開戰時才依 id 取
+                if (this.engine.battleStarted) agent.skills[cmd.slot] = cmd.skillId === null ? null : this.engine.skillDB.find((s) => s.id === cmd.skillId) ?? null;
                 break;
             }
 

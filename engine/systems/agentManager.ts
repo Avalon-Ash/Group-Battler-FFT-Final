@@ -113,7 +113,7 @@ export class AgentManager {
         a.spawnTimer = 0.5;
         engine.events.push({ type: 'SPAWN', pos: unitEventPos(a, engine), color: visual.primaryColor, sourceId: a.id });
 
-        if (engine.isRunning) {
+        if (engine.battleStarted) {
             a.skills = a.skillIds.map(id => engine.skillDB.find(s => s.id === id) || null);
             a.bt = engine.ai.buildAI(a, engine);
             // SSOT: Initial state handled by AnimationSystem

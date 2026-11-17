@@ -57,6 +57,7 @@ export class GameRenderer {
             this.boundEngine.bus.off('GAME_RESET', this.handleReset);
             this.boundEngine.bus.off('GAME_CLEAR', this.handleReset);
             this.boundEngine.bus.off('ENV_UPDATE', this.handleReset);
+            this.boundEngine.bus.off('REPLAY_SEEKED', this.handleResync);
             this.boundEngine.bus.off('CAMERA_SHAKE', this.handleShake);
             this.boundEngine.bus.off('CAMERA_MOVE', this.handleCameraMove);
             this.boundEngine.bus.off('AGENT_RESET', this.handleAgentReset);
@@ -71,6 +72,7 @@ export class GameRenderer {
         this.boundEngine.bus.on('GAME_RESET', this.handleReset);
         this.boundEngine.bus.on('GAME_CLEAR', this.handleReset);
         this.boundEngine.bus.on('ENV_UPDATE', this.handleReset);
+        this.boundEngine.bus.on('REPLAY_SEEKED', this.handleResync);
         this.boundEngine.bus.on('CAMERA_SHAKE', this.handleShake);
         this.boundEngine.bus.on('CAMERA_MOVE', this.handleCameraMove);
         this.boundEngine.bus.on('AGENT_RESET', this.handleAgentReset);
@@ -81,6 +83,11 @@ export class GameRenderer {
 
     private handleReset = () => {
         this.reset();
+    }
+
+    /** 回放快轉結束（REPLAY_SEEKED）：丟掉暫態、依目前模擬狀態重建；鏡頭留在原地，每次 undo 才不會跳 */
+    private handleResync = () => {
+        this.resync();
     }
 
     private handleShake = (data: { intensity: number }) => {
@@ -142,9 +149,14 @@ export class GameRenderer {
     }
 
     public reset() {
+        this.resync();
+        this.camera.reset();
+    }
+
+    /** reset 除了鏡頭以外的部分：特效、HUD、視覺狀態、地塊快取、戰術層、序列 */
+    public resync() {
         this.vfx.reset();
         this.hud.reset();
-        this.camera.reset();
         this.visualSystem.reset();
         this.grid.reset(); 
         this.tactical.reset();

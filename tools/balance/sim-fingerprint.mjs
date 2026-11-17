@@ -28,6 +28,7 @@ let exitCode = 0;
 try {
     // 步長＝遊戲的固定步長；情境表、佈陣、狀態字串都在 simFingerprint.ts
     const { DT, SIM_SCENARIOS, buildBattle, fingerprintFrame } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
+    const { stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
     const SCENARIOS = Object.entries(SIM_SCENARIOS).map(([id, sc]) => ({ id, ...sc }));
     const SAMPLE_TICKS = Math.round(SAMPLE_S / DT);
 
@@ -47,7 +48,7 @@ try {
         const lines = DUMP ? [] : null;
         let t = 0, tick = 0;
         while (!over && t < MAX_TIME) {
-            engine.tick(DT);
+            stepSimulation(engine);
             t += DT;
             if (++tick % SAMPLE_TICKS === 0) {
                 const frame = fingerprintFrame(engine, tick);
