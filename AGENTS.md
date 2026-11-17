@@ -98,6 +98,15 @@
 
 ---
 
+## 5a. Architecture Contracts (`tests/contracts/`)
+
+- Some packages already have their types, function signatures and acceptance tests written (see the contract table in `docs/plans/optimization-2026-11.md`). The stubs throw `ContractPending` (`engine/core/ContractPending.ts`).
+- When you start a package, first set it to `done` in `tests/contracts/status.ts`. Its acceptance tests turn red; implement until they are green. A finished package has no `ContractPending` left on its code paths.
+- **Protected files — never edit:** `tests/contracts/*.contract.test.ts`, `tests/contracts/contractTest.ts`, `tests/contracts/simState.ts`, `tests/contracts/MANIFEST.json`. Do not change a contract type or signature either. If an acceptance test itself looks wrong (not just hard to satisfy), stop and report it.
+- `status.ts` is the only contract file you may change.
+
+---
+
 ## 6. Verification (after every code change)
 
 ```bash

@@ -1,0 +1,13 @@
+{
+  "note": "受保護的契約檔雜湊（sha256 前 16 碼，行尾統一成 LF）。只有終審者更新。",
+  "files": {
+    "G2.contract.test.ts": "3caad3c50da835e1",
+    "G3.contract.test.ts": "8d38f8ad7aeb41a6",
+    "G4.contract.test.ts": "a8f9604cd7c8abe6",
+    "R.contract.test.ts": "efdf18e8d6804594",
+    "S2.contract.test.ts": "0f2e7aad8b5923eb",
+    "S3.contract.test.ts": "37a686d38f27ea2d",
+    "contractTest.ts": "26332e95e7659126",
+    "simState.ts": "8fa5b8bee147b567"
+  }
+}

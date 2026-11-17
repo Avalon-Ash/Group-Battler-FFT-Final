@@ -4,6 +4,33 @@
 > 執行者照本檔拆包做，不重新設計；覺得某包不合理就回報，不自己改方向。做完一包：`docs/WORKLOG.md` 加一節、`docs/HANDOFF.md` 刪對應項、本檔該包標「完成」。全部做完刪本檔。
 > 每個數字後面附產生它的指令；沒附的是讀程式碼的推論，會標「推論」。
 
+## 契約（2026-11-17 已定義，分支 `arch/contracts`）
+
+九包的型別、函式簽章與紅色驗收已經寫好，實作者補實作、不改契約。
+
+| 包 | 型別與空殼 | 紅色驗收 |
+| :-- | :-- | :-- |
+| S2 | `types/Match.ts`、`engine/core/MatchSnapshot.ts`、`START_GAME.seed` | `tests/contracts/S2.contract.test.ts`（13 則） |
+| S3 | `engine/core/Replay.ts` | `tests/contracts/S3.contract.test.ts`（7 則） |
+| G2 | `Agent.castTarget` | `tests/contracts/G2.contract.test.ts`（4 則） |
+| G3 | `types/Orders.ts`、`Agent.controller`／`order`、`SET_CONTROLLER` 與 `ORDER_*` 指令 | `tests/contracts/G3.contract.test.ts`（9 則） |
+| G4 | `AIModeGraph`、`engine/ai/ModeGraphValidation.ts` | `tests/contracts/G4.contract.test.ts`（6 則） |
+| R1 | `FrameInterpolation`（`UnitFrameStore.build` 的最後一個參數） | `tests/contracts/R.contract.test.ts`（4 則） |
+| R2 | `MatchPhase`、`SessionView`、`engine/systems/match/MatchFlowSystem.ts`、`engine/systems/ui/views/session.ts` | 同上（6 則） |
+| R3 | `SET_VIEW_INSETS`、`engine/presentation/ViewInsets.ts`、`DirectorSystem.viewInsets` | 同上（3 則） |
+| U1 | `AppMode`、`WindowDef.modes` | 同上（2 則） |
+
+怎麼用：
+- 空殼丟 `ContractPending`（`engine/core/ContractPending.ts`）。`tests/contracts/status.ts` 標 `pending` 的包，驗收停在空殼算待辦；其他錯誤照樣失敗。
+- **開始做一包，第一步把 `status.ts` 該包改成 `done`**，驗收變紅，再補實作到全綠。做完該包不得再有任何地方丟 `ContractPending`。
+- 受保護的檔：`tests/contracts/` 下的 `*.contract.test.ts`、`contractTest.ts`、`simState.ts`，雜湊記在 `MANIFEST.json`。覺得驗收本身寫錯（不是實作不合）就回報，不自己改。驗收在空殼之後的段落還沒真的跑過，寫錯的可能存在。
+- S1、G1、U2～U5 沒有契約測試，驗收照第 4 節。
+
+定義契約時改掉的三處（以這裡為準，第 4 節已同步）：
+- **`RESET_GAME` 改成還原開戰快照。** 現況是重新生成地形：`engine.restart()` 呼叫 `MapGenerator.rebuild`，它會抽亂數。探針 5 顆種子，重開後高度與障礙物 5／5 都不同，4／5 有一個單位站在障礙物上。種子只放在 `START_GAME`，`RESET_GAME` 不帶。
+- **玩家單位沒有指令時原地堅守**（不追、不逃，射程內普攻）。要改成完全待命，只改玩家模式圖的資料。
+- **G3 的操控模型定為即時＋可暫停下令**（使用者 11-17 未反對預設）。
+
 ## 0. 現況量測（2026-11-17，main `c2dbd8d0`）
 
 | 項目 | 數字 | 指令 |
@@ -104,7 +131,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **作法**：
   1. `types.ts` 加 `MatchSnapshot`（純資料、可 JSON）：`mapConfig`、場景 id、地塊與高度（`MapSystem` 的 `mapKeys`、`heightMap`）、障礙物、`zoneConfig`、`battleSetup`、技能庫中被編輯過的技能、每個單位的 `id／team／side／role／q／r／maxHp／skillIds／bodyType／look`、`_entityCounter`。
   2. `engine/core/` 加一個純函式模組：`captureMatch(engine)` 與 `restoreMatch(engine, snapshot)`。`restoreMatch` 走既有的清盤與生成路徑（`clear`、`AgentManager`），不另寫一套初始化。
-  3. `START_GAME` 帶 `seed`：UI 沒給就由 `UICommandSystem` 產生（這是唯一允許用 `crypto.getRandomValues`／`Math.random` 取種子的地方），寫回指令再記錄；套用時先 `captureMatch` 存進 `engine.commands`（新欄位 `matchStart`），再 `seedSimulation(seed)`，然後 `play()`。`RESET_GAME` 同理帶新種子；`AgentManager.matchSalt = Date.now()` 兩處都刪掉，改由種子導出。
+  3. `START_GAME` 帶 `seed`：UI 沒給就由 `UICommandSystem` 產生（這是唯一允許用 `crypto.getRandomValues`／`Math.random` 取種子的地方），寫回指令再記錄；套用時先 `captureMatch` 存進 `engine.commands`（新欄位 `matchStart`），再 `seedSimulation(seed)`，然後 `play()`。`RESET_GAME` 改成 `restoreMatch` 回開戰快照（不帶種子，下一個 `START_GAME` 才播種）；`AgentManager.matchSalt = Date.now()` 兩處都刪掉，改由種子導出。
   4. `hooks/useGameApp.ts` 不再 import 模擬流的 `random`：在 `engine/math/rng.ts` 旁加一條佈陣用的獨立序列（同一顆 mulberry32，另一個狀態），hook 的洗牌、地圖大小與佈局、傳給 `rollShowcaseSetup` 的亂數來源都改用它。`place()` 裡那個為了對齊舊序列而空抽的 `random()` 一併刪除。`tests/RngSplit.test.ts` 加一條：`hooks/`、`components/` 不得 import 模擬流。
   5. `GameEngine` 建構子收 `{ audio?: boolean }`（Facade 的刻意變更）；工具與測試改傳 `{ audio: false }`，`?mute` 判斷留在組裝層。
 - **驗收（先寫成紅色測試，再補實作）**：`tests/` 新增一則：引擎 A 隨機佈陣→開戰→跑 600 tick（中途送 `EDIT_AGENT`、`SET_OBSTACLE`）；取 A 的 `matchStart`＋種子＋戰中指令，丟進全新的引擎 B 重播；兩邊每 30 tick 的單位狀態字串（沿用 `sim-fingerprint` 的 `unitState` 欄位）完全相同。TEAMS、ROYALE、SQUADS 三種各一則。另一則：同一份快照換種子，結果不同（防空測）。`npm run balance:fingerprint` 0 差異（工具自己佈陣，不受影響）。
@@ -175,7 +202,7 @@ R1 畫面插值（獨立，渲染線第一條）
   - 輸入：手動模式選取單位後，點地面＝移動、點敵人＝攻擊、技能列點招再點目標＝施放。`hooks/useGameInput.ts` 只負責把點擊翻成指令。手機用點選，不做拖曳框選。
 - **第一個可玩切片**（先交這個給使用者試）：手動模式、一個單位切成玩家控制、移動與普攻；其他單位照常 AI。技能施放與多單位是第二片。
 - **驗收**：測試：一串固定的 order 指令重播兩次結果相同；沒有任何玩家單位時 `npm run balance:fingerprint` 0 差異（AI 路徑沒被動到）；`npm run e2e:ui`、`npm run audit:ui -- all`。
-- **停下來問（開工前就問使用者）**：操控節奏。現在 5v5 一場平均 19 秒，即時下令幾乎來不及；選項是①即時＋可暫停下令（預設建議，倍率已是指令）、②放慢整體節奏（動到平衡）、③回合制（大改）。另外：玩家單位沒指令時要待命還是自動普攻。
+- **已定**（契約 G3）：即時＋可暫停下令；沒指令時原地堅守。現在 5v5 一場平均 19 秒，第一個切片交給使用者試玩後，節奏太快再談放慢（會動到平衡）。
 
 ### G4 AI 圖鍵型別化與 profile
 - **作法**：`BTDef.key` 的型別改成 `keyof typeof BTConditions | keyof typeof BTActions`（把兩張表從 `Record<string, …>` 改成 `satisfies`），找不到鍵變成編譯錯誤；加一個純函式 `validateModeGraph(graph)`（每條邊的兩端存在、每個模式有樹、`onFailure` 指向存在的模式），引擎建樹前呼叫，失敗就丟錯而不是塞假節點。`AISystem.buildAI` 目前忽略單位、全體共用一張圖：改成依職業查 profile（預設全部指向現在這張，行為不變）。
