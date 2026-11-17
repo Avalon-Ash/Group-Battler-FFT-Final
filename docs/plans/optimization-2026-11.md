@@ -103,7 +103,7 @@ R1 畫面插值（獨立，渲染線第一條）
 | R3 | 導播避讓手機底部 UI（HANDOFF E） | 渲染 | — | S | Opus 自己做 |
 | R4 | 嘲諷、加速零件的方向輸入；刪 `BarPainter` 舊控制條（HANDOFF A） | 渲染 | — | S | Sonnet 子代理，Opus 看圖 |
 | G1 | 技能平衡（HANDOFF J，併 A 的 AOE、G 的藍方勝率） | 邏輯 | S1 | L | Opus 自己做（判斷），批次模擬背景跑 |
-| G2 | 施法目標與戰鬥目標分開，拆 `_savedCombatTarget` | 邏輯 | — | M | Opus 自己做 |
+| G2 | 施法目標與戰鬥目標分開，拆 `_savedCombatTarget`（完成） | 邏輯 | — | M | Opus 自己做 |
 | G3 | 玩家操控（HANDOFF L2 Controller） | 邏輯＋UI | G2、S3、U1 | L | Opus 自己做；UI 小包可派 Sonnet |
 | G4 | AI 圖鍵型別化、驗證、每職業 profile | 邏輯 | — | S～M | Sonnet 子代理 |
 | G5 | 行為編輯器（HANDOFF L4） | UI | G3、G4、U1 | L | 開工前由 Opus 另寫一頁設計給使用者看 |
@@ -198,7 +198,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **目標**：兩種站位平均藍方勝率 50% ± 1.5%；沒有單一技能勝率貢獻超過 ±5%；機動技每場施放 ≥ 0.6 次或明確決定它就是情境技。
 - **停下來問**：`mb_u3` 要不要加傷害（要連特效一起改，違反奧義視覺規則 C7）、`wb_a5`／`rb_a3` 多段（要先做主動技多段視覺）這兩項是設計決定，列選項給使用者，不自己定。
 
-### G2 施法目標與戰鬥目標分開
+### G2 施法目標與戰鬥目標分開（完成 2026-11-18，WORKLOG §2 BZ）
 - **現況**：`a.target` 同時當戰鬥目標與施法目標，對友軍施法時把敵人暫存在 `_savedCombatTarget`（`engine/ai/BTRegistry.ts` 8 行、`engine/core/AgentLifecycle.ts` 1 行）。設計在 `docs/AI_ROYALE_DESIGN.md` §10 M2。
 - **作法**：`Agent` 加 `castTarget`（唯一寫入者：施法開始寫、施法結束或中斷清，登記進 `engine/core/AgentOwnership.ts`）；戰鬥管線讀施法目標的地方改讀它；`a.target` 只表示戰鬥目標；刪 `_savedCombatTarget` 與 `restoreCombatTarget`。
 - **驗收**：`tests/BTOptimization.test.ts` 相關兩則改寫成新語意後通過；`npm run balance:fingerprint`——預期**會變**（目標不再被施法打斷重選），所以改看 `balance:sim` 600 場勝率與 `balance:idle` 發呆、繞圈比例都在改動前 ±1.5 個百分點內，再重錄指紋。

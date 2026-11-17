@@ -10,7 +10,7 @@ import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "..
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isActionBlocked, isIncapacitated } from "../core/Effects";
 import { planDashLanding, planRetreatLanding } from "../systems/combat/LandingPlanner";
-import { activationBlock } from "../systems/combat/SkillStateMachine";
+import { activationBlock, aimCastAt, castAim } from "../systems/combat/SkillStateMachine";
 import { hasIntentIn } from "../core/SkillQueries";
 import type { SkillIntent } from "../../types";
 import { isHostileSkill } from "./TargetingSystem";
@@ -22,21 +22,6 @@ import { sameSide } from '../core/Allegiance';
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => NodeState;
-
-function restoreCombatTarget(a: Agent, engine: GameEngine): void {
-    if (a.target && sameSide(a.target, a)) {
-        if (a._savedCombatTarget && a._savedCombatTarget.hp > 0 && !sameSide(a._savedCombatTarget, a)) {
-            a.target = a._savedCombatTarget;
-            a._savedCombatTarget = null;
-        } else {
-            a.target = null;
-            engine.updateTarget(a);
-        }
-    } else if (!a.target && a._savedCombatTarget && a._savedCombatTarget.hp > 0 && !sameSide(a._savedCombatTarget, a)) {
-        a.target = a._savedCombatTarget;
-        a._savedCombatTarget = null;
-    }
-}
 
 /** 離最近敵人的格距（沒有敵人回 Infinity） */
 function distToNearestEnemy(a: Agent, cell: Hex, engine: GameEngine): number {
@@ -155,7 +140,6 @@ export const BTConditions: Record<string, BTConditionFn> = {
     },
 
     "HasTarget": (a, engine) => {
-        restoreCombatTarget(a, engine);
 
         // 嘲諷中且目標不是嘲諷者：交給 TargetingSystem 的嘲諷強制鎖定重選（CCManager 不再直接寫 target）
         const tauntLocked = a.effects.TAUNT.remaining > 0 && a.effects.TAUNT.sourceId !== null && a.target?.id !== a.effects.TAUNT.sourceId;
@@ -279,35 +263,34 @@ export const BTConditions: Record<string, BTConditionFn> = {
         
         const result = engine.calculateOptimalTarget(a, skill);
         
+        // 契約 G2：友軍只進施法目標（castTarget），戰鬥目標 a.target 永遠是敵人、不被選招換掉
         if (result.targetAgent) {
             if (sameSide(result.targetAgent, a)) {
-                if (a.target && !sameSide(a.target, a)) {
-                    a._savedCombatTarget = a.target;
-                }
                 const effRange = engine.getSkillRange(a, result.targetAgent.q, result.targetAgent.r, skill);
                 const inRange = HexUtils.dist(a, result.targetAgent) <= effRange + COMBAT_PARAM.RANGE_TOLERANCE;
                 if (inRange) {
-                    a.target = result.targetAgent;
+                    aimCastAt(a, result.targetAgent);
                     a.targetHex = null;
                 } else {
-                    restoreCombatTarget(a, engine);
+                    // 射程外：先走向友軍所在格（MoveToOptimal 讀 targetHex）
+                    aimCastAt(a, null);
                     a.targetHex = { q: result.targetAgent.q, r: result.targetAgent.r };
                 }
             } else {
+                aimCastAt(a, null);
                 a.target = result.targetAgent;
                 a.targetHex = null;
             }
             return true;
         } else if (result.targetHex) {
             // 不清除 a.target，保留作為單體目標退化之用 (解決 AOE 跑到空地發呆)
-            restoreCombatTarget(a, engine);
+            aimCastAt(a, null);
             a.targetHex = result.targetHex;
             return true;
         }
 
-        // 未能計算出有效目標（如純治療無人受傷、PBAOE 範圍內無敵軍）：
-        // 還原或尋找敵方戰鬥目標，防止 a.target 殘留友軍與 targetHex 殘留過期座標
-        restoreCombatTarget(a, engine);
+        // 未能計算出有效目標（如純治療無人受傷、PBAOE 範圍內無敵軍）：清掉施法目標與過期座標，戰鬥目標不動
+        aimCastAt(a, null);
         a.targetHex = null;
         return false;
     },
@@ -320,13 +303,14 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // [FIX] 正在詠唱時不重新判定距離，避免極限範圍內目標移動導致動作被取消或目標迷失
         if (a.castingSkillIdx === idx) return true;
         
+        const aim = castAim(a);
         let tQ = 0, tR = 0;
         if (a.targetHex) { tQ = a.targetHex.q; tR = a.targetHex.r; }
-        else if (a.target) { tQ = a.target.q; tR = a.target.r; }
+        else if (aim) { tQ = aim.q; tR = aim.r; }
         else return false;
-        
+
         const effRange = engine.getSkillRange(a, tQ, tR, skill);
-        const gridDist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
+        const gridDist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, aim!);
         
         // [FIX] 使用更嚴格的容差，與 SkillExecutor 保持同步，避免 AI 誤判射程導致空放
         if (gridDist > effRange + COMBAT_PARAM.RANGE_TOLERANCE) return false;
@@ -335,7 +319,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
             const startPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             let endPx;
             if (a.targetHex) endPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
-            else endPx = { x: a.target!.px, y: a.target!.py };
+            else endPx = { x: aim!.px, y: aim!.py };
             const dx = startPx.x - endPx.x;
             const dy = startPx.y - endPx.y;
             const pxDist = Math.sqrt(dx*dx + dy*dy);
@@ -401,7 +385,6 @@ export const BTActions: Record<string, BTActionFn> = {
             engine.combat.breakCast(a, engine);
         }
 
-        restoreCombatTarget(a, engine);
 
         return NodeState.RUNNING;
     },
@@ -409,14 +392,12 @@ export const BTActions: Record<string, BTActionFn> = {
         if (engine && engine.isWarningTile(HexUtils.key(a))) {
             engine.log(a, 'DECISION', '決策異常', '', '注意：單位在危險區進入 IDLE 狀態！可能是戰鬥邏輯均失敗。');
         }
-        restoreCombatTarget(a, engine);
         a.aiState = AIState.IDLE;
         a.actionState = ActionState.IDLE;
         if (a.isMoving) stopMovement(a);
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
-        restoreCombatTarget(a, engine);
         const inDanger = BTConditions["IsInWarningZone"](a, engine, {}) || BTConditions["IsInUrgentDanger"](a, engine, {});
 
         if (!inDanger) {
@@ -628,16 +609,18 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
         if (!BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
-        const isLowHp = a.target && (a.target.hp / a.target.maxHp < BT_RULES.LOW_HP_THRESHOLD);
+        // 走向這招的施法點：施法目標（友軍）優先，否則是戰鬥目標
+        const aim = castAim(a);
+        const isLowHp = aim && (aim.hp / aim.maxHp < BT_RULES.LOW_HP_THRESHOLD);
         const speedMult = isLowHp ? BT_RULES.LOW_HP_SPEED_MULTIPLIER : (skill.tag === 'ULT' ? COMBAT_PARAM.MOVE_SPEED_ULT : 1.0);
-        let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
-        
+        let dest = a.targetHex || (aim ? {q: aim.q, r: aim.r} : null);
+
         if (dest) {
             const moveRange = (skill.range === 0) ? Math.max(1, skill.aoeRadius || 1) : skill.range;
             // 只有「停下來的格子會塌陷」才拒絕靠近；被困在塌陷格時（Survival 已放棄）直奔目標。
             if (approachEndsOnCollapse(a, engine, dest, moveRange)) {
-                if (engine.isCollapsingSoon(HexUtils.key(a)) && a.target) {
-                    dest = { q: a.target.q, r: a.target.r };
+                if (engine.isCollapsingSoon(HexUtils.key(a)) && aim) {
+                    dest = { q: aim.q, r: aim.r };
                 } else {
                     return NodeState.FAILURE;
                 }
@@ -659,7 +642,6 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = idx !== undefined ? a.skills[idx] : undefined;
         if (!skill) return NodeState.FAILURE;
 
-        restoreCombatTarget(a, engine);
         if (!a.target || sameSide(a.target, a)) return NodeState.FAILURE;
 
         // 非對敵技能（治療／友軍增益／自身增益）在 Smart Cast 未命中條件時：
@@ -710,7 +692,6 @@ export const BTActions: Record<string, BTActionFn> = {
      * 只挑嚴格更靠近目標、非塌陷、無敵方 hazard、無人佔用的格子，所以不會來回震盪；找不到就 FAILURE（交給 Idle）。
      */
     "Reposition": (a, engine) => {
-        restoreCombatTarget(a, engine);
         if (!a.target || !BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
         if (engine.isCollapsingSoon(HexUtils.key(a))) return NodeState.FAILURE; // 這是 RETREAT 的事
         const curDist = HexUtils.dist(a, a.target);
@@ -762,7 +743,6 @@ export const BTActions: Record<string, BTActionFn> = {
      * 不能動、或已經有敵人打得到（在等冷卻）是正當的等待；其餘 FAILURE 交給 UNSTICK。
      */
     "Advance": (a, engine) => {
-        restoreCombatTarget(a, engine);
         const near = enemyInReach(a, engine);
         if (near || !BTConditions["CanMove"](a, engine, {})) {
             if (near) lockTarget(a, near, engine);
@@ -784,7 +764,6 @@ export const BTActions: Record<string, BTActionFn> = {
     /** 脫困：爬升規則走不到任何敵人時，短暫等待後強制跳上離敵人最近的鄰格（只在這裡無視 canStepUp）。 */
     "ForceJump": (a, engine) => {
         if (a.isMoving) return NodeState.RUNNING;
-        restoreCombatTarget(a, engine);
         if (!BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
         a.aiState = AIState.WAITING;
         a.actionState = ActionState.IDLE;
@@ -805,8 +784,6 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.RUNNING;
     },
     "CastPushPull": (a, engine) => {
-        const savedTarget = a.target;
-
         // [Task 5] Decoupled Path-Clearing Targeting
         // 尋找第一個可用的推拉技能
         const idx = a.skills.findIndex((s, i) => {
@@ -878,12 +855,11 @@ export const BTActions: Record<string, BTActionFn> = {
         
         if (dist <= effRange + COMBAT_PARAM.RANGE_TOLERANCE) {
             a.aiState = AIState.LAST_STAND_PUSH;
+            // 推拉是對敵技能：瞄準讀戰鬥目標或 targetHex，清掉之前選招可能留下的友軍施法目標。
+            // 地面施法清空的 a.target 不再事後找回，HasTarget 下次決策重新選敵（契約 G2）
+            aimCastAt(a, null);
             const state = engine.initiateCast(a, idx);
-            if (state === NodeState.RUNNING) {
-                a.actionState = ActionState.CASTING;
-                // 以 savedTarget 作為後備，等詠唱結束後 HasTarget 能找回正確作戰目標
-                a._savedCombatTarget = savedTarget;
-            }
+            if (state === NodeState.RUNNING) a.actionState = ActionState.CASTING;
             return state;
         }
 

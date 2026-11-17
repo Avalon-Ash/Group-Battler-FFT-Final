@@ -11,7 +11,7 @@ import type { ContractId } from '../../engine/core/ContractPending';
 export const CONTRACT_STATUS: Record<ContractId, 'pending' | 'done'> = {
     S2: 'done',
     S3: 'done',
-    G2: 'pending',
+    G2: 'done',
     G3: 'pending',
     G4: 'pending',
     R1: 'done',

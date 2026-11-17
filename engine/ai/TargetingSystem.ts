@@ -322,30 +322,32 @@ export class TargetingSystem {
         const isPureHeal = skill.power < 0 && !hasStatusIn(skill, FRIENDLY_BUFF_CC);
         const isSelfDamageHeal = hasHitAction(skill, 'SELF_DAMAGE');
 
+        // 黏著目標：友軍技能黏上一次的施法目標（castTarget），對敵技能黏戰鬥目標（契約 G2）
+        const sticky = targetIsAlly ? source.castTarget : source.target;
         let validStickyTarget = false;
-        if (source.target && source.target.hp > 0 && !source.target.banished) {
+        if (sticky && sticky.hp > 0 && !sticky.banished) {
             if (targetIsAlly) {
-                if (sameSide(source.target, source)) {
+                if (sameSide(sticky, source)) {
                     validStickyTarget = true;
                     // 純治療不可黏著滿血友軍
-                    if (isPureHeal && source.target.hp >= source.target.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD) {
+                    if (isPureHeal && sticky.hp >= sticky.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD) {
                         validStickyTarget = false;
                     }
                     // 自殘治療不可選自己
-                    if (isSelfDamageHeal && source.target.id === source.id) {
+                    if (isSelfDamageHeal && sticky.id === source.id) {
                         validStickyTarget = false;
                     }
                 }
             } else {
-                validStickyTarget = !sameSide(source.target, source);
+                validStickyTarget = !sameSide(sticky, source);
             }
         }
 
         if (targetIsAlly && skill.type === 'SINGLE') {
-            if (validStickyTarget && source.target) {
-                const effRange = this.getSkillRange(source, source.target.q, source.target.r, skill, spatial);
-                if (HexUtils.dist(source, source.target) <= effRange) {
-                    return { targetAgent: source.target, targetHex: null };
+            if (validStickyTarget && sticky) {
+                const effRange = this.getSkillRange(source, sticky.q, sticky.r, skill, spatial);
+                if (HexUtils.dist(source, sticky) <= effRange) {
+                    return { targetAgent: sticky, targetHex: null };
                 }
             }
             // 尋找最佳隊友 (根據失血量)
@@ -375,10 +377,10 @@ export class TargetingSystem {
             const declared = this.declaredTarget(source, skill, enemies, spatial);
             if (declared) return { targetAgent: declared, targetHex: null };
             // 普通敵方目標黏著邏輯
-            if (validStickyTarget && source.target) {
-                const effRange = this.getSkillRange(source, source.target.q, source.target.r, skill, spatial);
-                if (HexUtils.dist(source, source.target) <= effRange) {
-                    return { targetAgent: source.target, targetHex: null };
+            if (validStickyTarget && sticky) {
+                const effRange = this.getSkillRange(source, sticky.q, sticky.r, skill, spatial);
+                if (HexUtils.dist(source, sticky) <= effRange) {
+                    return { targetAgent: sticky, targetHex: null };
                 }
             }
         }

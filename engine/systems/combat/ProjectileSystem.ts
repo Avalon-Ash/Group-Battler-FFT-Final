@@ -11,6 +11,7 @@ import { SkillExecutor } from "./SkillExecutor";
 import { isSkillTarget } from "../../core/SkillQueries";
 import { runEndActions, runImpactActions } from "./SkillActions";
 import { HazardManager } from "./HazardManager";
+import { castAim } from "./SkillStateMachine";
 import { ISO_SCALE_Y, COMBAT_PARAM, PROJECTILE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
 import { unitEventPos, pointEventPos } from "../../events/EventPos";
@@ -136,7 +137,7 @@ export class ProjectileSystem {
     if (source.spawnTimer > 0) return; // [FIX] Unit still spawning, px/py might be uninitialized (0,0)
     
     const target =
-      skill.type === "AOE" ? source.targetHex || source.target : source.target;
+      skill.type === "AOE" ? source.targetHex || castAim(source) : castAim(source);
     if (!target) return;
 
     const targetId =

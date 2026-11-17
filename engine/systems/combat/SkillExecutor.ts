@@ -17,6 +17,7 @@ import { triggerHitFlash, triggerHitShake } from "../../core/ViewCommands";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS, HIT_REACTION_RULES, CC_RULES } from "../../../constants";
 import { MultiHitScheduler } from "./MultiHitScheduler";
+import { castAim } from "./SkillStateMachine";
 import { random } from "../../math/rng";
 import { unitEventPos, hexEventPos } from "../../events/EventPos";
 import { sameSide } from '../../core/Allegiance';
@@ -75,7 +76,8 @@ export class SkillExecutor {
     /** 施法中心：range 0 是施法者所在格，其他是 targetHex（沒有就用目標格，再沒有就用自己） */
     public static castCenter(source: Agent, skill: Skill): { q: number; r: number } {
         if (skill.range === 0) return { q: source.q, r: source.r };
-        return source.targetHex || (source.target ? { q: source.target.q, r: source.target.r } : { q: source.q, r: source.r });
+        const aim = castAim(source);
+        return source.targetHex || (aim ? { q: aim.q, r: aim.r } : { q: source.q, r: source.r });
     }
 
     /**
@@ -91,8 +93,9 @@ export class SkillExecutor {
         const targetHex = deferred ? deferred.center : mobilityDash && skill.type === 'AOE' ? { q: source.q, r: source.r } : SkillExecutor.castCenter(source, skill);
 
         // 普攻沒有 CAST_START；近戰斬擊與瞬發光束由 VISUAL_BEAM 事件觸發技能序列（SkillSequences）
-        if (skill.tag === 'BASIC' && source.target) {
-            engine.pushEvent('VISUAL_BEAM', unitEventPos(source, engine), { skill, sourceId: source.id, targetId: source.target.id, color: skill.color });
+        const aim = castAim(source);
+        if (skill.tag === 'BASIC' && aim) {
+            engine.pushEvent('VISUAL_BEAM', unitEventPos(source, engine), { skill, sourceId: source.id, targetId: aim.id, color: skill.color });
         }
 
         // 2. 獲取受影響區域
@@ -120,7 +123,7 @@ export class SkillExecutor {
 
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color, sourceId: source.id });
         } else {
-            const primary = deferred ? deferred.target : source.target;
+            const primary = deferred ? deferred.target : aim;
             if (primary && primary.hp > 0 && !primary.banished && !primary.outOfBounds) {
                 const isValidTarget = isSkillTarget(skill, source, primary);
                 

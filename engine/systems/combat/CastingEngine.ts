@@ -8,11 +8,10 @@
 
 import { Agent, GameEngine } from "../../game";
 import { isActionBlocked } from "../../core/Effects";
-import { advanceWindup, applyInterruptPenalty, endWindup } from "./SkillStateMachine";
+import { advanceWindup, applyInterruptPenalty, castAim, endWindup } from "./SkillStateMachine";
 import { CAST_LOCKOUT, CAST_RULES } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
 import { EventPool } from "../../events/GameEventPool";
-import { sameSide } from '../../core/Allegiance';
 
 export type BreakCastContext = Pick<GameEngine, 'log' | 'events' | 'getTerrainHeight' | 'mapConfig'>;
 
@@ -36,8 +35,9 @@ export class CastingEngine {
         }
         
         // 2. 動態轉向 (Sticky Targeting)：確保攻擊動作始終朝向目標
-        if (a.target) {
-            const dx = a.target.px - a.px;
+        const aim = castAim(a);
+        if (aim) {
+            const dx = aim.px - a.px;
             if (Math.abs(dx) > 2) { // 避免高頻抖動
                 a.facing = dx > 0 ? 1 : -1;
             }
@@ -100,9 +100,11 @@ export class CastingEngine {
     }
 
     private resetCaster(a: Agent, fromCompletion: boolean = false) {
+        // 對友軍施法結束要立刻重新決策；endWindup 會清掉施法目標，所以先記下
+        const allyCast = a.castTarget !== null;
         endWindup(a, fromCompletion);
         a.currentTelegraph = null;
-        if (a.target && sameSide(a.target, a)) {
+        if (allyCast) {
             a.forceAiUpdate = true;
         }
         // aiState 不再存 CASTING_*（castingSkillIdx 歸 -1 即結束施法狀態，P7b），不必還原

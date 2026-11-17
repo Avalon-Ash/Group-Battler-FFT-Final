@@ -30,7 +30,7 @@ export const SIM_STEP_S = 1 / GAME_LOOP_PARAM.SIM_HZ;
 const REPLAY_FILE_VERSION = 1;
 
 /** 快轉時匯流排只放行的事件：回放自己要靠 UI_COMMAND 餵指令 */
-const FAST_FORWARD_ALLOW: ReadonlySet<keyof EventMap> = new Set<keyof EventMap>(['UI_COMMAND']);
+export const FAST_FORWARD_ALLOW: ReadonlySet<keyof EventMap> = new Set<keyof EventMap>(['UI_COMMAND']);
 
 declare const __BUILD_ID__: string | undefined;
 

@@ -1,5 +1,5 @@
 import { COMBAT_PARAM, CAST_RULES } from '../../../constants';
-import { activationBlock, beginWindup, commitSkill, extendInterruptLockout } from "./SkillStateMachine";
+import { activationBlock, beginWindup, castAim, commitSkill, extendInterruptLockout } from "./SkillStateMachine";
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CombatSystem — 戰鬥系統 Orchestrator                   ║
 // ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
@@ -46,29 +46,30 @@ export class CombatSystem {
 
         if (a.castingSkillIdx === -1) {
             beginWindup(a, skillIdx, skill);
+            const aim = castAim(a);
                         // 施法中的 AI 狀態由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b），這裡不寫 aiState
 
             let targetName = '地面';
-            if (a.target) targetName = a.target.id;
+            if (aim) targetName = aim.id;
             else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
             
             engine.log(a, 'CAST', '詠唱', targetName, `開始引導 ${skill.name} (需 ${skill.cast} 秒)`);
             
             // [FIX] Pass targetId to CAST_START so visual sequences hit the target, not the caster
-            const targetId = a.target ? a.target.id : (a.targetHex ? `ground-${a.targetHex.q},${a.targetHex.r}` : undefined);
+            const targetId = aim ? aim.id : (a.targetHex ? `ground-${a.targetHex.q},${a.targetHex.r}` : undefined);
 
             // sourceId 必須傳遞，供 HUD 綁定文字
             if (skill.cast > 0 && skill.tag !== 'BASIC') {
                 // [FIX] Caching impact area for performance optimization in telegraph rendering
-                const targetHex = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : {q: a.q, r: a.r});
+                const targetHex = a.targetHex || (aim ? {q: aim.q, r: aim.r} : {q: a.q, r: a.r});
                 a.currentTelegraph = engine.movement.targeting.getImpactArea(a, targetHex, skill, engine);
                 
                 engine.events.push({ type: 'CAST_START', pos: unitEventPos(a, engine), skill, sourceId: a.id, targetId });
                 engine.bus.emit('CAST_START', { sourceId: a.id, skill });
             }
             
-            if (a.target) {
-                a.facing = a.target.px > a.px ? 1 : -1;
+            if (aim) {
+                a.facing = aim.px > a.px ? 1 : -1;
             } else if (a.targetHex) {
                 const tx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig).x;
                 a.facing = tx > a.px ? 1 : -1;
@@ -135,8 +136,9 @@ export class CombatSystem {
             });
         }
         
+        const aim = castAim(a);
         let targetName = '地面';
-        if (a.target) targetName = a.target.id;
+        if (aim) targetName = aim.id;
         else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
         
         engine.log(a, 'CAST', '施放', targetName, `施放 ${s.name} (消耗 ${s.cost} MP)`);
@@ -154,7 +156,7 @@ export class CombatSystem {
                 agent: a,
                 skill: s,
                 engine,
-                snapshot: { center: SkillExecutor.castCenter(a, s), target: a.target ?? null },
+                snapshot: { center: SkillExecutor.castCenter(a, s), target: aim },
             });
             return;
         }

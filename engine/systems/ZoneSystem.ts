@@ -13,6 +13,7 @@ import { ActiveZone } from "../../types";
 import { applyLethal } from "./combat/DirectDamage";
 import { PhysicsEngine } from "../physics/PhysicsEngine";
 import { clearBanishedFlag } from "./status/ControlSystem";
+import { castAim } from "./combat/SkillStateMachine";
 import { HexUtils } from "../utils";
 import { ISO_SCALE_Y, PHYSICS, ZONE } from "../../constants";
 import { random } from "../math/rng";
@@ -160,7 +161,10 @@ export class ZoneSystem {
                 if (s && s.type === 'AOE') {
                     let tq = a.q, tr = a.r;
                     if (a.targetHex) { tq = a.targetHex.q; tr = a.targetHex.r; }
-                    else if (a.target) { tq = a.target.q; tr = a.target.r; }
+                    else {
+                        const aim = castAim(a);
+                        if (aim) { tq = aim.q; tr = aim.r; }
+                    }
                     
                     const progress = 1 - (a.castTimer / s.cast);
                     const radius = (s.aoeRadius || 1);
