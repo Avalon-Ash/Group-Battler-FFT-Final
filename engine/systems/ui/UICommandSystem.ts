@@ -2,6 +2,7 @@ import { GameEngine } from '../../game';
 import { UICommand, Role, Team } from '../../../types';
 import type { GameCommand } from '../../../types';
 import { isDeferredWhileRunning, isViewCommand } from '../../core/CommandQueue';
+import { pending } from '../../core/ContractPending';
 import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
 import { SCENE_DB } from '../../../data/scenes';
@@ -408,6 +409,18 @@ export class UICommandSystem {
                 }
                 break;
             }
+
+            // [契約 R3] 導播避讓：型別已定，處理還沒實作
+            case 'SET_VIEW_INSETS':
+                return pending('R3', cmd.type);
+
+            // [契約 G3] 玩家操控：型別已定（types/Orders.ts），處理還沒實作
+            case 'SET_CONTROLLER':
+            case 'ORDER_MOVE':
+            case 'ORDER_ATTACK':
+            case 'ORDER_CAST':
+            case 'ORDER_STOP':
+                return pending('G3', cmd.type);
 
             default: {
                 // Unknown command: ignore gracefully

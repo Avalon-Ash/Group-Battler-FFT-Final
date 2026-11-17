@@ -18,10 +18,13 @@ import { DirectorRoster } from "./DirectorRoster";
 import { DIRECTOR_PARAM, SHAKE_DIRECTOR_PARAM } from "../../constants";
 import { ShakeDirector } from "./ShakeDirector";
 import { VisualMath } from "../math/VisualMath";
+import type { ViewInsets } from "./ViewInsets";
 
 export class DirectorSystem {
     // Controls
     public enabled: boolean = true;
+    /** [契約 R3] 畫面四邊被 UI 蓋住的寬度（CSS px）。唯一寫入者 UICommandSystem（SET_VIEW_INSETS） */
+    public viewInsets: ViewInsets = { top: 0, right: 0, bottom: 0, left: 0 };
     public shakeDirector = new ShakeDirector();
 
     public setShakeTuning(t: { strength?: number; offFocusScale?: number; maxTrauma?: number }): void {

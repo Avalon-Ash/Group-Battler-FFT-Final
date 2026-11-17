@@ -51,7 +51,12 @@ import type { GameRenderer } from "./renderer";
 
 export { Agent };
 
-export const VICTORY_PHASE_DURATION = 0.5; 
+export const VICTORY_PHASE_DURATION = 0.5;
+
+/** 建構選項。audio: false＝不建立 AudioSystem（無畫面工具、測試、回放用的第二顆引擎） */
+export interface GameEngineOptions {
+    audio?: boolean;
+}
 
 export class GameEngine implements SpatialProvider {
     public agents: Agent[] = [];
@@ -139,7 +144,7 @@ export class GameEngine implements SpatialProvider {
     public uiCommands: UICommandSystem = new UICommandSystem(this);
     public audio?: AudioSystem;
 
-    constructor() {
+    constructor(options: GameEngineOptions = {}) {
         validateAllVFXBindings(this.skillDB);
         this.director.bind(this);
         this.map.randomizeEnvironment(this);
@@ -147,7 +152,7 @@ export class GameEngine implements SpatialProvider {
         // [AUDIO] S0b: 遵守 ?mute 守則，靜音時完全不建立 AudioSystem / AudioEngine
         const loc = typeof window !== 'undefined' ? window.location : (typeof globalThis !== 'undefined' ? (globalThis as { location?: Location }).location : undefined);
         const isMuted = loc && loc.search ? new URLSearchParams(loc.search).has(AUDIO.QUERY_MUTE_KEY) : false;
-        if (!isMuted) {
+        if (!isMuted && options.audio !== false) {
             this.audio = new AudioSystem(this.bus);
         }
     }

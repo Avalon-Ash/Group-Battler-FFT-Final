@@ -204,6 +204,7 @@ export type EffectSlots = Record<EffectKind, EffectSlot>;
 
 
 import type { Agent } from './engine/core/Agent';
+import type { ControllerKind } from './types/Orders';
 
 /** 單位的陣營外觀：用哪一隊的皮膚（圖集、棋座樣式），以及藍色系要換成什麼色相（null＝不換）。分配與換色規則在 data/units/factionTint.ts */
 export interface FactionLook {
@@ -445,8 +446,15 @@ export type UICommand =
     | { type: 'SET_OBSTACLE'; q: number; r: number; obstacleType?: string }
     | { type: 'REMOVE_OBSTACLE'; q: number; r: number }
     | { type: 'MOVE_AGENT'; agentId: string; q: number; r: number }
-    | { type: 'START_GAME' }
+    | { type: 'START_GAME'; /** 模擬流種子（uint32）；省略時由 UICommandSystem 產生並寫回紀錄（契約 S2） */ seed?: number }
     | { type: 'STOP_GAME' }
+    /** 契約 G3：切換控制者與玩家指令（types/Orders.ts）。都是 GameCommand：戰鬥中排到 tick 開頭、進紀錄 */
+    | { type: 'SET_CONTROLLER'; agentId: string; controller: ControllerKind }
+    | { type: 'ORDER_MOVE'; agentId: string; q: number; r: number }
+    | { type: 'ORDER_ATTACK'; agentId: string; targetId: string }
+    | { type: 'ORDER_CAST'; agentId: string; slot: number; targetId?: string; q?: number; r?: number }
+    /** 清掉指令並停下 */
+    | { type: 'ORDER_STOP'; agentId: string }
     | { type: 'SET_SHOWCASE_MODE'; enabled: boolean }
     | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
     | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout; sceneId?: string; randomizeScene?: boolean }
@@ -455,6 +463,8 @@ export type UICommand =
     | { type: 'CAMERA_PAN'; dx: number; dy: number }
     | { type: 'CAMERA_SNAP'; x: number; y: number; zoom?: number }
     | { type: 'SET_VIEWPORT'; width: number; height: number }
+    /** 契約 R3：畫面四邊被 UI 蓋住的寬度（CSS px）；導播與置中用扣掉它之後的有效區域 */
+    | { type: 'SET_VIEW_INSETS'; top: number; right: number; bottom: number; left: number }
     | { type: 'SET_AUDIO_VOLUME'; bus: 'master' | 'music' | 'sfx' | 'ui'; volume: number }
     | { type: 'SET_AUDIO_MUTED'; muted: boolean }
     | { type: 'SET_AUDIO_ANNOUNCER'; enabled: boolean };
@@ -473,6 +483,7 @@ export type ViewCommand = Extract<UICommand, { type:
     | 'CAMERA_PAN'
     | 'CAMERA_SNAP'
     | 'SET_VIEWPORT'
+    | 'SET_VIEW_INSETS'
     | 'SET_AUDIO_VOLUME'
     | 'SET_AUDIO_MUTED'
     | 'SET_AUDIO_ANNOUNCER';
@@ -480,6 +491,8 @@ export type ViewCommand = Extract<UICommand, { type:
 export type GameCommand = Exclude<UICommand, ViewCommand>;
 
 export * from './types/UIViewModel';
+export * from './types/Match';
+export * from './types/Orders';
 
 
 export interface SceneTheme {
@@ -582,6 +595,9 @@ export interface WindowRect {
     height: number;
 }
 
+/** 契約 U1：應用模式。視窗在哪些模式可用由 WindowDef.modes 列出（取代三個 visible* 布林） */
+export type AppMode = 'SHOWCASE' | 'MANUAL' | 'GAME_OVER' | 'PLAY' | 'REPLAY' | 'EDIT';
+
 export interface WindowDef {
     id: WindowId;
     title: string;
@@ -589,6 +605,8 @@ export interface WindowDef {
     defaultRect: WindowRect;
     minSize: { width: number; height: number };
     kind?: 'window' | 'toolbar';
+    /** 契約 U1：可用的模式；遷移完成後改成必填並刪掉下面三個布林 */
+    modes?: readonly AppMode[];
     visibleInShowcase?: boolean;
     visibleInManual?: boolean;
     /** 手動模式結算畫面（勝負已分）時仍可開啟；預設不可見（結算畫面只留這些視窗） */

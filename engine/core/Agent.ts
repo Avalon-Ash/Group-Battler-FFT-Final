@@ -3,6 +3,7 @@
 // 生命週期（存檔／重置）在 AgentLifecycle.ts；其他邏輯請移至對應 System。
 
 import { Skill, Hex, BodyTypeId, EffectSlots, SpecialVisualStatus, AgentView, FactionLook } from "../../types";
+import type { ControllerKind, Order } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import type { AIMode } from "../../types";
 import { RagdollBone } from "../types/ragdoll";
@@ -64,6 +65,12 @@ export class Agent {
     /** RETREAT 的逃生目的地；只由 EscapeWarning 寫入，和 targetHex 分開 */
     public escapeHex: Hex | null = null;
     public _savedCombatTarget?: Agent | null = null;
+    /** [契約 G2] 施法目標（對友軍施法時和戰鬥目標 target 分開）；沒在選招或施法時是 null。取代 _savedCombatTarget */
+    public castTarget: Agent | null = null;
+    /** [契約 G3] 控制者：決定用哪一張模式圖。唯一寫入者 UICommandSystem（SET_CONTROLLER） */
+    public controller: ControllerKind = 'AI';
+    /** [契約 G3] 玩家指令（null＝沒有）。ORDER_* 指令寫入，玩家圖的執行節點在完成時清掉 */
+    public order: Order | null = null;
     public aiState: AIState = AIState.IDLE;
     /** 狀態拓樸目前的節點（null＝還沒開始）與進入時間；只由 ModeMachine 寫入 */
     public aiMode: AIMode | null = null;

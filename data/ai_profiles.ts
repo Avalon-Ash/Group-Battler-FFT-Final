@@ -19,7 +19,7 @@ export interface BTDef {
 }
 
 /** 狀態拓樸的一條邊：when 成立（或 unless 不成立）就轉移；同一時間依陣列順序取第一條，順序就是優先序。 */
-export interface AIModeEdgeDef {
+interface AIModeEdgeDef {
     from: readonly AIMode[] | '*';
     to: AIMode;
     when?: string;
@@ -100,11 +100,14 @@ const FIGHT_TREE: BTDef = {
  *   FINALE           —— 背水一戰：地圖不再縮小，不逃，打到剩一方
  * 任何「移動」節點在 CanMove 為假（root/stun/放逐/恐懼）時必須失敗，不能回 RUNNING。
  */
-export const AI_MODE_GRAPH: {
+/** 一張模式圖（契約 G4）。AI 與玩家操控（契約 G3）都用這個形狀；engine/ai/ModeGraphValidation.ts 檢查它 */
+export interface AIModeGraph {
     initial: AIMode;
-    modes: Record<AIMode, AIModeDef>;
+    modes: Partial<Record<AIMode, AIModeDef>>;
     edges: readonly AIModeEdgeDef[];
-} = {
+}
+
+export const AI_MODE_GRAPH: AIModeGraph & { modes: Record<AIMode, AIModeDef> } = {
     initial: 'ACQUIRE',
     modes: {
         DEAD: { tree: { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } } },
