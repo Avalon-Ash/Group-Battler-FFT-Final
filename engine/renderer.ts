@@ -183,7 +183,11 @@ export class GameRenderer {
         return this.grid.getHexAtWorldPoint(worldPt.x, worldPt.y, engine);
     }
 
-    public update(dt: number, engine: GameEngine, externalCameraRef?: { current: { x: number; y: number; zoom: number } | null }): void {
+    /**
+     * @param interpAlpha 畫面插值（契約 R1）：這一幀落在最後一個模擬 tick 之後的比例（遊戲迴圈的累加餘量／步長）。
+     * 省略＝1＝畫最新狀態（工具、保真基準）。
+     */
+    public update(dt: number, engine: GameEngine, externalCameraRef?: { current: { x: number; y: number; zoom: number } | null }, interpAlpha = 1): void {
         // 1. Camera Update (Always RealTime for smoothness)
         this.camera.update(dt);
         
@@ -202,7 +206,7 @@ export class GameRenderer {
         this.sequences.update(engine, this.vfx);
 
         // 4. Render Pipeline (Transitions)
-        this.pipeline.update(dt, engine); 
+        this.pipeline.update(dt, engine, interpAlpha);
         
         // 5. VFX System (Time Dilation Applied)
         // Ambience and Particles now move in sync with game speed (Bullet Time ready)

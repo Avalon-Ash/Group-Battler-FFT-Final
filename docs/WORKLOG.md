@@ -730,3 +730,19 @@
 - UI（使用者 11-17 定案：回放是結算畫面多一個按鈕，外觀照既有規範）：結算畫面（`VictoryOverlay`）加「回放這一場」（從開戰快照重播，含戰中指令）與「存回放」，樣式同既有的整寬次要按鈕；播放列維持原樣；系統選單只加「載入回放」（`engine/presentation/ReplayIO.ts`，選檔／下載／`public/replays` 讀取，版本不同在主控台警告）。重新開始、隨機戰場、下一關、再戰、切模式會先結束回放。回放控制由組裝層直接呼叫 `Replay.ts`，不走 `UICommand`（它們換掉整場，本身不是這一場紀錄裡的指令）。接手（`takeOver`）目前沒有 UI，留給 G3。實跑（`victory-probe.mjs`）：回放播到底 → 結算畫面存回放（endTick 1830、seed 3）→ 回放這一場 → 再播到底 tick、勝方、倖存者都相同，0 頁面錯誤。
 - 基準場景：`tools/replay/record-bench.mjs` 錄 `public/replays/bench-magma-20.json`（岩漿 10v10、13×11、seed 3、1830 tick／30.5 秒、藍勝）；`?replay=<檔名>` 開機直接播；`perf:frames` 加情境 `replay_magma20`，`PERF_SCENARIOS` 可只跑指定情境。模擬改了（G1、G2）它仍播得出來，但已不是同一場。
 - 驗證：lint、`npm test` 3077 則、build、knip、`balance:fingerprint` 180/180 相同；runtime-smoke battleTime 0.53→4.58；perf:guard 保真 6 張與效能護欄通過；`e2e:ui` ALL PASSED、`audit:ui -- all` 0 違規。一次性探針（真實頁面，`tools/ui-e2e/out/replay-probe.mjs`）：`?replay=` 載入 20 人岩漿 → 播到 tick 1200 → `seekTo(900)`（粒子 75→0）→ 存回放 → 播到底 tick 1830、藍勝 → 重新整理（展示模式）→ 選檔載入 → 播到底 tick 1830、藍勝、倖存者與血量相同，0 頁面錯誤；實點按鈕（`buttons-probe.mjs`）：回放中 `EDIT_AGENT` 被擋 → 按接手 → 指令在 tick 319 生效、接手鈕消失 → 按回到開頭 → 帶著 tick 319 的指令重播到底，0 頁面錯誤。seek 後第一幀的紫格與冰刺是 tick 900 當下真的存在的 ICE（剩 0.18 秒）與 GRAVITY 危害，0.2 秒內消失，不是殘留。`perf:frames` 的 `replay_magma20` 只跑過 8 秒冒煙（refreshRate 233），還沒當基準量。
+### BY. 2026-11-18 優化開案書 R1 畫面插值（主代理）
+- **先量（結案條件沒過，所以做）**：一次性探針 `node tools/ui-e2e/out/r1-interp-probe.mjs [interp=0]`（headed 真實 rAF，`skip=K`＝每 K 個 vsync 交一幀；239 Hz 主螢幕在另一個工作階段跑批次時實際只有 75～192 Hz）。修前移動中位移為 0 的幀：約 165 Hz 61～65%、約 118 Hz 46～50%；40 FPS 位移變異係數 0.26～0.42。開案書的門檻是 < 5% 且 < 0.15。
+- **前後對照**（同一探針；指標＝每幀畫出位移 ÷（模擬每 tick 速度 × 幀時間／步長），只取模擬等速段，理想 1；三段的變異係數）：
+
+| 設定（實測 Hz） | 不插值 `interp=0` | 契約字面（直接用 alpha） | 現在 `(gap−1+alpha)/gap` |
+| :-- | :-- | :-- | :-- |
+| skip1（75～192） | 0.65／1.46／1.64 | — | 0.004／0.006／0.000 |
+| skip2（79～118） | 0.79／1.02／1.04 | — | 0.002／0.005／0.004 |
+| skip4（46～59） | 0.28／0.21／0.20 | 0.40／0.09／0.50 | 0.001／0.002／0.006 |
+| skip6（33～39） | 0.25／0.27／0.23 | 0.35／0.60／0.47 | 0.002／0.003／0.001 |
+
+  位移為 0 的幀：修後 0～0.8%。純模型（等速，40 FPS）：不插值 1、2 交替，字面 alpha 2、1 交替，現在恆 1.5。
+- **契約修正**：R1 第 2 則原本要求跨 5 個 tick 時直接用 alpha，實測比不插值更抖；回報後由 Fable 改成 `(5−1+0.5)/5`（`fix/r1-contract` 的 `0efe8f57`，本分支 cherry-pick），R1 四則全過。
+- **作法**：`useGameLoop` 算 `acc/step`（沒在跑或暫停給 1）→ `GameRenderer.update` → `RenderPipeline` → `UnitFrameStore.build(..., { tick, alpha })`。store 記每個單位上一個看到的 tick 的腳點（含 physics 與屍體擊飛）與腳下高度，在排序鍵、腳下格、殘影之前插值；血條錨點改讀插值後的位置。起點是模擬狀態不是上一幀畫的位置，中間沒看到的 tick 以直線帶過。不插值：剛出現、tick 倒退、拖曳預覽、平均每 tick 超過 `UNIT_FRAME.INTERP_SNAP_PX_PER_TICK`（＝`HEX_SIZE`）。`?interp=0` 關閉（`RENDER_QUALITY.INTERP_QUERY_KEY`）。RenderSpec §3、UnitFrame 檔頭同步。
+- **沒插值的**：physics.z（跳躍高度）、投射物（不經 UnitFrame，開案書列為停下條件）、跟著單位的粒子與發射點／受擊點（讀模擬位置，最多早一個 tick）。看得出來再處理。
+- **驗證**：lint、`npm test` 1543 則、build、knip；`balance:fingerprint` 180/180 相同；runtime-smoke battleTime 0.52→4.55、0 頁面錯誤；perf:guard 保真 6 張與效能護欄通過。保真插值開／關數字相同（FOREST 0.651 等是既有差異；`__stepFrames` 的場景不受影響）。看圖：`tools/ui-e2e/out/r1-frames-shot.mjs` 連續 16 幀畫布，`r1-sheet.py` 拼成 `tools/ui-e2e/out/r1-shots/sheet-{on,off}{1,6}.png`；40 FPS 走路每幀間距平均，約 165 Hz 交戰中衝刺殘影黏在路徑、被牽引的單位平順、貼身排序正確，血條、底座、詠唱環不脫離，沒有殘影或跳動。實機（239 Hz、iPhone）比 `?interp=0` 還沒做（HANDOFF §3）。

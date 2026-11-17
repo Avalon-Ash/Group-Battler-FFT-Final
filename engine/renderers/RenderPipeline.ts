@@ -21,7 +21,7 @@ import { Hex, Skill } from "../../types";
 import { BackgroundRenderer } from "./background";
 import { TacticalRenderer } from "./tactical";
 import { HUDRenderer } from "./HUDRenderer";
-import { UnitFrameStore } from "./frame/UnitFrame";
+import { UnitFrameStore, type FrameInterpolation } from "./frame/UnitFrame";
 import { PostProcessor } from "./PostProcessor"; 
 import { RenderList, RenderOpType, type RenderOp } from "./RenderList";
 import { SilhouetteMask } from "./units/SilhouetteMask";
@@ -30,7 +30,7 @@ import { RenderDispatcher } from "./RenderDispatcher";
 import { VisualMath } from "../math/VisualMath";
 import { HexUtils } from "../utils";
 import { RenderStats } from "./RenderStats";
-import { getRenderDpr } from "./RenderQuality";
+import { getRenderDpr, isFrameInterpolationEnabled } from "./RenderQuality";
 import { CtxOpCounter } from "./CtxOpCounter";
 import { spriteAtlasStore } from "./units/SpriteAtlasStore";
 import { terrainTextureStore } from "./grid/TerrainTextureStore";
@@ -97,10 +97,22 @@ export class RenderPipeline {
     /** 轉場黑幕不透明度 0～1：OUT 往 1、其他往 0，速度 1/BLACKOUT_FADE_S（唯一寫入者 update） */
     private blackout = 0;
     private lastDt: number = RENDER_PIPELINE_PARAM.INITIAL_DT_S;
+    /** 畫面插值（契約 R1）：?interp=0 關；alpha 由 update 從遊戲迴圈收下，build 時配上目前的 tick */
+    private readonly interpEnabled = isFrameInterpolationEnabled();
+    private interpAlpha = 1;
+    private readonly interpScratch: FrameInterpolation = { tick: 0, alpha: 1 };
 
     constructor(renderer: GameRenderer) { 
         this.renderer = renderer; 
         this.tactical = renderer.tactical;
+    }
+
+    /** 本幀交給 UnitFrameStore.build 的插值資訊；?interp=0 時不給（＝畫最新狀態） */
+    private interpAt(tick: number): FrameInterpolation | undefined {
+        if (!this.interpEnabled) return undefined;
+        this.interpScratch.tick = tick;
+        this.interpScratch.alpha = this.interpAlpha;
+        return this.interpScratch;
     }
 
     public setTransitionPhase(phase: 'IN' | 'OUT' | 'IDLE') {
@@ -115,8 +127,9 @@ export class RenderPipeline {
         }
     }
 
-    public update(dt: number, engine: GameEngine) { 
+    public update(dt: number, engine: GameEngine, interpAlpha = 1) { 
         poisonMaterialStore.prepare();
+        this.interpAlpha = interpAlpha;
         this.tactical.update(dt, engine); 
         this.lastDt = dt;
 
@@ -272,7 +285,7 @@ export class RenderPipeline {
         const lH = ctx.canvas.height / dpr;
 
         CtxOpCounter.track('submit', () => {
-            this.frames.build(engine.agents, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._hasGround ?? undefined, t);
+            this.frames.build(engine.agents, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._hasGround ?? undefined, t, this.interpAt(engine.state.time.tick));
             this.tactical.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
             this._viewportScratch.width = lW;
             this._viewportScratch.height = lH;

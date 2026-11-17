@@ -146,8 +146,10 @@ export const useGameLoop = (
                 }
             }
             
+            // 畫面插值（契約 R1）：累加餘量／步長＝這一幀落在最後一個 tick 之後多遠。沒在跑或暫停時畫最新狀態（1）
+            const interpAlpha = engine.isRunning && engine.timeScale > 0 ? acc / step : 1;
             // Renderer update now handles time splitting internally using Engine state
-            rendererRef.current.update(dt / 1000, engine, cameraRef);
+            rendererRef.current.update(dt / 1000, engine, cameraRef, interpAlpha);
             drawCallbackRef.current(ctx, fpsRef.current);
 
             if (dt > 0 && (typeof document === 'undefined' || !document.hidden)) {

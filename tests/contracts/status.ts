@@ -14,7 +14,7 @@ export const CONTRACT_STATUS: Record<ContractId, 'pending' | 'done'> = {
     G2: 'pending',
     G3: 'pending',
     G4: 'pending',
-    R1: 'pending',
+    R1: 'done',
     R2: 'pending',
     R3: 'pending',
     U1: 'pending',
