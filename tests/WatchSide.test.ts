@@ -10,7 +10,7 @@ describe('DirectorSystem watch side (kill announcer filter)', () => {
     let red: Agent;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.map.obstacles.clear();
         engine.map.obstaclesHash.clear();
         blue = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 200, Role.WARRIOR)!;

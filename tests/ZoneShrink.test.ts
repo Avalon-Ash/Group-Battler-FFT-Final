@@ -16,7 +16,7 @@ function hexagon(radius: number): string[] {
 }
 
 function setup(keys: string[], minRadius: number): GameEngine {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engine.agents = [];
     engine.map.resetData();
     for (const key of keys) {
@@ -191,7 +191,7 @@ describe('map generation counter', () => {
     });
 
     it('changes when the map is rebuilt', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         const before = engine.map.generation;
         engine.map.rebuildMap(engine);
         expect(engine.map.generation).toBe(before + 1);

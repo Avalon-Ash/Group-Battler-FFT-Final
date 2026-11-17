@@ -13,7 +13,7 @@ beforeEach(() => setRandomSource(() => 0.5));
 afterEach(() => resetRandomSource());
 
 function duel() {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();
     const blue = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 5000, Role.WARRIOR)!;

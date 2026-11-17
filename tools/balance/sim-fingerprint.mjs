@@ -35,11 +35,9 @@ try {
     const DT = 1 / GAME_LOOP_PARAM.SIM_HZ;
     const SAMPLE_TICKS = Math.round(SAMPLE_S / DT);
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
-    const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
     const { Team, Role } = await server.ssrLoadModule('/types.ts');
     const { querySpawnableHexes, layoutFactionHexes } = await server.ssrLoadModule('/engine/systems/ui/editorQueries.ts');
     const { random } = await server.ssrLoadModule('/engine/math/rng.ts');
-    AgentManager.matchSalt = SALT;
 
     const shuffle = (arr) => {
         for (let i = arr.length - 1; i > 0; i--) {
@@ -57,6 +55,7 @@ try {
 
     const runBattle = (sc, b, seed) => {
         const engine = new GameEngine({ audio: false });
+        engine.agentManager.matchSalt = SALT;
         engine.seedSimulation(seed);
         engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.units } });
         engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });

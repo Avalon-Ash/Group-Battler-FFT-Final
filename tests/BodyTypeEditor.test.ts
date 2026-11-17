@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { Team, Role, BodyTypeId } from '../types';
-import { AgentManager } from '../engine/systems/agentManager';
 import { resetAgent } from '../engine/core/AgentLifecycle';
 import { pickBodyType, resolveBodyType, BODY_TYPE_PROFILE } from '../data/units/appearance/bodyTypes';
 
@@ -72,14 +71,14 @@ describe('Task A2e: BodyType Generation & Editor Integration', () => {
         let engine: GameEngine;
 
         beforeEach(() => {
-            engine = new GameEngine();
+            engine = new GameEngine({ audio: false });
         });
 
         it('automatically assigns deterministic bodyType when spawned without override', () => {
             const agent = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0);
             expect(agent).not.toBeNull();
             expect(agent!.bodyType).toBeDefined();
-            expect(agent!.bodyType).toBe(pickBodyType(agent!.id, AgentManager.matchSalt));
+            expect(agent!.bodyType).toBe(pickBodyType(agent!.id, engine.agentManager.matchSalt));
         });
 
         it('respects bodyTypeOverride when explicitly specified in addAgent', () => {
@@ -93,7 +92,7 @@ describe('Task A2e: BodyType Generation & Editor Integration', () => {
         let engine: GameEngine;
 
         beforeEach(() => {
-            engine = new GameEngine();
+            engine = new GameEngine({ audio: false });
         });
 
         it('writes bodyType from PLACE_AGENT command to Agent and saves state', () => {
@@ -132,15 +131,14 @@ describe('Task A2e: BodyType Generation & Editor Integration', () => {
             expect(agent!.bodyType).toBe('FEMALE');
         });
 
-        it('refreshes AgentManager.matchSalt on RESET_GAME command', () => {
-            const oldSalt = AgentManager.matchSalt;
-            // Force a small delay or set directly to guarantee a different timestamp
-            AgentManager.matchSalt = oldSalt - 1000;
-            const customOldSalt = AgentManager.matchSalt;
-
+        it('START_GAME derives agentManager.matchSalt from the match seed (契約 S2)', () => {
+            engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.BLUE, q: 0, r: 0 });
+            engine.bus.emit('UI_COMMAND', { type: 'START_GAME', seed: 98765 });
+            expect(engine.agentManager.matchSalt).toBe(98765);
+            // 重開不換鹽：下一個 START_GAME 才換
+            engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
             engine.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
-
-            expect(AgentManager.matchSalt).not.toBe(customOldSalt);
+            expect(engine.agentManager.matchSalt).toBe(98765);
         });
     });
 });

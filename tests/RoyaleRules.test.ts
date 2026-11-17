@@ -17,7 +17,7 @@ describe('大逃殺開局規則', () => {
     const skillOf = (id: string | null) => engine.skillDB.find(s => s.id === id);
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         for (const key of engine.map.mapKeys) {
             const [q, r] = key.split(',').map(Number);
             engine.map.removeObstacle(q, r);
@@ -35,7 +35,7 @@ describe('大逃殺開局規則', () => {
                 expect(skillOf(id)?.team).toBe(Team.BLUE);
             }
             engine.clear();
-            engine = new GameEngine();
+            engine = new GameEngine({ audio: false });
         }
     });
 
@@ -68,7 +68,7 @@ describe('大逃殺開局規則', () => {
                 expect(readFlatFields(s!).effectType2).not.toBe('SELF_DAMAGE');
             }
             engine.clear();
-            engine = new GameEngine();
+            engine = new GameEngine({ audio: false });
             engine.battleSetup = { ...engine.battleSetup, factions: 10, unitsPerFaction: 1 };
         }
         expect(ultRoles.size).toBeGreaterThan(1);

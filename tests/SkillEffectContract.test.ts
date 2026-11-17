@@ -38,7 +38,7 @@ const BASIC = makeSkill({ id: 'c_basic', tag: 'BASIC', power: 10, cd: 0.5 });
 const ACTIVE = makeSkill({ id: 'c_active', tag: 'ACTIVE', power: 10, cd: 0.5 });
 
 function arena() {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();
     engine.skillDB = [...engine.skillDB, BASIC, ACTIVE];

@@ -11,7 +11,7 @@ describe('Status/casting domain APIs (state ownership P7b/P8)', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.play();
         for (const key of engine.map.mapKeys) {
             const [q, r] = key.split(',').map(Number);
@@ -59,7 +59,7 @@ describe('Status/casting domain APIs (state ownership P7b/P8)', () => {
 
 describe('lastHitSourceId routing (state ownership step 3)', () => {
     let engine: GameEngine;
-    beforeEach(() => { engine = new GameEngine(); engine.play(); });
+    beforeEach(() => { engine = new GameEngine({ audio: false }); engine.play(); });
     afterEach(() => { engine.stop(); engine.clear(); });
 
     it('撞擊傷害經 applyDirectDamage 設定擊殺歸屬', () => {

@@ -13,7 +13,7 @@ const MAP = { w: 30, h: 30, offsetX: 400, offsetY: 300, layout: 'POINTY' as cons
 const engines: GameEngine[] = [];
 afterEach(() => { for (const e of engines) { e.stop(); e.clear(); } engines.length = 0; });
 function fixture() {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engines.push(engine);
     const agent = new Agent('projection', Team.BLUE, 0, 0, MAP);
     engine.agents.push(agent);

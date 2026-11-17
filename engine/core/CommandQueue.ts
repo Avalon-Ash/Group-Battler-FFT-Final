@@ -10,7 +10,7 @@
 // ║  倍率（固定步長後不影響模擬）、只對下一場生效的設定。          ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { GameCommand, UICommand, ViewCommand } from '../../types';
+import type { GameCommand, UICommand, ViewCommand, MatchStart } from '../../types';
 
 /** 只影響畫面與聲音的指令。必須和 types.ts 的 ViewCommand 完全相同（tests/CommandQueue.test.ts 做型別檢查）。 */
 export const VIEW_COMMAND_TYPES = [
@@ -61,6 +61,10 @@ export interface CommandRecord {
 export class CommandQueue {
     private pending: GameCommand[] = [];
     private readonly records: CommandRecord[] = [];
+    /** 這一場的起點（契約 S2）。START_GAME 開新的一場時寫入；RESET_GAME 不清（重開要用它），CLEAR_BOARD 清掉 */
+    private start: MatchStart | null = null;
+    /** 開戰之後第一筆紀錄的位置（START_GAME 自己那筆之後）；-1＝這一段還沒開戰 */
+    private battleFrom = -1;
 
     public enqueue(cmd: GameCommand): void {
         this.pending.push(cmd);
@@ -86,8 +90,30 @@ export class CommandQueue {
         return this.records;
     }
 
-    /** 清盤（GameEngine.clear）時呼叫：新的一段從空白開始記。 */
+    /** 清盤（GameEngine.clear）時呼叫：新的一段從空白開始記。起點留著（RESET_GAME 經 clear 還原後還要用）。 */
     public resetLog(): void {
         this.records.length = 0;
+        this.battleFrom = -1;
+    }
+
+    /** 開新的一場：記下起點，之後套用的指令算這一場的戰中紀錄（唯一呼叫者 UICommandSystem 的 START_GAME）。 */
+    public beginMatch(start: MatchStart): void {
+        this.start = start;
+        this.battleFrom = this.records.length;
+    }
+
+    /** 丟掉起點（CLEAR_BOARD：棋盤換掉了，舊起點不再代表場上）。 */
+    public endMatch(): void {
+        this.start = null;
+        this.battleFrom = -1;
+    }
+
+    public get matchStart(): MatchStart | null {
+        return this.start;
+    }
+
+    /** 這一場開戰之後套用的指令（不含 START_GAME 本身）；還沒開戰是空的。 */
+    public get battleLog(): readonly CommandRecord[] {
+        return this.battleFrom < 0 ? [] : this.records.slice(this.battleFrom);
     }
 }

@@ -9,7 +9,7 @@ import type { ContractId } from '../../engine/core/ContractPending';
  * 覺得驗收本身寫錯了就回報，不自己改。
  */
 export const CONTRACT_STATUS: Record<ContractId, 'pending' | 'done'> = {
-    S2: 'pending',
+    S2: 'done',
     S3: 'pending',
     G2: 'pending',
     G3: 'pending',

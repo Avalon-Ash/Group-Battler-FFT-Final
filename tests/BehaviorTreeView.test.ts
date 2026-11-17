@@ -20,7 +20,7 @@ describe('selectBehaviorTreeView', () => {
     let agent: Agent;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         agent = new Agent('agent_bt_1', Team.BLUE, 0, 0, engine.mapConfig);
         engine.agents = [agent];
     });

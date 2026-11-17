@@ -8,7 +8,7 @@ import { Team, Role } from '../types';
 const TICK = 1 / 60;
 
 function arena() {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();
     const add = (team: Team, q: number) => {

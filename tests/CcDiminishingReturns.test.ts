@@ -23,7 +23,7 @@ describe('CC diminishing returns (WoW style)', () => {
     const control = new ControlSystem();
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         caster = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 1000, Role.MAGE)!;
         target = engine.agentManager.addAgent(engine, Team.RED, 1, 0, 1000, Role.WARRIOR)!;
         target.spawnTimer = 0;

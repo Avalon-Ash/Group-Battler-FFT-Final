@@ -47,7 +47,7 @@ describe('ForcedMove', () => {
     };
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.map.obstacles.clear();
         engine.map.obstaclesHash.clear();
         for (let q = -6; q <= 6; q++) setHeight(q, 0);

@@ -6,7 +6,7 @@ import { GridRenderStrategy } from '../engine/renderers/grid/GridRenderStrategy'
 import { HexUtils } from '../engine/utils';
 
 describe('R6 range SSOT', () => {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     afterEach(() => engine.clear());
 
     it('melee spends one range per tier in either direction; ranged keeps its old bonus and floor', () => {

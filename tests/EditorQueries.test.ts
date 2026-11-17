@@ -17,7 +17,7 @@ describe('EditorQueries', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
     });
 
     describe('queryAgentAt', () => {

@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createHash } from 'node:crypto';
 import { GameEngine } from '../engine/game';
-import { AgentManager } from '../engine/systems/agentManager';
 import { Role, Team, type Skill } from '../types';
 import { CCManager } from '../engine/systems/combat/CCManager';
 import { StatusPresentationSystem } from '../engine/presentation/StatusPresentationSystem';
@@ -9,8 +8,7 @@ import { setRandomSource, resetRandomSource } from '../engine/math/rng';
 import { advanceMulberry32, mulberry32Value } from '../engine/math/hash';
 import { HexUtils } from '../engine/utils';
 
-const oldSalt = AgentManager.matchSalt;
-afterEach(() => { resetRandomSource(); AgentManager.matchSalt = oldSalt; });
+afterEach(() => { resetRandomSource(); });
 
 function run(seed: number, observe: boolean) {
     // Use the production PRNG arithmetic through the supported source seam, exposing its exact state and draw count.
@@ -21,8 +19,8 @@ function run(seed: number, observe: boolean) {
         draws++;
         return mulberry32Value(rngState);
     });
-    AgentManager.matchSalt = 12345;
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
+    engine.agentManager.matchSalt = 12345;
     const ticks: string[] = [];
     let observations = 0;
     let damageEvents = 0;

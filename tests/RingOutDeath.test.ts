@@ -8,7 +8,7 @@ describe('RingOutDeath (Task B1: Unified Ring-Out Death & Residual Cleanup)', ()
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
     });
 
     afterEach(() => {

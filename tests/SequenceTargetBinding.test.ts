@@ -38,7 +38,7 @@ describe('SequenceTargetBinding (F02)', () => {
     let cameraSystem: CameraSystem;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.map.obstacles.clear();
         engine.map.obstaclesHash.clear();
         sequenceSystem = new SequenceSystem();

@@ -7,7 +7,7 @@ import type { AIMode } from '../types';
 
 describe('建 AI 不動表現流', () => {
     it('建樹不呼叫 Math.random：節點數改變不得影響開機地圖與保真基準', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         const spy = vi.spyOn(Math, 'random');
         const a = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 100, Role.WARRIOR);
         if (!a) throw new Error('addAgent failed');

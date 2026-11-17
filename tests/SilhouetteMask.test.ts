@@ -36,7 +36,7 @@ describe('GridSpatial.getOcclusionSources', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.play();
         for (const key of engine.map.mapKeys) {
             const [q, r] = key.split(',').map(Number);

@@ -374,7 +374,7 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
 
     beforeEach(() => {
         dbSnapshots = captureDbSnapshots();
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         const skill = engine.skillDB.find(s => s.id === 'mb_u1');
         if (!skill) throw new Error('Skill mb_u1 not found in test engine');
     });
@@ -403,6 +403,11 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
             field: 'range',
             value: 99,
         });
+        // 引擎的技能庫是出廠副本（契約 S2）：改引擎不改出廠值
+        expect(engine.skillDB.find(s => s.id === 'mb_u1')!.range).toBe(99);
+        expect(engine.skillDB.find(s => s.id === 'mb_u1')).not.toBe(mbU1);
+        expect(mbU1.range).toBe(origRange);
+        mbU1.range = 99;
         (mbU1 as unknown as Record<string, unknown>).tempFieldForTest = 'polluted';
 
         expect(mbU1.range).toBe(99);

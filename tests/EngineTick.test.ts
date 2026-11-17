@@ -5,7 +5,7 @@ describe('GameEngine tick and battleTime encapsulation (E8-f / D13)', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
     });
 
     afterEach(() => {

@@ -98,7 +98,7 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         group: 'vitals',
         kind: 'single',
         owners: ['engine/systems/combat/DirectDamage.ts'],
-        lifecycle: ['engine/systems/agentManager.ts', 'engine/systems/ui/UICommandSystem.ts'],
+        lifecycle: ['engine/systems/agentManager.ts', 'engine/systems/ui/UICommandSystem.ts', 'engine/core/MatchSnapshot.ts'],
         note: '寫入 API：applyDirectDamage／applyHeal／applyLethal。死亡流程仍由呼叫端交給 agentManager.handleDeadState。',
     },
     trailHistory: {
