@@ -96,4 +96,23 @@ export function endWindup(a: Agent, completed: boolean): void {
     a.castTimer = 0;
     a.castingAnimationTimer = 0;
     if (completed) a._castCompleteCooldown = CAST_RULES.COMPLETE_COOLDOWN;
+    a.castTarget = null;
+}
+
+/**
+ * 選招時指定施法目標（契約 G2）：對友軍施法填友軍，其他情況填 null。
+ * 前搖中不改：施法目標在施法開始時定下，結束或被打斷時由 endWindup 清掉；
+ * 行為樹在前搖中照常每次決策重跑選招，這裡擋住才不會把施放中的治療換人或清掉。
+ */
+export function aimCastAt(a: Agent, target: Agent | null): void {
+    if (a.castingSkillIdx !== -1) return;
+    a.castTarget = target;
+}
+
+/**
+ * 這次施法瞄準的單位：有施法目標（友軍）讀它，否則是戰鬥目標。
+ * 施法管線（起手、轉向、結算、投射物、突進、預警區）一律讀這裡，不直接讀 target。
+ */
+export function castAim(a: Pick<Agent, 'castTarget' | 'target'>): Agent | null {
+    return a.castTarget ?? a.target;
 }

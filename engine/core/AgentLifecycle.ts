@@ -82,7 +82,6 @@ export function resetAgent(agent: Agent, config: MapConfig): void {
     // §1.12（STATE_OWNERSHIP_DESIGN）漏清的欄位：宣告預設值與這裡一致
     agent.trajectory = [];
     agent.facing = 1;
-    agent._savedCombatTarget = null;
     agent.castTarget = null;
     agent.order = null;
     agent.aiState = AIState.IDLE;

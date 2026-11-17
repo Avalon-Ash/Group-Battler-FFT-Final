@@ -161,6 +161,13 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '施法域：中斷時由 SkillStateMachine 設定、breakCast(lockout) 延長（BT 不再直寫）、CooldownSystem 遞減。秒數在 CAST_LOCKOUT。',
     },
+    castTarget: {
+        group: 'casting',
+        kind: 'single',
+        owners: ['engine/systems/combat/SkillStateMachine.ts'],
+        lifecycle: ['engine/core/AgentLifecycle.ts'],
+        note: '施法目標（契約 G2）：只有對友軍施法才填，對敵施法與地面施法維持 null、瞄準照舊讀戰鬥目標 target。選招經 aimCastAt（前搖中不改）、endWindup 清掉；施法管線一律經 castAim 讀。',
+    },
     ccVisual: {
         group: 'status',
         kind: 'domain',

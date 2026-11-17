@@ -40,23 +40,21 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             expect(ally1.target).toBeNull();
         });
 
-        it('若有敵軍且原 target 為友軍，HasTarget 自動還原 _savedCombatTarget 或重新選定敵軍', () => {
+        it('若有敵軍且原 target 為友軍，HasTarget 重新選定敵軍', () => {
             const ally = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 500, Role.SUPPORT);
             const friend = engine.agentManager.addAgent(engine, Team.BLUE, 1, 0, 500, Role.WARRIOR);
             const enemy = engine.agentManager.addAgent(engine, Team.RED, 4, 0, 500, Role.TANK);
             if (!ally || !friend || !enemy) throw new Error('addAgent failed');
 
             ally.target = friend;
-            ally._savedCombatTarget = enemy;
 
             const hasTarget = BTConditions["HasTarget"](ally, engine, {});
             expect(hasTarget).toBe(true);
             expect(ally.target?.id).toBe(enemy.id);
             expect(ally.target?.team).toBe(Team.RED);
-            expect(ally._savedCombatTarget).toBeNull();
         });
 
-        it('FindOptimalTarget 對友軍施法成功時保存 _savedCombatTarget，失敗時還原敵軍目標', () => {
+        it('FindOptimalTarget 對友軍施法成功時寫 castTarget、戰鬥目標不動；失敗時清掉 castTarget', () => {
             const ally = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 500, Role.SUPPORT);
             const friend = engine.agentManager.addAgent(engine, Team.BLUE, 1, 0, 500, Role.WARRIOR);
             const enemy = engine.agentManager.addAgent(engine, Team.RED, 4, 0, 500, Role.TANK);
@@ -76,13 +74,14 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
 
             const found = BTConditions["FindOptimalTarget"](ally, engine, { slot: 1 });
             expect(found).toBe(true);
-            expect(ally.target?.id).toBe(friend.id);
-            expect(ally._savedCombatTarget?.id).toBe(enemy.id);
+            expect(ally.castTarget?.id).toBe(friend.id);
+            expect(ally.target?.id).toBe(enemy.id);
 
-            // 當友軍滿血後，再次調用 FindOptimalTarget 應失敗並還原 enemy
+            // 當友軍滿血後，再次調用 FindOptimalTarget 應失敗並清掉施法目標，戰鬥目標仍是 enemy
             friend.hp = friend.maxHp;
             const foundAfterHeal = BTConditions["FindOptimalTarget"](ally, engine, { slot: 1 });
             expect(foundAfterHeal).toBe(false);
+            expect(ally.castTarget).toBeNull();
             expect(ally.target?.id).toBe(enemy.id);
             expect(ally.target?.team).toBe(Team.RED);
         });

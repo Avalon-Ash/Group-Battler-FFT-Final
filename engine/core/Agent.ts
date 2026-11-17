@@ -64,8 +64,7 @@ export class Agent {
     public nextRepathAt: number = 0;
     /** RETREAT 的逃生目的地；只由 EscapeWarning 寫入，和 targetHex 分開 */
     public escapeHex: Hex | null = null;
-    public _savedCombatTarget?: Agent | null = null;
-    /** [契約 G2] 施法目標（對友軍施法時和戰鬥目標 target 分開）；沒在選招或施法時是 null。取代 _savedCombatTarget */
+    /** [契約 G2] 施法目標（對友軍施法時和戰鬥目標 target 分開）；沒在選招或施法時是 null。target 只表示戰鬥目標。唯一寫入者 SkillStateMachine */
     public castTarget: Agent | null = null;
     /** [契約 G3] 控制者：決定用哪一張模式圖。唯一寫入者 UICommandSystem（SET_CONTROLLER） */
     public controller: ControllerKind = 'AI';

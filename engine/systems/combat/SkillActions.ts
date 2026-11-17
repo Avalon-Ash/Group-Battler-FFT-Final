@@ -19,6 +19,7 @@ import { isSkillTarget } from "../../core/SkillQueries";
 import { CCManager } from "./CCManager";
 import { isSafeLanding, planDashLanding, planRetreatLanding } from "./LandingPlanner";
 import { HazardManager } from "./HazardManager";
+import { castAim } from "./SkillStateMachine";
 import { applyDirectDamage, breakShield } from "./DirectDamage";
 import { dashTo, lungeToward, stopMovement, teleportTo } from "../movement/MotionCommands";
 import { unitEventPos } from "../../events/EventPos";
@@ -78,7 +79,8 @@ const CAST_HANDLERS: Handlers<CastAction, CastContext> = {
     },
     // 落點在出手時重算（詠唱中目標可能跑了）；高度／障礙／單位由 ForcedMove 裁決
     DASH: ({ source, skill, targetHex, origin, engine }) => {
-        const aim = source.target && source.target.hp > 0 ? source.target : targetHex;
+        const castAt = castAim(source);
+        const aim = castAt && castAt.hp > 0 ? castAt : targetHex;
         const bestH = planDashLanding(source, aim, skill, engine);
         if (!bestH) {
             lungeToward(source, origin, PHYSICS.LUNGE_SPEED_ACTIVE);
