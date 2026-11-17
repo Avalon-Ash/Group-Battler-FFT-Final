@@ -22,7 +22,7 @@ describe('Skill ccSelf / ccSelf2 (SK1)', () => {
     let executor: SkillExecutor;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         executor = new SkillExecutor();
     });
 

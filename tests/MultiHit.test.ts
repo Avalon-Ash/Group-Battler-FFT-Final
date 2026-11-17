@@ -32,7 +32,7 @@ describe('Multi-hit skills (hits → MultiHitScheduler → resolveHit)', () => {
 
     beforeEach(() => {
         setRandomSource(() => 0.5); // 不爆擊、不致盲落空
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         executor = new SkillExecutor();
     });
 

@@ -11,7 +11,7 @@ const hazard = (type: SpatialHazard['type'], team: Team, cells: { q: number; r: 
 
 describe('getHazardSpeedMult (hazard slows are computed, never written into the agent)', () => {
     let engine: GameEngine;
-    beforeEach(() => { engine = new GameEngine(); });
+    beforeEach(() => { engine = new GameEngine({ audio: false }); });
     afterEach(() => { engine.stop(); engine.clear(); });
 
     const spawn = () => {

@@ -20,7 +20,7 @@ describe('UISelectors & EngineViewTicker', () => {
 
     beforeEach(() => {
         clearSelectorCache();
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
     });
 
     describe('selectAgentView reference stability', () => {
@@ -187,8 +187,8 @@ describe('UISelectors & EngineViewTicker', () => {
         });
 
         it('per-engine cache isolation: changing engines does not share or collide cached views', () => {
-            const engine1 = new GameEngine();
-            const engine2 = new GameEngine();
+            const engine1 = new GameEngine({ audio: false });
+            const engine2 = new GameEngine({ audio: false });
             const agentA = new Agent('agent_A', Team.BLUE, 0, 0, engine1.mapConfig);
             agentA.hp = 300;
             const agentB = new Agent('agent_B', Team.RED, 1, 1, engine2.mapConfig);
@@ -216,8 +216,8 @@ describe('UISelectors & EngineViewTicker', () => {
         });
 
         it('per-engine cache isolation for selectAgentView', () => {
-            const engine1 = new GameEngine();
-            const engine2 = new GameEngine();
+            const engine1 = new GameEngine({ audio: false });
+            const engine2 = new GameEngine({ audio: false });
             const agent1 = new Agent('shared_agent', Team.BLUE, 0, 0, engine1.mapConfig);
             agent1.hp = 100;
             const agent2 = new Agent('shared_agent', Team.RED, 2, 2, engine2.mapConfig);

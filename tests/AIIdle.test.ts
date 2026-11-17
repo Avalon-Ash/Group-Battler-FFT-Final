@@ -8,7 +8,7 @@ describe('AIIdle (Task B2: Fix Unit Idle and Targeting Deadlocks in BR)', () => 
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
     });
 
     afterEach(() => {

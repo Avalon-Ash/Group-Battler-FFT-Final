@@ -138,7 +138,7 @@ describe('真實引擎：每一段傷害／治療與落點特效同一刻', () =
 
     beforeEach(() => {
         setRandomSource(() => 0.5); // 不爆擊、不閃避
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.map.obstacles.clear();
         engine.map.obstaclesHash.clear();
         sequences = new SequenceSystem();

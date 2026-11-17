@@ -22,7 +22,7 @@ describe('GameRenderer UICommand Subscription (E8-e)', () => {
                 return {};
             },
         };
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         renderer = new GameRenderer();
         renderer.bind(engine);
     });

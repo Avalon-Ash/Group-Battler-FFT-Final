@@ -6,11 +6,11 @@ import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup, FactionLook } from '../types';
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
-import { random } from '../engine/math/rng';
+// 佈陣流：開戰前的抽號都用它，不碰模擬流（結果記在開戰快照裡，契約 S2）
+import { setupRandom, setupSeed } from '../engine/math/rng';
 import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, rollShowcaseSetup, HexCoord } from '../engine/systems/ui/editorQueries';
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
 import { pickFactionLooks, plainLook } from '../data/units/factionTint';
-import { AgentManager } from '../engine/systems/agentManager';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 
 /** 展示陣容的一個位置：陣營、角色與體型在生成前就決定，圖集才能在轉場期間預載 */
@@ -97,6 +97,8 @@ export const useGameApp = () => {
     // 下一批展示單位的陣容（planShowcaseRoster 決定，internalSpawnTeams 依它生成）與換場時的生成等待 rAF
     const rosterRef = useRef<ShowcaseSlot[]>([]);
     const rosterRoundRef = useRef(0);
+    // 外觀分配的鹽：每次開頁取一次（佈陣流），之後用局數區分
+    const lookSaltRef = useRef(setupSeed());
     const plannedSetupRef = useRef<BattleSetup>({ ...initialEngine.battleSetup });
     // 玩家自己的陣營設定：展示模式每局隨機會蓋掉 engine.battleSetup，回到手動時要還原
     const manualSetupRef = useRef<BattleSetup>({ ...initialEngine.battleSetup });
@@ -111,8 +113,8 @@ export const useGameApp = () => {
         const round = ++rosterRoundRef.current;
         const setup = { ...(nextSetup ?? engineRef.current.battleSetup) };
         const plan: ShowcaseSlot[] = [];
-        // 三個以上陣營：每局重新分配外觀色（兩個陣營回傳 null＝原色）。種子用 matchSalt＋局數，不消耗 random()
-        const looks = pickFactionLooks(setup.factions, `${AgentManager.matchSalt}-${round}`);
+        // 三個以上陣營：每局重新分配外觀色（兩個陣營回傳 null＝原色）。種子用 lookSaltRef＋局數，不消耗模擬流
+        const looks = pickFactionLooks(setup.factions, `${lookSaltRef.current}-${round}`);
         for (let side = 0; side < setup.factions; side++) {
             const team = factionTeam(side);
             const look = looks?.[side] ?? plainLook(team);
@@ -132,7 +134,7 @@ export const useGameApp = () => {
 
         const shuffle = <T,>(array: T[]) => {
             for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(random() * (i + 1));
+                const j = Math.floor(setupRandom() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
         };
@@ -148,7 +150,6 @@ export const useGameApp = () => {
         const setup = plannedSetupRef.current;
         const slotsOf = (side: number) => rosterRef.current.filter(s => s.side === side);
         const place = (slot: ShowcaseSlot, hex: HexCoord, side?: number) => {
-            random(); // 每人保留一次取號（原本抽開局血量）：拿掉會讓之後的地圖亂數整串位移
             engine.bus.emit('UI_COMMAND', {
                 type: 'PLACE_AGENT',
                 team: slot.team,
@@ -193,9 +194,9 @@ export const useGameApp = () => {
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
         selectionStore.clear();
-        const newW = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_W + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
-        const newH = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_H + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
-        const newLayout: HexLayout = random() > 0.5 ? 'FLAT' : 'POINTY';
+        const newW = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_W + setupRandom() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
+        const newH = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_H + setupRandom() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
+        const newLayout: HexLayout = setupRandom() > 0.5 ? 'FLAT' : 'POINTY';
         engine.bus.emit('UI_COMMAND', {
             type: 'RANDOMIZE_MAP',
             w: newW,
@@ -260,7 +261,7 @@ export const useGameApp = () => {
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
                 // 陣營設定等換完地圖才寫入：現在的地圖是上一局縮圈後的殘圖，總池很小，會被夾低
-                const nextSetup = rollShowcaseSetup(random);
+                const nextSetup = rollShowcaseSetup(setupRandom);
                 // 舊陣容已清空：此刻起預載下一批圖集（退場＋進場約 2.7 秒內載完，單位生成時不用再解碼）
                 spriteAtlasStore.prefetchRoster(planShowcaseRoster(nextSetup));
                 setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
@@ -298,7 +299,7 @@ export const useGameApp = () => {
     useEffect(() => { 
         if (session.isShowcaseMode) {
             setupShowcaseMap(); 
-            engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: rollShowcaseSetup(random) });
+            engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: rollShowcaseSetup(setupRandom) });
             spawnShowcaseUnits();
         }
     }, []);

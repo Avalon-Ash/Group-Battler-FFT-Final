@@ -14,7 +14,7 @@ describe('projection center anchors', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
     });
     afterEach(() => {
         engine.stop();
@@ -78,7 +78,7 @@ describe('projection center anchors', () => {
 
 describe('ProjectileSystem launch point', () => {
     it('launches from the caster projection center (incl. physics.z) and aims at the target projection center', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         try {
             const src = engine.addAgent(Team.BLUE, 2, 2)!;
             const tgt = engine.addAgent(Team.RED, 4, 2)!;

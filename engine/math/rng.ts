@@ -54,3 +54,29 @@ export function setRandomSource(fn: RandomSource): void {
 export function resetRandomSource(): void {
     source = defaultSource;
 }
+
+/** uint32 的範圍（取種子用） */
+const UINT32_RANGE = 0x100000000;
+
+// ── 佈陣流（契約 S2）──────────────────────────────────────────────────────
+// UI 端開戰前的抽號（展示模式的地圖大小、佈局、陣營設定、出生格洗牌、外觀鹽）專用。
+// 同一顆 mulberry32、另一個狀態，和模擬流互不消耗：佈陣結果記在開戰快照裡，回放不重跑這些抽號，
+// 所以這條流不需要可重現；第一次使用時才由 Math.random 取起始狀態（每次開頁不同）。
+let setupState: number | null = null;
+
+/** 佈陣流：回傳 [0,1)。不得用在模擬（tick 內）的程式碼。 */
+export function setupRandom(): number {
+    if (setupState === null) setupState = Math.floor(Math.random() * UINT32_RANGE) >>> 0;
+    setupState = advanceMulberry32(setupState);
+    return mulberry32Value(setupState);
+}
+
+/** 佈陣流取一個 uint32（外觀鹽之類的雜湊種子）。 */
+export function setupSeed(): number {
+    return Math.floor(setupRandom() * UINT32_RANGE) >>> 0;
+}
+
+/** 固定佈陣流（測試用）。 */
+export function seedSetupStream(newSeed: number): void {
+    setupState = newSeed >>> 0;
+}

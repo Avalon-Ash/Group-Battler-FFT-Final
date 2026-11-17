@@ -12,7 +12,7 @@ describe('E6: Inspector Command Isolation', () => {
 
     beforeEach(() => {
         clearSelectorCache();
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         agent = new Agent('agent_e6_1', Team.BLUE, 0, 0, engine.mapConfig);
         agent.role = Role.WARRIOR;
         agent.maxHp = 1000;

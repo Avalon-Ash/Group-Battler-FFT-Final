@@ -51,7 +51,7 @@ describe('ground fill priority', () => {
         expect(groundPriority.castColorAt(1, 0)).toBeUndefined();
     });
     it('submits real per-cell budgets and omits only caster-centered telegraphs', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         const cache = new GridCache();
         cache.ensure(engine);
         const tile = cache.tileList[0];

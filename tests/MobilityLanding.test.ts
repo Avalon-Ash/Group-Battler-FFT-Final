@@ -33,7 +33,7 @@ afterEach(() => {
 
 /** 全平地、沒有障礙的場地 */
 function arena() {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engines.push(engine);
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();

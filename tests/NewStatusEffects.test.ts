@@ -30,7 +30,7 @@ describe('New Status Effects (SK2)', () => {
 
     beforeEach(() => {
         setRandomSource(() => 0.5);
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         executor = new SkillExecutor();
     });
 

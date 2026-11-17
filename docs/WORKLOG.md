@@ -711,3 +711,13 @@
 - 第四輪（比較警告格畫法）：現況 19.6／18.2／20.9／25.0 ms，不切混色 23.0、不 save 18.2、**關警告 22.0**——推翻第三輪；同設定的現況四次相差 6.8 ms。
 - 結論：成本分散在 GPU，沒有單一開關能救；這套量法的雜訊約 ±3.5 ms，第三輪的 6 ms 是雜訊。沒改渲染。
 - 修正：`createQualityGovernor` 自己記一份釘死狀態，執行期 `setPinnedTier` 會被它的 `forceSetQualityTier` 蓋掉（第一輪「不漂浮」結束在階層 3、BH 的「釘死的階層會被改掉」都是這個）。現在尊重模組層釘死值，`tests/RenderQuality.test.ts` 加一則。只影響診斷，正式遊玩不呼叫 `setPinnedTier`。
+
+### BW. 2026-11-17 優化開案書 S1 平衡工具步長對齊、S2 開戰快照＋種子（主代理）
+- **S1**：`tools/balance/` 的 batch-sim、ai-idle-sim、sim-fingerprint、mobility-probe 預設步長改讀 `GAME_LOOP_PARAM.SIM_HZ`（1/60），`--dt` 保留做 A/B；依 tick 寫的門檻改成秒（指紋取樣 0.5 秒、idle-sim「在走」15 px／秒）；工具改傳 `GameEngine({ audio: false })`。`tests/BalanceToolStep.test.ts` 擋寫死的 1/30。指紋基準重錄（獨立 commit），之後連跑兩次 180/180 相同。
+- S1 停下條件沒觸發：`balance:idle` 200 場改前後（TEAMS／MELEE／ROYALE）發呆與繞圈差距都在 0.4 個百分點內（TEAMS 戰士繞圈 3.46→3.33%、MELEE 1.17→0.80%）。`balance:sim --battles=400 --seed=21`：dt 0.0167、藍方 55.2%、平均 19.1 秒、24.1 秒跑完。
+- **S2**：`engine/core/MatchSnapshot.ts` 實作 `captureMatch`／`restoreMatch`／`matchStartOf`／`battleLogOf`；`CommandQueue` 記起點（`beginMatch`／`endMatch`／`battleLog`）。`START_GAME` 只在 tick 0（開新的一場）擷取快照、播種、設體型鹽；tick > 0 是暫停後繼續（`togglePlay` 用 STOP／START 暫停），不重擷取。沒給種子時 `UICommandSystem.freshSeed` 產生並寫回紀錄。`RESET_GAME` 有起點就還原快照（地形與佈陣不再重新生成），`CLEAR_BOARD` 丟掉起點。
+- 跟著改的隱藏狀態：①引擎技能庫改成出廠副本（`factorySkills`，以前是淺拷貝，`UPDATE_SKILL` 會改到 `DEFAULT_SKILL_DB` 和別的引擎）；②`AgentManager.matchSalt` 從靜態欄位改成每顆引擎一份（`engine.agentManager.matchSalt`，初值 0），靜態版讓同一行程的第二顆引擎體型跟著上一顆的種子跑；③`clear()` 補清 `state.finalHex`；④`addAgent` 加 `idOverride`、`GameEngine` 加 `entityCounter`／`restoreEntityCounter`（Facade 刻意變更）。
+- `hooks/useGameApp.ts` 改用 `engine/math/rng.ts` 的佈陣流（`setupRandom`，獨立 mulberry32 狀態，首次使用時由 Math.random 起始），刪掉對齊舊序列的空抽；外觀鹽改用 hook 自己的 `lookSaltRef`。測試的 `new GameEngine()` 改 `{ audio: false }`（音訊測試除外，57 檔）。
+- 改到的既有測試（不在受保護清單）：`SimState.test.ts`、`CommandQueue.test.ts` 開戰帶種子；`SkillEditor.test.ts` 改成驗出廠值不被改；`BodyTypeEditor.test.ts` 鹽改由 START_GAME 決定。所有權表 `hp` 的 lifecycle 加 `MatchSnapshot.ts`。
+- 驗證：S2 契約 13 則全過；lint、`npm test`（這個分支全過）、build、knip、`balance:fingerprint` 180/180 相同；runtime-smoke battleTime 0.53→4.60；一次性生命週期探針（真實頁面）：展示模式換局換種子、0 單位站在障礙物上，手動開戰→暫停→繼續（種子不變）→RESET（地形與站位還原）→重開（新種子）全過、0 頁面錯誤。
+- 未結（等使用者決定，HANDOFF §2 L）：①保真 `battle_frozen` 失敗（meanAbsDiff 約 40，整場地圖與陣容換掉，渲染正常）：骰子改走佈陣流、刪空抽後模擬流整串位移，開案書沒授權 S2 重錄；工具已固定佈陣流，連跑兩次差 0.074。其餘 5 張保真、`e2e:ui` 全過。②開戰前用 `EDIT_AGENT` 改職業：現場單位留舊職業的移速／跳躍／重量／移動類型，還原時套新職業數值，重播分歧（探針實測 TANK→MAGE：1.1/2/2 對 0.95/1/0）。

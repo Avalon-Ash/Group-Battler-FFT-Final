@@ -30,13 +30,11 @@ try {
     const { DT, SIM_SCENARIOS, buildBattle, fingerprintFrame } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
     const SCENARIOS = Object.entries(SIM_SCENARIOS).map(([id, sc]) => ({ id, ...sc }));
     const SAMPLE_TICKS = Math.round(SAMPLE_S / DT);
-    const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
-    AgentManager.matchSalt = SALT;
 
     const runBattle = (sc, b, seed) => {
         let engine;
         try {
-            engine = buildBattle(sc.id, seed);
+            engine = buildBattle(sc.id, seed, SALT);
         } catch (err) {
             throw new Error(`battle ${b}: ${err.message}`, { cause: err });
         }

@@ -12,7 +12,7 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.play();
         // 清理地圖障礙物與高度
         for (const key of engine.map.mapKeys) {
@@ -314,7 +314,7 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
                 const MAX_TIME = 180;
 
                 for (let b = 0; b < BATTLES; b++) {
-                    const sim = new GameEngine();
+                    const sim = new GameEngine({ audio: false });
                     sim.seedSimulation(SEED * 100000 + b);
                     sim.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
                     const radius = Math.floor(Math.max(sim.mapConfig.w, sim.mapConfig.h) / 2) + 1;

@@ -34,10 +34,15 @@ const ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE,
 
 export const emit = (e: GameEngine, cmd: UICommand): void => e.bus.emit('UI_COMMAND', cmd);
 
-/** 佈陣完成、尚未開戰的引擎：設定陣營、隨機地圖、洗牌出生格後依陣營排人。 */
-export function buildBattle(scenario: SimScenarioId, seed: number): GameEngine {
+/**
+ * 佈陣完成、尚未開戰的引擎：設定陣營、隨機地圖、洗牌出生格後依陣營排人。
+ * matchSalt：有傳就在放單位之前設給 agentManager（體型在 addAgent 時由鹽決定）；
+ * 指紋工具傳它基準專屬的 SALT，契約驗收不傳（沿用引擎初值）。
+ */
+export function buildBattle(scenario: SimScenarioId, seed: number, matchSalt?: number): GameEngine {
     const sc = SIM_SCENARIOS[scenario];
     const e = new GameEngine({ audio: false });
+    if (matchSalt !== undefined) e.agentManager.matchSalt = matchSalt;
     e.seedSimulation(seed);
     emit(e, { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.units } });
     emit(e, { type: 'RANDOMIZE_MAP', randomizeScene: true });

@@ -15,7 +15,7 @@
 // ║     - 發布/訂閱模型，嚴禁系統間直接跨越 facade 呼叫私有方法       ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { DEFAULT_SKILL_DB } from "../skillDatabase";
+import { factorySkills } from "./core/MatchSnapshot";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, BattleSetup, ActionState, SpatialHazard, SpatialProvider, Point } from "../types";
 import { HexUtils, MapConfig } from "./utils";
@@ -120,7 +120,8 @@ export class GameEngine implements SpatialProvider {
         unitsPerFaction: UI_SETTINGS.BATTLE_UNITS_PER_FACTION.default,
     };
     public currentScene: SceneTheme = SCENE_DB[0];
-    public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
+    /** 這顆引擎自己的技能庫（出廠副本；UPDATE_SKILL 改這裡，不改出廠值也不影響別的引擎） */
+    public skillDB: Skill[] = factorySkills();
     
     public movement: MovementSystem = new MovementSystem();
     public physics: PhysicsSystem = new PhysicsSystem(); 
@@ -164,6 +165,12 @@ export class GameEngine implements SpatialProvider {
         this._entityCounter++;
         return `${prefix}-${this._entityCounter.toString().padStart(4, '0')}`;
     }
+
+    /** 實體流水號目前用到哪（開戰快照記下它，契約 S2） */
+    public get entityCounter(): number { return this._entityCounter; }
+
+    /** 還原開戰快照時把流水號接回去（唯一呼叫者 engine/core/MatchSnapshot.ts 的 restoreMatch） */
+    public restoreEntityCounter(n: number): void { this._entityCounter = n; }
 
     public addAgent(team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role) { 
         return this.agentManager.addAgent(this, team, q, r, hpOverride, roleOverride); 
@@ -307,6 +314,7 @@ export class GameEngine implements SpatialProvider {
         this.director.reset(this);
         this.zones.reset(this);
         this.state.isLastStand = false;
+        this.state.finalHex = null;
         this.logger.clear();
         this.victorySystem.reset(this); 
         this.effects.reset();
