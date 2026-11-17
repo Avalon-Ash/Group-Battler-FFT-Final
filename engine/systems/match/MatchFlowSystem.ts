@@ -104,7 +104,7 @@ export class MatchFlowSystem {
     /** 這一個展示回合的抽號序列（每回合由 nextSeed 重新起頭） */
     private rand: () => number = setupRandom;
 
-    /** 結算結果的鎖存：進結算那一刻記下，轉場期間清盤後 UI 仍讀得到，下一局生成才清 */
+    /** 結算結果的鎖存：退場清盤前記下，轉場期間（計時階段）UI 讀它；其餘時候直接讀引擎，下一局生成就清 */
     private latched: MatchResult | null = null;
     private lastPublished: MatchPhase = 'LOBBY';
 
@@ -133,7 +133,7 @@ export class MatchFlowSystem {
 
     /** 這一場的結果（轉場期間是鎖存的上一場結果）；沒有就是 null */
     public get result(): MatchResult | null {
-        return this.latched ?? liveResult(this.engine);
+        return this.timed ? this.latched : liveResult(this.engine);
     }
 
     /** 場上這一局的陣營設定 */
@@ -158,12 +158,10 @@ export class MatchFlowSystem {
             // 只在「從手動切進展示」那一刻記下玩家設定（開機與重複呼叫不記，否則會把隨機值存進來）
             if (!this.showcase) this.manualSetup = { ...this.engine.battleSetup };
             this.showcase = true;
-            this.announceShowcase();
             this.beginRound(firstRound);
         } else {
             const wasShowcase = this.showcase;
             this.showcase = false;
-            this.announceShowcase();
             if (wasShowcase) {
                 this.resetTimers();
                 this.send({ type: 'STOP_GAME' });
@@ -171,6 +169,8 @@ export class MatchFlowSystem {
                 this.send({ type: 'SET_BATTLE_SETUP', setup: { ...this.manualSetup } });
             }
         }
+        // 公布放在指令之後：音訊處理上面那些指令時還是切換前的模式（提示音、選曲和以前一樣）
+        this.announceShowcase();
         this.publish();
     }
 
@@ -205,7 +205,6 @@ export class MatchFlowSystem {
         const dtMs = Math.min(realDt * MS_PER_S, GAME_APP_PARAM.FLOW_MAX_FRAME_MS);
         switch (this.phase) {
             case 'RESULT_HOLD':
-                if (!this.latched) this.latched = liveResult(this.engine);
                 if (this.showcase) {
                     this.elapsedMs += dtMs;
                     if (this.elapsedMs >= GAME_APP_PARAM.RESULT_HOLD_MS) this.enterTransitionOut();
@@ -229,9 +228,8 @@ export class MatchFlowSystem {
                 }
                 break;
             default:
-                // 進行中、大廳：沒有要計時的事；上一場的結果到此作廢
+                // 進行中、大廳：沒有要計時的事
                 this.elapsedMs = 0;
-                this.latched = null;
         }
         this.publish();
     }
@@ -250,6 +248,8 @@ export class MatchFlowSystem {
 
     /** 結算停留結束：清掉舊場、抽下一局的陣營設定並排好陣容（表現層此刻起預載圖集），開始退場。 */
     private enterTransitionOut(): void {
+        // 清盤會重設勝負、移除單位：先把結果記下來，轉場期間 UI 還要顯示
+        this.latched = liveResult(this.engine);
         this.send({ type: 'STOP_GAME' });
         this.send({ type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
         this.rand = createRandomStream(this.deps.nextSeed());

@@ -25,7 +25,7 @@ const SIM_PATHS = [
     'engine/ai', 'engine/core', 'engine/physics', 'engine/game.ts',
     'engine/systems/agentManager.ts', 'engine/systems/combat', 'engine/systems/movement',
     'engine/systems/status', 'engine/systems/map', 'engine/systems/ZoneSystem.ts',
-    'engine/systems/PhysicsSystem.ts', 'hooks/useGameApp.ts',
+    'engine/systems/PhysicsSystem.ts', 'engine/systems/match', 'hooks/useGameApp.ts',
 ];
 
 function listTs(p: string): string[] {
