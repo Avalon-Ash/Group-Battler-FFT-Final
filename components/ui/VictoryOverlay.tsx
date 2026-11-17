@@ -15,6 +15,10 @@ export interface VictoryOverlayProps {
     nextLevel: () => void;
     onOpenLogs: () => void;
     rematch: () => void;
+    /** 從開戰快照重播這一場（契約 S3） */
+    onReplay: () => void;
+    /** 下載這一場的回放檔 */
+    onSaveReplay: () => void;
 }
 
 export const VictoryOverlay: React.FC<VictoryOverlayProps> = ({
@@ -26,6 +30,8 @@ export const VictoryOverlay: React.FC<VictoryOverlayProps> = ({
     nextLevel,
     onOpenLogs,
     rematch,
+    onReplay,
+    onSaveReplay,
 }) => {
     const winnerName = !battleSetup || battleSetup.factions === 2
         ? getFactionSkin(winner).name
@@ -72,6 +78,26 @@ export const VictoryOverlay: React.FC<VictoryOverlayProps> = ({
                     >
                         <Icons.Dice className="h-4 w-4" />
                         <span>前進下一關</span>
+                    </Button>
+                    <Button
+                        data-testid="victory-replay-btn"
+                        variant="secondary"
+                        size={isCompact ? 'sm' : 'md'}
+                        onClick={onReplay}
+                        className="w-full"
+                    >
+                        <Icons.Rewind className="h-4 w-4" />
+                        <span>回放這一場</span>
+                    </Button>
+                    <Button
+                        data-testid="victory-save-replay-btn"
+                        variant="secondary"
+                        size={isCompact ? 'sm' : 'md'}
+                        onClick={onSaveReplay}
+                        className="w-full"
+                    >
+                        <Icons.Save className="h-4 w-4" />
+                        <span>存回放</span>
                     </Button>
                     <Button
                         variant="secondary"

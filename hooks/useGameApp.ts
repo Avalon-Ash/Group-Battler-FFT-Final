@@ -467,7 +467,7 @@ export const useGameApp = () => {
                 engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             startShowcaseMatch: () => { leaveReplay(); setupShowcaseMap(); spawnShowcaseUnits(); },
-            /** 存回放：正在播回放就存那一份（整場），否則存這一場到目前為止 */
+            /** 存回放（結算畫面）：正在播回放就存那一份（整場），否則存這一場到目前為止 */
             saveReplay: () => {
                 const engine = engineRef.current;
                 const playing = engine.commands.replay;
@@ -477,7 +477,7 @@ export const useGameApp = () => {
             loadReplay: () => pickReplayFile((blob) => {
                 readReplayFile(blob).then(playReplay).catch((err: unknown) => console.error(err));
             }),
-            /** 回到開頭：從這一場的開戰快照重播（含戰中指令）；正在播回放就從那一份的開頭 */
+            /** 回放這一場（結算畫面）：從開戰快照重播（含戰中指令）；正在播回放就從那一份的開頭 */
             rewindToStart: () => {
                 const engine = engineRef.current;
                 const playing = engine.commands.replay;
@@ -486,8 +486,6 @@ export const useGameApp = () => {
                 startReplay(engine, file);
                 setSession(p => ({ ...p, isPlaying: true, winner: null, winnerId: null, winnerSide: null }));
             },
-            /** 接手：停止照紀錄播，從現在的狀態繼續即時模擬 */
-            takeOverReplay: leaveReplay,
             downloadSpec: DesignExporter.downloadAll,
             handleSelectAgent: (a: Agent | null) => selectionStore.set(a ? [a.id] : [])
         }

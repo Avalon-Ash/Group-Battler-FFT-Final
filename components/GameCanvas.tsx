@@ -34,6 +34,10 @@ interface GameCanvasProps {
     /** 這一局的陣營設定：決定結算顯示陣營名、第幾陣營或最後倖存者 */
     battleSetup?: BattleSetup;
     rematch: () => void;
+    /** 結算畫面：從開戰快照重播這一場（契約 S3） */
+    onReplay: () => void;
+    /** 結算畫面：下載這一場的回放檔 */
+    onSaveReplay: () => void;
     nextLevel: () => void;
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
     onOpenLogs: () => void;
@@ -41,7 +45,7 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, transitionPhase, onOpenLogs 
+        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, transitionPhase, onOpenLogs, onReplay, onSaveReplay 
     } = props;
     const isCompact = useCompactViewport();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -197,6 +201,8 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                     nextLevel={nextLevel}
                     onOpenLogs={onOpenLogs}
                     rematch={rematch}
+                    onReplay={onReplay}
+                    onSaveReplay={onSaveReplay}
                 />
             )}
         </div>
