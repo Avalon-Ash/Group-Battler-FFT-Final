@@ -13,13 +13,16 @@ const arg = (n, d) => { const h = process.argv.find((a) => a.startsWith(`--${n}=
 const BATTLES = Number(arg('battles', 200));
 const SEED = Number(arg('seed', 31));
 const REPORT_ONLY = process.argv.includes('--report');
-const DT = 1 / 30;
+const DT_ARG = arg('dt', null);
 /** 死前這麼多秒內被位移過，就把這次墜落算給那次位移 */
 const ATTRIBUTE_S = 4;
 
 const server = await createServer({ root: process.cwd(), server: { middlewareMode: true }, logLevel: 'error', appType: 'custom' });
 let failed = false;
 try {
+    // 預設步長＝遊戲的固定步長（GAME_LOOP_PARAM.SIM_HZ）；--dt 只做 A/B
+    const { GAME_LOOP_PARAM } = await server.ssrLoadModule('/constants.ts');
+    const DT = DT_ARG === null ? 1 / GAME_LOOP_PARAM.SIM_HZ : Number(DT_ARG);
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { SkillExecutor } = await server.ssrLoadModule('/engine/systems/combat/SkillExecutor.ts');
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
@@ -100,7 +103,7 @@ try {
     const roles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
     let ringOuts = 0, totalTime = 0;
     for (let b = 0; b < BATTLES; b++) {
-        const engine = new GameEngine({ mute: true });
+        const engine = new GameEngine({ audio: false });
         engine.seedSimulation(SEED * 100000 + b);
         engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
         const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;

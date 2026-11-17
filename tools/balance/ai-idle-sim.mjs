@@ -3,7 +3,7 @@
 // ║  用法：node tools/balance/ai-idle-sim.mjs                 ║
 // ║        --scenario=TEAMS|MELEE|ROYALE|MELEE_ROYALE|TANK_ROYALE ║
 // ║        [--battles=200] [--seed=1] [--maxTime=180]        ║
-// ║        [--dt=0.0333] [--loadout=role|mixed|mixedAll]     ║
+// ║        [--dt=1/SIM_HZ][--loadout=role|mixed|mixedAll]     ║
 // ║        [--out=tools/ui-e2e/out/ai-idle-<scenario>.json]   ║
 // ║  做法：Vite ssrLoadModule 載入引擎（Node，無渲染），       ║
 // ║  每 tick 後分類單位狀態（busy/moving/waitInRange/發呆原因），║
@@ -28,7 +28,7 @@ if (!scenario || !['TEAMS', 'MELEE', 'ROYALE', 'MELEE_ROYALE', 'TANK_ROYALE'].in
 const BATTLES = Number(arg('battles', 200));
 const SEED = Number(arg('seed', 1));
 const MAX_TIME = Number(arg('maxTime', 180));
-const DT = Number(arg('dt', 0.0333));
+const DT_ARG = arg('dt', null);
 const OUT = arg('out', `tools/ui-e2e/out/ai-idle-${scenario}.json`);
 // role＝照職業抽技能；mixed＝大招、主動從全部職業與陣營抽，普攻照職業；mixedAll＝三格都混
 const LOADOUT = arg('loadout', 'role');
@@ -43,6 +43,9 @@ const server = await createServer({
 });
 
 try {
+    // 預設步長＝遊戲的固定步長（GAME_LOOP_PARAM.SIM_HZ）；--dt 只做 A/B
+    const { GAME_LOOP_PARAM } = await server.ssrLoadModule('/constants.ts');
+    const DT = DT_ARG === null ? 1 / GAME_LOOP_PARAM.SIM_HZ : Number(DT_ARG);
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
     const { Team, Role, ActionState, AIState } = await server.ssrLoadModule('/types.ts');
@@ -65,6 +68,8 @@ try {
     };
     // 額外指標：路徑重算、換目標、繞圈（3 秒內走了 3 格以上、淨位移不到 1 格）、過早逃離、終局
     const CIRCLE_WINDOW_S = 3;
+    /** 這一 tick 的位移換算成速度超過它就算在走（舊步長 30 Hz 時的 0.5 px／tick） */
+    const MOVING_MIN_SPEED_PXPS = 15;
     const CELL_PX = HEX_SIZE * 1.5;
     const EARLY_ESCAPE_S = 3;
     const extra = {};
@@ -213,7 +218,7 @@ try {
     const t0 = Date.now();
 
     for (let b = 0; b < BATTLES; b++) {
-        const engine = new GameEngine({ mute: true });
+        const engine = new GameEngine({ audio: false });
         engine.seedSimulation(SEED * 100000 + b);
         engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
 
@@ -426,7 +431,7 @@ try {
                     // 走得慢（敵方地面效果 ×0.3）每 tick 不到半像素也還是在走：看 moveProgress，不只看位移
                     const stepping = a.isMoving && a.moveProgress !== (lastProgress.get(a.id) ?? -1);
                     lastProgress.set(a.id, a.moveProgress);
-                    if (distMoved >= 0.5 || stepping) {
+                    if (distMoved >= MOVING_MIN_SPEED_PXPS * DT || stepping) {
                         cat = 'moving';
                     } else {
                         const hasAliveTarget = Boolean(a.target && a.target.hp > 0 && !a.target.outOfBounds && !a.target.banished);
@@ -779,7 +784,7 @@ try {
         summary: {
             battles: BATTLES,
             seed: SEED,
-            dt: DT,
+            dt: +DT.toFixed(4),
             maxTime: MAX_TIME,
             avgDuration,
             draws,

@@ -16,9 +16,9 @@ const RECORD = process.argv.includes('--record');
 const BATTLES = Number(arg('battles', 60));
 const DUMP = arg('dump', null);
 const BASELINE = 'tools/balance/fingerprint.baseline.json';
-const DT = 1 / 30;
 const MAX_TIME = 120;
-const SAMPLE_TICKS = 15;
+/** 取樣間隔（秒），依步長換算成 tick 數 */
+const SAMPLE_S = 0.5;
 const SALT = 12345;
 const ROLES = ['TANK', 'WARRIOR', 'RANGER', 'MAGE', 'SUPPORT'];
 const SCENARIOS = [
@@ -30,6 +30,10 @@ const SCENARIOS = [
 const server = await createServer({ root: process.cwd(), server: { middlewareMode: true }, logLevel: 'error', appType: 'custom', optimizeDeps: { noDiscovery: true } });
 let exitCode = 0;
 try {
+    // 步長＝遊戲的固定步長（GAME_LOOP_PARAM.SIM_HZ）
+    const { GAME_LOOP_PARAM } = await server.ssrLoadModule('/constants.ts');
+    const DT = 1 / GAME_LOOP_PARAM.SIM_HZ;
+    const SAMPLE_TICKS = Math.round(SAMPLE_S / DT);
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
     const { Team, Role } = await server.ssrLoadModule('/types.ts');
@@ -52,7 +56,7 @@ try {
     };
 
     const runBattle = (sc, b, seed) => {
-        const engine = new GameEngine({ mute: true });
+        const engine = new GameEngine({ audio: false });
         engine.seedSimulation(seed);
         engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.units } });
         engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
