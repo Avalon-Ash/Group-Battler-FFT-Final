@@ -34,6 +34,16 @@ import { AfterimageGhost, computeAfterimageGhosts, createGhostSlots } from "./Af
 
 export type UnitFramePhase = 'IN' | 'OUT' | 'IDLE';
 
+/**
+ * [契約 R1] 兩個模擬 tick 之間的畫面插值。tick＝engine.state.time.tick；alpha＝遊戲迴圈的累加餘量／步長（0～1）。
+ * 省略或 alpha 1＝畫最新狀態（工具、保真基準、暫停時）。腳點與腳下高度在算排序鍵之前插值；
+ * 瞬移、剛出現的單位不插值。
+ */
+export interface FrameInterpolation {
+    tick: number;
+    alpha: number;
+}
+
 /** 轉場 OUT 超過這個進度後整批單位不提交（原 UnitRenderSystem.submitRenderables 的早退條件） */
 const TRANSITION_OUT_CULL_T = 0.95;
 /** 轉場位移超過這個像素數的單位不提交（飛在畫面外） */
@@ -153,8 +163,10 @@ export class UnitFrameStore {
         transitionT: number,
         phase: UnitFramePhase,
         hasGround?: (q: number, r: number) => boolean,
-        battleTime = 0
+        battleTime = 0,
+        step?: FrameInterpolation
     ): void {
+        void step; // [契約 R1] 尚未實作：目前一律畫最新狀態
         const n = agents.length;
         if (battleTime < this.afterimageTime) this.afterimages.clear();
         this.afterimageTime = battleTime;

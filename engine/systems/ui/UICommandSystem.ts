@@ -410,6 +410,10 @@ export class UICommandSystem {
                 break;
             }
 
+            // [契約 R3] 導播避讓：型別已定，處理還沒實作
+            case 'SET_VIEW_INSETS':
+                return pending('R3', cmd.type);
+
             // [契約 G3] 玩家操控：型別已定（types/Orders.ts），處理還沒實作
             case 'SET_CONTROLLER':
             case 'ORDER_MOVE':

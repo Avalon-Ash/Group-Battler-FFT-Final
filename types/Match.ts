@@ -55,6 +55,22 @@ export interface MatchStart {
     seed: number;
 }
 
+/** [契約 R2] 對局流程的階段（engine/systems/match/MatchFlowSystem.ts） */
+export type MatchPhase = 'LOBBY' | 'PLAYING' | 'RESULT_HOLD' | 'TRANSITION_OUT' | 'TRANSITION_IN' | 'SPAWN_WAIT';
+
+/** [契約 R2] 對局狀態給 UI 的投影（engine/systems/ui/views/session.ts） */
+export interface SessionView {
+    readonly phase: MatchPhase;
+    readonly isPlaying: boolean;
+    readonly isShowcase: boolean;
+    readonly winner: Team | null;
+    readonly winnerId: string | null;
+    readonly winnerSide: number | null;
+    readonly unitCount: number;
+    /** 場上這一局的陣營設定 */
+    readonly battleSetup: BattleSetup;
+}
+
 /** 回放檔：起點＋開戰之後套用的指令（不含 START_GAME 本身）。 */
 export interface ReplayFile {
     v: 1;

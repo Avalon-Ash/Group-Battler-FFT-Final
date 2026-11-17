@@ -463,6 +463,8 @@ export type UICommand =
     | { type: 'CAMERA_PAN'; dx: number; dy: number }
     | { type: 'CAMERA_SNAP'; x: number; y: number; zoom?: number }
     | { type: 'SET_VIEWPORT'; width: number; height: number }
+    /** 契約 R3：畫面四邊被 UI 蓋住的寬度（CSS px）；導播與置中用扣掉它之後的有效區域 */
+    | { type: 'SET_VIEW_INSETS'; top: number; right: number; bottom: number; left: number }
     | { type: 'SET_AUDIO_VOLUME'; bus: 'master' | 'music' | 'sfx' | 'ui'; volume: number }
     | { type: 'SET_AUDIO_MUTED'; muted: boolean }
     | { type: 'SET_AUDIO_ANNOUNCER'; enabled: boolean };
@@ -481,6 +483,7 @@ export type ViewCommand = Extract<UICommand, { type:
     | 'CAMERA_PAN'
     | 'CAMERA_SNAP'
     | 'SET_VIEWPORT'
+    | 'SET_VIEW_INSETS'
     | 'SET_AUDIO_VOLUME'
     | 'SET_AUDIO_MUTED'
     | 'SET_AUDIO_ANNOUNCER';
@@ -592,6 +595,9 @@ export interface WindowRect {
     height: number;
 }
 
+/** 契約 U1：應用模式。視窗在哪些模式可用由 WindowDef.modes 列出（取代三個 visible* 布林） */
+export type AppMode = 'SHOWCASE' | 'MANUAL' | 'GAME_OVER' | 'PLAY' | 'REPLAY' | 'EDIT';
+
 export interface WindowDef {
     id: WindowId;
     title: string;
@@ -599,6 +605,8 @@ export interface WindowDef {
     defaultRect: WindowRect;
     minSize: { width: number; height: number };
     kind?: 'window' | 'toolbar';
+    /** 契約 U1：可用的模式；遷移完成後改成必填並刪掉下面三個布林 */
+    modes?: readonly AppMode[];
     visibleInShowcase?: boolean;
     visibleInManual?: boolean;
     /** 手動模式結算畫面（勝負已分）時仍可開啟；預設不可見（結算畫面只留這些視窗） */
