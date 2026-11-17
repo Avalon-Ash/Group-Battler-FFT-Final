@@ -179,6 +179,6 @@ M1～M3 是核心架構，主代理自己做；M4 之後規格清楚的小包可
 - 終局攻擊佔比：大逃殺 83.8%；全坦克 73.3%（目標 80%，未達），逃跑 17.8%。
 - 大逃殺勝率（坦克／戰士／遊俠／法師／輔助）：41.2／7.0／18.6／19.1／14.1 → 21.1／18.1／23.1／22.1／15.6，每職業都在 10～30%。
 - 雙陣營藍方勝率（1500 場，兩種擺法平均）：51.4%→55.5%。分段 M4 50.9%、M5 54.2%、M6／M7 55.5%。
-- 沒做：M2 的施法目標拆分（`_savedCombatTarget` 還在）。
+- M2 的施法目標拆分 2026-11-18 由優化開案書 G2 完成（`castTarget`，WORKLOG §2 BY）；`escapeHex` 早已獨立，`castHex` 沒有另外拆（地面施法仍用 `targetHex`）。
 
 重現：`npm run balance:idle -- --scenario=ROYALE --battles=200 --seed=21`（TEAMS、MELEE、TANK_ROYALE 同理）；`npm run balance:sim -- --battles=1500 --seed=21 [--swapSides]`。
