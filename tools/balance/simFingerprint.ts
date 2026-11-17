@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  simFingerprint — 「兩場戰鬥是否相同」的唯一定義          ║
 // ║  職責：情境表、隨機佈陣開戰、單位與整場狀態字串、步長。    ║
-// ║  上游：tools/balance/sim-fingerprint.mjs（ssrLoadModule）、 ║
+// ║  下游：tools/balance/sim-fingerprint.mjs（ssrLoadModule）、 ║
 // ║        tests/contracts/simState.ts（契約驗收轉呼叫）。     ║
 // ║  [ARCH] 兩邊只讀這裡，不得各自再定義欄位、情境或佈陣步驟。 ║
 // ║  放在 tools/ 而不是 engine/core/：它要 new GameEngine，    ║
