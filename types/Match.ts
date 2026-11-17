@@ -4,6 +4,7 @@
 
 import type { Team, Role, Skill, ZoneConfig, BattleSetup, HexLayout, BodyTypeId, FactionLook } from '../types';
 import type { CommandRecord } from '../engine/core/CommandQueue';
+import type { ControllerKind } from './Orders';
 
 /** 開戰瞬間的一個單位。其餘欄位（速度、跳躍、技能物件、行為樹）由職業與 skillIds 導出，不存。 */
 interface MatchUnitSnapshot {
@@ -19,6 +20,8 @@ interface MatchUnitSnapshot {
     skillIds: (string | null)[];
     bodyType?: BodyTypeId;
     look: FactionLook;
+    /** 控制者（契約 G3）；省略＝AI */
+    controller?: ControllerKind;
     /** AI 決策間隔（生成或重置時抽的抖動，會影響模擬） */
     aiUpdateInterval: number;
 }
