@@ -46,16 +46,26 @@ export class AgentManager {
         return Math.round(mean + (UNIT_DB[role].maxHp - mean) * ROYALE_RULES.HP_GAP_SCALE);
     }
 
+    /**
+     * 由職業導出、開戰快照不存的欄位（移速、移動類型、跳躍、重量）。職業→數值只在這裡對應：
+     * 生成（applyRoleStats）與 EDIT_AGENT 換職業共用，換職業後還原快照才會和現場一致（契約 S2）。
+     */
+    public static applyRoleMotion(agent: Agent) {
+        const stats = UNIT_DB[agent.role];
+        if (!stats) return;
+        agent.moveSpeed = stats.moveSpeed;
+        agent.movementType = stats.movementType;
+        agent.jump = stats.jump;
+        agent.weight = stats.weight;
+    }
+
     public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
         const stats = UNIT_DB[agent.role];
         if (stats) {
             agent.maxHp = hpOverride || stats.maxHp;
             agent.hp = agent.maxHp;
             agent.maxMp = stats.maxMp;
-            agent.moveSpeed = stats.moveSpeed; 
-            agent.movementType = stats.movementType;
-            agent.jump = stats.jump;
-            agent.weight = stats.weight;
+            AgentManager.applyRoleMotion(agent);
         }
 
         if (applyJitter) {
