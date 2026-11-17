@@ -139,6 +139,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **停下來問**：快照測試不過、而且差異來自快照以外的隱藏狀態（模組層變數、靜態欄位），列出是哪些欄位再決定收進快照還是改成引擎擁有；不要為了讓測試過而在 `restoreMatch` 裡補特例。
 
 ### S3 回放播放器、seek／undo
+- **前提**：模擬流是模組層級的單一狀態，同一行程的兩顆引擎共用；回放、seek、undo 用第二顆引擎時不能交錯步進。
 - **作法**：
   1. `ReplayFile`：`{ v, build, matchStart, seed, commands, endTick }`。`build` 用 Vite `define` 注入 git 短雜湊；版本不同時載入要警告（模擬可能已改）。
   2. 單一的步進入口：`engine/core/` 加 `stepSimulation(engine, replay?)`：若有回放，先把 `tick === engine.state.time.tick` 的紀錄用 `UI_COMMAND` 送進去（和 `tests/CommandQueue.test.ts` 的 `sendDue` 同一個做法，不用改 `engine/game.ts` 的 tick 順序），再 `engine.tick(固定步長)`。`hooks/useGameLoop.ts`、平衡工具、測試都改叫它，「誰決定步長」從此只有一處。
