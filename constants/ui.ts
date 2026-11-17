@@ -142,10 +142,10 @@ export const GAME_APP_PARAM = {
     SPAWN_AFTER_IDLE_FRAMES: 3,
     /** 進場後換隊：等新陣容圖集載好的最長毫秒數，逾時照樣生成（圖集會邊載邊出現） */
     SPAWN_ATLAS_WAIT_MAX_MS: 2500,
+    /** 對局流程每個畫面最多前進的毫秒數：分頁回到前景那一幀可能隔了好幾秒，設上限轉場才不會被一口氣跳過 */
+    FLOW_MAX_FRAME_MS: 100,
     /** 展示結算停留時間（毫秒） */
     RESULT_HOLD_MS: 2000,
-    /** 單位數更新間隔（毫秒） */
-    UNIT_POLL_MS: 500,
     /** 陣營警告顯示時間（毫秒） */
     WARNING_MS: 2500,
 } as const;
@@ -198,6 +198,8 @@ export const DIRECTOR_HUD_PARAM = {
 
 /** 具名參數：保持原值與運算次序。 */
 export const GAME_CANVAS_PARAM = {
+    /** 重新置中鏡頭前等版面穩定的毫秒數（地圖大小變了、切換模式、進場開始） */
+    RECENTER_DELAY_MS: 100,
     /** 拖曳物件懸浮高度（px） */
     DRAG_LIFT_PX: 40,
     /** 拖曳物件陰影模糊（px） */

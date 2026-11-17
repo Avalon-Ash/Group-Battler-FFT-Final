@@ -16,6 +16,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { factorySkills } from "./core/MatchSnapshot";
+import type { MatchFlowSystem } from "./systems/match/MatchFlowSystem";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, BattleSetup, ActionState, SpatialHazard, SpatialProvider, Point } from "../types";
 import { HexUtils, MapConfig } from "./utils";
@@ -134,6 +135,8 @@ export class GameEngine implements SpatialProvider {
     public director: DirectorSystem = new DirectorSystem();
     public logger: BattleLogger = new BattleLogger(); 
     public victorySystem: VictorySystem = new VictorySystem(); 
+    /** 對局流程（契約 R2）。由組裝層建立，建構時自己掛上來；沒有流程（工具、多數測試）是 null */
+    public matchFlow: MatchFlowSystem | null = null;
     public zones: ZoneSystem = new ZoneSystem(); 
     public cooldowns: CooldownSystem = new CooldownSystem();
     public effects: EffectSystem = new EffectSystem();
@@ -467,6 +470,7 @@ export class GameEngine implements SpatialProvider {
 
     public destroy(): void {
         this.stop();
+        this.matchFlow = null;
         this.uiCommands.destroy();
         if (this.audio) {
             this.audio.destroy();

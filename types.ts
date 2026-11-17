@@ -205,6 +205,7 @@ export type EffectSlots = Record<EffectKind, EffectSlot>;
 
 import type { Agent } from './engine/core/Agent';
 import type { ControllerKind } from './types/Orders';
+import type { MatchPhase } from './types/Match';
 
 /** 單位的陣營外觀：用哪一隊的皮膚（圖集、棋座樣式），以及藍色系要換成什麼色相（null＝不換）。分配與換色規則在 data/units/factionTint.ts */
 export interface FactionLook {
@@ -411,6 +412,10 @@ export interface EventMap {
     GAME_OVER: { winner: Team | null; winnerId?: string };
     /** 只由 UICommandSystem 發出（APPLY_BATTLE_SETUP）；useGameApp 收到後依設定重新開局 */
     BATTLE_SETUP_APPLY: BattleSetup;
+    /** 對局流程的階段變了（engine/systems/match/MatchFlowSystem.ts，契約 R2）：UI 立刻刷新、進場時畫面置中、換圖時清選取 */
+    MATCH_PHASE: { phase: MatchPhase };
+    /** 下一批要上場的陣容（空陣列＝已經上場）：表現層趁轉場預載圖集；流程本身不碰圖集 */
+    MATCH_ROSTER: { roster: readonly { team: Team; role: Role; bodyType: BodyTypeId; look?: FactionLook }[] };
     TILE_COLLAPSED: { q: number; r: number; worldX?: number; worldY?: number };
     ZONE_SHRUNK: { radius: number };
     LAST_STAND_TRIGGERED: { q: number; r: number };

@@ -55,6 +55,18 @@ export function resetRandomSource(): void {
     source = defaultSource;
 }
 
+/**
+ * 獨立的本地序列（同一顆 mulberry32）：不碰模擬流與佈陣流的狀態。
+ * 對局流程每個展示回合用它抽陣營設定、地圖大小、出生格（engine/systems/match/MatchFlowSystem.ts）。
+ */
+export function createRandomStream(streamSeed: number): RandomSource {
+    let s = streamSeed >>> 0;
+    return () => {
+        s = advanceMulberry32(s);
+        return mulberry32Value(s);
+    };
+}
+
 /** uint32 的範圍（取種子用）。唯一定義；UICommandSystem 產生新種子時也讀這裡 */
 export const UINT32_RANGE = 0x100000000;
 

@@ -70,6 +70,14 @@ export class EngineViewTicker {
 const engineViewTicker = new EngineViewTicker();
 
 /**
+ * 立刻刷新所有 useEngineView（不等下一次輪詢）：UI 自己送完指令、或對局流程的階段變了（MATCH_PHASE）時呼叫，
+ * 按鈕狀態與結算畫面才不會慢一拍。
+ */
+export function refreshEngineViews(): void {
+    engineViewTicker.tick();
+}
+
+/**
  * React hook to consume engine state through a pure selector.
  * Uses useSyncExternalStore backed by the shared ticker.
  * If selector returns the same object reference, React skips re-render.

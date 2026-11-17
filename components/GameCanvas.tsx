@@ -4,7 +4,7 @@ import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
 import { VisualMath } from '../engine/math/VisualMath';
-import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup } from '../types';
+import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup, MatchPhase } from '../types';
 import { VictoryOverlay } from './ui/VictoryOverlay';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
@@ -39,13 +39,12 @@ interface GameCanvasProps {
     /** 結算畫面：下載這一場的回放檔 */
     onSaveReplay: () => void;
     nextLevel: () => void;
-    transitionPhase: 'IDLE' | 'IN' | 'OUT';
     onOpenLogs: () => void;
 }
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, transitionPhase, onOpenLogs, onReplay, onSaveReplay 
+        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, onOpenLogs, onReplay, onSaveReplay 
     } = props;
     const isCompact = useCompactViewport();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -71,13 +70,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner,
         onSelect
     });
-
-    // Update transition state in renderer (Logic moved out of View)
-    useEffect(() => {
-        if (rendererRef.current) {
-            rendererRef.current.setTransitionPhase(transitionPhase);
-        }
-    }, [transitionPhase]);
 
     const handleDraw = useCallback((ctx: CanvasRenderingContext2D, fps: number) => {
         if (!rendererRef.current) return;
@@ -164,21 +156,31 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         camera
     );
 
-    const lastPhaseRef = useRef(transitionPhase);
+    // 置中鏡頭（等版面穩定後）：地圖大小變了、切換展示／手動時
+    const recenterSoon = useCallback(() => {
+        const t = setTimeout(() => {
+            if (wrapperRef.current) centerCamera(wrapperRef.current.clientWidth, wrapperRef.current.clientHeight);
+        }, GAME_CANVAS_PARAM.RECENTER_DELAY_MS);
+        return () => clearTimeout(t);
+    }, [centerCamera]);
+
+    useEffect(() => recenterSoon(), [engine.mapConfig.w, engine.mapConfig.h, isShowcaseMode, recenterSoon]);
+
+    // 轉場只在全黑（進場開始）時重新置中；退場、進場結束那時畫面看得到，跳了就穿幫。
+    // 轉場階段由對局流程持有（契約 R2），這裡聽它公布的階段，不經 props。
     useEffect(() => {
-        // 轉場只在全黑（IN 開始）時重新置中；OUT、IDLE 那時畫面看得到，跳了就穿幫
-        const phaseChanged = lastPhaseRef.current !== transitionPhase;
-        lastPhaseRef.current = transitionPhase;
-        if (phaseChanged && transitionPhase !== 'IN') return;
-        if (wrapperRef.current) {
-            const t = setTimeout(() => {
-                if (wrapperRef.current) {
-                    centerCamera(wrapperRef.current.clientWidth, wrapperRef.current.clientHeight);
-                }
-            }, 100);
-            return () => clearTimeout(t);
-        }
-    }, [engine.mapConfig.w, engine.mapConfig.h, isShowcaseMode, transitionPhase, centerCamera]);
+        let cancel: (() => void) | null = null;
+        const onPhase = (data: { phase: MatchPhase }) => {
+            if (data.phase !== 'TRANSITION_IN') return;
+            cancel?.();
+            cancel = recenterSoon();
+        };
+        engine.bus.on('MATCH_PHASE', onPhase);
+        return () => {
+            engine.bus.off('MATCH_PHASE', onPhase);
+            cancel?.();
+        };
+    }, [engine, recenterSoon]);
 
     return (
         <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-surface-base">

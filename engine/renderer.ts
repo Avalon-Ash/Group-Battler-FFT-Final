@@ -163,9 +163,7 @@ export class GameRenderer {
         this.sequences.clear();
     }
 
-    public setTransitionPhase(phase: 'IN' | 'OUT' | 'IDLE') { 
-        this.pipeline.setTransitionPhase(phase); 
-    }
+
     
     public getTerrainHeight(q: number, r: number, engine: GameEngine): number { return this.grid.getTerrainHeight(q, r, engine); }
     
@@ -188,6 +186,9 @@ export class GameRenderer {
      * 省略＝1＝畫最新狀態（工具、保真基準）。
      */
     public update(dt: number, engine: GameEngine, externalCameraRef?: { current: { x: number; y: number; zoom: number } | null }, interpAlpha = 1): void {
+        // 轉場階段由對局流程持有（契約 R2），每幀從引擎讀；沒有流程（工具、測試）就是 IDLE
+        this.pipeline.setTransitionPhase(engine.matchFlow?.transition ?? 'IDLE');
+
         // 1. Camera Update (Always RealTime for smoothness)
         this.camera.update(dt);
         

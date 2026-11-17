@@ -135,6 +135,9 @@ export const useGameLoop = (
                 }
             }
 
+            // 對局流程（契約 R2）用真實時間推進：每個畫面一次，在模擬步進之前（它這一幀開戰的話，下面就開始跑）
+            engine.matchFlow?.update(dt / 1000);
+
             if (engine.isRunning) {
                 // 固定步長：倍率只決定跑幾個 tick，每個 tick 的 dt 都一樣（engine/core/FixedStep.ts）。
                 // 倍率在 tick 裡緩動（TimeSystem），這一幀讀到的倍率套用到整幀，變化下一幀才反映。

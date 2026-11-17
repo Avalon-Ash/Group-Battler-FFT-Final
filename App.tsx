@@ -63,7 +63,7 @@ function App() {
           onTogglePlay={actions.togglePlay}
           onRestart={actions.handleReset}
           onRandom={actions.handleRandomBattlefield} 
-          onShowcase={() => { setters.setIsShowcaseMode(true); actions.startShowcaseMatch(); }}
+          onShowcase={actions.startShowcase}
       />
       {!isGameOver && (
           <SystemMenu 
@@ -103,7 +103,6 @@ function App() {
                 onReplay={actions.rewindToStart}
                 onSaveReplay={actions.saveReplay}
                 nextLevel={actions.handleNextLevel} 
-                transitionPhase={state.transitionPhase}
                 onOpenLogs={() => windowActions.open('logs')}
             />
       </div>
