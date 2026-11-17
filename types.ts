@@ -445,7 +445,7 @@ export type UICommand =
     | { type: 'SET_OBSTACLE'; q: number; r: number; obstacleType?: string }
     | { type: 'REMOVE_OBSTACLE'; q: number; r: number }
     | { type: 'MOVE_AGENT'; agentId: string; q: number; r: number }
-    | { type: 'START_GAME' }
+    | { type: 'START_GAME'; /** 模擬流種子（uint32）；省略時由 UICommandSystem 產生並寫回紀錄（契約 S2） */ seed?: number }
     | { type: 'STOP_GAME' }
     | { type: 'SET_SHOWCASE_MODE'; enabled: boolean }
     | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
@@ -480,6 +480,7 @@ export type ViewCommand = Extract<UICommand, { type:
 export type GameCommand = Exclude<UICommand, ViewCommand>;
 
 export * from './types/UIViewModel';
+export * from './types/Match';
 
 
 export interface SceneTheme {
