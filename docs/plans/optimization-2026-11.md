@@ -117,6 +117,13 @@ R1 畫面插值（獨立，渲染線第一條）
 
 建議順序：第一個工作階段 S1＋S2；第二個 S3；之後渲染線 R1 → R2 → R3 → R4，邏輯線 G1 → G2 → G3，UI 線 U1 → U2 → U3 隨時插空檔。
 
+**執行者補充（2026-11-17，對齊同日修訂的全域憲法；上表的欄位不變，這裡補外派的選法）**
+- 派工單固定三條：只結束自己啟動的行程（記 PID）；不為了過檢查改造形或改驗收；不新增耦合（`AGENTS.md` §1 第 6 點）。
+- 表中寫「Sonnet 子代理」的包，Codex 刷新後（約 11/21）也可以整包派 **GPT-6.1 Sol xhigh**；GPT-6 Astra 只給看圖為主的工作（R4 的看圖、美術）或 Sol 兩次不及格的包。
+- 表中寫「agy Hydrogen」的包用 high；xhigh 只給難的單包，本檔沒有需要 xhigh 的包。
+- 顧問：執行的工作階段可以用 `/advisor` 掛一個等級不低於自己的模型當顧問（實驗功能，`/advisor off` 關閉，中途更改要 `/clear` 或 `/compact` 後才生效）。顧問只看得到呼叫它的那個工作階段，判斷依據是本檔與 `tests/contracts/`。Fable 當顧問會算進 Fable 的上限；Fable 用到上限就改掛 Opus 或關掉，不買點數。
+- 終審（Fable）：每條線做完一段（建議 S2＋S3 之後）審一次 diff；執行者回報「驗收本身寫錯」時也由 Fable 改受保護檔並更新 `MANIFEST.json`。Fable 用不了時由 Opus 5.5 high 代審，受保護檔的更動要使用者明說同意。
+
 ## 4. 各包作法
 
 ### S1 平衡工具步長對齊
@@ -245,6 +252,14 @@ repo 合約寫於 Pro 方案時期，和全域憲法（11-14、11-16 修訂）�
 - `HANDOFF` §2 排程裡的「Codex 11/11 刷新後」等過期日期。
 - 把憲法的「動手原則」（定調類主代理自己做）在 repo 合約補一句，雲端工作階段才讀得到。
 改完跑 `tests/HarnessContract.test.ts`，並照 `codex-dispatch` 同步副本。
+
+### C2 模擬狀態字串與佈陣的重複定義（提案，待使用者同意；同意前不動）
+- **現況（Fable 自己造成的重複，照憲法「既有的耦合先回報」列出）**：「單位狀態字串」（比對兩場戰鬥是否相同用的欄位與格式）和「隨機佈陣開戰的流程」各有兩份：`tools/balance/sim-fingerprint.mjs` 與 `tests/contracts/simState.ts`。其中一邊改了欄位，另一邊不會跟著變，契約驗收和指紋量的就不是同一件事。
+- **提案**：抽成一個共用的 TS 模組（建議 `engine/core/SimFingerprint.ts`：`unitState(agent)`、`stateOf(engine)`、`deployBattle(engine, scenario)`），工具用 `ssrLoadModule` 讀它，`simState.ts` 改成轉呼叫。
+- **什麼時候做**：S1、S2 合併之後的獨立小包。S1 正在改 `sim-fingerprint.mjs`，不併進去；S1、S2 期間兩邊都不改欄位與格式。
+- **誰做**：`simState.ts` 是受保護檔，由 Fable 終審時改並更新 `MANIFEST.json`；使用者明說授權的話也可以由 Opus 做，diff 只允許「定義換成 import」。
+- **證明行為不變**：`npm run balance:fingerprint` 0 差異（不重錄）、`tests/contracts/SimState.test.ts` 通過、`tests/contracts/Manifest.test.ts` 在更新雜湊後通過。
+- **回退**：單一 commit，`git revert` 即可。
 
 ## 5. 共用驗收指令
 

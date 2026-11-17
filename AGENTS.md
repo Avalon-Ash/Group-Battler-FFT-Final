@@ -40,6 +40,12 @@
    - While a battle runs, a `GameCommand` is queued and applied at the start of the next tick, then logged with its tick number (`engine/core/CommandQueue.ts`); same seed + same log = same battle. Do not read engine state right after emitting a `GameCommand` during battle, and do not mutate simulation state outside a tick. `engine.tick(dt)` always gets the fixed step; time scale only changes how many ticks run per frame (`engine/core/FixedStep.ts`), so no system may read `timeScale` to change simulation results.
    - *Deliberate UI exceptions*: drag-preview transient coordinates (`px/py/dragOverQ/dragOverR`); the state change itself still goes through a command (e.g. `MOVE_AGENT`). The composition-root binding `engine.renderer = ...` stays in `GameCanvas`.
 
+6. **No coupling (one definition per concept)**:
+   - The properties of a concept (a material, a state, a setting, a rule) are defined in one place (one table or one module); everything else reads it. Do not re-decide the same thing in several places by branching on the same id or string.
+   - Two constants that must change together become one constant or a derived value.
+   - Existing coupling: report it and do not add another copy. Removing it is an architecture change: propose it first (what changes, how you prove behaviour is unchanged, how to roll back) and wait for the user's approval.
+   - Every task brief written for another agent carries three fixed clauses: stop only the processes you started (record the PID); do not change shapes or acceptance checks to get a check to pass; do not add coupling.
+
 ---
 
 ## 2. Pre-Read Checklist
