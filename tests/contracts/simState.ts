@@ -1,63 +1,17 @@
-import { GameEngine } from '../../engine/game';
-import type { Agent } from '../../engine/core/Agent';
+import type { GameEngine } from '../../engine/game';
 import type { CommandRecord } from '../../engine/core/CommandQueue';
-import { Team, Role } from '../../types';
-import type { UICommand, EffectSlot } from '../../types';
-import { querySpawnableHexes, layoutFactionHexes } from '../../engine/systems/ui/editorQueries';
-import { random } from '../../engine/math/rng';
-import { GAME_LOOP_PARAM } from '../../constants';
+import { Team } from '../../types';
+import { DT, emit, unitState } from '../../tools/balance/simFingerprint';
 
 /**
  * 契約驗收共用：佈陣、步進、狀態字串。只用現有引擎的功能，
  * tests/contracts/SimState.test.ts 先驗過它自己（同種子相同、不同種子不同）。
+ * 情境表、佈陣、步長與單位狀態欄位和 tools/balance/sim-fingerprint.mjs 共用
+ * tools/balance/simFingerprint.ts，這裡只轉出，不另外定義。
  */
 
-export const DT = 1 / GAME_LOOP_PARAM.SIM_HZ;
-
-export const SCENARIOS = {
-    TEAMS: { factions: 2, units: 5 },
-    ROYALE: { factions: 10, units: 1 },
-    SQUADS: { factions: 4, units: 3 },
-} as const;
-export type ScenarioId = keyof typeof SCENARIOS;
-
-const ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-
-export const emit = (e: GameEngine, cmd: UICommand): void => e.bus.emit('UI_COMMAND', cmd);
-
-/** 佈陣完成、尚未開戰的引擎（和 tools/balance/sim-fingerprint.mjs 同一套佈陣）。 */
-export function buildBattle(scenario: ScenarioId, seed: number): GameEngine {
-    const sc = SCENARIOS[scenario];
-    const e = new GameEngine({ audio: false });
-    e.seedSimulation(seed);
-    emit(e, { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.units } });
-    emit(e, { type: 'RANDOMIZE_MAP', randomizeScene: true });
-    const hexes = [...querySpawnableHexes(e)];
-    for (let i = hexes.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [hexes[i], hexes[j]] = [hexes[j], hexes[i]];
-    }
-    const layout = layoutFactionHexes(hexes, sc.factions, sc.units);
-    for (let f = 0; f < sc.factions; f++) {
-        for (let u = 0; u < sc.units; u++) {
-            const hex = layout[f]?.[u];
-            if (!hex) throw new Error(`${scenario}: 陣營 ${f} 第 ${u} 人沒有出生格`);
-            emit(e, { type: 'PLACE_AGENT', team: f % 2 === 0 ? Team.BLUE : Team.RED, side: f, q: hex.q, r: hex.r, role: ROLES[(f + u) % ROLES.length] });
-        }
-    }
-    if (e.agents.length !== sc.factions * sc.units) throw new Error(`${scenario}: 只生成了 ${e.agents.length} 人`);
-    return e;
-}
-
-/** 一個單位會影響模擬的狀態（沿用 sim-fingerprint 的欄位，另加體型）。 */
-function unitState(a: Agent): string {
-    const fx = (Object.entries(a.effects) as [string, EffectSlot][])
-        .filter(([, s]) => s.remaining > 0)
-        .map(([k, s]) => `${k}=${s.remaining}/${s.value}/${s.tag ?? ''}`).join(',');
-    return [a.id, a.team, a.side, a.role, a.bodyType ?? '-', a.q, a.r, a.px, a.py, a.hp, a.maxHp, a.mp, a.shield, a.castingSkillIdx, a.castTimer,
-        a.curCDs.join('/'), a.skillIds.join('/'), a.target?.id ?? '-', a.targetHex ? `${a.targetHex.q},${a.targetHex.r}` : '-', a.isMoving, a.aiState,
-        a.actionState, a.physics.x, a.physics.y, a.physics.z, a.outOfBounds, a.banished, fx].join('|');
-}
+export { DT, emit, buildBattle, SIM_SCENARIOS as SCENARIOS } from '../../tools/balance/simFingerprint';
+export type { SimScenarioId as ScenarioId } from '../../tools/balance/simFingerprint';
 
 /** 整個戰場的狀態字串：tick、戰鬥時間、地圖格數、障礙物、所有單位。 */
 export function stateOf(e: GameEngine): string {
