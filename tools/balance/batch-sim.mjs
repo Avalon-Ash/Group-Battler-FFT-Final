@@ -26,9 +26,10 @@ const SWAP = process.argv.includes('--swapSides'); // 藍方改站右邊，用�
 
 const server = await createServer({ root: process.cwd(), server: { middlewareMode: true }, logLevel: 'error', appType: 'custom' });
 try {
-    // 預設步長＝遊戲的固定步長（GAME_LOOP_PARAM.SIM_HZ）；--dt 只做 A/B
-    const { GAME_LOOP_PARAM } = await server.ssrLoadModule('/constants.ts');
-    const DT = DT_ARG === null ? 1 / GAME_LOOP_PARAM.SIM_HZ : Number(DT_ARG);
+    // 預設步長＝遊戲的固定步長，走模擬前進的唯一入口（engine/core/Replay.ts）；--dt 只做 A/B，才直接 tick
+    const { SIM_STEP_S, stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
+    const DT = DT_ARG === null ? SIM_STEP_S : Number(DT_ARG);
+    const step = (engine) => (DT_ARG === null ? stepSimulation(engine) : engine.tick(DT));
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { SkillExecutor } = await server.ssrLoadModule('/engine/systems/combat/SkillExecutor.ts');
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
@@ -195,7 +196,7 @@ try {
         const lineup = engine.agents.map((a) => ({ id: a.id, team: a.team, role: a.role, skills: [...a.skillIds] }));
         engine.play();
         let t = 0;
-        while (winner === null && t < MAX_TIME) { engine.tick(DT); t += DT; }
+        while (winner === null && t < MAX_TIME) { step(engine); t += DT; }
         cur.active = false;
         const survivors = engine.agents.filter((a) => a.hp > 0 && !a.outOfBounds).map((a) => a.id);
 

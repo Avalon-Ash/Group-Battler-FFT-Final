@@ -5,6 +5,7 @@ import { GameRenderer } from '../engine/renderer';
 import { getRenderDpr, getDefaultQualityGovernor } from '../engine/renderers/RenderQuality';
 import { GAME_LOOP_PARAM } from '../constants';
 import { planFixedSteps } from '../engine/core/FixedStep';
+import { stepSimulation } from '../engine/core/Replay';
 
 export const useGameLoop = (
     engine: GameEngine,
@@ -81,7 +82,6 @@ export const useGameLoop = (
         let lastTime = 0;
         let acc = 0;
         const step = 1000 / GAME_LOOP_PARAM.SIM_HZ;
-        const stepSeconds = 1 / GAME_LOOP_PARAM.SIM_HZ;
         let frameCount = 0;
         let lastFpsTime = 0;
         let lastDpr = getRenderDpr();
@@ -141,8 +141,8 @@ export const useGameLoop = (
                 const plan = planFixedSteps(acc, dt, engine.timeScale, step, GAME_LOOP_PARAM.MAX_TICKS_PER_FRAME);
                 acc = plan.acc;
                 for (let i = 0; i < plan.ticks && engine.isRunning; i++) {
-                    // D13: engine.tick encapsulates battleTime accumulation internally
-                    engine.tick(stepSeconds);
+                    // 模擬前進的唯一入口：步長在它裡面決定；回放中它先餵到期的紀錄（engine/core/Replay.ts）
+                    stepSimulation(engine, engine.commands.replay);
                 }
             }
             

@@ -11,6 +11,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { GameCommand, UICommand, ViewCommand, MatchStart } from '../../types';
+import type { ReplaySession } from './Replay';
 
 /** 只影響畫面與聲音的指令。必須和 types.ts 的 ViewCommand 完全相同（tests/CommandQueue.test.ts 做型別檢查）。 */
 export const VIEW_COMMAND_TYPES = [
@@ -40,6 +41,20 @@ const IMMEDIATE_GAME_COMMANDS: ReadonlySet<GameCommand['type']> = new Set<GameCo
     'SET_BATTLE_SETUP',
     'SET_SHOWCASE_MODE',
 ]);
+
+/**
+ * 不影響模擬的 GameCommand（契約 S3）：暫停、繼續（tick > 0 的 START_GAME 只恢復運轉）、倍率。
+ * 它們照樣進 log，但回放檔不收、回放時不餵、undo 不算；回放進行中也照常放行（觀看者可以暫停、調速）。
+ */
+const SIM_NEUTRAL_COMMANDS: ReadonlySet<GameCommand['type']> = new Set<GameCommand['type']>([
+    'STOP_GAME',
+    'START_GAME',
+    'SET_TIME_SCALE',
+]);
+
+export function isSimNeutral(cmd: GameCommand): boolean {
+    return SIM_NEUTRAL_COMMANDS.has(cmd.type);
+}
 
 const VIEW_SET: ReadonlySet<string> = new Set<string>(VIEW_COMMAND_TYPES);
 
@@ -110,6 +125,39 @@ export class CommandQueue {
 
     public get matchStart(): MatchStart | null {
         return this.start;
+    }
+
+    /** 進行中的回放（契約 S3，唯一寫入者 engine/core/Replay.ts）。是否擋指令只看 session.active，不另存一份旗標 */
+    private replaySession: ReplaySession | null = null;
+    /** 回放自己正在餵紀錄裡的指令（這時不擋） */
+    private feeding = false;
+
+    public get replay(): ReplaySession | null {
+        return this.replaySession;
+    }
+
+    public attachReplay(session: ReplaySession | null): void {
+        this.replaySession = session;
+    }
+
+    /** 回放進行中、而且不是回放自己在餵：外部送來的 GameCommand（不影響模擬的除外）要擋下 */
+    public get blocksExternal(): boolean {
+        return this.replaySession?.active === true && !this.feeding;
+    }
+
+    /** 在 fn 期間送出的指令算回放餵的（不擋）。 */
+    public feed(fn: () => void): void {
+        this.feeding = true;
+        try {
+            fn();
+        } finally {
+            this.feeding = false;
+        }
+    }
+
+    /** 丟掉還沒套用的排隊指令（回放跳轉、undo 換掉整場時，不能讓舊排隊混進新的起點）。 */
+    public discardPending(): void {
+        this.pending = [];
     }
 
     /** 這一場開戰之後套用的指令（不含 START_GAME 本身）；還沒開戰是空的。 */

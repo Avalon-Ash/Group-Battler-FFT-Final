@@ -396,6 +396,8 @@ export interface EventMap {
     GAME_RESET: Record<string, never> | void;
     GAME_CLEAR: Record<string, never> | void;
     ENV_UPDATE: Record<string, never> | void;
+    /** 只由 engine/core/Replay.ts 的 seekTo 發出：快轉結束，表現層丟掉暫態（特效、浮字、序列）並依目前狀態重新同步；鏡頭不重設 */
+    REPLAY_SEEKED: Record<string, never> | void;
     /** sceneId：開戰時的地圖（SCENE_DB id），AudioSystem 依它選戰鬥曲 */
     GAME_START: { sceneId?: string } | void;
     /** 鏡頭衝擊回報：所有震動來源只送這個，由 DirectorSystem 的 ShakeDirector 決定最後震多少（再發 CAMERA_SHAKE） */
