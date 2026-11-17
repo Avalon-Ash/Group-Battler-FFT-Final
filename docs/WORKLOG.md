@@ -720,3 +720,4 @@
 - `hooks/useGameApp.ts` 改用 `engine/math/rng.ts` 的佈陣流（`setupRandom`，獨立 mulberry32 狀態，首次使用時由 Math.random 起始），刪掉對齊舊序列的空抽；外觀鹽改用 hook 自己的 `lookSaltRef`。測試的 `new GameEngine()` 改 `{ audio: false }`（音訊測試除外，57 檔）。
 - 改到的既有測試（不在受保護清單）：`SimState.test.ts`、`CommandQueue.test.ts` 開戰帶種子；`SkillEditor.test.ts` 改成驗出廠值不被改；`BodyTypeEditor.test.ts` 鹽改由 START_GAME 決定。所有權表 `hp` 的 lifecycle 加 `MatchSnapshot.ts`。
 - 驗證：S2 契約 13 則全過；lint、`npm test`（這個分支全過）、build、knip、`balance:fingerprint` 180/180 相同；runtime-smoke battleTime 0.53→4.60；一次性生命週期探針（真實頁面）：展示模式換局換種子、0 單位站在障礙物上，手動開戰→暫停→繼續（種子不變）→RESET（地形與站位還原）→重開（新種子）全過、0 頁面錯誤。
+- 未結（等使用者決定，HANDOFF §2 L）：①保真 `battle_frozen` 失敗（meanAbsDiff 約 40，整場地圖與陣容換掉，渲染正常）：骰子改走佈陣流、刪空抽後模擬流整串位移，開案書沒授權 S2 重錄；工具已固定佈陣流，連跑兩次差 0.074。其餘 5 張保真、`e2e:ui` 全過。②開戰前用 `EDIT_AGENT` 改職業：現場單位留舊職業的移速／跳躍／重量／移動類型，還原時套新職業數值，重播分歧（探針實測 TANK→MAGE：1.1/2/2 對 0.95/1/0）。
