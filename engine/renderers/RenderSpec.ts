@@ -98,7 +98,11 @@ export class RenderSpec {
         s += "  op.ty = op.y − 腳下地面高度（§4 getUnitGroundHeight；屍體用 computeDeathGround）\n";
         s += "  physics.z（跳躍、飛行）在繪製時再往上扣，不進 op.y。換格或位移讓腳下地面高度改變時，腳底世界高度（腳下地面高度 + physics.z）必須連續：\n";
         s += "  換格時 MapSystem.updateAgentPosition 經 PhysicsEngine.absorbGroundShift 吸收；位移中腳點跨出較高格時由 PhysicsEngine.stepPhysics 把落差轉入 physics.z 自然落下\n";
-        s += "  （吸收量以安全落地速度為上限，地形落差不造成墜落傷害）；上坡突進由 MotionCommands.dashTo 給足以越過高差的起跳速度。\n\n";
+        s += "  （吸收量以安全落地速度為上限，地形落差不造成墜落傷害）；上坡突進由 MotionCommands.dashTo 給足以越過高差的起跳速度。\n";
+        s += "  畫面插值（契約 R1）：上面的腳點（含擊飛滑行）與腳下地面高度，在 UnitFrameStore.build 裡先退回兩個模擬 tick 之間再算 op.y、sortBias、腳下格與殘影，\n";
+        s += "  所以排序鍵本來就含這段位移，繪製端只讀 frames。畫面比模擬晚一個 tick：比例＝(gap − 1 + alpha) / gap（gap＝這一幀跨過的 tick 數，alpha＝遊戲迴圈累加餘量／步長）。\n";
+        s += "  剛出現、tick 倒退、拖曳預覽、平均每 tick 移動超過 UNIT_FRAME.INTERP_SNAP_PX_PER_TICK 不插值；沒在跑或暫停時 alpha＝1（畫最新）；網址 ?interp=0 關閉。\n";
+        s += "  不插值的：physics.z（跳躍高度）、投射物、跟著單位的粒子與發射點／受擊點（§4 讀模擬位置，比畫出來的單位早最多一個 tick）。\n\n";
         s += "VFX 粒子：p.y 是「未投影 Y」＝螢幕 Y / ISO_SCALE_Y（VFXPlayer 存入時除、VFXRenderer 提交時乘回）；p.z 是世界高度（含地形）。\n";
         s += "投射物：startY／endY 是螢幕 Y，ProjectileRenderer 內轉成未投影 Y 插值後再乘回。\n\n";
         s += "事件座標（GameEvent.pos）：xy 是「發生在哪」的世界座標；pos.z 若存在，**一律是世界高度**（模擬高度，\n";

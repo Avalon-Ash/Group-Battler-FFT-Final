@@ -403,4 +403,18 @@ export function isGlowSpritesEnabled(): boolean {
     return resolveGlowFlag(readGlowQuery(), RENDER_QUALITY.GLOW_SPRITES, getQualityTier());
 }
 
+/**
+ * 兩個模擬 tick 之間的畫面插值（契約 R1，UnitFrameStore.build）是否啟用：預設開，網址 ?interp=0|false 關。
+ * 只在建構 RenderPipeline 時讀一次（實機 A/B 與診斷用）。
+ */
+export function isFrameInterpolationEnabled(): boolean {
+    if (typeof location === 'undefined' || !location.search) return true;
+    try {
+        const val = new URLSearchParams(location.search).get(RENDER_QUALITY.INTERP_QUERY_KEY);
+        return val !== '0' && val !== 'false';
+    } catch {
+        return true;
+    }
+}
+
 

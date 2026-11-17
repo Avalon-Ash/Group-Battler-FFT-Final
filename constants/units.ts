@@ -3,7 +3,7 @@
 // ║  職責：定義單位階梯過渡、遮擋、核心投影、幀快取、殘影與精靈 ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_SCALE } from './geometry';
+import { HEX_SIZE, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_SCALE } from './geometry';
 
 /**
  * 單位腳下地面高度的過渡（VisualMath.getUnitGroundHeight）。
@@ -88,6 +88,11 @@ export const UNIT_FRAME = {
      * 連續的鍵會讓它在鄰近的鍵（法陣粒子、屍體 0.5 px 平局值）兩側來回穿越。死區內鍵恆定，超過才跟隨（落後 ≤ 此值）。
      */
     SORT_DEADBAND_PX: 2,
+    /**
+     * 畫面插值的瞬移門檻（像素，每個 tick）：上一個 tick 到這個 tick 的腳點平均每 tick 移動超過一格就視為瞬移，直接畫最新位置（契約 R1）。
+     * 走路、擊退每 tick 只動幾個像素；交換位置、拖曳放下、重新佈陣都是跨格的跳動。
+     */
+    INTERP_SNAP_PX_PER_TICK: HEX_SIZE,
 } as const;
 
 /**

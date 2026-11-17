@@ -103,6 +103,8 @@ export const RENDER_QUALITY = {
     MATRIX_RAIN_TIER_1_HZ: 30,
     GLOW_SPRITES: true,
     GLOW_QUERY_KEY: 'glow',
+    /** 網址 ?interp=0 關掉兩個模擬 tick 之間的畫面插值（UnitFrameStore.build，契約 R1），給實機 A/B 與診斷 */
+    INTERP_QUERY_KEY: 'interp',
 } as const;
 
 /**

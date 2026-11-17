@@ -19,6 +19,9 @@
 // ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）；腳點 Y   ║
 // ║  另有死區（UNIT_FRAME.SORT_DEADBAND_PX）：受擊後退的 1～2 px  ║
 // ║  擺盪不動排序鍵。                                            ║
+// ║  畫面插值（契約 R1，RenderSpec §3）：store 記每個單位上一個  ║
+// ║  看到的 tick 的腳點與腳下高度，在排序鍵之前插到兩個 tick 之間 ║
+// ║  （比例 (gap−1+alpha)/gap）；瞬移、剛出現、拖曳預覽不插值。   ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
@@ -114,6 +117,29 @@ interface SortHexMemory {
     released: boolean;
 }
 
+/**
+ * 畫面插值的跨幀記憶（契約 R1）：最新一次看到的 tick 與該 tick 的繪製腳點／腳下高度（每次 build 覆寫成最新狀態），
+ * 以及前一個看到的 tick 的同一組值。stamp 標記最後一次被 build 看到的幀。
+ */
+interface InterpMemory {
+    tick: number; x: number; y: number; h: number;
+    prevTick: number; prevX: number; prevY: number; prevH: number;
+    stamp: number;
+}
+
+/**
+ * 畫面時間落在「上一個看到的 tick」到「最新 tick」之間的比例。畫面比模擬晚一個 tick：
+ * 畫面時間＝最新 tick − 1 + alpha；一幀跨 gap 個 tick 時（掉幀、倍速）以等速假設換算成 (gap − 1 + alpha) / gap，
+ * gap 1 時就是 alpha。直接用 alpha 的話，40 FPS（每幀 1、2 個 tick 交替）每幀位移仍是 2、1 交替，等於沒插值。
+ * 起點是「上一個看到的 tick 的模擬狀態」，不是上一幀畫出來的位置：上一幀畫在 alpha < 1（tick 中途）時，
+ * 那一幀的畫面時間（上個 tick − 1 + alpha'）仍早於起點的時間，時間上單調、不會倒退。
+ * 近似：中間沒看到的 tick 用直線帶過（轉彎時切一點角），不另外記錄。
+ */
+function interpFraction(gapTicks: number, alpha: number): number {
+    const a = Math.min(1, Math.max(0, alpha));
+    return (gapTicks - 1 + a) / gapTicks;
+}
+
 /** slots 的 dx/dy 在記憶中代表世界 x／繪製 Y，輸出時才轉回局部偏移。 */
 interface AfterimageMemory {
     slots: AfterimageGhost[];
@@ -129,6 +155,7 @@ export class UnitFrameStore {
     private readonly frames: UnitFrame[] = [];
     private readonly sortHex = new Map<string, SortHexMemory>();
     private readonly afterimages = new Map<Agent, AfterimageMemory>();
+    private readonly interp = new Map<Agent, InterpMemory>();
     private afterimageTime = 0;
     private buildStamp = 0;
     /** 本幀 build 的繪製用高度函式與地圖（殘影腳下高度用；每幀由 build 設定） */
@@ -166,7 +193,6 @@ export class UnitFrameStore {
         battleTime = 0,
         step?: FrameInterpolation
     ): void {
-        void step; // [契約 R1] 尚未實作：目前一律畫最新狀態
         const n = agents.length;
         if (battleTime < this.afterimageTime) this.afterimages.clear();
         this.afterimageTime = battleTime;
@@ -181,12 +207,17 @@ export class UnitFrameStore {
             let f = this.pool[i];
             if (!f) { f = createFrame(agent); this.pool[i] = f; }
             this.frames[i] = f;
-            this.fill(f, agent, renderHeightAt, mapConfig, transitionT, phase, batchCulled, hasGround);
+            this.fill(f, agent, renderHeightAt, mapConfig, transitionT, phase, batchCulled, hasGround, step);
             this.updateAfterimages(f, battleTime);
         }
 
         for (const [agent, mem] of this.afterimages) {
             if (mem.stamp !== this.buildStamp) this.afterimages.delete(agent);
+        }
+        if (this.interp.size > n) {
+            for (const [agent, mem] of this.interp) {
+                if (mem.stamp !== this.buildStamp) this.interp.delete(agent);
+            }
         }
 
         // 不在單位列表裡的單位（已移除）：丟掉它的腳下格記憶
@@ -244,6 +275,40 @@ export class UnitFrameStore {
             to.alpha = from.alpha * alpha;
         }
     }
+
+    /**
+     * 畫面插值（契約 R1）：記下這個 tick 的最新腳點／高度，回傳兩個 tick 之間的繪製值（寫進 interpOut，不配置）。
+     * tick 前進時，前一個看到的狀態變成起點；同一個 tick 內多畫幾幀只改比例。
+     * 不插值（直接畫最新）：剛出現（沒有記憶）、tick 倒退（重開、seek）、拖曳預覽、平均每 tick 移動超過
+     * UNIT_FRAME.INTERP_SNAP_PX_PER_TICK（瞬移）、還沒經過任何 tick（暫停中的編輯）。
+     */
+    private interpolate(agent: Agent, x: number, y: number, h: number, step: FrameInterpolation, snap: boolean): { x: number; y: number; h: number } {
+        const out = this.interpOut;
+        out.x = x; out.y = y; out.h = h;
+        let m = this.interp.get(agent);
+        if (!m || snap || step.tick < m.tick) {
+            if (!m) { m = { tick: 0, x, y, h, prevTick: 0, prevX: x, prevY: y, prevH: h, stamp: 0 }; this.interp.set(agent, m); }
+            m.tick = m.prevTick = step.tick;
+            m.prevX = x; m.prevY = y; m.prevH = h;
+        } else if (step.tick > m.tick) {
+            m.prevTick = m.tick; m.prevX = m.x; m.prevY = m.y; m.prevH = m.h;
+            m.tick = step.tick;
+        }
+        m.x = x; m.y = y; m.h = h;
+        m.stamp = this.buildStamp;
+        const gap = m.tick - m.prevTick;
+        if (gap <= 0) return out;
+        if (Math.hypot(x - m.prevX, y - m.prevY) > UNIT_FRAME.INTERP_SNAP_PX_PER_TICK * gap) {
+            m.prevX = x; m.prevY = y; m.prevH = h;
+            return out;
+        }
+        const k = interpFraction(gap, step.alpha);
+        out.x = m.prevX + (x - m.prevX) * k;
+        out.y = m.prevY + (y - m.prevY) * k;
+        out.h = m.prevH + (h - m.prevH) * k;
+        return out;
+    }
+    private readonly interpOut = { x: 0, y: 0, h: 0 };
 
     /**
      * 排序用腳下格（帶滯後）：腳點原始所在格 raw 與上一幀記憶的格 prev 不同時，
@@ -311,11 +376,12 @@ export class UnitFrameStore {
         transitionT: number,
         phase: UnitFramePhase,
         batchCulled: boolean,
-        hasGround?: (q: number, r: number) => boolean
+        hasGround?: (q: number, r: number) => boolean,
+        step?: FrameInterpolation
     ): void {
         const isCorpse = agent.hp <= 0;
-        const baseX = agent.px + agent.physics.x;
-        const baseY = agent.py + agent.physics.y;
+        let baseX = agent.px + agent.physics.x;
+        let baseY = agent.py + agent.physics.y;
         f.agent = agent;
         f.isCorpse = isCorpse;
 
@@ -357,6 +423,17 @@ export class UnitFrameStore {
             }
         }
 
+        // 畫面插值（契約 R1）：在排序鍵、腳下格、殘影之前把腳點與高度退回兩個 tick 之間，之後全部讀插值後的值。
+        // 擊飛的屍體一起插值（滑行位移也是每 tick 才前進）；未擊飛的位置跟著平移同一段（轉場位移、血條錨點用）。
+        if (step) {
+            const m = this.interpolate(agent, footX, footY, groundH, step, isDragPreview);
+            baseX += m.x - footX;
+            baseY += m.y - footY;
+            footX = m.x;
+            footY = m.y;
+            groundH = m.h;
+        }
+
         // 轉場位移以未擊飛的位置計算（地塊也套同一個）
         const transition = VisualMath.getTransitionOffset(baseX, baseY, mapConfig, transitionT, phase);
         const sortY = footY + transition;
@@ -388,7 +465,7 @@ export class UnitFrameStore {
         f.sortBias = Math.max(sortMem.footY, hexCenterY) - footY;
         f.sortFootY = sortMem.footY + transition;
         f.bodyCenterY = VisualMath.getVisualBodyCenterY(floorY, pz);
-        f.hudAnchorY = VisualMath.getEntityVisualY(agent.py, groundH, agent.physics.y, agent.physics.z, -hudBarHeight(resolveBodyType(agent)));
+        f.hudAnchorY = VisualMath.getEntityVisualY(baseY, groundH, 0, agent.physics.z, -hudBarHeight(resolveBodyType(agent)));
 
         // 衝刺／高速移動殘影：屍體與拖曳預覽沒有（屍體的位移是擊飛，不是衝刺）
         const hasGhosts = !isCorpse && !isDragPreview && agent.trailHistory.length > 0;
