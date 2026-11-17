@@ -115,6 +115,10 @@ export const GAME_APP_PARAM = {
     SHOWCASE_MIN_H: 8,
     /** 展示地圖尺寸隨機幅度（格） */
     SHOWCASE_SIZE_RANGE: 4,
+    /** 展示地圖抽佈局：亂數大於這個值用平頂（FLAT），否則尖頂（POINTY） */
+    SHOWCASE_FLAT_CHANCE: 0.5,
+    /** 兩個陣營左右對分：只用 |q| 大於這個值的出生格，中間留一條空帶（格） */
+    TEAMS_SPLIT_GAP_Q: 1,
     /** 展示模式每局隨機的陣營×人數：雙陣營的機率與每邊最少人數（5＝五個職業全部露出）、總人數範圍（人）、大逃殺最少幾個陣營。 */
     SHOWCASE_SETUP: {
         TEAMS_CHANCE: 0.5,

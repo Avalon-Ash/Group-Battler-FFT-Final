@@ -3,24 +3,18 @@ import { UI_SETTINGS } from '../constants';
 import { selectionStore, usePrimarySelectedId, useWatchSelectedId } from './useSelection';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup, FactionLook } from '../types';
+import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, BattleSetup } from '../types';
 import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 // 佈陣流：開戰前的抽號都用它，不碰模擬流（結果記在開戰快照裡，契約 S2）
 import { setupRandom, setupSeed } from '../engine/math/rng';
-import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, rollShowcaseSetup, HexCoord } from '../engine/systems/ui/editorQueries';
-import { pickBodyType } from '../data/units/appearance/bodyTypes';
-import { pickFactionLooks, plainLook } from '../data/units/factionTint';
+import { rollShowcaseSetup } from '../engine/systems/ui/editorQueries';
+import { planRoster, deployRoster, rollShowcaseMap, type RosterSlot } from '../engine/systems/match/Deployment';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 import { BUILD_ID, exportReplay, startReplay, takeOver } from '../engine/core/Replay';
 import { downloadReplay, fetchPublicReplay, pickReplayFile, readReplayFile, replayQuery, type LoadedReplay } from '../engine/presentation/ReplayIO';
 
-/** 展示陣容的一個位置：陣營、角色與體型在生成前就決定，圖集才能在轉場期間預載 */
-interface ShowcaseSlot { side: number; team: Team; role: Role; bodyType: BodyTypeId; look: FactionLook }
-const SHOWCASE_ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-
-/** 陣營用的外觀：只有藍、紅兩套皮膚，雙數陣營藍、單數紅（陣營 0／1 和 Team 數值相同） */
-const factionTeam = (side: number): Team => (side % 2 === 0 ? Team.BLUE : Team.RED);
+type ShowcaseSlot = RosterSlot;
 
 type DevWindow = Window & {
     __TACTICAL_ENGINE__?: GameEngine;
@@ -115,16 +109,7 @@ export const useGameApp = () => {
     const planShowcaseRoster = useCallback((nextSetup?: BattleSetup): ShowcaseSlot[] => {
         const round = ++rosterRoundRef.current;
         const setup = { ...(nextSetup ?? engineRef.current.battleSetup) };
-        const plan: ShowcaseSlot[] = [];
-        // 三個以上陣營：每局重新分配外觀色（兩個陣營回傳 null＝原色）。種子用 lookSaltRef＋局數，不消耗模擬流
-        const looks = pickFactionLooks(setup.factions, `${lookSaltRef.current}-${round}`);
-        for (let side = 0; side < setup.factions; side++) {
-            const team = factionTeam(side);
-            const look = looks?.[side] ?? plainLook(team);
-            for (let i = 0; i < setup.unitsPerFaction; i++) {
-                plan.push({ side, team, role: SHOWCASE_ROLES[factionRoleIndex(side, i, setup.unitsPerFaction, SHOWCASE_ROLES.length)], bodyType: pickBodyType(`SHOWCASE-${side}-${i}`, round), look });
-            }
-        }
+        const plan = planRoster(setup, round, lookSaltRef.current);
         rosterRef.current = plan;
         plannedSetupRef.current = setup;
         return plan;
@@ -132,16 +117,6 @@ export const useGameApp = () => {
 
     const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
-        // 可出生格：不含障礙物與最外圈（與面板總池同一份判定）
-        const validHexes: HexCoord[] = querySpawnableHexes(engine);
-
-        const shuffle = <T,>(array: T[]) => {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(setupRandom() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-        };
-
         // 依這張地圖的總池重新夾一次陣營設定；和規劃好的陣容不同就重新規劃
         engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { ...engine.battleSetup } });
         const planned = plannedSetupRef.current;
@@ -151,43 +126,7 @@ export const useGameApp = () => {
             planShowcaseRoster();
         }
         const setup = plannedSetupRef.current;
-        const slotsOf = (side: number) => rosterRef.current.filter(s => s.side === side);
-        const place = (slot: ShowcaseSlot, hex: HexCoord, side?: number) => {
-            engine.bus.emit('UI_COMMAND', {
-                type: 'PLACE_AGENT',
-                team: slot.team,
-                q: hex.q,
-                r: hex.r,
-                role: slot.role,
-                bodyType: slot.bodyType,
-                side,
-                look: slot.look,
-            });
-        };
-
-        if (setup.factions === 2) {
-            // 兩個陣營：左右對分（地圖是以 (0,0) 為中心的大六角，q<0 偏左、q>0 偏右）；side 省略＝等於 team
-            const leftHexes = validHexes.filter(hex => hex.q < -1);
-            const rightHexes = validHexes.filter(hex => hex.q > 1);
-            shuffle(leftHexes);
-            shuffle(rightHexes);
-            [leftHexes, rightHexes].forEach((hexes, side) => {
-                const slots = slotsOf(side);
-                for (let i = 0; i < slots.length && i < hexes.length; i++) place(slots[i], hexes[i]);
-            });
-        } else {
-            // 三個以上：各陣營一個據點，輪流取離自己據點最近的空格
-            shuffle(validHexes);
-            const layout = layoutFactionHexes(validHexes, setup.factions, setup.unitsPerFaction);
-            const slots = layout.map((_, side) => slotsOf(side));
-            for (let i = 0; i < setup.unitsPerFaction; i++) {
-                for (let side = 0; side < layout.length; side++) {
-                    const slot = slots[side][i];
-                    const hex = layout[side][i];
-                    if (slot && hex) place(slot, hex, side);
-                }
-            }
-        }
+        deployRoster(engine, rosterRef.current, setup, setupRandom);
 
         setSession(prev => ({ ...prev, unitCount: engine.agents.length, battleSetup: { ...setup } }));
     }, [planShowcaseRoster]);
@@ -197,9 +136,7 @@ export const useGameApp = () => {
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
         selectionStore.clear();
-        const newW = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_W + setupRandom() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
-        const newH = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_H + setupRandom() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
-        const newLayout: HexLayout = setupRandom() > 0.5 ? 'FLAT' : 'POINTY';
+        const { w: newW, h: newH, layout: newLayout } = rollShowcaseMap(setupRandom);
         engine.bus.emit('UI_COMMAND', {
             type: 'RANDOMIZE_MAP',
             w: newW,
