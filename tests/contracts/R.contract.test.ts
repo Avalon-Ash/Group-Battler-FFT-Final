@@ -59,7 +59,9 @@ describe('契約 R1 畫面插值', () => {
         build(11, 1);
         a.px = x0 + 30;
         a.physics.x = 0;
-        expect(build(16, 0.5).x).toBeCloseTo(x0 + 8 + (30 - 8) / 2, 6);
+        // 上次畫在 tick 11 結束（x0+8），現在是 tick 16、alpha 0.5：畫面時間＝這 5 個 tick 裡的第 4.5 個，
+        // 所以走完 (gap − 1 + alpha) / gap，不是直接用 alpha（直接用 alpha 在每幀 tick 數不固定時比不插值更抖）。
+        expect(build(16, 0.5).x).toBeCloseTo(x0 + 8 + (30 - 8) * (5 - 1 + 0.5) / 5, 6);
     });
 
     contractTest('R1', '瞬移與剛出現的單位不插值', () => {
