@@ -28,7 +28,7 @@ describe('visualStatus ownership (P1a)', () => {
     let blueAlly: Agent;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.play();
         const b = engine.agentManager.addAgent(engine, Team.BLUE, 2, 2, 1000, Role.WARRIOR);
         const bAlly = engine.agentManager.addAgent(engine, Team.BLUE, 3, 2, 1000, Role.WARRIOR);

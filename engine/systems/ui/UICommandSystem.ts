@@ -10,12 +10,24 @@ import { AgentManager } from '../agentManager';
 import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 import { querySpawnableHexes } from './editorQueries';
+import { captureMatch, restoreMatch } from '../../core/MatchSnapshot';
+import { UINT32_RANGE } from '../../math/rng';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const clampToRange = (v: number, range: NumericRange): number =>
     Math.max(range.min, Math.min(range.max, v));
+
+/**
+ * 新的一場的模擬流種子（uint32）。全專案唯一允許用 crypto／Math.random 取模擬種子的地方（契約 S2）：
+ * 種子寫回 START_GAME 指令再記錄，之後的一切都由它決定。
+ */
+function freshSeed(): number {
+    const c = globalThis.crypto;
+    if (c && typeof c.getRandomValues === 'function') return c.getRandomValues(new Uint32Array(1))[0];
+    return Math.floor(Math.random() * UINT32_RANGE) >>> 0;
+}
 
 /**
  * UICommandSystem — Single Mutation Gate for UI -> Engine writes.
@@ -59,8 +71,20 @@ export class UICommandSystem {
     }
 
     private applyGame(cmd: GameCommand): void {
-        this.engine.commands.record(this.engine.state.time.tick, cmd);
-        this.apply(cmd);
+        // 開新的一場沒給種子：在這裡產生並寫回指令，紀錄裡的 START_GAME 一定帶種子
+        const applied: GameCommand = cmd.type === 'START_GAME' && cmd.seed === undefined && this.startsNewMatch()
+            ? { ...cmd, seed: freshSeed() }
+            : cmd;
+        this.engine.commands.record(this.engine.state.time.tick, applied);
+        this.apply(applied);
+    }
+
+    /**
+     * START_GAME 是開新的一場（還沒跑過任何 tick），還是暫停後繼續（togglePlay 用 STOP／START 暫停）。
+     * 只有開新的一場才擷取快照、播種；繼續只是恢復運轉。
+     */
+    private startsNewMatch(): boolean {
+        return !this.engine.isRunning && this.engine.state.time.tick === 0;
     }
 
     private apply(cmd: UICommand): void {
@@ -146,6 +170,8 @@ export class UICommandSystem {
 
                 if (cmd.role && Object.values(Role).includes(cmd.role)) {
                     agent.role = cmd.role;
+                    // 職業導出的移動數值跟著換；血量、魔力、技能、體型等編輯器欄位維持原值
+                    AgentManager.applyRoleMotion(agent);
                 }
                 if (
                     typeof cmd.maxHp === 'number' &&
@@ -210,8 +236,15 @@ export class UICommandSystem {
             }
 
             case 'RESET_GAME': {
-                AgentManager.matchSalt = Date.now();
-                this.engine.restart();
+                // 還原開戰快照：同一張地圖、同一批單位站回原位（契約 S2）。不播種，下一個 START_GAME 才播種
+                const start = this.engine.commands.matchStart;
+                if (start) {
+                    restoreMatch(this.engine, start.snapshot);
+                    this.engine.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
+                    this.engine.bus.emit('GAME_START', { sceneId: this.engine.currentScene.id });
+                } else {
+                    this.engine.restart();
+                }
                 this.engine.bus.emit('GAME_RESET', {});
                 break;
             }
@@ -342,9 +375,15 @@ export class UICommandSystem {
             }
 
             case 'START_GAME': {
-                if (!this.engine.isRunning) {
-                    this.engine.play();
+                if (this.engine.isRunning) break;
+                if (this.startsNewMatch()) {
+                    // 開新的一場：先記下起點（開戰快照＋種子），再用種子重設模擬流與體型鹽（契約 S2）
+                    const seed = (cmd.seed ?? freshSeed()) >>> 0;
+                    this.engine.commands.beginMatch({ snapshot: captureMatch(this.engine), seed });
+                    this.engine.agentManager.matchSalt = seed;
+                    this.engine.seedSimulation(seed);
                 }
+                this.engine.play();
                 break;
             }
 
@@ -357,6 +396,7 @@ export class UICommandSystem {
 
             case 'CLEAR_BOARD': {
                 this.engine.clear(Boolean(cmd.keepScene), Boolean(cmd.skipRebuild));
+                this.engine.commands.endMatch();
                 break;
             }
 

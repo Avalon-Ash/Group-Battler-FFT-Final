@@ -33,7 +33,7 @@ describe('BeamUltOnly', () => {
     it.each(CONVERTED)('%s：真實引擎中先 PROJECTILE_SPAWN，PROJECTILE_HIT 時才對目標結算', (id) => {
         const skill = DEFAULT_SKILL_DB.find((s) => s.id === id)!;
         expect(skill.projectileSpeed ?? 0).toBeGreaterThan(0);
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         engine.map.obstacles.clear();
         engine.map.obstaclesHash.clear();
         const friendly = skill.power < 0 || readFlatFields(skill).ccType === 'SHIELD';

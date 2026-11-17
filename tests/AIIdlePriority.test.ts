@@ -13,7 +13,7 @@ describe('AIIdlePriority', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.play();
     });
 

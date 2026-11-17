@@ -8,7 +8,7 @@ import { stopMovement, teleportTo } from '../engine/systems/movement/MotionComma
 describe('MotionCommands', () => {
     let engine: GameEngine;
 
-    beforeEach(() => { engine = new GameEngine(); });
+    beforeEach(() => { engine = new GameEngine({ audio: false }); });
     afterEach(() => { engine.stop(); engine.clear(); });
 
     const spawn = () => {

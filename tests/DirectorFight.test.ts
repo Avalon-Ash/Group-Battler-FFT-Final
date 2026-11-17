@@ -10,7 +10,7 @@ const H = 852;
 const CLOSE_Z = shotZoom('CLOSE', W, H);
 
 function arena() {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();
     engine.screenW = W;

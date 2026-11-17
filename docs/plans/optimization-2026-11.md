@@ -95,8 +95,8 @@ R1 畫面插值（獨立，渲染線第一條）
 
 | 包 | 內容 | 線 | 依賴 | 規模 | 建議執行者 |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| S1 | 平衡工具步長對齊 | 地基 | — | S | Sonnet 子代理（機械） |
-| S2 | 開戰快照＋種子＋引擎選項 | 地基 | — | M | Opus 自己做 |
+| S1 | 平衡工具步長對齊（完成） | 地基 | — | S | Sonnet 子代理（機械） |
+| S2 | 開戰快照＋種子＋引擎選項（完成） | 地基 | — | M | Opus 自己做 |
 | S3 | 回放播放器、seek／undo、回放檔當基準場景 | 地基 | S2 | M～L | Opus 自己做 |
 | R1 | 畫面插值（先量再做） | 渲染 | — | M | Opus 自己做（看圖定調） |
 | R2 | 對局流程移出 React（MatchFlow） | 渲染（生命週期） | S2 | L | Opus 設計＋紅色驗收，Sonnet 子代理補實作 |
@@ -126,14 +126,15 @@ R1 畫面插值（獨立，渲染線第一條）
 
 ## 4. 各包作法
 
-### S1 平衡工具步長對齊
+### S1 平衡工具步長對齊（完成 2026-11-17，WORKLOG §2 BW）
 - **現況**：`tools/balance/batch-sim.mjs`、`ai-idle-sim.mjs`、`sim-fingerprint.mjs`、`mobility-probe.mjs` 各自寫死 `1 / 30`（或 `0.0333`）。
 - **作法**：四支工具改成從 `constants` 讀 `GAME_LOOP_PARAM.SIM_HZ` 當預設步長（它們本來就用 `ssrLoadModule`），`--dt` 留著做 A/B。`ai-idle-sim` 裡用「幾個 tick」表達的取樣間隔改成用秒換算，免得步長一改取樣頻率跟著變。`tools/balance/fingerprint.baseline.json` 因步長改變必須重錄：獨立 commit，訊息寫明「步長 1/30 → 1/60，玩法未改」。
 - **加一個棘輪**：`tests/` 加一則掃 `tools/balance/*.mjs`，不得出現寫死的 `1 / 30`、`0.0333`。
 - **驗收**：`npm run balance:fingerprint` 重錄後連跑兩次都 0 差異；`npm run balance:sim -- --battles=400 --seed=21` 的 `dt` 欄印出 0.0167。
 - **停下來問**：重錄前後 `balance:idle` 的發呆、繞圈比例差超過 1 個百分點（代表 AI 行為對步長敏感，那是另一個 bug，先回報）。
 
-### S2 開戰快照＋種子＋引擎選項
+### S2 開戰快照＋種子＋引擎選項（完成 2026-11-17，WORKLOG §2 BW）
+- 執行時補的設計：`START_GAME` 在 tick > 0 是暫停後繼續（`togglePlay`），只有 tick 0 才擷取快照與播種；`matchSalt` 改成每顆引擎一份。
 - **為什麼不照 HANDOFF 的「開局種子化＋逐指令重播佈陣」**：佈陣階段混著 UI 端抽號、手動拖曳、編輯器改圖，逐指令重播要求兩邊抽號順序永遠一致，任何人在 hook 多抽一次就整串壞掉。把佈陣的**結果**當資料存下來，回放只需要重播開戰之後的指令。附帶得到「存檔／分享一個佈陣」。
 - **作法**：
   1. `types.ts` 加 `MatchSnapshot`（純資料、可 JSON）：`mapConfig`、場景 id、地塊與高度（`MapSystem` 的 `mapKeys`、`heightMap`）、障礙物、`zoneConfig`、`battleSetup`、技能庫中被編輯過的技能、每個單位的 `id／team／side／role／q／r／maxHp／skillIds／bodyType／look`、`_entityCounter`。
@@ -145,6 +146,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **停下來問**：快照測試不過、而且差異來自快照以外的隱藏狀態（模組層變數、靜態欄位），列出是哪些欄位再決定收進快照還是改成引擎擁有；不要為了讓測試過而在 `restoreMatch` 裡補特例。
 
 ### S3 回放播放器、seek／undo
+- **前提**：模擬流是模組層級的單一狀態，同一行程的兩顆引擎共用；回放、seek、undo 用第二顆引擎時不能交錯步進。
 - **作法**：
   1. `ReplayFile`：`{ v, build, matchStart, seed, commands, endTick }`。`build` 用 Vite `define` 注入 git 短雜湊；版本不同時載入要警告（模擬可能已改）。
   2. 單一的步進入口：`engine/core/` 加 `stepSimulation(engine, replay?)`：若有回放，先把 `tick === engine.state.time.tick` 的紀錄用 `UI_COMMAND` 送進去（和 `tests/CommandQueue.test.ts` 的 `sendDue` 同一個做法，不用改 `engine/game.ts` 的 tick 順序），再 `engine.tick(固定步長)`。`hooks/useGameLoop.ts`、平衡工具、測試都改叫它，「誰決定步長」從此只有一處。

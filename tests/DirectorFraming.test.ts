@@ -4,7 +4,7 @@ import { Team, Role } from '../types';
 
 /** 導播目標（主角）永遠是取景群組成員：同樣的場面，換主角鏡頭重心就往主角偏 */
 function cameraXFor(focus: 'blue' | 'red'): { x: number; blueX: number; redX: number } {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();
     const blue = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 200, Role.WARRIOR)!;

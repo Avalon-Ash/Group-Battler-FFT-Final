@@ -29,7 +29,7 @@ describe('R6 zoom inputs', () => {
     });
 
     it('uses pinch ratios, resets pinch on end, and dispatches double click / double tap reset commands', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         const canvas = new EventTarget();
         const onZoom = vi.fn();
         const emit = vi.spyOn(engine.bus, 'emit');
@@ -63,7 +63,7 @@ describe('R6 zoom inputs', () => {
     it('accumulates rapid wheel/pinch factors from the engine target, before any smoothing frame', () => {
         const originalDocument = (globalThis as Record<string, unknown>).document;
         (globalThis as Record<string, unknown>).document = { createElement: () => ({ getContext: () => ({}) }) };
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         try {
             const renderer = new GameRenderer();
             renderer.bind(engine);

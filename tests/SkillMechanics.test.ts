@@ -28,7 +28,7 @@ function makeSkill(over: Partial<Skill>): Skill {
 }
 
 function arena(targetQ = 1) {
-    const engine = new GameEngine();
+    const engine = new GameEngine({ audio: false });
     engine.map.obstacles.clear();
     engine.map.obstaclesHash.clear();
     const spawn = (team: Team, q: number, r = 0, role = Role.WARRIOR) => {
@@ -505,7 +505,7 @@ describe('機動技能池', () => {
     });
     it('單位開局就有自己職業的機動技，大逃殺也一樣', () => {
         for (const factions of [2, 4]) {
-            const engine = new GameEngine();
+            const engine = new GameEngine({ audio: false });
             engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions, unitsPerFaction: 1 } });
             const a = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, HP, Role.MAGE);
             const s = DEFAULT_SKILL_DB.find((x) => x.id === a?.skillIds[3]);

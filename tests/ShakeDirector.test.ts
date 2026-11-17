@@ -64,7 +64,7 @@ describe('CameraSystem trauma integration', () => {
 
 describe('DirectorSystem shake integration', () => {
     it('導演 enabled = false 時 CAMERA_IMPACT 仍會在下一次 update 產生 CAMERA_SHAKE', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         engine.director.enabled = false;
         let receivedShake: { intensity: number } | null = null;
         engine.bus.on('CAMERA_SHAKE', (data) => {
@@ -124,7 +124,7 @@ describe('ShakeDirector tuning', () => {
 
 describe('UICommand SET_SHAKE_TUNING integration', () => {
     it('用真的 GameEngine 送 { type: SET_SHAKE_TUNING, strength: 0.5 } 後 engine.director.getShakeTuning().strength 是 0.5', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         engine.bus.emit('UI_COMMAND', { type: 'SET_SHAKE_TUNING', strength: 0.5 });
         expect(engine.director.getShakeTuning().strength).toBe(0.5);
     });

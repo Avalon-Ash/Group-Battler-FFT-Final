@@ -80,7 +80,7 @@ describe('UnitFrameStore afterimage linger', () => {
     afterEach(() => { engine?.stop(); engine?.clear(); });
 
     function setup(speed = AFTERIMAGE.LINGER_MIN_PEAK_SPEED + 100) {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         engine.map.obstacles.clear();
         engine.map.obstaclesHash.clear();
         const a = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 200, Role.WARRIOR)!;

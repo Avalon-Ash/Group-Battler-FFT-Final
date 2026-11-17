@@ -36,7 +36,7 @@ function update(engine: GameEngine, skillId: string, field: keyof Skill, value: 
 
 /** 放一隊藍紅各五人並開戰，回傳引擎 */
 function battle(seed: number): GameEngine {
-    const sim = new GameEngine();
+    const sim = new GameEngine({ audio: false });
     sim.seedSimulation(seed);
     sim.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
     const radius = Math.floor(Math.max(sim.mapConfig.w, sim.mapConfig.h) / 2) + 1;
@@ -84,7 +84,7 @@ describe('UltCastTiming（ULT-T01）', () => {
     });
 
     it('UPDATE_SKILL：ULT 改短 cast 會正規化；切成 ULT 會補足；非法值拒絕；切回 ACTIVE 不再限制', () => {
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         const ult = engine.skillDB.find((s) => s.id === 'wb_u5')!;
         const active = engine.skillDB.find((s) => s.tag === 'ACTIVE' && s.cast < MIN)!;
         remember(ult); remember(active);

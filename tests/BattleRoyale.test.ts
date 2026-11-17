@@ -6,7 +6,7 @@ describe('BattleRoyale', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         // 清除測試座標上的障礙物，確保可放置
         for (const [q, r] of [[0, 0], [1, 0], [2, 0]]) {
             engine.map.removeObstacle(q, r);

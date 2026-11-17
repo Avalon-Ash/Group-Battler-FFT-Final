@@ -7,7 +7,7 @@ import { HexUtils } from '../engine/utils';
 describe('querySpawnableHexes 不含被障礙物圍死的小區塊', () => {
     let engine: GameEngine;
     beforeEach(() => {
-        engine = new GameEngine();
+        engine = new GameEngine({ audio: false });
         for (const key of engine.map.mapKeys) {
             const [q, r] = key.split(',').map(Number);
             engine.map.removeObstacle(q, r);

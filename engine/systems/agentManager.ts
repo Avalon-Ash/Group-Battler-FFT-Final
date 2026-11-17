@@ -21,7 +21,11 @@ import { unitEventPos } from "../events/EventPos";
 export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'mapConfig' | 'agents' | 'map'>;
 
 export class AgentManager {
-    public static matchSalt: number = Date.now();
+    /**
+     * 體型雜湊的鹽（沒指定體型的單位用）。每顆引擎各一份（以前是靜態欄位，多顆引擎互相干擾）；
+     * START_GAME 改成這一場的種子（唯一寫入者 UICommandSystem），戰中生成的單位才能重播（契約 S2）。
+     */
+    public matchSalt: number = 0;
 
     /**
      * 開戰／重開前的單位準備（P10 自 game.ts facade 移入）：依 skillIds 重建技能、重建行為樹、動畫與行動狀態歸 IDLE。
@@ -42,16 +46,26 @@ export class AgentManager {
         return Math.round(mean + (UNIT_DB[role].maxHp - mean) * ROYALE_RULES.HP_GAP_SCALE);
     }
 
+    /**
+     * 由職業導出、開戰快照不存的欄位（移速、移動類型、跳躍、重量）。職業→數值只在這裡對應：
+     * 生成（applyRoleStats）與 EDIT_AGENT 換職業共用，換職業後還原快照才會和現場一致（契約 S2）。
+     */
+    public static applyRoleMotion(agent: Agent) {
+        const stats = UNIT_DB[agent.role];
+        if (!stats) return;
+        agent.moveSpeed = stats.moveSpeed;
+        agent.movementType = stats.movementType;
+        agent.jump = stats.jump;
+        agent.weight = stats.weight;
+    }
+
     public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
         const stats = UNIT_DB[agent.role];
         if (stats) {
             agent.maxHp = hpOverride || stats.maxHp;
             agent.hp = agent.maxHp;
             agent.maxMp = stats.maxMp;
-            agent.moveSpeed = stats.moveSpeed; 
-            agent.movementType = stats.movementType;
-            agent.jump = stats.jump;
-            agent.weight = stats.weight;
+            AgentManager.applyRoleMotion(agent);
         }
 
         if (applyJitter) {
@@ -61,10 +75,11 @@ export class AgentManager {
         }
     }
 
-    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role, bodyTypeOverride?: BodyTypeId, sideOverride?: number, lookOverride?: FactionLook): Agent | null {
+    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role, bodyTypeOverride?: BodyTypeId, sideOverride?: number, lookOverride?: FactionLook, idOverride?: string): Agent | null {
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
-        const id = engine.nextId(team === Team.BLUE ? 'BLU' : 'RED');
+        // idOverride：還原開戰快照時沿用原本的 id（engine/core/MatchSnapshot.ts），不消耗流水號
+        const id = idOverride ?? engine.nextId(team === Team.BLUE ? 'BLU' : 'RED');
         const a = new Agent(id, team, q, r, engine.mapConfig);
         if (sideOverride !== undefined) a.side = sideOverride;
         if (lookOverride) a.look = lookOverride;
@@ -76,7 +91,7 @@ export class AgentManager {
             a.role = allRoles[Math.floor(random() * allRoles.length)];
         }
         
-        a.bodyType = bodyTypeOverride ?? pickBodyType(a.id, AgentManager.matchSalt);
+        a.bodyType = bodyTypeOverride ?? pickBodyType(a.id, this.matchSalt);
         AgentManager.applyRoleStats(a, hpOverride ?? AgentManager.spawnHp(a.role, engine), false);
 
         const validSkills = engine.skillDB.filter(s => s.role === a.role && (s.team === undefined || s.team === team));

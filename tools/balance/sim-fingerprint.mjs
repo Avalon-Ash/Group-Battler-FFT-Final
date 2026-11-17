@@ -6,6 +6,8 @@
 // ║  fingerprint.baseline.json 逐場比對，有差就退出碼 1。      ║
 // ║  [ARCH] 重構技能系統時的硬關卡：行為不變的改動必須完全相同 ║
 // ║  故意改玩法時才由主代理 --record，commit 訊息要寫明原因。  ║
+// ║  情境、佈陣、狀態欄位、步長讀 simFingerprint.ts（和契約    ║
+// ║  驗收共用），本檔不另外定義。                              ║
 // ╚══════════════════════════════════════════════════════════╝
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -16,53 +18,25 @@ const RECORD = process.argv.includes('--record');
 const BATTLES = Number(arg('battles', 60));
 const DUMP = arg('dump', null);
 const BASELINE = 'tools/balance/fingerprint.baseline.json';
-const DT = 1 / 30;
 const MAX_TIME = 120;
-const SAMPLE_TICKS = 15;
+/** 取樣間隔（秒），依步長換算成 tick 數 */
+const SAMPLE_S = 0.5;
 const SALT = 12345;
-const ROLES = ['TANK', 'WARRIOR', 'RANGER', 'MAGE', 'SUPPORT'];
-const SCENARIOS = [
-    { id: 'TEAMS', factions: 2, units: 5 },
-    { id: 'ROYALE', factions: 10, units: 1 },
-    { id: 'SQUADS', factions: 4, units: 3 },
-];
 
 const server = await createServer({ root: process.cwd(), server: { middlewareMode: true }, logLevel: 'error', appType: 'custom', optimizeDeps: { noDiscovery: true } });
 let exitCode = 0;
 try {
-    const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
-    const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
-    const { Team, Role } = await server.ssrLoadModule('/types.ts');
-    const { querySpawnableHexes, layoutFactionHexes } = await server.ssrLoadModule('/engine/systems/ui/editorQueries.ts');
-    const { random } = await server.ssrLoadModule('/engine/math/rng.ts');
-    AgentManager.matchSalt = SALT;
-
-    const shuffle = (arr) => {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    };
-
-    const unitState = (a) => {
-        const fx = Object.entries(a.effects).filter(([, s]) => s.remaining > 0).map(([k, s]) => `${k}=${s.remaining}/${s.value}/${s.tag ?? ''}`).join(',');
-        return [a.id, a.q, a.r, a.px, a.py, a.hp, a.mp, a.shield, a.castingSkillIdx, a.castTimer, a.curCDs.join('/'), a.target?.id ?? '-',
-            a.targetHex ? `${a.targetHex.q},${a.targetHex.r}` : '-', a.isMoving, a.aiState, a.actionState, a.physics.x, a.physics.y, a.physics.z, a.outOfBounds, a.banished, fx].join('|');
-    };
+    // 步長＝遊戲的固定步長；情境表、佈陣、狀態字串都在 simFingerprint.ts
+    const { DT, SIM_SCENARIOS, buildBattle, fingerprintFrame } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
+    const SCENARIOS = Object.entries(SIM_SCENARIOS).map(([id, sc]) => ({ id, ...sc }));
+    const SAMPLE_TICKS = Math.round(SAMPLE_S / DT);
 
     const runBattle = (sc, b, seed) => {
-        const engine = new GameEngine({ mute: true });
-        engine.seedSimulation(seed);
-        engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.units } });
-        engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
-        const layout = layoutFactionHexes(shuffle([...querySpawnableHexes(engine)]), sc.factions, sc.units);
-        for (let f = 0; f < sc.factions; f++) {
-            for (let u = 0; u < sc.units; u++) {
-                const hex = layout[f]?.[u];
-                if (!hex) throw new Error(`${sc.id} ${b}: faction ${f} unit ${u} has no spawn hex`);
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: f % 2 === 0 ? Team.BLUE : Team.RED, side: f, q: hex.q, r: hex.r, role: Role[ROLES[(f + u) % ROLES.length]] });
-            }
+        let engine;
+        try {
+            engine = buildBattle(sc.id, seed, SALT);
+        } catch (err) {
+            throw new Error(`battle ${b}: ${err.message}`, { cause: err });
         }
         let over = false;
         const casts = {};
@@ -76,7 +50,7 @@ try {
             engine.tick(DT);
             t += DT;
             if (++tick % SAMPLE_TICKS === 0) {
-                const frame = `${tick}#${engine.agents.map(unitState).join('\n')}`;
+                const frame = fingerprintFrame(engine, tick);
                 hash.update(frame);
                 lines?.push(frame);
             }

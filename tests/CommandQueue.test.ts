@@ -45,7 +45,7 @@ describe('CommandQueue', () => {
     });
 
     const setup = (seed: number): GameEngine => {
-        const e = new GameEngine();
+        const e = new GameEngine({ audio: false });
         e.seedSimulation(seed);
         e.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
         const radius = Math.floor(Math.max(e.mapConfig.w, e.mapConfig.h) / 2) + 1;
@@ -98,7 +98,8 @@ describe('CommandQueue', () => {
     /** 跑一場：setup → 開戰 → 指定 tick 送指令 → 跑到 ticks。回傳狀態指紋與指令紀錄 */
     const runBattle = (seed: number, ticks: number, script: (e: GameEngine, tick: number) => void, timeScale = 1) => {
         const e = setup(seed);
-        e.bus.emit('UI_COMMAND', { type: 'START_GAME' });
+        // START_GAME 沒給種子會產生新種子（契約 S2）：比較兩場時把同一個種子帶進開戰
+        e.bus.emit('UI_COMMAND', { type: 'START_GAME', seed });
         e.state.time.targetTimeScale = timeScale;
         for (let i = 0; i < ticks && e.isRunning; i++) {
             script(e, e.state.time.tick);
@@ -109,7 +110,7 @@ describe('CommandQueue', () => {
 
     /** 從空白引擎照紀錄重播：每個指令在它記錄的 tick 數時送出 */
     const replay = (seed: number, ticks: number, log: readonly CommandRecord[]) => {
-        const e = new GameEngine();
+        const e = new GameEngine({ audio: false });
         e.seedSimulation(seed);
         let idx = 0;
         const sendDue = () => { while (idx < log.length && log[idx].tick === e.state.time.tick) e.bus.emit('UI_COMMAND', log[idx++].cmd as UICommand); };

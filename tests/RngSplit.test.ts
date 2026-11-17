@@ -5,7 +5,7 @@ import { GameEngine } from '../engine/game';
 import { VFXSystem } from '../engine/presentation/vfx/VFXSystem';
 import { HexUtils } from '../engine/utils';
 import { Team, Role } from '../types';
-import { random, seedSimulation, getSimulationSeed } from '../engine/math/rng';
+import { random, seedSimulation, getSimulationSeed, setupRandom, seedSetupStream } from '../engine/math/rng';
 
 // 零件貼圖烘焙需要 DOM canvas；本測試只關心隨機流，故關閉烘焙（粒子仍照常抽籤）。
 vi.mock('../engine/renderers/vfxparts/VFXPartStore', async (orig) => ({
@@ -56,6 +56,20 @@ describe('RNG split: simulation stream vs presentation stream', () => {
         expect(offenders).toEqual([]);
     });
 
+    it('setup stream (UI 佈陣) never advances the simulation stream', () => {
+        seedSimulation(42);
+        const a = [random(), random(), random()];
+        seedSimulation(42);
+        seedSetupStream(7);
+        const b: number[] = [];
+        for (let i = 0; i < 3; i++) { setupRandom(); setupRandom(); b.push(random()); }
+        expect(b).toEqual(a);
+        seedSetupStream(7);
+        const s1 = setupRandom();
+        seedSetupStream(7);
+        expect(setupRandom()).toBe(s1);
+    });
+
     it('same seed gives the same simulation sequence, independent of Math.random', () => {
         seedSimulation(42);
         const a = [random(), random(), random()];
@@ -72,7 +86,7 @@ describe('RNG split: simulation stream vs presentation stream', () => {
 
     const runBattle = (storm: boolean): { snaps: Snap[]; time: number; damaged: number } => {
         seedSimulation(1234);
-        const engine = new GameEngine();
+        const engine = new GameEngine({ audio: false });
         const vfx = new VFXSystem();
         vfx.bind(engine);
         const hexes = HexUtils.range({ q: 0, r: 0 }, 5).filter(h => engine.isValid(h.q, h.r) && !engine.isBlocked(h.q, h.r));

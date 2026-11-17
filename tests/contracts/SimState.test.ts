@@ -9,7 +9,8 @@ import { buildBattle, runTicks, battleScript, emit, stateOf, terrainOf, SCENARIO
 describe('contracts/simState', () => {
     const run = (scenario: ScenarioId, seed: number, scripted: boolean) => {
         const e = buildBattle(scenario, seed);
-        emit(e, { type: 'START_GAME' });
+        // S2 之後 START_GAME 沒給種子就是新種子：同一個種子也帶進開戰
+        emit(e, { type: 'START_GAME', seed });
         const samples = runTicks(e, 600, scripted ? battleScript : undefined);
         return { samples, final: stateOf(e), log: e.commands.log.map((r) => `${r.tick}:${r.cmd.type}`) };
     };

@@ -234,6 +234,8 @@ const captureBattleFrozen = async (page) => {
     }, FIDELITY_MAP);
     if (process.env.FIDELITY_PRINT_MAP) console.log('[fidelity-map] battle_frozen', cfgB);
     await page.evaluate(() => window.__stepFrames(5));
+    // 骰子的佈陣抽號走佈陣流（engine/math/rng.ts setupRandom，契約 S2），和模擬流分開：一併固定
+    await page.evaluate(async () => (await import('/engine/math/rng.ts')).seedSetupStream(42));
     // Click dice button to generate battlefield and teams.
     // NOTE: Playwright's locator.click({ force: true }) silently does nothing under the synthetic
     // rAF/time harness (agents stayed 0 and the frame was an empty blurred scene), so dispatch a DOM click.

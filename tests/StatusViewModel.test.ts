@@ -6,7 +6,7 @@ import { EFFECT_KINDS } from '../engine/core/Effects';
 import { selectUnitStatusView } from '../engine/systems/ui/views/status';
 const engines: GameEngine[] = [];
 function fixture() {
-    const engine = new GameEngine(); engines.push(engine);
+    const engine = new GameEngine({ audio: false }); engines.push(engine);
     const config = { w: 10, h: 10, offsetX: 0, offsetY: 0, layout: 'FLAT' as const };
     const target = new Agent('target', Team.BLUE, 0, 0, config);
     const source = new Agent('source', Team.RED, 1, 0, config);

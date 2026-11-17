@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  batch-sim — 無畫面批次對戰，統計勝率與技能實際表現        ║
 // ║  用法：node tools/balance/batch-sim.mjs [--battles=200]    ║
-// ║        [--seed=1] [--maxTime=180] [--dt=0.0333]            ║
+// ║        [--seed=1] [--maxTime=180] [--dt=1/SIM_HZ]          ║
 // ║        [--out=tools/ui-e2e/out/balance.json] [--swapSides] ║
 // ║  做法：Vite ssrLoadModule 載入引擎（Node，無渲染），每場隨 ║
 // ║  機地圖、雙方各 5 職業一人、技能照 addAgent 隨機抽；包住   ║
@@ -20,12 +20,15 @@ const arg = (n, d) => { const h = process.argv.find((a) => a.startsWith(`--${n}=
 const BATTLES = Number(arg('battles', 200));
 const SEED = Number(arg('seed', 1));
 const MAX_TIME = Number(arg('maxTime', 180));
-const DT = Number(arg('dt', 1 / 30));
+const DT_ARG = arg('dt', null);
 const OUT = arg('out', 'tools/ui-e2e/out/balance.json');
 const SWAP = process.argv.includes('--swapSides'); // 藍方改站右邊，用來分離站位與陣營的影響
 
 const server = await createServer({ root: process.cwd(), server: { middlewareMode: true }, logLevel: 'error', appType: 'custom' });
 try {
+    // 預設步長＝遊戲的固定步長（GAME_LOOP_PARAM.SIM_HZ）；--dt 只做 A/B
+    const { GAME_LOOP_PARAM } = await server.ssrLoadModule('/constants.ts');
+    const DT = DT_ARG === null ? 1 / GAME_LOOP_PARAM.SIM_HZ : Number(DT_ARG);
     const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { SkillExecutor } = await server.ssrLoadModule('/engine/systems/combat/SkillExecutor.ts');
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
@@ -163,7 +166,7 @@ try {
     const battles = [];
     const t0 = Date.now();
     for (let b = 0; b < BATTLES; b++) {
-        const engine = new GameEngine({ mute: true });
+        const engine = new GameEngine({ audio: false });
         engine.seedSimulation(SEED * 100000 + b);
         engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
         const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
@@ -285,7 +288,7 @@ try {
     const totalUnattrAll = battles.reduce((acc, b) => acc + b.hpLoss.unattributedDmg, 0);
 
     const summary = {
-        battles: BATTLES, seed: SEED, dt: DT, maxTime: MAX_TIME, swapSides: SWAP,
+        battles: BATTLES, seed: SEED, dt: +DT.toFixed(4), maxTime: MAX_TIME, swapSides: SWAP,
         wins, blueWinRate: +pBlue.toFixed(3), ci95: +ci.toFixed(3),
         avgTime: +(battles.reduce((s, r) => s + r.time, 0) / BATTLES).toFixed(1),
         wallSeconds: +((Date.now() - t0) / 1000).toFixed(1),

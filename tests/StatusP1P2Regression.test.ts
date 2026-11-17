@@ -24,7 +24,7 @@ function skill(id: string, element: Skill['element'] = 'POISON'): Skill {
     return { id, name: id, element, tag: 'ACTIVE', role: Role.MAGE, range: 8, cast: 0, cd: 0, cost: 0, gain: 0, type: 'SINGLE', power: 0, color: '#ffffff' };
 }
 function fixture() {
-    const engine = new GameEngine(); engines.push(engine);
+    const engine = new GameEngine({ audio: false }); engines.push(engine);
     const a = new Agent('a', Team.RED, -1, 0, MAP);
     const b = new Agent('b', Team.RED, -2, 0, MAP);
     const target = new Agent('target', Team.BLUE, 0, 0, MAP);
