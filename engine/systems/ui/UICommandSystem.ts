@@ -11,15 +11,13 @@ import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 import { querySpawnableHexes } from './editorQueries';
 import { captureMatch, restoreMatch } from '../../core/MatchSnapshot';
+import { UINT32_RANGE } from '../../math/rng';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const clampToRange = (v: number, range: NumericRange): number =>
     Math.max(range.min, Math.min(range.max, v));
-
-/** uint32 的範圍 */
-const UINT32_RANGE = 0x100000000;
 
 /**
  * 新的一場的模擬流種子（uint32）。全專案唯一允許用 crypto／Math.random 取模擬種子的地方（契約 S2）：

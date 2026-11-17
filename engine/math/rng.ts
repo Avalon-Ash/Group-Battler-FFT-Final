@@ -55,8 +55,8 @@ export function resetRandomSource(): void {
     source = defaultSource;
 }
 
-/** uint32 的範圍（取種子用） */
-const UINT32_RANGE = 0x100000000;
+/** uint32 的範圍（取種子用）。唯一定義；UICommandSystem 產生新種子時也讀這裡 */
+export const UINT32_RANGE = 0x100000000;
 
 // ── 佈陣流（契約 S2）──────────────────────────────────────────────────────
 // UI 端開戰前的抽號（展示模式的地圖大小、佈局、陣營設定、出生格洗牌、外觀鹽）專用。
