@@ -755,3 +755,15 @@
 - 量測（400 場 seed 21，改動前→後，雜訊 ±4.9 個百分點）：藍方勝率 55.2%→56.1%、靠右 57.8%→56.4%（平均 56.5%→56.25%），平均長度 19.1→19.4 秒、19.3→19.3 秒。`balance:idle` 200 場：TEAMS 各職業發呆 1.1/1.0/0.5/0.5/0.6%→1.0/0.8/0.5/0.3/0.5%，繞圈最大變動 +0.16 點（坦克 2.59→2.75%），輔助的目標切換每分鐘 38→7.1 次（以前每次對友軍施法都換一次 `a.target`）；ROYALE 發呆與繞圈都在 ±0.16 點內。開案書 G2 寫的是 600 場 ±1.5 點，這次照派工單用 400 場與雜訊門檻。
 - 指紋：改動後 TEAMS 6/60、ROYALE 19/60、SQUADS 3/60 相同（預期會變），獨立 commit 重錄，之後連跑兩次 0 差異。lint、`npm test` 161 檔 1547 則、build、knip 全過；G2 契約 4 則真的通過，S2、S3 契約維持通過。
 - 留下的：`engine/renderers/grid/GroundPriority.ts` 的 `isCasterCenteredTelegraph` 仍讀 `targetHex ?? target`，註解說要和建立預警區的來源一致；現有技能沒有「單體、帶 AOE 半徑、對友軍」的組合（170 招查過），所以結果不變。這一輪渲染線有 R1 在跑、不能動渲染檔，之後動到那裡時改讀 `castAim`。
+
+### CA. 2026-11-18 優化開案書 R2 對局流程移出 React（主代理 Fable）
+- 一局接一局的流程（結算停留、退場、換圖、進場、等圖集、生成、開戰）搬進 `engine/systems/match/MatchFlowSystem.ts`，用真實時間推進（`useGameLoop` 每個畫面呼叫一次），取代 `useGameApp` 的巢狀 `setTimeout`。排陣容、抽地圖、放單位在 `engine/systems/match/Deployment.ts`（純函式，亂數由呼叫端傳入），展示回合與手動的骰子、下一關、套用設定共用。
+- 階段多半由引擎狀態當場推導（打完了＝`RESULT_HOLD`、開戰了＝`PLAYING`、否則 `LOBBY`），流程只記計時階段，而且不監聽 `engine.bus`：回放、跳轉、手動重開都不用通知它（`tests/SimBusListeners.test.ts` 維持通過）。結算結果在進結算那一刻鎖存，轉場清盤後 UI 仍讀得到。
+- UI 改讀 `selectSessionView`、`selectBoardView`（`engine/systems/ui/views/session.ts`）：hook 的 session 狀態、單位數輪詢、地圖寬高與場景的鏡像欄位全部刪掉；階段一變流程就發 `MATCH_PHASE`，UI 立刻刷新（`refreshEngineViews`），hook 自己送完指令也立刻刷新。
+- 轉場階段由流程持有：`GameRenderer.update` 每幀讀 `engine.matchFlow.transition`，`GameCanvas` 不再收 props，進場開始時的鏡頭置中改聽 `MATCH_PHASE`。等圖集由組裝層注入 `isRosterReady`，下一批陣容用 `MATCH_ROSTER` 公布。
+- 亂數：展示回合全部來自注入的 `nextSeed`（陣營設定、地圖大小、出生格用這一局的本地序列 `createRandomStream`；地圖生成器與場景抽選讀模擬流，換圖前先重設；開戰給 `START_GAME` 種子）。手動骰子維持全域佈陣流與原本的抽號順序。
+- 行為改變（四項，都是刻意的）：平手也會進下一局（以前 `winner` 是 null 就卡住）；分頁在背景時流程跟著停，回來從停下的地方接著走（`GAME_APP_PARAM.FLOW_MAX_FRAME_MS` 限制每個畫面最多前進 100 毫秒）；分出勝負後播放鈕一律不動作（以前藍方獲勝時擋不住，因為 `Team.BLUE` 是 0）；編輯面板的地圖寬高顯示引擎實際的值（夾過範圍的）。
+- 轉場時間（`tools/ui-e2e/out/r2-flow-probe.mjs`，展示模式不按 START，改動前→後）：結算停留 2011～2023→2004～2007 毫秒、退場 1199～1203→1198～1201、進場 1504→1498～1500、進場後到開打 9～10→9～12；事件順序相同（清盤→退場、清盤→進場＋換圖、進場結束→開打）。連跑 6 局 0 頁面錯誤（dev server 開著 StrictMode）。
+- 驗證：R2 契約 6 則真的通過；`npm test` 161 檔 1547 則、lint、build、knip；`balance:fingerprint` 180/180；`runtime-smoke`；`perf:guard`（保真 6 張沒重錄，`battle_frozen` 0.000；效能比值 0.99～1.00）；`?replay=bench-magma-20.json` 開機正常；手動模式實跑 8 項（進手動、骰子、打完結算停住、結算按回放、切回展示沿用玩家設定）全過。
+- `npm run e2e:ui` 在工作樹裡有一項「no console/page errors」失敗：兩個字型檔經 `node_modules` 連結回 403（Vite 不服務工作樹以外的路徑），其餘全過、樣式快照 0 差異；這是工作樹環境造成的，合併後要在主資料夾重跑確認。
+- 開機 effect 在 StrictMode 下跑兩次、各開一個展示回合（和以前一樣）：陣容局數計數器因此在擲骰時是 3，`battle_frozen` 的體型靠它固定；改成只跑一次會讓那張基準變動。

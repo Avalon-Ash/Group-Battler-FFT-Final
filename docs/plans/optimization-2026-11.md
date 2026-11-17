@@ -170,7 +170,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **驗收**：`npm run perf:guard` 通過且保真 0 差異（alpha 預設 1）；`npm test`（`tests/CoordinateProtocol.test.ts` 基準不得增加）；探針數字前後對照；`render-verify` 看移動中的連續畫面；請使用者在 239 Hz 主螢幕與 iPhone 比 `?interp=0`／預設。
 - **停下來問**：保真基準出現非 0 差異；或需要改 `UnitFrame` 以外的繪製端才能對齊。
 
-### R2 對局流程移出 React（MatchFlow）
+### R2 對局流程移出 React（MatchFlow）（完成 2026-11-18，WORKLOG §2 CA）
 - **作法**：
   1. 引擎端新增對局流程系統（放 `engine/systems/` 下自己的子目錄）：一台狀態機 `LOBBY → PLAYING → RESULT_HOLD → TRANSITION_OUT → TRANSITION_IN → SPAWN_WAIT → PLAYING`，用真實時間推進（遊戲迴圈每幀呼叫一次，不在模擬 tick 裡），時間參數沿用 `GAME_APP_PARAM`。展示模式的抽圖大小、佈局、陣營設定、佈陣全部搬進來，用 S2 的佈陣序列。
   2. 等圖集這件事屬於表現層：流程系統發 `engine.bus` 事件公布下一批陣容，組裝層（`GameCanvas`）注入一個「準備好了嗎」的回呼；流程系統不 import `SpriteAtlasStore`（守住 `tests/LayerBoundary.test.ts`）。
