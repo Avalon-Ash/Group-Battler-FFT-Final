@@ -84,6 +84,46 @@ describe('回放：暫停與結束', () => {
         expect(b.agents).toHaveLength(0);
     });
 
+    it('暫停中編輯（放單位、換技能、換職業）後繼續：新單位有 AI 與技能，回放出同一場', () => {
+        const a = buildBattle('TEAMS', 41);
+        emit(a, { type: 'START_GAME', seed: SEED });
+        for (let i = 0; i < 600 && a.isRunning; i++) {
+            const t = a.state.time.tick;
+            if (t === 300) {
+                emit(a, { type: 'STOP_GAME' });
+                const free = [...a.map.mapKeys].map((k) => k.split(',').map(Number))
+                    .find(([q, r]) => !a.hasObstacle(q, r) && !a.agents.some((u) => u.q === q && u.r === r))!;
+                emit(a, { type: 'PLACE_AGENT', team: a.agents[0].team, q: free[0], r: free[1] });
+                const unit = a.agents[2];
+                const other = a.skillDB.find((s) => !unit.skillIds.includes(s.id))!;
+                emit(a, { type: 'SET_AGENT_SKILL', agentId: unit.id, slot: 1, skillId: other.id });
+                emit(a, { type: 'EDIT_AGENT', agentId: a.agents[3].id, role: a.agents[0].role });
+                emit(a, { type: 'START_GAME' });
+                const placed = a.agents.at(-1)!;
+                expect(placed.bt).not.toBeNull();
+                expect(placed.skills.length).toBe(placed.skillIds.length);
+                expect(unit.skills[1]?.id).toBe(other.id);
+            }
+            stepSimulation(a);
+        }
+        const file = JSON.parse(JSON.stringify(exportReplay(a))) as ReplayFile;
+        expect(file.commands.map((r) => `${r.tick}:${r.cmd.type}`)).toEqual(['300:PLACE_AGENT', '300:SET_AGENT_SKILL', '300:EDIT_AGENT']);
+        const b = new GameEngine({ audio: false });
+        const session = startReplay(b, file);
+        while (b.state.time.tick < file.endTick && b.isRunning) stepSimulation(b, session);
+        expect(stateOf(b)).toBe(stateOf(a));
+    });
+
+    it('開戰前換技能不會在空的技能陣列裡留洞（開戰時才依 id 取）', () => {
+        const e = buildBattle('TEAMS', 41);
+        const unit = e.agents[0];
+        const other = e.skillDB.find((s) => !unit.skillIds.includes(s.id))!;
+        emit(e, { type: 'SET_AGENT_SKILL', agentId: unit.id, slot: 2, skillId: other.id });
+        expect(unit.skills.length === 0 || unit.skills.length === unit.skillIds.length).toBe(true);
+        emit(e, { type: 'START_GAME', seed: SEED });
+        expect(unit.skills[2]?.id).toBe(other.id);
+    });
+
     it('戰鬥中換技能當下生效（不再要等暫停後繼續）', () => {
         const e = buildBattle('TEAMS', 41);
         emit(e, { type: 'START_GAME', seed: SEED });

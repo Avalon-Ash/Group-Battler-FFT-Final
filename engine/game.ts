@@ -242,9 +242,9 @@ export class GameEngine implements SpatialProvider {
 
     public play() {
         if (this.isRunning) return;
-        // 暫停後繼續（已經跑過 tick）：只恢復運轉，不碰模擬狀態（契約 S3：暫停、繼續不影響模擬，回放時觀看者可以暫停）。
-        // 以前這裡也會重跑開局重設：戰鬥時間歸零、清掉戰鬥紀錄、重建 AI。
-        if (this.state.time.tick > 0) {
+        // 暫停後繼續：只恢復運轉，不碰模擬狀態（契約 S3：暫停、繼續不影響模擬，回放時觀看者可以暫停）。
+        // 以前這裡也會重跑開局重設：戰鬥時間歸零、清掉戰鬥紀錄、重建 AI。暫停中生成、換技能的單位由各自的指令備妥（battleStarted）
+        if (this.battleStarted) {
             this.isRunning = true;
             return;
         }
@@ -366,6 +366,12 @@ export class GameEngine implements SpatialProvider {
         this.flushVisualEvents();
         this.timeSystem.tick(dt, this); // D13: see above
     }
+
+    /**
+     * 這一場已經開戰（運轉中，或跑過 tick 後暫停）。「開戰前／開戰後」只用這一個判斷：
+     * 開戰後生成或換技能的單位要當場備妥技能與 AI（開戰前由 play 的 prepareForBattle 統一做）。
+     */
+    public get battleStarted(): boolean { return this.isRunning || this.state.time.tick > 0; }
 
     /** 回放快轉中（契約 S3）。狀態只存在匯流排的靜音裡，這裡只讀 */
     public get fastForwarding(): boolean { return this.bus.muted; }

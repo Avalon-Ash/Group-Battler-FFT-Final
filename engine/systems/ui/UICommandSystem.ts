@@ -86,7 +86,7 @@ export class UICommandSystem {
      * 只有開新的一場才擷取快照、播種；繼續只是恢復運轉。
      */
     private startsNewMatch(): boolean {
-        return !this.engine.isRunning && this.engine.state.time.tick === 0;
+        return !this.engine.battleStarted;
     }
 
     private apply(cmd: UICommand): void {
@@ -211,8 +211,8 @@ export class UICommandSystem {
                 // 正在詠唱這一格時不換：計時與演出已依這一招排定（ULT-T01）
                 if (agent.castingSkillIdx === cmd.slot) break;
                 agent.skillIds[cmd.slot] = cmd.skillId;
-                // 當下就換上技能物件：以前要等暫停後繼續（play 重跑 prepareForBattle）才生效，繼續現在不再重設單位
-                agent.skills[cmd.slot] = cmd.skillId === null ? null : this.engine.skillDB.find((s) => s.id === cmd.skillId) ?? null;
+                // 開戰後當下就換上技能物件（繼續不再重跑 prepareForBattle）；開戰前 skills 還是空的，開戰時才依 id 取
+                if (this.engine.battleStarted) agent.skills[cmd.slot] = cmd.skillId === null ? null : this.engine.skillDB.find((s) => s.id === cmd.skillId) ?? null;
                 break;
             }
 
