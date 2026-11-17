@@ -7,17 +7,26 @@ import { useCompactViewport } from '../../hooks/useCompactViewport';
 import { Button, IconButton } from './primitives';
 import { cn } from './primitives/cn';
 import { MENU_DOT_CLASSES, MENU_SECTIONS } from '../../data/ui/labels/l1';
+import { useView } from '../../hooks/useEnginePort';
+import { selectL1PlaybackView } from '../../engine/systems/ui/views/l1';
 
 interface SystemMenuProps {
     onDownloadSpec: () => void;
+    /** 下載這一場的回放檔（契約 S3） */
+    onSaveReplay: () => void;
+    /** 選一份回放檔來播（useGameApp） */
+    onLoadReplay: () => void;
     mode?: 'showcase' | 'manual';
 }
 
 export const SystemMenu: React.FC<SystemMenuProps> = ({
     onDownloadSpec,
+    onSaveReplay,
+    onLoadReplay,
     mode = 'manual',
 }: SystemMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
+    const playback = useView(selectL1PlaybackView);
     const isCompact = useCompactViewport();
 
     const windowStates = useWindowStore();
@@ -123,6 +132,47 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                                 <div className="flex flex-col items-start text-left min-w-0">
                                     <span className="font-bold truncate">重設版面</span>
                                     <span className="font-mono text-ui-num text-fg-muted truncate">清除視窗位置記憶</span>
+                                </div>
+                            </Button>
+
+                            <Button
+                                data-testid="menu-item-save-replay"
+                                variant="ghost"
+                                size="auto"
+                                align="start"
+                                className="w-full gap-2.5 px-3 py-1.5 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                disabled={!playback?.hasMatch}
+                                onClick={() => {
+                                    onSaveReplay();
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <span className="w-4 h-4 flex items-center justify-center text-fg-muted shrink-0">
+                                    <Icons.Save className="w-4 h-4" />
+                                </span>
+                                <div className="flex flex-col items-start text-left min-w-0">
+                                    <span className="font-bold truncate">存回放</span>
+                                    <span className="font-mono text-ui-num text-fg-muted truncate">這一場的開局與指令（JSON）</span>
+                                </div>
+                            </Button>
+
+                            <Button
+                                data-testid="menu-item-load-replay"
+                                variant="ghost"
+                                size="auto"
+                                align="start"
+                                className="w-full gap-2.5 px-3 py-1.5 text-fg-secondary hover:text-fg-primary rounded-ui-control"
+                                onClick={() => {
+                                    onLoadReplay();
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <span className="w-4 h-4 flex items-center justify-center text-fg-muted shrink-0">
+                                    <Icons.Open className="w-4 h-4" />
+                                </span>
+                                <div className="flex flex-col items-start text-left min-w-0">
+                                    <span className="font-bold truncate">載入回放</span>
+                                    <span className="font-mono text-ui-num text-fg-muted truncate">從頭播一份回放檔</span>
                                 </div>
                             </Button>
 

@@ -17,6 +17,10 @@ interface PlaybackHUDProps {
     onRestart: () => void;
     onRandom: () => void;
     onShowcase: () => void;
+    /** 從這一場的開戰快照重播（契約 S3） */
+    onRewind: () => void;
+    /** 回放中：停止照紀錄播，從現在繼續 */
+    onTakeOver: () => void;
 }
 
 export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
@@ -27,6 +31,8 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     onRestart,
     onRandom,
     onShowcase,
+    onRewind,
+    onTakeOver,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const playback = useView(selectL1PlaybackView);
@@ -83,6 +89,37 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                 >
                     <Icons.Restart className="h-4 w-4" />
                 </IconButton>
+                <IconButton
+                    data-testid="playback-rewind-btn"
+                    label="回到開頭重播這一場"
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-ui-pill shrink-0"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRewind();
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    disabled={!playback?.hasMatch}
+                >
+                    <Icons.Rewind className="h-4 w-4" />
+                </IconButton>
+                {playback?.replaying && (
+                    <IconButton
+                        data-testid="playback-takeover-btn"
+                        label="接手：停止回放，從這裡繼續"
+                        size="sm"
+                        variant="primary"
+                        className="rounded-ui-pill shrink-0"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onTakeOver();
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        <Icons.TakeOver className="h-4 w-4" />
+                    </IconButton>
+                )}
                 <IconButton
                     label="隨機生成戰場與陣容"
                     size="sm"

@@ -12,6 +12,8 @@ import { querySpawnableHexes, layoutFactionHexes, factionRoleIndex, rollShowcase
 import { pickBodyType } from '../data/units/appearance/bodyTypes';
 import { pickFactionLooks, plainLook } from '../data/units/factionTint';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
+import { BUILD_ID, exportReplay, startReplay, takeOver } from '../engine/core/Replay';
+import { downloadReplay, fetchPublicReplay, pickReplayFile, readReplayFile, replayQuery, type LoadedReplay } from '../engine/presentation/ReplayIO';
 
 /** 展示陣容的一個位置：陣營、角色與體型在生成前就決定，圖集才能在轉場期間預載 */
 interface ShowcaseSlot { side: number; team: Team; role: Role; bodyType: BodyTypeId; look: FactionLook }
@@ -70,7 +72,8 @@ export const useGameApp = () => {
         winnerSide: null as number | null,
         /** 目前場上這一局的陣營設定（生成時記下；面板改了但還沒開新局時，結算仍照這個） */
         battleSetup: { ...initialEngine.battleSetup } as BattleSetup,
-        isShowcaseMode: true, 
+        // ?replay=<檔> 開機直接播回放檔（效能基準場景），不進展示模式
+        isShowcaseMode: replayQuery() === null,
         transitionPhase: 'IDLE' as 'IDLE' | 'IN' | 'OUT',
         unitCount: 0
     });
@@ -296,7 +299,33 @@ export const useGameApp = () => {
         }
     }, [session.winner, session.isShowcaseMode, setupShowcaseMap, spawnShowcaseUnits, planShowcaseRoster]);
 
+    /** 換掉整場的操作（重開、換圖、切模式）先結束回放：回放進行中遊戲指令會被擋 */
+    const leaveReplay = useCallback(() => {
+        const engine = engineRef.current;
+        const playing = engine.commands.replay;
+        if (playing) takeOver(engine, playing);
+    }, []);
+
+    /** 播一份回放檔（契約 S3）：離開展示模式、從它的開戰快照開始。版本不同只警告，照樣播 */
+    const playReplay = useCallback((loaded: LoadedReplay) => {
+        const engine = engineRef.current;
+        if (loaded.versionMismatch) {
+            console.warn(`回放檔由 ${loaded.file.build} 產生，現在是 ${BUILD_ID}：模擬可能改過，結果不一定和當時相同`);
+        }
+        // 先關展示旗標（回放開始後展示流程送的清盤、佈陣都會被擋）
+        engine.bus.emit('UI_COMMAND', { type: 'SET_SHOWCASE_MODE', enabled: false });
+        selectionStore.clear();
+        startReplay(engine, loaded.file);
+        setSession(prev => ({ ...prev, isShowcaseMode: false, isPlaying: true, winner: null, winnerId: null, winnerSide: null, transitionPhase: 'IDLE', battleSetup: { ...engine.battleSetup }, unitCount: engine.agents.length }));
+        setEditor(prev => ({ ...prev, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, hexLayout: engine.mapConfig.layout, currentSceneId: engine.currentScene.id }));
+    }, []);
+
     useEffect(() => { 
+        const replayName = replayQuery();
+        if (replayName !== null) {
+            fetchPublicReplay(replayName).then(playReplay).catch((err: unknown) => console.error(err));
+            return;
+        }
         if (session.isShowcaseMode) {
             setupShowcaseMap(); 
             engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: rollShowcaseSetup(setupRandom) });
@@ -322,6 +351,7 @@ export const useGameApp = () => {
     }, [watchSelectedAgentId]);
 
     const enterManualMode = () => {
+        leaveReplay();
         const engine = engineRef.current;
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true });
@@ -386,6 +416,7 @@ export const useGameApp = () => {
                 setEditor(p => ({...p, currentSceneId: id}));
             },
             handleRandomBattlefield: () => { 
+                leaveReplay();
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
@@ -396,6 +427,7 @@ export const useGameApp = () => {
                 setEditor(p => ({...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id})); 
             },
             handleReset: () => {
+                leaveReplay();
                 engineRef.current.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
                 setSession(p => ({...p, isPlaying: false, winner: null, winnerId: null}));
                 engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
@@ -417,6 +449,7 @@ export const useGameApp = () => {
                 }
             },
             handleNextLevel: () => { 
+                leaveReplay();
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
@@ -426,13 +459,35 @@ export const useGameApp = () => {
                 engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
             rematch: () => {
+                leaveReplay();
                 const engine = engineRef.current;
                 engine.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
                 engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
                 setSession(p => ({...p, isPlaying: true, winner: null, winnerId: null}));
                 engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: UI_SETTINGS.TIME_SCALE.default });
             },
-            startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
+            startShowcaseMatch: () => { leaveReplay(); setupShowcaseMap(); spawnShowcaseUnits(); },
+            /** 存回放：正在播回放就存那一份（整場），否則存這一場到目前為止 */
+            saveReplay: () => {
+                const engine = engineRef.current;
+                const playing = engine.commands.replay;
+                if (playing?.active) downloadReplay(playing.file);
+                else if (engine.commands.matchStart) downloadReplay(exportReplay(engine));
+            },
+            loadReplay: () => pickReplayFile((blob) => {
+                readReplayFile(blob).then(playReplay).catch((err: unknown) => console.error(err));
+            }),
+            /** 回到開頭：從這一場的開戰快照重播（含戰中指令）；正在播回放就從那一份的開頭 */
+            rewindToStart: () => {
+                const engine = engineRef.current;
+                const playing = engine.commands.replay;
+                const file = playing?.active ? playing.file : (engine.commands.matchStart ? exportReplay(engine) : null);
+                if (!file) return;
+                startReplay(engine, file);
+                setSession(p => ({ ...p, isPlaying: true, winner: null, winnerId: null, winnerSide: null }));
+            },
+            /** 接手：停止照紀錄播，從現在的狀態繼續即時模擬 */
+            takeOverReplay: leaveReplay,
             downloadSpec: DesignExporter.downloadAll,
             handleSelectAgent: (a: Agent | null) => selectionStore.set(a ? [a.id] : [])
         }

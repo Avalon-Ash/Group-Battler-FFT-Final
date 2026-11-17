@@ -43,13 +43,15 @@ const IMMEDIATE_GAME_COMMANDS: ReadonlySet<GameCommand['type']> = new Set<GameCo
 ]);
 
 /**
- * 不影響模擬的 GameCommand（契約 S3）：暫停、繼續（tick > 0 的 START_GAME 只恢復運轉）、倍率。
+ * 不影響模擬的 GameCommand（契約 S3）：暫停、繼續（tick > 0 的 START_GAME 只恢復運轉）、倍率、
+ * 展示模式旗標（只有音訊在聽）。
  * 它們照樣進 log，但回放檔不收、回放時不餵、undo 不算；回放進行中也照常放行（觀看者可以暫停、調速）。
  */
 const SIM_NEUTRAL_COMMANDS: ReadonlySet<GameCommand['type']> = new Set<GameCommand['type']>([
     'STOP_GAME',
     'START_GAME',
     'SET_TIME_SCALE',
+    'SET_SHOWCASE_MODE',
 ]);
 
 export function isSimNeutral(cmd: GameCommand): boolean {

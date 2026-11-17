@@ -5,6 +5,8 @@
  *   1) battle_calm: 5v5 持續交戰 (HP 調高，無特效風暴)
  *   2) battle_vfx_storm: 5v5 特效壓力情境 (全場各類特效齊發)
  *   3) showcase: 展示模式 (純交戰區間，排除轉場幀)
+ *   4) replay_magma20: 播 public/replays/bench-magma-20.json（20 人岩漿，固定站位與奧義序列，契約 S3）
+ *   只跑其中幾個：PERF_SCENARIOS=replay_magma20,showcase
  * 
  * 執行規格：
  *   - 2560×1440, DPR 1, headed, 主螢幕 (RTX 4070)
@@ -34,7 +36,13 @@ mkdirSync(OUT_DIR, { recursive: true });
 const DURATION_SECONDS = Number(process.env.PERF_FRAMES_SECONDS || 20);
 const ROUNDS = Number(process.env.PERF_ROUNDS || 3);
 const isHeadless = process.env.PERF_HEADLESS === '1';
-const SCENARIOS = ['battle_calm', 'battle_vfx_storm', 'showcase'];
+const ALL_SCENARIOS = ['battle_calm', 'battle_vfx_storm', 'showcase', 'replay_magma20'];
+/** 回放情境播的檔（public/replays/），用 tools/replay/record-bench.mjs 錄 */
+const REPLAY_BENCH_FILE = 'bench-magma-20.json';
+const SCENARIOS = process.env.PERF_SCENARIOS
+    ? process.env.PERF_SCENARIOS.split(',').filter((x) => ALL_SCENARIOS.includes(x))
+    : ALL_SCENARIOS;
+if (SCENARIOS.length === 0) throw new Error(`PERF_SCENARIOS 沒有認得的情境（可用：${ALL_SCENARIOS.join(', ')}）`);
 
 function median(arr) {
     if (!arr.length) return 0;
@@ -209,7 +217,11 @@ await page.addInitScript(() => {
 async function runScenarioMeasurement(scenario, round) {
     console.log(`\n>>> [Round ${round}/${ROUNDS}] Measuring [${scenario}] for ${DURATION_SECONDS}s ...`);
 
-    if (scenario === 'showcase') {
+    if (scenario === 'replay_magma20') {
+        await page.goto(`${baseUrl}&replay=${REPLAY_BENCH_FILE}`, { waitUntil: 'networkidle' });
+        await page.waitForFunction(() => window.__TACTICAL_ENGINE__?.commands?.replay?.active === true, null, { timeout: 15000 });
+        await assertAgents(page, 2);
+    } else if (scenario === 'showcase') {
         await page.goto(baseUrl, { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);
         await page.evaluate(() => {

@@ -13,13 +13,17 @@ export function selectL1PlaybackView(engine: GameEngine): PlaybackHUDView {
     const timeScale = engine.state.time.timeScale;
     const targetTimeScale = engine.state.time.targetTimeScale;
     const winner = engine.state.victory.winningTeam;
+    const replaying = engine.commands.replay?.active === true;
+    const hasMatch = engine.commands.matchStart !== null;
 
     if (
         prevPlaybackView &&
         prevPlaybackView.isRunning === isRunning &&
         prevPlaybackView.timeScale === timeScale &&
         prevPlaybackView.targetTimeScale === targetTimeScale &&
-        prevPlaybackView.winner === winner
+        prevPlaybackView.winner === winner &&
+        prevPlaybackView.replaying === replaying &&
+        prevPlaybackView.hasMatch === hasMatch
     ) {
         return prevPlaybackView;
     }
@@ -29,6 +33,8 @@ export function selectL1PlaybackView(engine: GameEngine): PlaybackHUDView {
         timeScale,
         targetTimeScale,
         winner,
+        replaying,
+        hasMatch,
     };
     prevPlaybackView = next;
     return next;

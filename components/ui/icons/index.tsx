@@ -1,5 +1,5 @@
 import {
-    ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronRight, Crosshair, Database, Diamond, Dices, Flag, GitBranch, GitFork, HeartPulse, ListOrdered, Map as MapIcon, Maximize2, Menu, Minimize2, MousePointer2, Pause, Play, RotateCcw, Save, ScrollText, Search, Settings, Shield, Sparkles, Swords, Trash2, TriangleAlert, Tv, Volume2, WandSparkles, X, Zap,
+    ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronDown, ChevronRight, Crosshair, Database, Diamond, Dices, Flag, FolderOpen, Gamepad2, GitBranch, GitFork, HeartPulse, ListOrdered, Map as MapIcon, Maximize2, Menu, Minimize2, MousePointer2, Pause, Play, RotateCcw, Save, ScrollText, Search, Settings, Shield, SkipBack, Sparkles, Swords, Trash2, TriangleAlert, Tv, Volume2, WandSparkles, X, Zap,
 } from 'lucide-react';
 
 /** 全專案透過鍵名使用圖示；鍵名不可改，換圖只改右邊。 */
@@ -22,6 +22,8 @@ export const Icons = {
     Play,
     Pause,
     Restart: RotateCcw,
+    Rewind: SkipBack,
+    TakeOver: Gamepad2,
     Dice: Dices,
     TV: Tv,
     VFX: Sparkles,
@@ -34,6 +36,7 @@ export const Icons = {
     Log: ScrollText,
     Database,
     Save,
+    Open: FolderOpen,
     Warning: TriangleAlert,
 
     // --- 之後換掉 emoji 用 ---

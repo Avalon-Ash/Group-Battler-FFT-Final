@@ -64,11 +64,15 @@ function App() {
           onRestart={actions.handleReset}
           onRandom={actions.handleRandomBattlefield} 
           onShowcase={() => { setters.setIsShowcaseMode(true); actions.startShowcaseMatch(); }}
+          onRewind={actions.rewindToStart}
+          onTakeOver={actions.takeOverReplay}
       />
       {!isGameOver && (
           <SystemMenu 
               mode={state.isShowcaseMode ? 'showcase' : 'manual'}
               onDownloadSpec={actions.downloadSpec}
+              onSaveReplay={actions.saveReplay}
+              onLoadReplay={actions.loadReplay}
           />
       )}
 
