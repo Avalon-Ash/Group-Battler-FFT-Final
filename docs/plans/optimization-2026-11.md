@@ -255,7 +255,7 @@ repo 合約寫於 Pro 方案時期，和全域憲法（11-14、11-16 修訂）�
 - 把憲法的「動手原則」（定調類主代理自己做）在 repo 合約補一句，雲端工作階段才讀得到。
 改完跑 `tests/HarnessContract.test.ts`，並照 `codex-dispatch` 同步副本。
 
-### C2 模擬狀態字串與佈陣的重複定義（提案，待使用者同意；同意前不動）
+### C2 模擬狀態字串與佈陣的重複定義（完成 2026-11-17：使用者同意後由 Opus high 實作、Fable 終審；共用模組在 `tools/balance/simFingerprint.ts`，以下留作紀錄）
 - **現況（Fable 自己造成的重複，照憲法「既有的耦合先回報」列出）**：「單位狀態字串」（比對兩場戰鬥是否相同用的欄位與格式）和「隨機佈陣開戰的流程」各有兩份：`tools/balance/sim-fingerprint.mjs` 與 `tests/contracts/simState.ts`。其中一邊改了欄位，另一邊不會跟著變，契約驗收和指紋量的就不是同一件事。
 - **提案**：抽成一個共用的 TS 模組（建議 `engine/core/SimFingerprint.ts`：`unitState(agent)`、`stateOf(engine)`、`deployBattle(engine, scenario)`），工具用 `ssrLoadModule` 讀它，`simState.ts` 改成轉呼叫。
 - **什麼時候做**：S1、S2 合併之後的獨立小包。S1 正在改 `sim-fingerprint.mjs`，不併進去；S1、S2 期間兩邊都不改欄位與格式。
