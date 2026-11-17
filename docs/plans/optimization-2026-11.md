@@ -213,6 +213,9 @@ R1 畫面插值（獨立，渲染線第一條）
 - **第一個可玩切片**（先交這個給使用者試）：手動模式、一個單位切成玩家控制、移動與普攻；其他單位照常 AI。技能施放與多單位是第二片。
 - **驗收**：測試：一串固定的 order 指令重播兩次結果相同；沒有任何玩家單位時 `npm run balance:fingerprint` 0 差異（AI 路徑沒被動到）；`npm run e2e:ui`、`npm run audit:ui -- all`。
 - **已定**（契約 G3）：即時＋可暫停下令；沒指令時原地堅守。現在 5v5 一場平均 19 秒，第一個切片交給使用者試玩後，節奏太快再談放慢（會動到平衡）。
+- **承接 G2（Fable 終審 2026-11-18）**：
+  - 玩家指令節點直接呼叫 `initiateCast` 之前，要先用 `aimCastAt` 設好或清掉施法目標（唯一寫入者是 `SkillStateMachine`）。
+  - 地面施法的瞄準還沒收進 `castAim`：`CastPushPull` 對地面起手時仍靠清掉 `a.target` 讓管線改瞄格子，施法後由 `HasTarget` 重新選敵（G2 先接受，只發生在背水一戰的推拉）。G3 的 `ORDER_CAST` 帶 `q`、`r` 時會碰到同一件事：到時把「這次施法瞄單位還是瞄格子」收進 `castAim` 一處判斷，`CastPushPull` 就不必再清戰鬥目標。
 
 ### G4 AI 圖鍵型別化與 profile
 - **作法**：`BTDef.key` 的型別改成 `keyof typeof BTConditions | keyof typeof BTActions`（把兩張表從 `Record<string, …>` 改成 `satisfies`），找不到鍵變成編譯錯誤；加一個純函式 `validateModeGraph(graph)`（每條邊的兩端存在、每個模式有樹、`onFailure` 指向存在的模式），引擎建樹前呼叫，失敗就丟錯而不是塞假節點。`AISystem.buildAI` 目前忽略單位、全體共用一張圖：改成依職業查 profile（預設全部指向現在這張，行為不變）。

@@ -6,6 +6,7 @@
 import { GRID_OVERLAY } from '../../../constants';
 import type { Agent, Hex, Skill } from '../../../types';
 import { getAgentSkin } from '../../../data/units/factionTint';
+import { castAim } from '../../systems/combat/SkillStateMachine';
 
 export const GroundFlag = { Warning: 1, LastStand: 2, Cast: 4, Hazard: 8, Status: 16, Zone: 32, Light: 64, Range: 128 } as const;
 export interface GroundLayers {
@@ -44,7 +45,8 @@ export function resolveGroundLayers(flags: number): GroundLayers { return layers
  *  改用包圍範圍中點也不可靠；明確目標（與建立 telegraph 相同來源）為中心 SSOT。
  */
 export function isCasterCenteredTelegraph(agent: Agent, skill: Skill): boolean {
-    const center = agent.targetHex ?? agent.target ?? agent;
+    // 和 CombatSystem 建立 telegraph 讀同一個來源：地面格優先，否則是施法瞄準的單位（castAim，契約 G2）
+    const center = agent.targetHex ?? castAim(agent) ?? agent;
     return (skill.aoeRadius ?? 0) > 0 && center.q === agent.q && center.r === agent.r;
 }
 
