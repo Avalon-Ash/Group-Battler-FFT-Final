@@ -774,18 +774,20 @@
 ### CB. 2026-11-18 優化開案書 U1 視窗可用模式改成 `modes`（主代理 Fable）
 - `WindowDef` 的 `visibleInShowcase`／`visibleInManual`／`visibleOnGameOver` 三個布林換成必填的 `modes: readonly AppMode[]`；`data/ui/windows.ts` 十個視窗照 2026-11-17 的布林換算（契約 U1 的換算表），行為不變。
 - `filterWindowDefsByMode` 改成查表（`def.modes.includes(mode)`）；`RegisteredWindows`、`SystemMenu`、`getRegisteredWindows` 收 `AppMode`，不再各自用 `showcase`／`manual`／`gameover` 字串。
-- 目前模式只在一處決定：`appModeOf(SessionView)`（`engine/systems/ui/views/session.ts`）：展示模式＝`SHOWCASE`，手動分出勝方＝`GAME_OVER`，否則 `MANUAL`；`App.tsx` 的結算判斷也改讀它。`PLAY`、`REPLAY`、`EDIT` 留給 G3、S3、G5。
+- 目前模式只在一處決定：`appModeOf(SessionView)`（`engine/systems/ui/views/session.ts`）：展示模式＝`SHOWCASE`，手動分出勝方＝`GAME_OVER`，否則 `MANUAL`；`App.tsx` 的結算判斷也改讀它；選單（`SystemMenu`）維持原本「有勝方就收起」的條件（展示模式從分出勝負到下一局開打之間也收起），沒有併進 `appModeOf`。`PLAY`、`REPLAY`、`EDIT` 留給 G3、S3、G5。
 - 契約檔修正（作者修改，`MANIFEST.json` 已更新）：`R.contract.test.ts` 的 U1 換算檢查原本直接讀三個布林，型別拿掉之後通不過型別檢查，改成在測試裡自己宣告舊欄位。
 - 驗證：U1 契約 2 則真的通過；`npm test` 162 檔 1554 則、lint、build、knip；`npm run e2e:ui` 241 項通過、樣式快照 0 差異，剩下 1 項是工作樹字型檔 403（環境，見 §2 CA）。
 
 ### CC. 2026-11-18 優化開案書 G3 玩家操控，第一片（主代理 Fable）
-- 控制者決定模式圖：`AISystem.buildAI` 依 `agent.controller` 選 `AI_MODE_GRAPH` 或新的 `PLAYER_MODE_GRAPH`（`data/ai_profiles.ts`）；外部仍只呼叫 `a.bt.tick`。玩家圖四個模式：陣亡、受控（和 AI 圖同一批條件）、`HOLD`（沒指令：原地堅守，不追不逃，普攻打得到人就打）、`ORDER`（執行 `Agent.order`；這一刻做不了就照 `HOLD` 做，指令留著）。`ModeMachine` 遇到不在這張圖裡的模式就從起點重新開始（換控制者時用）。
+- 控制者決定模式圖：`AISystem.buildAI` 依 `agent.controller` 選 `AI_MODE_GRAPH` 或新的 `PLAYER_MODE_GRAPH`（`data/ai_profiles.ts`）；外部仍只呼叫 `a.bt.tick`。玩家圖四個模式：陣亡、受控（和 AI 圖同一批條件）、`HOLD`（沒指令：原地堅守，不追不逃，普攻打得到人就打）、`ORDER`（執行 `Agent.order`；這一刻做不了就留在這個模式裡照堅守做，指令留著，不來回切模式）。兩個模式都先看嘲諷（`ObeyTaunt`）：被嘲諷時去打嘲諷者，蓋過指令與堅守，和 AI 單位的規則一致。`ModeMachine` 遇到不在這張圖裡的模式就從起點重新開始（換控制者時用）。
 - 指令是 `GameCommand`：`SET_CONTROLLER`、`ORDER_MOVE`／`ORDER_ATTACK`／`ORDER_CAST`／`ORDER_STOP`，自動進佇列、進紀錄、可回放、可 undo。`UICommandSystem` 只驗證（單位要存在、活著、是玩家控制；目的地要在地圖上且不是障礙物；攻擊目標要是活著的敵人；施放的槽位要有技能）；`Agent.order` 的寫入只在新的 `engine/core/Orders.ts`。
-- 三個執行節點在 `engine/ai/BTRegistry.ts`（`OrderMove`、`OrderAttack`、`OrderCast`，加上 `HoldGround`），內部呼叫 AI 用的 `SkillReady`、`IsTargetInRange`、`CastSkill`、`ChaseTarget`、`MoveToOptimal` 與 `aimCastAt`，沒有複製決策碼。施放指令在 `SkillStateMachine.commitSkill`（技能真的放出去）才清掉，被打斷、冷卻中、魔力不足都留著。
+- 執行節點在 `engine/ai/BTRegistry.ts`（`OrderMove`、`OrderAttack`、`OrderCast`，加上 `HoldGround`、`ObeyTaunt`），內部呼叫 AI 用的 `SkillReady`、`IsTargetInRange`、`CastSkill`、`ChaseTarget`、`MoveToOptimal` 與 `aimCastAt`，沒有複製決策碼。施放指令在 `SkillStateMachine.commitSkill`（技能真的放出去）才清掉，被打斷、冷卻中、魔力不足都留著。
 - `engine/game.ts`（Facade）改一個條件：有指令的單位每個 tick 都決策，到了、目標沒了才能當下反應。AI 單位沒有指令：`balance:fingerprint` 180/180 相同、沒重錄。
 - 開戰前下的指令存進開戰快照（`MatchUnitSnapshot.order`，可省略欄位；`types/Match.ts` 的版本規則改成「增減必填欄位才改版本號」），所以「先下指令再開戰」的一場用回放檔重播結果相同（`tests/PlayerOrders.test.ts`）。
 - UI 第一片：Inspector 多一列 PLAYER CONTROL 開關（附提示「點地面移動、點敵人攻擊」）；點擊規則寫在 `engine/systems/ui/tapIntent.ts`（純函式），`useGameInput` 只負責送出；戰術層對「還沒起步的移動指令」也畫目的地標記（原本選取單位的路徑與目標連線就會顯示其餘部分）。技能施放的 UI 留第二片。
 - 契約檔修正（作者修改，`MANIFEST.json` 已更新）：`ORDER_CAST` 那則驗收原本等 `CAST_START` 事件，但第 2 槽是普攻、`CombatSystem` 對普攻不發那個事件；而且目標在 9 格外，走到之前就被隊友打死。改成先把目標血量加厚，再驗證「進入該槽前搖」且「該槽進了冷卻」（被打斷的普攻不進冷卻）。
-- 驗證：G3 契約 9 則真的通過，S2、S3、R、U1 契約維持通過；`npm test` 164 檔 1567 則（新增 `tests/PlayerOrders.test.ts` 7 則、`tests/TapIntent.test.ts` 6 則）、lint、build、knip；`balance:fingerprint` 180/180；`runtime-smoke`；`perf:guard`（保真 6 張沒重錄）；`npm run audit:ui -- all` 0 違規；`npm run e2e:ui` 241 項通過、樣式快照 0 差異（剩 1 項是工作樹字型檔 403，見 §2 CA）。
+- 驗證：G3 契約 9 則真的通過，S2、S3、R、U1 契約維持通過；`npm test` 164 檔 1573 則（新增 `tests/PlayerOrders.test.ts` 13 則、`tests/TapIntent.test.ts` 6 則）、lint、build、knip；`balance:fingerprint` 180/180；`runtime-smoke`；`perf:guard`（保真 6 張沒重錄）；`npm run audit:ui -- all` 0 違規；`npm run e2e:ui` 樣式快照 0 差異（工作樹裡剩 1 項字型檔 403，見 §2 CA）。
 - 實跑（`tools/ui-e2e/out/g3-play-check.mjs`，9 項全過）：點選單位 → 開 PLAYER CONTROL → 開戰前點空地（指令成立、畫出目的地）→ 開戰後走到、指令清掉 → 堅守不動 → 戰鬥中點敵人（攻擊指令、鎖定目標）→ 指令都在紀錄裡 → 0 頁面錯誤。
-- 已知的行為：堅守時射程內沒有敵人就不動，被遠程打不會還手；移動指令的目的地站了別人時會走到旁邊等。兩項都照契約的定義，試玩後再看要不要改。
+- 預設對局會碰到的既有機制都補了測試（`tests/PlayerOrders.test.ts` 共 13 則）：縮圈時站在警告格上下指令走得出去；目的地塌掉就清掉移動指令；嘲諷蓋過指令、指令留著；堅守中被推開，強制位移照常發生（強制位移不設 `isMoving`，不會被堅守取消）；被定身時留在 `ORDER` 模式不抖動；暫停時下的指令繼續後照做，回放相同。
+- `npm run e2e:ui` 加了 4 項玩家操控檢查（開關切換控制者、選取中的玩家單位點空地產生移動指令、下指令後選取不變、切回 AI 清掉指令），共 245 項通過。行為樹視窗對玩家單位畫的是玩家圖，新節點都有中文標籤；手機尺寸的 Inspector 那一列排版正常。
+- 已知的行為（都照契約的定義，試玩後再看要不要改）：堅守時射程內沒有敵人就不動，被遠程打不會還手；堅守的單位站在即將塌陷的格子上不會自己走開，會掉下去；移動指令的目的地被佔著時指令留著、每個 tick 重試；戰鬥中才接手的單位按重開後會變回 AI（重開還原的是開戰當下的快照）。

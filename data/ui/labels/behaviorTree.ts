@@ -3,6 +3,14 @@ import type { AIMode } from '../../../types';
 /** 行為樹節點名稱（程式碼裡是英文識別字）對應的顯示文字。 */
 export const BT_NODE_LABEL: Readonly<Record<string, string>> = {
     'Engage Actions': '接敵',
+    'Hold': '堅守',
+    'Obey Taunt': '被嘲諷：打嘲諷者',
+    'Hold Ground': '原地堅守',
+    'Follow Order': '執行指令',
+    'Order: Move': '指令：移動',
+    'Order: Attack': '指令：攻擊',
+    'Order: Cast': '指令：施放',
+    'Hold Meanwhile': '做不了：先堅守',
     'Fight Actions': '交戰',
     'Strike Nearby': '順手攻擊',
     'Advance': '朝敵人前進',

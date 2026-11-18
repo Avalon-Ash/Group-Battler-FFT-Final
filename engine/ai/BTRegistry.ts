@@ -393,6 +393,16 @@ function castIfAble(a: Agent, engine: GameEngine, slot: number): NodeState {
     return BTActions["CastSkill"](a, engine, { slot });
 }
 
+/** 用普攻打指定的敵人：鎖定它，打得到就出手，不在射程內就靠近（ChaseTarget）；走不動就原地等。一律回 RUNNING。 */
+function strikeOrChase(a: Agent, engine: GameEngine, target: Agent, basicIdx: number): NodeState {
+    lockTarget(a, target, engine);
+    aimCastAt(a, null);
+    a.targetHex = null;
+    if (castIfAble(a, engine, basicIdx) === NodeState.RUNNING) return NodeState.RUNNING;
+    BTActions["ChaseTarget"](a, engine, { slot: basicIdx });
+    return NodeState.RUNNING;
+}
+
 /** 原地等：不走、不出手（正在前搖就讓它走完） */
 function standBy(a: Agent): NodeState {
     if (a.castingSkillIdx === -1) {
@@ -405,6 +415,19 @@ function standBy(a: Agent): NodeState {
 
 export const BTActions: Record<string, BTActionFn> = {
     // ── 玩家操控（契約 G3）：PLAYER_MODE_GRAPH 的節點。指令的寫入只經 engine/core/Orders.ts ──────────────
+    /**
+     * 被嘲諷：去打嘲諷者，蓋過指令與堅守（和 AI 單位的規則一致）。沒被嘲諷、嘲諷者已經不能打就回 FAILURE，交給後面的節點。
+     */
+    "ObeyTaunt": (a, engine) => {
+        const taunt = a.effects.TAUNT;
+        if (taunt.remaining <= 0 || taunt.sourceId === null) return NodeState.FAILURE;
+        const taunter = engine.agents.find(o => o.id === taunt.sourceId);
+        const basicIdx = a.skills.findIndex(s => s?.tag === 'BASIC');
+        if (!taunter || !isLiveEnemy(a, taunter, engine) || basicIdx < 0) return NodeState.FAILURE;
+        // 別的招正在前搖：放完再說
+        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== basicIdx) return NodeState.RUNNING;
+        return strikeOrChase(a, engine, taunter, basicIdx);
+    },
     /**
      * 沒有指令：原地堅守。不追、不逃；現在站的地方普攻打得到人就打，
      * 手上的目標還在普攻射程內就不換人。
@@ -424,11 +447,16 @@ export const BTActions: Record<string, BTActionFn> = {
         return castIfAble(a, engine, basicIdx) === NodeState.RUNNING ? NodeState.RUNNING : standBy(a);
     },
     /**
-     * 執行移動：走到指定格，到了就清掉指令。被定身、走不到時回 FAILURE（照沒指令的方式堅守），指令留著，能走了再走。
+     * 執行移動：走到指定格，到了就清掉指令。被定身、走不到（含目的地被佔著）時回 FAILURE（先照堅守做），指令留著，每個 tick 重試。
+     * 目的地已經不在地圖上（縮圈塌掉）就清掉指令。
      */
     "OrderMove": (a, engine) => {
         const order = a.order;
         if (order?.type !== 'MOVE') return NodeState.FAILURE;
+        if (!engine.map.isValid(order.q, order.r)) {
+            clearOrder(a);
+            return NodeState.FAILURE;
+        }
         if (a.q === order.q && a.r === order.r) {
             // 邏輯格已經到了、最後一步還在走：等它走完
             if (a.isMoving) return NodeState.RUNNING;
@@ -459,12 +487,7 @@ export const BTActions: Record<string, BTActionFn> = {
         }
         // 別的招正在前搖：放完再說
         if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== basicIdx) return NodeState.RUNNING;
-        lockTarget(a, target, engine);
-        aimCastAt(a, null);
-        a.targetHex = null;
-        if (castIfAble(a, engine, basicIdx) === NodeState.RUNNING) return NodeState.RUNNING;
-        BTActions["ChaseTarget"](a, engine, { slot: basicIdx });
-        return NodeState.RUNNING;
+        return strikeOrChase(a, engine, target, basicIdx);
     },
     /**
      * 執行施放：對指定目標（單位或地面格）放第 slot 槽，射程不夠先靠近（MoveToOptimal）；沒指定目標就用這招自己算的最佳目標。

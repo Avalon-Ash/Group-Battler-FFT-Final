@@ -658,6 +658,44 @@ const runInspectorCommandSuite = async () => {
 
     ok('inspector opened on unit select', isInspectorOpen);
 
+    // 玩家操控（契約 G3）：Inspector 的開關切換控制者；選取中的玩家單位點空地＝移動指令。做完切回 AI，不影響後面的檢查
+    {
+        const control = page.locator('[data-testid="inspector-control"]');
+        const playerUnitId = () => page.evaluate(() => window.__TACTICAL_ENGINE__.agents.find((a) => a.controller === 'PLAYER')?.id ?? null);
+        const orderOf = (id) => page.evaluate((agentId) => window.__TACTICAL_ENGINE__.agents.find((a) => a.id === agentId)?.order ?? null, id);
+        await control.click({ force: true });
+        await page.waitForTimeout(200);
+        const playerId = await playerUnitId();
+        ok('G3: PLAYER CONTROL switch hands the selected unit to the player', playerId !== null && await control.isChecked(), String(playerId));
+        if (playerId) {
+            // 掃畫面找一個沒人、沒障礙物的格子（避開左邊的 Inspector 與上下的操作列）
+            const cell = await page.evaluate(() => {
+                const engine = window.__TACTICAL_ENGINE__;
+                const rect = document.querySelector('canvas').getBoundingClientRect();
+                const cam = engine.renderer.camera;
+                for (let y = 180; y < rect.height - 160; y += 15) {
+                    for (let x = 420; x < rect.width - 120; x += 15) {
+                        const h = engine.renderer.getHexAtScreenPoint(x, y, rect.width, rect.height, cam, engine);
+                        if (h && engine.map.isValid(h.q, h.r) && !engine.map.hasObstacle(h.q, h.r) && !engine.agents.some((a) => a.q === h.q && a.r === h.r)) {
+                            return { screenX: Math.round(rect.left + x), screenY: Math.round(rect.top + y), q: h.q, r: h.r };
+                        }
+                    }
+                }
+                return null;
+            });
+            if (cell) {
+                await page.mouse.click(cell.screenX, cell.screenY);
+                await page.waitForTimeout(250);
+            }
+            const order = await orderOf(playerId);
+            ok('G3: tapping empty ground with a player unit selected issues a move order', order?.type === 'MOVE', JSON.stringify({ order, cell }));
+            ok('G3: the unit stays selected after the order', await control.isVisible());
+            await control.click({ force: true });
+            await page.waitForTimeout(200);
+            ok('G3: switching back to AI clears the order', (await playerUnitId()) === null && (await orderOf(playerId)) === null);
+        }
+    }
+
     // Expand config drawer
     await editBtn.click();
     await page.waitForTimeout(400);

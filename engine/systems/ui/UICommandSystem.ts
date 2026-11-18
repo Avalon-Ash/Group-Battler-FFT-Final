@@ -485,7 +485,7 @@ export class UICommandSystem {
             case 'ORDER_MOVE': {
                 const agent = this.playerUnit(cmd.agentId);
                 if (!agent || !Number.isInteger(cmd.q) || !Number.isInteger(cmd.r)) break;
-                // 目的地要是地圖上的格子，而且不是障礙物（上面站了人沒關係：走到旁邊等，空了再進去）
+                // 目的地要是地圖上的格子，而且不是障礙物（上面站了人也收：指令留著，走得過去時才走）
                 if (!this.engine.map.isValid(cmd.q, cmd.r) || this.engine.hasObstacle(cmd.q, cmd.r)) break;
                 issueOrder(agent, { type: 'MOVE', q: cmd.q, r: cmd.r });
                 break;

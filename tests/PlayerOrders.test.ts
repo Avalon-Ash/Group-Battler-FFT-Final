@@ -8,6 +8,8 @@ import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
 import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
 import { AI_MODE_GRAPH, PLAYER_MODE_GRAPH, type BTDef } from '../data/ai_profiles';
 import { SKILL_SLOTS } from '../constants';
+import { CCManager } from '../engine/systems/combat/CCManager';
+import type { Skill } from '../types';
 import { buildBattle, runTicks, emit, stateOf } from './contracts/simState';
 
 /**
@@ -103,6 +105,8 @@ describe('玩家操控（契約 G3 以外的行為）', () => {
         foe.hp = 0;
         runTicks(e, 3);
         expect(hero.order).toBeNull();
+        // 指令清掉後回到一般的決策間隔：模式要等下一次決策才換回 HOLD（這段時間已經照堅守在做）
+        runTicks(e, 60);
         expect(hero.aiMode).toBe('HOLD');
     });
 
@@ -131,4 +135,118 @@ describe('玩家操控（契約 G3 以外的行為）', () => {
         }
         expect(Object.keys(PLAYER_MODE_GRAPH.modes)).toContain(PLAYER_MODE_GRAPH.initial);
     });
+
+    // ── 預設對局會碰到的既有機制：縮圈、嘲諷、強制位移、定身、暫停下令 ──────────────────────
+
+    it('縮圈：站在警告格上，下指令走到安全格，走得出去', () => {
+        // 不關縮圈（setup 會關）
+        const e = buildBattle('TEAMS', 41);
+        const hero = e.agents[0];
+        emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'PLAYER' });
+        emit(e, { type: 'START_GAME', seed: 1 });
+        for (let i = 0; i < 3000 && e.isRunning && hero.hp > 0 && !e.isWarningTile(HexUtils.key(hero)); i++) runTicks(e, 1);
+        expect(e.isWarningTile(HexUtils.key(hero))).toBe(true);
+
+        const safe = [...e.map.mapKeys]
+            .map((k) => { const [q, r] = k.split(',').map(Number); return { q, r }; })
+            .filter((h) => !e.isWarningTile(HexUtils.key(h)) && !e.hasObstacle(h.q, h.r) && !e.agents.some((a) => a.hp > 0 && a.q === h.q && a.r === h.r))
+            .map((h) => ({ ...h, d: HexUtils.dist(h, hero) }))
+            .sort((a, b) => a.d - b.d || a.q - b.q || a.r - b.r)[0];
+        emit(e, { type: 'ORDER_MOVE', agentId: hero.id, q: safe.q, r: safe.r });
+        for (let i = 0; i < 600 && e.isRunning && hero.hp > 0 && !(hero.q === safe.q && hero.r === safe.r && !hero.isMoving); i++) runTicks(e, 1);
+        expect(hero.hp).toBeGreaterThan(0);
+        expect(hero.outOfBounds).toBe(false);
+        expect({ q: hero.q, r: hero.r }).toEqual({ q: safe.q, r: safe.r });
+        expect(e.isWarningTile(HexUtils.key(hero))).toBe(false);
+    }, 60000);
+
+    it('目的地塌掉（不在地圖上了）就清掉移動指令', () => {
+        const { e, hero } = setup();
+        // 選最遠的空格，確保還沒走到
+        const dest = querySpawnableHexes(e)
+            .filter((h) => !e.agents.some((a) => a.q === h.q && a.r === h.r))
+            .map((h) => ({ ...h, d: HexUtils.dist(h, hero) }))
+            .sort((a, b) => b.d - a.d)[0];
+        emit(e, { type: 'START_GAME', seed: 1 });
+        emit(e, { type: 'ORDER_MOVE', agentId: hero.id, q: dest.q, r: dest.r });
+        runTicks(e, 5);
+        expect(hero.order).toEqual({ type: 'MOVE', q: dest.q, r: dest.r });
+        e.map.removeTile(dest.q, dest.r);
+        runTicks(e, 3);
+        expect(hero.order).toBeNull();
+    });
+
+    it('嘲諷蓋過指令：被嘲諷時打嘲諷者，指令留著', () => {
+        const { e, hero } = setup();
+        const foe = nearestFoe(e, hero);
+        const dest = nearbyHex(e, hero);
+        emit(e, { type: 'START_GAME', seed: 1 });
+        runTicks(e, 5);
+        CCManager.applyCC(foe, hero, {} as Skill, 'TAUNT', 2, undefined, undefined, e);
+        expect(hero.effects.TAUNT.remaining).toBeGreaterThan(0);
+        emit(e, { type: 'ORDER_MOVE', agentId: hero.id, q: dest.q, r: dest.r });
+        runTicks(e, 2);
+        let checked = 0;
+        runTicks(e, 60, () => {
+            if (hero.hp > 0 && foe.hp > 0 && hero.effects.TAUNT.remaining > 0) { expect(hero.target?.id).toBe(foe.id); checked++; }
+        });
+        expect(checked).toBeGreaterThan(20);
+        expect(hero.order).toEqual({ type: 'MOVE', q: dest.q, r: dest.r });
+    });
+
+    it('堅守中被推開：強制位移照常發生，不被堅守取消', () => {
+        const { e, hero } = setup();
+        const foe = nearestFoe(e, hero);
+        emit(e, { type: 'START_GAME', seed: 1 });
+        runTicks(e, 5);
+        const before = { x: hero.px + hero.physics.x, y: hero.py + hero.physics.y };
+        const origin = HexUtils.toPx(hero.q - 1, hero.r, e.mapConfig);
+        CCManager.applyCC(foe, hero, {} as Skill, 'KNOCKBACK', 0, 3, origin, e);
+        let moved = 0;
+        runTicks(e, 40, () => {
+            moved = Math.max(moved, Math.hypot(hero.px + hero.physics.x - before.x, hero.py + hero.physics.y - before.y));
+        });
+        expect(moved).toBeGreaterThan(10);
+    });
+
+    it('指令被擋住（定身）時留在 ORDER 模式照堅守做，不來回切模式', () => {
+        const { e, hero } = setup();
+        const foe = nearestFoe(e, hero);
+        const dest = nearbyHex(e, hero);
+        emit(e, { type: 'START_GAME', seed: 1 });
+        runTicks(e, 5);
+        CCManager.applyCC(foe, hero, {} as Skill, 'ROOT', 2, undefined, undefined, e);
+        expect(hero.effects.ROOT.remaining).toBeGreaterThan(0);
+        emit(e, { type: 'ORDER_MOVE', agentId: hero.id, q: dest.q, r: dest.r });
+        runTicks(e, 3);
+        const traceBefore = hero.aiModeTrace.length;
+        runTicks(e, 60);
+        expect(hero.aiMode).toBe('ORDER');
+        expect(hero.order).toEqual({ type: 'MOVE', q: dest.q, r: dest.r });
+        expect(hero.aiModeTrace.length).toBe(traceBefore);
+        expect({ q: hero.q, r: hero.r }).not.toEqual(dest);
+    });
+
+    it('暫停時下的指令：繼續之後照做，用回放檔重播結果相同', () => {
+        const { e, hero } = setup();
+        const dest = nearbyHex(e, hero);
+        emit(e, { type: 'START_GAME', seed: 9 });
+        runTicks(e, 50);
+        emit(e, { type: 'STOP_GAME' });
+        expect(e.isRunning).toBe(false);
+        emit(e, { type: 'ORDER_MOVE', agentId: hero.id, q: dest.q, r: dest.r });
+        expect(hero.order).toEqual({ type: 'MOVE', q: dest.q, r: dest.r });
+        emit(e, { type: 'START_GAME' });
+        expect(e.isRunning).toBe(true);
+        expect(e.state.time.tick).toBe(50);
+        runTicks(e, 250);
+        const live = stateOf(e);
+        const file = exportReplay(e);
+        expect(file.commands.map((r) => r.tick + ':' + r.cmd.type)).toEqual(['50:ORDER_MOVE']);
+
+        const again = buildBattle('TEAMS', 999);
+        const session = startReplay(again, file);
+        while (again.state.time.tick < file.endTick && again.isRunning) stepSimulation(again, session);
+        expect(stateOf(again)).toBe(live);
+    }, 60000);
 });

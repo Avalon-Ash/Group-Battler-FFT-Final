@@ -65,7 +65,8 @@ function App() {
           onRandom={actions.handleRandomBattlefield} 
           onShowcase={actions.startShowcase}
       />
-      {!isGameOver && (
+      {/* 有勝方就收起選單：手動模式的結算畫面，以及展示模式從分出勝負到下一局開打之間 */}
+      {state.winner === null && (
           <SystemMenu 
               mode={state.appMode}
               onDownloadSpec={actions.downloadSpec}
