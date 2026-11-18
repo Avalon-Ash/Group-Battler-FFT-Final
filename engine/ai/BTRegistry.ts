@@ -12,6 +12,7 @@ import { isActionBlocked, isIncapacitated } from "../core/Effects";
 import { planDashLanding, planRetreatLanding } from "../systems/combat/LandingPlanner";
 import { activationBlock, aimCastAt, castAim } from "../systems/combat/SkillStateMachine";
 import { hasIntentIn } from "../core/SkillQueries";
+import { clearOrder } from "../core/Orders";
 import type { SkillIntent } from "../../types";
 import { isHostileSkill } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
@@ -112,6 +113,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
     "IsControlled": (a) => isActionBlocked(a, 'CAST'),
+    // 玩家單位有沒有待執行的指令（契約 G3，PLAYER_MODE_GRAPH 的 HOLD ⇄ ORDER）
+    "HasOrder": (a) => a.order !== null,
     // 最後一格落定才進 FINALE；最後一圈倒數時照原來的判斷逃、搶格子
     "IsLastStand": (_, engine) => engine.isFinalTileOnly,
     // 腳下有敵方 hazard、已經出界：馬上走。只是站在警告格上：算好時間，趕得及就先打。最後一格落定後不逃。
@@ -375,7 +378,139 @@ function approachEndsOnCollapse(a: Agent, engine: GameEngine, dest: Hex, range: 
     return engine.isCollapsingSoon(HexUtils.key(stop));
 }
 
+/** 還能當攻擊對象的敵人（活著、沒被放逐、沒出界、腳下還有地） */
+function isLiveEnemy(a: Agent, target: Agent, engine: GameEngine): boolean {
+    return !sameSide(target, a) && engine.movement.targeting.isValidTarget(target, engine);
+}
+
+/**
+ * 對目前的瞄準（castAim／targetHex）放第 slot 槽：這招現在能放、目標在射程內才出手。
+ * 回傳 RUNNING＝出手中；FAILURE＝現在放不了或不在射程內。判斷全部沿用 AI 用的同一批節點。
+ */
+function castIfAble(a: Agent, engine: GameEngine, slot: number): NodeState {
+    if (!BTConditions["SkillReady"](a, engine, { slot })) return NodeState.FAILURE;
+    if (!BTConditions["IsTargetInRange"](a, engine, { slot })) return NodeState.FAILURE;
+    return BTActions["CastSkill"](a, engine, { slot });
+}
+
+/** 原地等：不走、不出手（正在前搖就讓它走完） */
+function standBy(a: Agent): NodeState {
+    if (a.castingSkillIdx === -1) {
+        if (a.isMoving) stopMovement(a);
+        a.aiState = AIState.WAITING;
+        a.actionState = ActionState.IDLE;
+    }
+    return NodeState.RUNNING;
+}
+
 export const BTActions: Record<string, BTActionFn> = {
+    // ── 玩家操控（契約 G3）：PLAYER_MODE_GRAPH 的節點。指令的寫入只經 engine/core/Orders.ts ──────────────
+    /**
+     * 沒有指令：原地堅守。不追、不逃；現在站的地方普攻打得到人就打，
+     * 手上的目標還在普攻射程內就不換人。
+     */
+    "HoldGround": (a, engine) => {
+        const basicIdx = a.skills.findIndex(s => s?.tag === 'BASIC');
+        if (basicIdx < 0 || (a.castingSkillIdx !== -1 && a.castingSkillIdx !== basicIdx)) return standBy(a);
+        if (a.isMoving) stopMovement(a);
+        const keep = a.target !== null && isLiveEnemy(a, a.target, engine) && BTConditions["TargetInBasicRange"](a, engine, {});
+        if (!keep) {
+            const near = enemyInReach(a, engine);
+            if (!near) return standBy(a);
+            lockTarget(a, near, engine);
+        }
+        aimCastAt(a, null);
+        a.targetHex = null;
+        return castIfAble(a, engine, basicIdx) === NodeState.RUNNING ? NodeState.RUNNING : standBy(a);
+    },
+    /**
+     * 執行移動：走到指定格，到了就清掉指令。被定身、走不到時回 FAILURE（照沒指令的方式堅守），指令留著，能走了再走。
+     */
+    "OrderMove": (a, engine) => {
+        const order = a.order;
+        if (order?.type !== 'MOVE') return NodeState.FAILURE;
+        if (a.q === order.q && a.r === order.r) {
+            // 邏輯格已經到了、最後一步還在走：等它走完
+            if (a.isMoving) return NodeState.RUNNING;
+            clearOrder(a);
+            return NodeState.SUCCESS;
+        }
+        // 正在前搖：放完再走
+        if (a.castingSkillIdx !== -1) return NodeState.RUNNING;
+        if (!BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
+        const state = engine.moveAgentToHex(a, { q: order.q, r: order.r }, 0, 1.0);
+        if (state === NodeState.FAILURE) return NodeState.FAILURE;
+        a.aiState = AIState.TRACKING;
+        a.actionState = ActionState.WALKING;
+        return NodeState.RUNNING;
+    },
+    /**
+     * 執行攻擊：鎖定指定目標用普攻打它，不在射程內就靠近（ChaseTarget）。目標死亡或消失就清掉指令。
+     * 走不動時留在這個指令上等，不改打別人。
+     */
+    "OrderAttack": (a, engine) => {
+        const order = a.order;
+        if (order?.type !== 'ATTACK') return NodeState.FAILURE;
+        const target = engine.agents.find(o => o.id === order.targetId);
+        const basicIdx = a.skills.findIndex(s => s?.tag === 'BASIC');
+        if (!target || !isLiveEnemy(a, target, engine) || basicIdx < 0) {
+            clearOrder(a);
+            return NodeState.FAILURE;
+        }
+        // 別的招正在前搖：放完再說
+        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== basicIdx) return NodeState.RUNNING;
+        lockTarget(a, target, engine);
+        aimCastAt(a, null);
+        a.targetHex = null;
+        if (castIfAble(a, engine, basicIdx) === NodeState.RUNNING) return NodeState.RUNNING;
+        BTActions["ChaseTarget"](a, engine, { slot: basicIdx });
+        return NodeState.RUNNING;
+    },
+    /**
+     * 執行施放：對指定目標（單位或地面格）放第 slot 槽，射程不夠先靠近（MoveToOptimal）；沒指定目標就用這招自己算的最佳目標。
+     * 放出去時由施法管線清掉指令（SkillStateMachine.commitSkill → Orders.onSkillReleased）；被打斷、冷卻中、魔力不足都留著等。
+     * 目標沒了才算確定放不了。
+     */
+    "OrderCast": (a, engine) => {
+        const order = a.order;
+        if (order?.type !== 'CAST') return NodeState.FAILURE;
+        const slot = order.slot;
+        const skill = a.skills[slot];
+        if (!skill) {
+            clearOrder(a);
+            return NodeState.FAILURE;
+        }
+        if (a.castingSkillIdx === slot) return BTActions["CastSkill"](a, engine, { slot });
+        // 別的招正在前搖：放完再說
+        if (a.castingSkillIdx !== -1) return NodeState.RUNNING;
+
+        if (order.targetId !== undefined) {
+            const target = engine.agents.find(o => o.id === order.targetId);
+            if (!target || !engine.movement.targeting.isValidTarget(target, engine)) {
+                clearOrder(a);
+                return NodeState.FAILURE;
+            }
+            a.targetHex = null;
+            if (sameSide(target, a)) {
+                aimCastAt(a, target);
+            } else {
+                aimCastAt(a, null);
+                lockTarget(a, target, engine);
+            }
+        } else if (order.q !== undefined && order.r !== undefined) {
+            aimCastAt(a, null);
+            a.targetHex = { q: order.q, r: order.r };
+        } else if (!BTConditions["FindOptimalTarget"](a, engine, { slot })) {
+            // 這招現在沒有值得放的對象（例如身邊沒有敵人的範圍技）：等
+            return standBy(a);
+        }
+
+        if (castIfAble(a, engine, slot) === NodeState.RUNNING) return NodeState.RUNNING;
+        // 還不能放（冷卻、魔力）或不在射程內：先靠近到射程內，就位後原地等
+        if (BTActions["MoveToOptimal"](a, engine, { slot }) === NodeState.RUNNING) return NodeState.RUNNING;
+        return standBy(a);
+    },
+
     "Wait": (a, engine, args) => {
         a.aiState = args.state || AIState.WAITING;
         a.actionState = ActionState.IDLE;

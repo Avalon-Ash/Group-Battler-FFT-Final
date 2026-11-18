@@ -417,7 +417,8 @@ export class GameEngine implements SpatialProvider {
             if (a.hp <= 0) {
                 continue;
             }
-            if (a.bt && (a.aiUpdateTimer <= 0 || a.forceAiUpdate)) {
+            // 有指令的玩家單位每個 tick 都決策（契約 G3）：到了、目標沒了都要當下反應；AI 單位沒有指令，照決策間隔走
+            if (a.bt && (a.aiUpdateTimer <= 0 || a.forceAiUpdate || a.order !== null)) {
                 const inDanger = this.isWarningTile(HexUtils.key(a));
                 // 只在剛被縮圈預警叫醒時記一次（forceAiUpdate），不是每次決策都記
                 if (inDanger && a.forceAiUpdate) {

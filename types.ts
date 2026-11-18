@@ -382,7 +382,9 @@ export interface CameraImpact {
 }
 
 /** AI 模式：狀態拓樸的節點（data/ai_profiles.ts 的 AI_MODE_GRAPH）。只由 ModeMachine 寫入 */
-export type AIMode = 'DEAD' | 'CONTROLLED' | 'ACQUIRE' | 'ENGAGE' | 'FIGHT' | 'RETREAT' | 'TRAPPED' | 'UNSTICK' | 'FINALE';
+export type AIMode = 'DEAD' | 'CONTROLLED' | 'ACQUIRE' | 'ENGAGE' | 'FIGHT' | 'RETREAT' | 'TRAPPED' | 'UNSTICK' | 'FINALE'
+    /** 玩家模式圖（契約 G3，data/ai_profiles.ts 的 PLAYER_MODE_GRAPH）：沒指令時堅守、有指令時執行 */
+    | 'HOLD' | 'ORDER';
 
 /**
  * 開局陣營設定：factions 個陣營、每陣營 unitsPerFaction 人（每陣營 1 人＝大逃殺）。

@@ -1,10 +1,10 @@
 // [契約 S2／S3] 開戰快照與回放檔的資料形狀（docs/plans/optimization-2026-11.md）。
 // 全部是純資料：只能放數字、字串、布林、陣列與純物件，JSON 來回一趟必須完全相同
-// （不放 Map、Set、Agent 參考、函式）。欄位增減要改版本號 v。
+// （不放 Map、Set、Agent 參考、函式）。增減必填欄位要改版本號 v；可省略的欄位（省略＝預設值）不用。
 
 import type { Team, Role, Skill, ZoneConfig, BattleSetup, HexLayout, BodyTypeId, FactionLook } from '../types';
 import type { CommandRecord } from '../engine/core/CommandQueue';
-import type { ControllerKind } from './Orders';
+import type { ControllerKind, Order } from './Orders';
 
 /** 開戰瞬間的一個單位。其餘欄位（速度、跳躍、技能物件、行為樹）由職業與 skillIds 導出，不存。 */
 interface MatchUnitSnapshot {
@@ -22,6 +22,8 @@ interface MatchUnitSnapshot {
     look: FactionLook;
     /** 控制者（契約 G3）；省略＝AI */
     controller?: ControllerKind;
+    /** 開戰前下的指令（契約 G3）；省略＝沒有。開戰後的指令在指令紀錄裡，不在這 */
+    order?: Order;
     /** AI 決策間隔（生成或重置時抽的抖動，會影響模擬） */
     aiUpdateInterval: number;
 }

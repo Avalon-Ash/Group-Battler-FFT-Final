@@ -139,6 +139,20 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         owners: ['engine/systems/agentManager.ts'],
         note: '陣營外觀（三個以上陣營的換色）。只在生成時寫入；渲染端一律經 getAgentSkin(agent) 讀。',
     },
+    order: {
+        group: 'ai',
+        kind: 'single',
+        owners: ['engine/core/Orders.ts'],
+        lifecycle: ['engine/core/AgentLifecycle.ts'],
+        note: '玩家單位目前的指令（契約 G3）。下達、完成、取消都經 Orders.ts；UICommandSystem 驗證指令，玩家模式圖的節點執行指令，都不直接寫。',
+    },
+    controller: {
+        group: 'ai',
+        kind: 'single',
+        owners: ['engine/systems/ui/UICommandSystem.ts'],
+        lifecycle: ['engine/core/MatchSnapshot.ts'],
+        note: '控制者（契約 G3）：決定這個單位用 AI 圖還是玩家圖。只由 SET_CONTROLLER 改；還原開戰快照時照快照寫回。',
+    },
     aiMode: {
         group: 'ai',
         kind: 'single',

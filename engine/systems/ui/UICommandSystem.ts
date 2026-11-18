@@ -11,6 +11,9 @@ import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 import { querySpawnableHexes } from './editorQueries';
 import { captureMatch, restoreMatch } from '../../core/MatchSnapshot';
+import { issueOrder, clearOrder } from '../../core/Orders';
+import { sameSide } from '../../core/Allegiance';
+import { stopMovement } from '../movement/MotionCommands';
 import { UINT32_RANGE } from '../../math/rng';
 
 type NumericRange = { readonly min: number; readonly max: number };
@@ -87,6 +90,12 @@ export class UICommandSystem {
      */
     private startsNewMatch(): boolean {
         return !this.engine.battleStarted;
+    }
+
+    /** 指令的對象：存在、活著、而且是玩家控制的單位（契約 G3）；否則 null（指令無效） */
+    private playerUnit(agentId: string) {
+        const agent = this.engine.agents.find((a) => a.id === agentId);
+        return agent && agent.hp > 0 && agent.controller === 'PLAYER' ? agent : null;
     }
 
     private apply(cmd: UICommand): void {
@@ -458,13 +467,62 @@ export class UICommandSystem {
             case 'SET_VIEW_INSETS':
                 return pending('R3', cmd.type);
 
-            // [契約 G3] 玩家操控：型別已定（types/Orders.ts），處理還沒實作
-            case 'SET_CONTROLLER':
-            case 'ORDER_MOVE':
-            case 'ORDER_ATTACK':
-            case 'ORDER_CAST':
-            case 'ORDER_STOP':
-                return pending('G3', cmd.type);
+            // [契約 G3] 玩家操控。這裡只驗證指令合不合法；指令的寫入在 engine/core/Orders.ts，執行在玩家模式圖（PLAYER_MODE_GRAPH）
+            case 'SET_CONTROLLER': {
+                const agent = this.engine.agents.find((a) => a.id === cmd.agentId);
+                if (!agent || (cmd.controller !== 'AI' && cmd.controller !== 'PLAYER') || agent.controller === cmd.controller) break;
+                agent.controller = cmd.controller;
+                clearOrder(agent);
+                // 開戰後當場換圖（開戰前由 play 的 prepareForBattle 統一建）；交給玩家的單位先停下，等指令
+                if (this.engine.battleStarted) {
+                    AgentManager.rebuildAI(agent, this.engine);
+                    if (cmd.controller === 'PLAYER' && agent.isMoving && agent.castingSkillIdx === -1) stopMovement(agent);
+                    agent.forceAiUpdate = true;
+                }
+                break;
+            }
+
+            case 'ORDER_MOVE': {
+                const agent = this.playerUnit(cmd.agentId);
+                if (!agent || !Number.isInteger(cmd.q) || !Number.isInteger(cmd.r)) break;
+                // 目的地要是地圖上的格子，而且不是障礙物（上面站了人沒關係：走到旁邊等，空了再進去）
+                if (!this.engine.map.isValid(cmd.q, cmd.r) || this.engine.hasObstacle(cmd.q, cmd.r)) break;
+                issueOrder(agent, { type: 'MOVE', q: cmd.q, r: cmd.r });
+                break;
+            }
+
+            case 'ORDER_ATTACK': {
+                const agent = this.playerUnit(cmd.agentId);
+                const target = this.engine.agents.find((a) => a.id === cmd.targetId);
+                if (!agent || !target || target.hp <= 0 || sameSide(target, agent)) break;
+                issueOrder(agent, { type: 'ATTACK', targetId: target.id });
+                break;
+            }
+
+            case 'ORDER_CAST': {
+                const agent = this.playerUnit(cmd.agentId);
+                if (!agent || !Number.isInteger(cmd.slot) || cmd.slot < 0 || cmd.slot >= agent.skillIds.length || agent.skillIds[cmd.slot] === null) break;
+                if (cmd.targetId !== undefined) {
+                    const target = this.engine.agents.find((a) => a.id === cmd.targetId);
+                    if (!target || target.hp <= 0) break;
+                    issueOrder(agent, { type: 'CAST', slot: cmd.slot, targetId: target.id });
+                } else if (cmd.q !== undefined || cmd.r !== undefined) {
+                    if (cmd.q === undefined || cmd.r === undefined || !this.engine.map.isValid(cmd.q, cmd.r)) break;
+                    issueOrder(agent, { type: 'CAST', slot: cmd.slot, q: cmd.q, r: cmd.r });
+                } else {
+                    issueOrder(agent, { type: 'CAST', slot: cmd.slot });
+                }
+                break;
+            }
+
+            case 'ORDER_STOP': {
+                const agent = this.playerUnit(cmd.agentId);
+                if (!agent) break;
+                clearOrder(agent);
+                if (agent.isMoving && agent.castingSkillIdx === -1) stopMovement(agent);
+                agent.forceAiUpdate = true;
+                break;
+            }
 
             default: {
                 // Unknown command: ignore gracefully

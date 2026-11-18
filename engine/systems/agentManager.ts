@@ -59,6 +59,11 @@ export class AgentManager {
         agent.weight = stats.weight;
     }
 
+    /** 換控制者（契約 G3）後重建這個單位的 AI：圖由控制者決定（AISystem.buildAI）。開戰前不用，開戰時 prepareForBattle 會建 */
+    public static rebuildAI(agent: Agent, engine: GameEngine): void {
+        agent.bt = engine.ai.buildAI(agent, engine);
+    }
+
     public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
         const stats = UNIT_DB[agent.role];
         if (stats) {

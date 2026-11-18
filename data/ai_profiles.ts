@@ -107,7 +107,7 @@ export interface AIModeGraph {
     edges: readonly AIModeEdgeDef[];
 }
 
-export const AI_MODE_GRAPH: AIModeGraph & { modes: Record<AIMode, AIModeDef> } = {
+export const AI_MODE_GRAPH: AIModeGraph = {
     initial: 'ACQUIRE',
     modes: {
         DEAD: { tree: { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } } },
@@ -155,6 +155,42 @@ export const AI_MODE_GRAPH: AIModeGraph & { modes: Record<AIMode, AIModeDef> } =
         { from: ['ACQUIRE'], to: 'ENGAGE', when: 'HasTarget' },
         { from: ['ENGAGE'], to: 'FIGHT', when: 'TargetInBasicRange' },
         { from: ['FIGHT'], to: 'ENGAGE', unless: 'TargetInBasicRange' },
+    ],
+};
+
+/**
+ * 玩家模式圖（契約 G3）：控制者是 PLAYER 的單位用這張，外部仍只看到 a.bt.tick(a)。
+ *   DEAD／CONTROLLED —— 和 AI 圖相同（同一批條件節點）
+ *   HOLD             —— 沒有指令：原地堅守，不追、不逃，現在站的地方普攻打得到人就打
+ *   ORDER            —— 執行指令（Agent.order）；這一刻做不了（被定身、走不到）就照 HOLD 做，指令留著
+ * 指令的資料形狀在 types/Orders.ts，寫入只在 engine/core/Orders.ts。
+ */
+export const PLAYER_MODE_GRAPH: AIModeGraph = {
+    initial: 'HOLD',
+    modes: {
+        DEAD: { tree: { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } } },
+        CONTROLLED: { tree: { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } } },
+        HOLD: { tree: { type: 'ACTION', name: 'Hold Ground', key: 'HoldGround' } },
+        ORDER: {
+            tree: {
+                type: 'SELECTOR',
+                name: 'Follow Order',
+                children: [
+                    { type: 'ACTION', name: 'Order: Move', key: 'OrderMove' },
+                    { type: 'ACTION', name: 'Order: Attack', key: 'OrderAttack' },
+                    { type: 'ACTION', name: 'Order: Cast', key: 'OrderCast' },
+                ],
+            },
+            onFailure: 'HOLD',
+        },
+    },
+    edges: [
+        { from: '*', to: 'DEAD', when: 'IsDead' },
+        { from: ['HOLD', 'ORDER'], to: 'CONTROLLED', when: 'IsControlled' },
+        { from: ['DEAD'], to: 'HOLD', when: 'IsAlive' },
+        { from: ['CONTROLLED'], to: 'HOLD', unless: 'IsControlled' },
+        { from: ['HOLD'], to: 'ORDER', when: 'HasOrder' },
+        { from: ['ORDER'], to: 'HOLD', unless: 'HasOrder' },
     ],
 };
 

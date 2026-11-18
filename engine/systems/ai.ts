@@ -1,21 +1,23 @@
 
 import { Agent, GameEngine } from "../game";
 import { BTNode, Selector, Sequence, Condition, Action } from "../behaviorTree";
-import { AI_MODE_GRAPH, BTDef } from "../../data/ai_profiles";
+import { AI_MODE_GRAPH, PLAYER_MODE_GRAPH, type AIModeDef, type BTDef } from "../../data/ai_profiles";
 import { ModeMachine, type ModeEdge } from "../ai/ModeMachine";
 import { BTConditions, BTActions } from "../ai/BTRegistry";
 import { NodeState, AIMode } from "../../types";
 
 export class AISystem {
     
-    // 單位的 AI 是一台狀態機（ModeMachine）；每個模式一棵小樹，圖是資料（AI_MODE_GRAPH）
-    public buildAI(_a: Agent, engine: GameEngine): BTNode {
-        const modes = (Object.keys(AI_MODE_GRAPH.modes) as AIMode[]).map(mode => ({
+    // 單位的 AI 是一台狀態機（ModeMachine）；每個模式一棵小樹，圖是資料。
+    // 控制者決定用哪一張圖（契約 G3）：AI 用 AI_MODE_GRAPH，玩家用 PLAYER_MODE_GRAPH。
+    public buildAI(a: Agent, engine: GameEngine): BTNode {
+        const graph = a.controller === 'PLAYER' ? PLAYER_MODE_GRAPH : AI_MODE_GRAPH;
+        const modes = (Object.entries(graph.modes) as [AIMode, AIModeDef][]).map(([mode, def]) => ({
             mode,
-            tree: this.parseNode(AI_MODE_GRAPH.modes[mode].tree, engine),
-            onFailure: AI_MODE_GRAPH.modes[mode].onFailure,
+            tree: this.parseNode(def.tree, engine),
+            onFailure: def.onFailure,
         }));
-        const edges = AI_MODE_GRAPH.edges.map((e): ModeEdge => {
+        const edges = graph.edges.map((e): ModeEdge => {
             const key = (e.when ?? e.unless) as string;
             const cond = BTConditions[key];
             return {
@@ -25,7 +27,7 @@ export class AISystem {
                 test: e.when ? (agent) => cond(agent, engine, {}) : (agent) => !cond(agent, engine, {}),
             };
         });
-        return new ModeMachine(AI_MODE_GRAPH.initial, modes, edges, () => engine.battleTime);
+        return new ModeMachine(graph.initial, modes, edges, () => engine.battleTime);
     }
 
     private parseNode(def: BTDef, engine: GameEngine): BTNode {

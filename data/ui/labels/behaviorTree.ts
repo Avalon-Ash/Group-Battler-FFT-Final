@@ -60,4 +60,6 @@ export const AI_MODE_LABEL: Readonly<Record<AIMode, string>> = {
     TRAPPED: '被困',
     UNSTICK: '脫困',
     FINALE: '背水一戰',
+    HOLD: '堅守',
+    ORDER: '執行指令',
 };

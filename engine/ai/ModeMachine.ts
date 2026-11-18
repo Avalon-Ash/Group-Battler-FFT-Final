@@ -62,6 +62,8 @@ export class ModeMachine extends BTNode {
 
     tick(a: Agent): NodeState {
         if (a.aiMode === null) this.enter(a, this.initial, 'start');
+        // 換了一張圖（控制者切換，契約 G3）而目前的模式不在這張圖裡：從這張圖的起點重新開始
+        else if (!this.trees.has(a.aiMode)) this.enter(a, this.initial, 'graph');
         this.settle(a);
         for (let hop = 0; hop < AI_MODE_RULES.MAX_HOPS_PER_TICK; hop++) {
             const result = (this.trees.get(a.aiMode as AIMode) as BTNode).tick(a);

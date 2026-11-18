@@ -90,15 +90,25 @@ describe('契約 G3 玩家操控', () => {
         const { e, hero } = setup();
         const foe = enemyOf(e, hero);
         const slot = 2;
-        const casts: string[] = [];
-        e.bus.on('CAST_START', (c) => { if (c.sourceId === hero.id) casts.push(c.skill.id); });
+        // 目標在 9 格外：把它的血加厚，否則走到之前就被隊友打死，驗不到「放出去」
+        const TOUGH_HP = 50000;
+        emit(e, { type: 'EDIT_AGENT', agentId: foe.id, maxHp: TOUGH_HP, hp: TOUGH_HP });
+        expect(foe.hp).toBe(TOUGH_HP);
         emit(e, { type: 'START_GAME', seed: 1 });
         runTicks(e, 10);
         emit(e, { type: 'ORDER_CAST', agentId: hero.id, slot, targetId: foe.id });
         runTicks(e, 2);
         expect(hero.order).toEqual({ type: 'CAST', slot, targetId: foe.id });
-        for (let i = 0; i < 900 && e.isRunning && hero.hp > 0 && foe.hp > 0 && casts.length === 0; i++) runTicks(e, 1);
-        expect(casts[0]).toBe(hero.skillIds[slot]);
+        // 看單位自己的施法狀態，不聽 CAST_START：第 2 槽是普攻，CombatSystem 對普攻不發那個事件。
+        // 「放出去」＝先進入這一槽的前搖，而且這一槽進了冷卻（被打斷的普攻不進冷卻，只進前搖不算）。
+        expect(hero.curCDs[slot] || 0).toBe(0);
+        let windup = false;
+        for (let i = 0; i < 900 && e.isRunning && hero.hp > 0 && foe.hp > 0 && !((hero.curCDs[slot] || 0) > 0); i++) {
+            runTicks(e, 1);
+            if (hero.castingSkillIdx === slot) windup = true;
+        }
+        expect(windup).toBe(true);
+        expect(hero.curCDs[slot]).toBeGreaterThan(0);
         runTicks(e, 2);
         expect(hero.order).toBeNull();
     });

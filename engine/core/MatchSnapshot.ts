@@ -19,6 +19,7 @@ import { DEFAULT_SKILL_DB } from '../../skillDatabase';
 import { SCENE_DB } from '../../data/scenes';
 import { HexUtils } from '../utils';
 import { saveAgentState } from './AgentLifecycle';
+import { issueOrder } from './Orders';
 
 const SNAPSHOT_VERSION = 1;
 
@@ -66,6 +67,7 @@ export function captureMatch(engine: GameEngine): MatchSnapshot {
             ...(a.bodyType !== undefined ? { bodyType: a.bodyType } : {}),
             look: { ...a.look },
             ...(a.controller !== 'AI' ? { controller: a.controller } : {}),
+            ...(a.order ? { order: { ...a.order } } : {}),
             aiUpdateInterval: a.aiUpdateInterval,
         })),
         entityCounter: engine.entityCounter,
@@ -115,6 +117,7 @@ export function restoreMatch(engine: GameEngine, snapshot: MatchSnapshot): void 
         a.maxMp = u.maxMp;
         a.aiUpdateInterval = u.aiUpdateInterval;
         a.controller = u.controller ?? 'AI';
+        if (u.order) issueOrder(a, { ...u.order });
         saveAgentState(a);
     }
     engine.restoreEntityCounter(snapshot.entityCounter);

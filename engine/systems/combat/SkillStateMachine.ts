@@ -14,6 +14,7 @@
 import type { Agent } from "../../core/Agent";
 import type { Skill } from "../../../types";
 import { isActionBlocked } from "../../core/Effects";
+import { onSkillReleased } from "../../core/Orders";
 import { CAST_LOCKOUT, CAST_RULES, COMBAT_PARAM } from "../../../constants";
 
 export type SkillPhase = 'READY' | 'WINDUP' | 'COOLDOWN';
@@ -77,6 +78,8 @@ export function commitSkill(a: Agent, idx: number, skill: Skill): void {
     // BASIC attacks do not have a mandatory 0.3s floor CD
     const minCd = skill.tag === 'BASIC' ? CAST_RULES.MIN_BASIC_RETRY_CD : CAST_RULES.MIN_SKILL_RETRY_CD;
     a.curCDs[idx] = Math.max(skill.cd ?? 0, minCd);
+    // 玩家的施放指令到此完成（契約 G3）；被打斷不會走到這裡，指令留著重試
+    onSkillReleased(a, idx);
 }
 
 /** 打斷的懲罰：短暫不能再施法，主動技和奧義另外進一小段冷卻（避免卡在部分控制下無限重放） */
