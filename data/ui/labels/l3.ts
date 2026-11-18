@@ -54,6 +54,8 @@ export const INSPECTOR_TEXT = {
     deadHint: '請先選取單位以檢視詳情',
     editToggle: '編輯單位屬性',
     openBehaviorTree: '開啟行為樹',
+    playerControl: 'PLAYER CONTROL',
+    playerControlHint: '點地面移動、點敵人攻擊',
     role: '職業',
     bodyType: '體型',
     hp: '生命值',

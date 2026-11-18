@@ -19,7 +19,7 @@ import {
 import { Icons } from '../icons';
 import { Helpers } from '../../inspector/InspectorConstants';
 import { UnitStatusTab } from '../../inspector/tabs/UnitStatusTab';
-import { Card, EmptyState, IconButton, Meter, NumberInput, SectionHeading, Select, Tabs, TabsContent, Tag } from '../primitives';
+import { Card, EmptyState, IconButton, Meter, NumberInput, SectionHeading, Select, Switch, Tabs, TabsContent, Tag } from '../primitives';
 
 const ROLE_ICON: Readonly<Record<Role, React.ReactNode>> = {
     [Role.TANK]: <Icons.RoleTank className="h-5 w-5" />,
@@ -165,6 +165,22 @@ export const UnitInspectorBody: React.FC = () => {
                 <div className="inspector-resources flex shrink-0 flex-col gap-2">
                     <Meter label={INSPECTOR_TEXT.hp} value={view.hp} max={view.maxHp} tone={view.teamTone} showValue />
                     {view.maxMp > 0 && <Meter label={INSPECTOR_TEXT.mp} value={view.mp} max={view.maxMp} tone="accent" size="sm" showValue />}
+                </div>
+
+                {/* 玩家操控（契約 G3）：開了之後這個單位不自己打，等指令 */}
+                <div className="well flex shrink-0 items-center gap-3 px-3 py-2">
+                    <Icons.Control className="h-4 w-4 shrink-0 text-fg-muted" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="ui-heading text-fg-secondary">{INSPECTOR_TEXT.playerControl}</span>
+                        <span className="truncate text-ui-label text-fg-muted">{INSPECTOR_TEXT.playerControlHint}</span>
+                    </div>
+                    <Switch
+                        ariaLabel={INSPECTOR_TEXT.playerControl}
+                        inputTestId="inspector-control"
+                        checked={view.controller === 'PLAYER'}
+                        disabled={view.isDead}
+                        onChange={(on) => send({ type: 'SET_CONTROLLER', agentId: view.id, controller: on ? 'PLAYER' : 'AI' })}
+                    />
                 </div>
 
                 <Tabs value={tab} onValueChange={setTab} tabs={INSPECTOR_TABS} className="inspector-tabs flex flex-1 flex-col min-h-0 pt-2">

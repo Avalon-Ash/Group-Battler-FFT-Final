@@ -52,7 +52,7 @@ export function selectInspectorView(engine: GameEngine, agentId: string | null |
     const shield = Math.round(agent.shield);
     const signature = [
         agent.id, agent.team, agent.role, bodyType, hp, maxHp, mp, maxMp, shield, agent.q, agent.r,
-        isDead, availability, statusTags.join(','), aiState, agent.actionState,
+        isDead, availability, statusTags.join(','), aiState, agent.actionState, agent.controller,
     ].join('|');
 
     const cache = cacheOf(inspectorCaches, engine);
@@ -77,6 +77,7 @@ export function selectInspectorView(engine: GameEngine, agentId: string | null |
         statusTags,
         aiState,
         actionState: agent.actionState,
+        controller: agent.controller,
     };
     cache.set(agentId, { signature, view });
     return view;

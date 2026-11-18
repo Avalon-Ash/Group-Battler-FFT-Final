@@ -67,7 +67,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
-        tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner,
+        tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent,
         onSelect
     });
 

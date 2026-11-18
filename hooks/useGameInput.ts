@@ -13,6 +13,7 @@ import {
     queryHexAtScreenPoint,
     queryHexToWorldSnap,
 } from '../engine/systems/ui/editorQueries';
+import { resolveTap } from '../engine/systems/ui/tapIntent';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
 export interface DraggedObstacle {
@@ -38,11 +39,13 @@ interface GameInputProps {
     draftRole: Role;
     draftBodyType?: BodyTypeId;
     winner: Team | null;
+    /** 目前選取的單位：它是玩家控制的話，點擊會變成指令（契約 G3） */
+    selectedAgent: Agent | null;
     onSelect: (a: Agent | null) => void;
 }
 type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
 export const useGameInput = (props: GameInputProps) => {
-    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, onSelect } = props;
+    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent, onSelect } = props;
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
     const [draggedObstacle, setDraggedObstacle] = useState<DraggedObstacle | null>(null);
     const interactionMode = useRef<InteractionMode>('IDLE');
@@ -54,8 +57,8 @@ export const useGameInput = (props: GameInputProps) => {
     const hoveredHexRef = useRef<Hex | null>(null);
     const activePointers = useRef<Set<number>>(new Set());
     const cachedRectRef = useRef<DOMRect | null>(null);
-    const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner });
-    useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner]);
+    const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent });
+    useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent]);
     
     const getHexFromEvent = (clientX: number, clientY: number) => {
         const cvs = canvasRef.current;
@@ -184,7 +187,10 @@ export const useGameInput = (props: GameInputProps) => {
                 const h = getHexFromEvent(e.clientX, e.clientY);
                 if (h) executePaintAction(h);
             } else {
-                onSelect(pressedAgentRef.current);
+                // 選取工具的點擊：選取、或對選取中的玩家單位下指令（規則在 resolveTap，這裡只負責送出）
+                const intent = resolveTap(engine, configRef.current.selectedAgent, getHexFromEvent(e.clientX, e.clientY), pressedAgentRef.current);
+                if (intent.kind === 'ORDER') engine.bus.emit('UI_COMMAND', intent.command);
+                else if (intent.kind === 'SELECT') onSelect(intent.agent);
             }
         }
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {

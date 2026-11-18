@@ -1,5 +1,5 @@
 import type { StatusAvailability } from './status';
-import type { ActionState, AIState, BodyTypeId, Role, Skill, Team } from '../../types';
+import type { ActionState, AIState, BodyTypeId, ControllerKind, Role, Skill, Team } from '../../types';
 
 /** 隊伍色語意：元件只用它挑 Tag／Meter 的 tone 與文字 class，不自己比對 Team。 */
 export type TeamTone = 'blue' | 'red';
@@ -27,6 +27,8 @@ export interface InspectorView {
     readonly statusTags: InspectorStatusKind[];
     readonly aiState: AIState;
     readonly actionState: ActionState;
+    /** 控制者（契約 G3）：AI 自己打，或玩家下指令 */
+    readonly controller: ControllerKind;
 }
 
 interface SkillOptionView {

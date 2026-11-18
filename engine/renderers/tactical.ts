@@ -82,16 +82,10 @@ export class TacticalRenderer {
                 ctx.stroke();
                 ctx.setLineDash([]); 
                 ctx.globalAlpha = 1.0;
-                const dest = highlight.trajectory[highlight.trajectory.length - 1];
-                const dP = HexUtils.toPx(dest.q, dest.r, engine.mapConfig);
-                const dH = grid.getTerrainHeight(dest.q, dest.r, engine);
-                ctx.save();
-                ctx.translate(dP.x, dP.y - dH);
-                ctx.scale(1, TACTICAL_DRAW.DESTINATION_SQUASH);
-                ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); 
-                ctx.fillStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = TACTICAL_DRAW.DESTINATION_FILL_ALPHA; ctx.fill();
-                ctx.strokeStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = TACTICAL_DRAW.DESTINATION_LINE_ALPHA; ctx.lineWidth=2; ctx.stroke();
-                ctx.restore();
+                this.drawDestination(ctx, highlight.trajectory[highlight.trajectory.length - 1], engine, grid);
+            } else if (highlight.order?.type === 'MOVE') {
+                // 玩家下了移動指令但還沒起步（開戰前、被定身、走不到）：先畫出目的地（契約 G3）
+                this.drawDestination(ctx, highlight.order, engine, grid);
             }
             if (highlight.target && highlight.target.hp > 0) {
                 const t = highlight.target;
@@ -117,6 +111,19 @@ export class TacticalRenderer {
                 }
             }
         }
+        ctx.restore();
+    }
+
+    /** 目的地標記：壓扁的圓，貼在那一格的地面上（路徑終點、待執行的移動指令共用） */
+    private drawDestination(ctx: CanvasRenderingContext2D, dest: Hex, engine: GameEngine, grid: GridSystem): void {
+        const dP = HexUtils.toPx(dest.q, dest.r, engine.mapConfig);
+        const dH = grid.getTerrainHeight(dest.q, dest.r, engine);
+        ctx.save();
+        ctx.translate(dP.x, dP.y - dH);
+        ctx.scale(1, TACTICAL_DRAW.DESTINATION_SQUASH);
+        ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); 
+        ctx.fillStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = TACTICAL_DRAW.DESTINATION_FILL_ALPHA; ctx.fill();
+        ctx.strokeStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = TACTICAL_DRAW.DESTINATION_LINE_ALPHA; ctx.lineWidth=2; ctx.stroke();
         ctx.restore();
     }
 
