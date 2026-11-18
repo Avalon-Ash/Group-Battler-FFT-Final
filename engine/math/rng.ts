@@ -71,7 +71,8 @@ export function createRandomStream(streamSeed: number): RandomSource {
 export const UINT32_RANGE = 0x100000000;
 
 // ── 佈陣流（契約 S2）──────────────────────────────────────────────────────
-// UI 端開戰前的抽號（展示模式的地圖大小、佈局、陣營設定、出生格洗牌、外觀鹽）專用。
+// 手動開戰前的抽號（骰子佈陣的出生格洗牌）與組裝層取種子（setupSeed，交給對局流程當每個展示回合的起點）專用；
+// 展示回合自己的抽號用 createRandomStream 的本地序列，不走這條。
 // 同一顆 mulberry32、另一個狀態，和模擬流互不消耗：佈陣結果記在開戰快照裡，回放不重跑這些抽號，
 // 所以這條流不需要可重現；第一次使用時才由 Math.random 取起始狀態（每次開頁不同）。
 let setupState: number | null = null;

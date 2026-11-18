@@ -38,6 +38,7 @@
    - *Deliberate exception*: ring-out / void fall (zone shrink) writes `hp = 0` and `banished` directly as a terrain outcome.
    - UI writes to the engine only through `UICommandSystem` (`engine/systems/ui/UICommandSystem.ts`, via `UI_COMMAND` events).
    - While a battle runs, a `GameCommand` is queued and applied at the start of the next tick, then logged with its tick number (`engine/core/CommandQueue.ts`); same seed + same log = same battle. Do not read engine state right after emitting a `GameCommand` during battle, and do not mutate simulation state outside a tick. `engine.tick(dt)` always gets the fixed step; time scale only changes how many ticks run per frame (`engine/core/FixedStep.ts`), so no system may read `timeScale` to change simulation results.
+   - Match flow (`engine/systems/match/MatchFlowSystem.ts`): the composition layer (`hooks/useGameApp.ts`, `hooks/useGameLoop.ts`) calls its methods directly (`setShowcase`, `newBattlefield`, `update`); the flow itself changes the engine only by emitting `UI_COMMAND`. It derives its phase from engine state and must not subscribe to `engine.bus`. UI reads match state through `selectSessionView` / `selectBoardView`, never through React state mirrored from the engine.
    - *Deliberate UI exceptions*: drag-preview transient coordinates (`px/py/dragOverQ/dragOverR`); the state change itself still goes through a command (e.g. `MOVE_AGENT`). The composition-root binding `engine.renderer = ...` stays in `GameCanvas`.
 
 6. **No coupling (one definition per concept)**:
