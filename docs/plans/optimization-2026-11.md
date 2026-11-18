@@ -204,7 +204,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **驗收**：`tests/BTOptimization.test.ts` 相關兩則改寫成新語意後通過；`npm run balance:fingerprint`——預期**會變**（目標不再被施法打斷重選），所以改看 `balance:sim` 600 場勝率與 `balance:idle` 發呆、繞圈比例都在改動前 ±1.5 個百分點內，再重錄指紋。
 - **停下來問**：勝率或發呆比例超出範圍。
 
-### G3 玩家操控（Controller）
+### G3 玩家操控（Controller）（第一片完成 2026-11-18，WORKLOG §2 CC；第二片等使用者試玩後再開）
 - **設計**：
   - 外部仍只看到 `a.bt.tick(a)`，`engine/game.ts` 不用改。控制者＝這個單位用哪一張模式圖：AI 用 `AI_MODE_GRAPH`；玩家用一張新的小圖（資料放 `data/ai_profiles.ts` 旁）：`受控中斷 → 執行指令 → 沒指令時待命或自動普攻`。硬控、定身、詠唱中斷沿用同一批條件節點。
   - `Agent` 加兩個純資料欄位：`controller: 'AI' | 'PLAYER'` 與 `order`（移動到格、攻擊目標、施放第幾招對誰／哪格、停止）。唯一寫入者是新的指令處理（`ORDER_MOVE`／`ORDER_ATTACK`／`ORDER_CAST`／`ORDER_STOP`／`SET_CONTROLLER` 這幾個 `GameCommand`），所以自動進佇列、進紀錄、可回放、可 undo。
@@ -213,6 +213,11 @@ R1 畫面插值（獨立，渲染線第一條）
 - **第一個可玩切片**（先交這個給使用者試）：手動模式、一個單位切成玩家控制、移動與普攻；其他單位照常 AI。技能施放與多單位是第二片。
 - **驗收**：測試：一串固定的 order 指令重播兩次結果相同；沒有任何玩家單位時 `npm run balance:fingerprint` 0 差異（AI 路徑沒被動到）；`npm run e2e:ui`、`npm run audit:ui -- all`。
 - **已定**（契約 G3）：即時＋可暫停下令；沒指令時原地堅守。現在 5v5 一場平均 19 秒，第一個切片交給使用者試玩後，節奏太快再談放慢（會動到平衡）。
+- **第二片（還沒做，等使用者試玩第一片後定範圍）**：
+  - 技能施放的 UI（技能列點招再點目標）。引擎已經收 `ORDER_CAST`（單位、地面格、或不指定目標），只缺輸入與技能列。
+  - undo 的 UI（`undoLastCommand` 已可用，指令都在紀錄裡）、停止指令的按鈕（`ORDER_STOP`）。
+  - 多單位、玩家單位在場上的標示（現在只有選取時看得出來）、`AppMode` 的 `PLAY`。
+  - 堅守時被遠程打不會還手（射程內沒有敵人就不動）：試玩後看要不要加「被打就反擊」之類的姿態。
 - **承接 G2（Fable 終審 2026-11-18）**：
   - 玩家指令節點直接呼叫 `initiateCast` 之前，要先用 `aimCastAt` 設好或清掉施法目標（唯一寫入者是 `SkillStateMachine`）。
   - 地面施法的瞄準還沒收進 `castAim`：`CastPushPull` 對地面起手時仍靠清掉 `a.target` 讓管線改瞄格子，施法後由 `HasTarget` 重新選敵（G2 先接受，只發生在背水一戰的推拉）。G3 的 `ORDER_CAST` 帶 `q`、`r` 時會碰到同一件事：到時把「這次施法瞄單位還是瞄格子」收進 `castAim` 一處判斷，`CastPushPull` 就不必再清戰鬥目標。
