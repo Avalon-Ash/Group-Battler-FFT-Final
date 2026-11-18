@@ -1,5 +1,5 @@
 import React from 'react';
-import { WindowDef, WindowId } from '../../../types';
+import { AppMode, WindowDef, WindowId } from '../../../types';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { LogTab } from '../../inspector/tabs/LogTab';
 import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
@@ -83,27 +83,16 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     },
 };
 
-/** Pure filtering helper by runtime mode. */
-export function filterWindowDefsByMode(
-    defs: WindowDef[],
-    mode: 'showcase' | 'manual' | 'gameover'
-): WindowDef[] {
-    return defs.filter((def) => {
-        if (mode === 'showcase') return Boolean(def.visibleInShowcase);
-        if (mode === 'gameover') return Boolean(def.visibleOnGameOver);
-        if (mode === 'manual') return def.visibleInManual !== false;
-        return true;
-    });
+/** 這個模式下可用的視窗（查 WindowDef.modes，契約 U1）。 */
+export function filterWindowDefsByMode(defs: WindowDef[], mode: AppMode): WindowDef[] {
+    return defs.filter((def) => def.modes.includes(mode));
 }
 
 /** Renders every registered window; closed windows render nothing (their body is unmounted). */
-export const RegisteredWindows: React.FC<{ onCloseInspector?: () => void; showcaseMode?: boolean; isGameOver?: boolean }> = ({
+export const RegisteredWindows: React.FC<{ onCloseInspector?: () => void; mode: AppMode }> = ({
     onCloseInspector,
-    showcaseMode = false,
-    isGameOver = false,
+    mode,
 }) => {
-    // 結算畫面：以前沿用 showcase 過濾，結算鈕「戰鬥記錄」開的 logs 被濾掉，要到下一關才出現
-    const mode = showcaseMode ? 'showcase' : isGameOver ? 'gameover' : 'manual';
     const activeDefs = filterWindowDefsByMode(WINDOW_DEFINITIONS, mode);
 
     return (
@@ -133,7 +122,7 @@ export interface RegisteredWindowInfo {
     icon: React.ReactNode;
 }
 
-export function getRegisteredWindows(mode?: 'showcase' | 'manual'): RegisteredWindowInfo[] {
+export function getRegisteredWindows(mode?: AppMode): RegisteredWindowInfo[] {
     const defs = mode ? filterWindowDefsByMode(WINDOW_DEFINITIONS, mode) : WINDOW_DEFINITIONS;
     return defs.filter((def) => Boolean(WINDOW_REGISTRY[def.id])).map((def) => ({
         id: def.id,

@@ -224,7 +224,7 @@ R1 畫面插值（獨立，渲染線第一條）
 ### G5 行為編輯器
 - 依賴 G3、G4、U1，而且是 UI 與資料格式的設計題。開工前由 Opus 寫一頁設計（編輯範圍先做參數與門檻、再做結構；存哪裡；怎麼和回放檔的 `build` 版本共存）給使用者看，本檔不展開。
 
-### U1 `WindowDef` 布林改 `modes`
+### U1 `WindowDef` 布林改 `modes`（完成 2026-11-18，WORKLOG §2 CB）
 - **作法**：`types.ts` 的 `visibleInShowcase／visibleInManual／visibleOnGameOver` 換成 `modes: readonly AppMode[]`（先有 `SHOWCASE`、`MANUAL`、`GAME_OVER`，之後 G3、S3、G5 會加 `PLAY`、`REPLAY`、`EDIT`）；`data/ui/windows.ts` 改寫；`components/ui/window/windowRegistry.tsx` 的過濾函式改成查表；目前模式由 selector 給。型別由 Opus 先加好，代理只改使用處。
 - **驗收**：`tests/WindowStore.test.ts`、`npm run e2e:ui`、樣式基準 0 變動。
 

@@ -5,7 +5,7 @@ import { GameEngine } from '../../engine/game';
 import { Agent } from '../../engine/core/Agent';
 import type { MapConfig } from '../../engine/utils';
 import { Team } from '../../types';
-import type { MatchPhase, AppMode } from '../../types';
+import type { MatchPhase, AppMode, WindowDef } from '../../types';
 import { HEX_SIZE } from '../../constants';
 import { UnitFrameStore } from '../../engine/renderers/frame/UnitFrame';
 import { effectiveViewport } from '../../engine/presentation/ViewInsets';
@@ -204,7 +204,9 @@ describe('契約 U1 視窗 modes', () => {
 
     contractTest('U1', '現在的三個布林和換算表一致（換算表沒抄錯）；每個視窗都有 modes', () => {
         expect(WINDOW_DEFINITIONS.map((d) => d.id).sort()).toEqual(Object.keys(EXPECTED).sort());
-        const legacy = WINDOW_DEFINITIONS.filter((d) => 'visibleInShowcase' in d || 'visibleInManual' in d || 'visibleOnGameOver' in d);
+        // 三個布林已從 WindowDef 拿掉（契約 U1 完成後 legacy 是空的）；這裡自己宣告舊欄位，換算表才能在遷移前後都通過型別檢查
+        type LegacyFlags = { visibleInShowcase?: boolean; visibleInManual?: boolean; visibleOnGameOver?: boolean };
+        const legacy = (WINDOW_DEFINITIONS as (WindowDef & LegacyFlags)[]).filter((d) => 'visibleInShowcase' in d || 'visibleInManual' in d || 'visibleOnGameOver' in d);
         for (const d of legacy) {
             const modes: AppMode[] = [];
             if (d.visibleInShowcase) modes.push('SHOWCASE');

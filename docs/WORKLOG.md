@@ -770,3 +770,10 @@
 - `MapEditorToolbar` 的 `mapW`／`mapH` 只有介面宣告，沒有輸入框在用，所以改成從引擎讀不影響任何輸入。
 - `npm run e2e:ui` 在工作樹裡有一項「no console/page errors」失敗：兩個字型檔經 `node_modules` 連結回 403（Vite 不服務工作樹以外的路徑），其餘全過、樣式快照 0 差異；這是工作樹環境造成的。在主資料夾（暫時切到這個版本）重跑：暖機後連兩次 242 項全過，`npm run audit:ui -- all` 44 檔 0 違規。剛切換版本後的第一次會在開頁就逾時（`page.goto` 8 秒，Vite 快取是冷的），先跑一次 `runtime-smoke` 暖機就不會。
 - 開機 effect 在 StrictMode 下跑兩次、各開一個展示回合（和以前一樣）：陣容局數計數器因此在擲骰時是 3，`battle_frozen` 的體型靠它固定；改成只跑一次會讓那張基準變動。
+
+### CB. 2026-11-18 優化開案書 U1 視窗可用模式改成 `modes`（主代理 Fable）
+- `WindowDef` 的 `visibleInShowcase`／`visibleInManual`／`visibleOnGameOver` 三個布林換成必填的 `modes: readonly AppMode[]`；`data/ui/windows.ts` 十個視窗照 2026-11-17 的布林換算（契約 U1 的換算表），行為不變。
+- `filterWindowDefsByMode` 改成查表（`def.modes.includes(mode)`）；`RegisteredWindows`、`SystemMenu`、`getRegisteredWindows` 收 `AppMode`，不再各自用 `showcase`／`manual`／`gameover` 字串。
+- 目前模式只在一處決定：`appModeOf(SessionView)`（`engine/systems/ui/views/session.ts`）：展示模式＝`SHOWCASE`，手動分出勝方＝`GAME_OVER`，否則 `MANUAL`；`App.tsx` 的結算判斷也改讀它。`PLAY`、`REPLAY`、`EDIT` 留給 G3、S3、G5。
+- 契約檔修正（作者修改，`MANIFEST.json` 已更新）：`R.contract.test.ts` 的 U1 換算檢查原本直接讀三個布林，型別拿掉之後通不過型別檢查，改成在測試裡自己宣告舊欄位。
+- 驗證：U1 契約 2 則真的通過；`npm test` 162 檔 1554 則、lint、build、knip；`npm run e2e:ui` 241 項通過、樣式快照 0 差異，剩下 1 項是工作樹字型檔 403（環境，見 §2 CA）。

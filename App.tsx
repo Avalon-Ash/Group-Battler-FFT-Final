@@ -33,7 +33,7 @@ function App() {
     }
   }, [state.selectedAgent, isInspectorOpen, windowActions]);
 
-  const isGameOver = state.winner !== null;
+  const isGameOver = state.appMode === 'GAME_OVER';
   const hideHUD = state.isShowcaseMode || isGameOver;
 
   const handleEnterManualMode = () => {
@@ -67,18 +67,17 @@ function App() {
       />
       {!isGameOver && (
           <SystemMenu 
-              mode={state.isShowcaseMode ? 'showcase' : 'manual'}
+              mode={state.appMode}
               onDownloadSpec={actions.downloadSpec}
               onLoadReplay={actions.loadReplay}
           />
       )}
 
-      {/* Floating tool windows. RegisteredWindows filters by visibleInShowcase in showcase mode. */}
+      {/* Floating tool windows. RegisteredWindows keeps the windows whose modes include the current app mode. */}
       <WindowLayer>
           <RegisteredWindows
               onCloseInspector={() => actions.handleSelectAgent(null)}
-              showcaseMode={state.isShowcaseMode}
-              isGameOver={isGameOver}
+              mode={state.appMode}
           />
       </WindowLayer>
 

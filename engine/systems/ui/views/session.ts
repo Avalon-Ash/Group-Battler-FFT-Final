@@ -1,5 +1,5 @@
 import type { GameEngine } from '../../../game';
-import type { HexLayout, SessionView } from '../../../../types';
+import type { AppMode, HexLayout, SessionView } from '../../../../types';
 import { enginePhase, liveResult, matchSetupOf } from '../../match/MatchFlowSystem';
 
 const sessionCache = new WeakMap<GameEngine, SessionView>();
@@ -37,6 +37,15 @@ export function selectSessionView(engine: GameEngine): SessionView {
     const next: SessionView = { phase, isPlaying: engine.isRunning, isShowcase, winner, winnerId, winnerSide, unitCount, battleSetup: { ...setup } };
     sessionCache.set(engine, next);
     return next;
+}
+
+/**
+ * [契約 U1] 目前的應用模式：決定哪些視窗可用（WindowDef.modes）、要不要收起操作列。
+ * 展示模式優先；手動模式分出勝方＝結算畫面。PLAY、REPLAY、EDIT 之後由 G3、S3、G5 接上。
+ */
+export function appModeOf(view: SessionView): AppMode {
+    if (view.isShowcase) return 'SHOWCASE';
+    return view.winner !== null ? 'GAME_OVER' : 'MANUAL';
 }
 
 /** 戰場的大小、佈局與場景（編輯面板顯示用）。 */

@@ -17,18 +17,21 @@ const sampleDefs: WindowDef[] = [
         title: '戰鬥紀錄',
         defaultRect: { x: 50, y: 50, width: 400, height: 300 },
         minSize: { width: 260, height: 160 },
+        modes: ['MANUAL'],
     },
     {
         id: 'inspector',
         title: '單位檢查',
         defaultRect: { x: 100, y: 100, width: 350, height: 500 },
         minSize: { width: 300, height: 200 },
+        modes: ['MANUAL'],
     },
     {
         id: 'monitor',
         title: '監控儀表',
         defaultRect: { x: 150, y: 150, width: 300, height: 200 },
         minSize: { width: 260, height: 160 },
+        modes: ['MANUAL'],
     },
 ];
 
@@ -335,38 +338,36 @@ describe('WindowStore & Window Clamping/Restoration', () => {
                 title: '戰鬥紀錄',
                 defaultRect: { x: 0, y: 0, width: 100, height: 100 },
                 minSize: { width: 50, height: 50 },
-                visibleInShowcase: false,
-                visibleInManual: true,
+                modes: ['MANUAL'],
             },
             {
                 id: 'showcaseSettings',
                 title: '展示設定',
                 defaultRect: { x: 0, y: 0, width: 100, height: 100 },
                 minSize: { width: 50, height: 50 },
-                visibleInShowcase: true,
-                visibleInManual: false,
+                modes: ['SHOWCASE'],
             },
         ];
 
         it('filterWindowDefsByMode filters properly for showcase and manual modes', async () => {
             const { filterWindowDefsByMode } = await import('../components/ui/window/windowRegistry');
             
-            const showcaseDefs = filterWindowDefsByMode(testDefs, 'showcase');
+            const showcaseDefs = filterWindowDefsByMode(testDefs, 'SHOWCASE');
             expect(showcaseDefs.map(d => d.id)).toEqual(['showcaseSettings']);
 
-            const manualDefs = filterWindowDefsByMode(testDefs, 'manual');
+            const manualDefs = filterWindowDefsByMode(testDefs, 'MANUAL');
             expect(manualDefs.map(d => d.id)).toEqual(['logs']);
 
-            // 結算畫面只留 visibleOnGameOver 的視窗；正式表裡戰鬥記錄必須在內（結算鈕「戰鬥記錄」要能開）
-            expect(filterWindowDefsByMode(testDefs, 'gameover')).toEqual([]);
+            // 結算畫面只留 modes 含 GAME_OVER 的視窗；正式表裡戰鬥記錄必須在內（結算鈕「戰鬥記錄」要能開）
+            expect(filterWindowDefsByMode(testDefs, 'GAME_OVER')).toEqual([]);
             const { WINDOW_DEFINITIONS } = await import('../data/ui/windows');
-            expect(filterWindowDefsByMode(WINDOW_DEFINITIONS, 'gameover').map(d => d.id)).toEqual(['logs']);
+            expect(filterWindowDefsByMode(WINDOW_DEFINITIONS, 'GAME_OVER').map(d => d.id)).toEqual(['logs']);
         });
 
         it('getRegisteredWindows returns only showcase windows in showcase mode', async () => {
             const { getRegisteredWindows } = await import('../components/ui/window/windowRegistry');
             
-            const showcaseWins = getRegisteredWindows('showcase');
+            const showcaseWins = getRegisteredWindows('SHOWCASE');
             const showcaseIds = showcaseWins.map(w => w.id);
             expect(showcaseIds).toContain('showcaseSettings');
             expect(showcaseIds).not.toContain('logs');
@@ -376,7 +377,7 @@ describe('WindowStore & Window Clamping/Restoration', () => {
         it('getRegisteredWindows returns only manual windows in manual mode', async () => {
             const { getRegisteredWindows } = await import('../components/ui/window/windowRegistry');
             
-            const manualWins = getRegisteredWindows('manual');
+            const manualWins = getRegisteredWindows('MANUAL');
             const manualIds = manualWins.map(w => w.id);
             expect(manualIds).toContain('logs');
             expect(manualIds).toContain('inspector');

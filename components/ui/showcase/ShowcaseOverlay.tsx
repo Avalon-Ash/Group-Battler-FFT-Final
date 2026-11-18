@@ -29,7 +29,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
     const layout = useShowcaseLayout();
     // 窄螢幕上任何展示模式視窗（設定、音訊…）開著時收起標題卡，讓出空間
     const windows = useWindowStore();
-    const isSettingsOpen = WINDOW_DEFINITIONS.some((def) => def.visibleInShowcase && windows[def.id]?.isOpen);
+    const isSettingsOpen = WINDOW_DEFINITIONS.some((def) => def.modes.includes('SHOWCASE') && windows[def.id]?.isOpen);
     // Settings open as a bottom sheet at compact widths; the title card would sit behind it.
     const isCompactViewport = useCompactViewport();
     

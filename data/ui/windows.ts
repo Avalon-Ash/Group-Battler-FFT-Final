@@ -8,8 +8,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 40, y: 80, width: 640, height: 420 },
         minSize: { width: 360, height: 240 },
         kind: 'window',
-        visibleInShowcase: false,
-        visibleOnGameOver: true,
+        modes: ['MANUAL', 'GAME_OVER'],
     },
     {
         id: 'db',
@@ -18,7 +17,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 80, y: 80, width: 700, height: 500 },
         minSize: { width: 400, height: 300 },
         kind: 'window',
-        visibleInShowcase: false,
+        modes: ['MANUAL'],
     },
     {
         id: 'vfxmap',
@@ -27,7 +26,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 100, y: 80, width: 720, height: 520 },
         minSize: { width: 400, height: 300 },
         kind: 'window',
-        visibleInShowcase: false,
+        modes: ['MANUAL'],
     },
     {
         id: 'inspector',
@@ -36,7 +35,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 24, y: 80, width: 340, height: 520 },
         minSize: { width: 300, height: 240 },
         kind: 'window',
-        visibleInShowcase: false,
+        modes: ['MANUAL'],
     },
     {
         id: 'behaviorTree',
@@ -45,7 +44,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 380, y: 80, width: 420, height: 560 },
         minSize: { width: 300, height: 260 },
         kind: 'window',
-        visibleInShowcase: false,
+        modes: ['MANUAL'],
     },
     {
         id: 'monitor',
@@ -54,7 +53,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 840, y: 80, width: 320, height: 240 },
         minSize: { width: 260, height: 180 },
         kind: 'window',
-        visibleInShowcase: false,
+        modes: ['MANUAL'],
     },
     {
         id: 'directorSettings',
@@ -63,7 +62,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 780, y: 120, width: 300, height: 380 },
         minSize: { width: 280, height: 260 },
         kind: 'window',
-        visibleInShowcase: false,
+        modes: ['MANUAL'],
     },
     {
         id: 'zoneSettings',
@@ -72,7 +71,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 780, y: 140, width: 300, height: 520 },
         minSize: { width: 280, height: 240 },
         kind: 'window',
-        visibleInShowcase: false,
+        modes: ['MANUAL'],
     },
     {
         id: 'showcaseSettings',
@@ -81,8 +80,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 24, y: 80, width: 340, height: 460 },
         minSize: { width: 280, height: 300 },
         kind: 'window',
-        visibleInShowcase: true,
-        visibleInManual: false,
+        modes: ['SHOWCASE'],
     },
     {
         id: 'audioSettings',
@@ -91,8 +89,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         defaultRect: { x: 740, y: 100, width: 340, height: 420 },
         minSize: { width: 300, height: 320 },
         kind: 'window',
-        visibleInShowcase: true,
-        visibleInManual: true,
+        modes: ['SHOWCASE', 'MANUAL'],
     },
 ];
 

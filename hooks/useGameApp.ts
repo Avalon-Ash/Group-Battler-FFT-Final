@@ -19,7 +19,7 @@ import { DesignExporter } from '../engine/presentation/DesignExporter';
 // 佈陣流：種子都從它取，不碰模擬流（結果記在開戰快照裡，契約 S2）
 import { setupSeed } from '../engine/math/rng';
 import { MatchFlowSystem } from '../engine/systems/match/MatchFlowSystem';
-import { selectSessionView, selectBoardView } from '../engine/systems/ui/views/session';
+import { selectSessionView, selectBoardView, appModeOf } from '../engine/systems/ui/views/session';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 import { BUILD_ID, exportReplay, startReplay, takeOver } from '../engine/core/Replay';
 import { downloadReplay, fetchPublicReplay, pickReplayFile, readReplayFile, replayQuery, type LoadedReplay } from '../engine/presentation/ReplayIO';
@@ -167,7 +167,7 @@ export const useGameApp = () => {
     return {
         engineRef,
         state: {
-            isShowcaseMode: session.isShowcase, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup,
+            appMode: appModeOf(session), isShowcaseMode: session.isShowcase, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: board.mapW, mapH: board.mapH, currentSceneId: board.sceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: board.hexLayout,
             selectedAgent: selectedAgentId ? (engineRef.current.agents.find((a) => a.id === selectedAgentId) ?? null) : null, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,

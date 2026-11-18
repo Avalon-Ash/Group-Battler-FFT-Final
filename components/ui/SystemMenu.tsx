@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from './icons';
 import { getRegisteredWindows } from './window/windowRegistry';
+import type { AppMode } from '../../types';
 import { useWindowStore, useWindowActions } from '../../hooks/useWindowStore';
 import { UI_Z } from '../../constants';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
@@ -12,13 +13,13 @@ interface SystemMenuProps {
     onDownloadSpec: () => void;
     /** 選一份回放檔來播（useGameApp） */
     onLoadReplay: () => void;
-    mode?: 'showcase' | 'manual';
+    mode?: AppMode;
 }
 
 export const SystemMenu: React.FC<SystemMenuProps> = ({
     onDownloadSpec,
     onLoadReplay,
-    mode = 'manual',
+    mode = 'MANUAL',
 }: SystemMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const isCompact = useCompactViewport();
