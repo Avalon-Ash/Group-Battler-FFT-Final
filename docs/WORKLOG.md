@@ -836,3 +836,30 @@
 - **派工方式**：agy `gemini-pro-orchestrator-neon`（Neon 規劃、Hydrogen 執行），22 分一次過；Orchestrator 不收 `--effort`。
 - 驗證：AdrIndex、DocDrift、`npm test` 1586 則。
 - **回退**：merge commit `git revert -m 1`。
+### CJ. 2026-11-20 清理與合約校正 C1（主代理 Opus，使用者同意）
+- **清理**：移除 `.claude/worktrees/` 剩下 3 個已合併工作樹（先 `rmdir` junction）、刪 15 條已合併本機分支、刪 `C:\Git` 下 7 個本專案舊 clone（`_wt_director_shot`、`_wt_mobility`、`_wt_skill_design`、`_wt_skill_pipeline`、`_wt_status_art`、`_wt_status_visuals`、`_wt_ui_hero`，HEAD 都已在 main）與 `_agent_allow`（11-03 舊紀錄）；封存 3 個閒置工作階段。狀態美術原型先複製到 `C:\Git\_asset_stagingrt\`（逐檔比對相同）再刪。**刪掉沒讀過的未追蹤檔**：`_wt_skill_design` 的 `docs/_argon_design.md`、`_argon_err.txt`、`_argon_result.json`、`MOBILITY_DESIGN_AGENT_PROMPT.md`、`SKILL_AUDIT_AGENT_PROMPT.md`（舊輪的 Argon 輸出與提示詞，只核對 HEAD 在 main）。遠端 `origin/docs/skill-table` 已合併但沒刪（刪遠端分支算 push）。
+- **C1**：`CLAUDE.md` 拿掉 Pro 方案字樣（改 Max 5x）、Codex 可派整包設計＋實作（和全域 `codex-call` 一致；查過 DECISIONS 與 `docs/adr` 沒有「Codex 不派實作」的紀錄，10-26 的額度決策反而是實作優先派 Codex）、補一段「動手原則」給雲端工作階段；`agent-prompt`、`codex-dispatch` 跟著改，Codex 副本已同步。HANDOFF §1 額度那段、§4 地形烘焙的派工對象一起更新。
+- 合約效果紀錄：
+
+| 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+| :-- | :-- | :-- |
+| `agent-prompt` 改成 Neon 檔位、加 `--print-timeout` 與「先建 `tools/ui-e2e/out/`」 | 本輪 R3 第一次派工因輸出資料夾不存在立刻結束，補建後一次跑完 | 還沒有改後的派工可對照 |
+| `CLAUDE.md`／`codex-dispatch` 允許 Codex 實作 | 本輪沒派 Codex（見底） | no effect（尚未觸發） |
+
+### CK. 2026-11-20 編輯器換職業時血量、魔力上限跟著換（主代理 Opus）
+- `AgentManager.applyRoleChange`：上限取自和生成同一處（`UNIT_DB`、大逃殺 `spawnHp`），現有血量、魔力照比例縮放（開戰前滿血換完仍滿血；活著的不會變 0）；同一指令另給 `maxHp`／`hp` 仍會覆寫。體型（男女外觀）不由職業決定，維持原值。
+- 驗證：`RoleEditSnapshot` 加 2 則（沒有修正時 3 則有 2 則失敗）；lint、`npm test` 1583 則、build、knip、`balance:fingerprint` 三組各 60/60。
+- **回退**：分支 `fix/role-edit-vitals` 單一 commit，`git revert`。
+
+### CL. 2026-11-20 優化開案書 R3 導播避讓手機底部 UI（agy Gemini 4 Neon high＋主代理審查）
+- **做了什麼**：`hooks/useViewInsets.ts`（只在 `GameCanvas` 掛一次）量底部面板（窄螢幕的 `ToolWindow`）與播放列蓋住畫布的高度，變了才送 `SET_VIEW_INSETS`；`DirectorSystem.buildFrame` 的縮放與死區改用 `effectiveViewport()`，焦點移到露出區域中央；手動置中（`useGameCamera.centerCamera`）用同一份 insets。型別與清理規則在 `engine/math/insets.ts`（模擬端的 `UICommandSystem` 存值也要用，不能 import 表現端；代理原本在兩處各寫一次，主代理收成一處）。契約 R3 改 `done`；所有 `pending()` 呼叫都沒了，代理順手刪掉 `ContractPending.pending`（knip 會擋），下一個契約空殼要用時再加回來。
+- **派工**：agy `gemini-4-neon-high`，第一次因 `tools/ui-e2e/out/` 不存在立刻結束，補建後一次跑完，沒碰契約與驗收。
+- 驗證（實跑）：契約 R3 3/3、新測試 `DirectorViewInsets` 3 則、lint、`npm test` 1584 則、build、knip、`balance:fingerprint` 60/60×3、`runtime-smoke`、`perf:guard`（保真 6 張通過；FOREST 0.651，main 同機量 0.627，漂移範圍）、代理跑的 `e2e:ui`（第二次熱快取 ALL PASSED）與 `audit:ui -- L1～L4`。手機模擬探針（390×844 DPR 3、戰鬥中、玩家單位、打開 Inspector）：main 主角 y=421、面板上緣 188（被蓋住）；分支 y=92、insets.bottom=656。沒驗的列在 HANDOFF §3。
+- **回退**：分支 `feat/r3-view-insets` 單一 commit，`git revert`。
+
+### CM. 2026-11-20 優化開案書 G1 技能平衡第一輪（主代理 Opus）
+- **量法**：`batch-sim` 每種站位 1500 場，種子 21 與 77 各一組（共 6000 場）；同一種子的單技能勝率差主要由它被抽到的那幾場陣容決定（換數值也不太動），所以只看兩個種子都超標的。
+- **結果**：藍方勝率 種子 21：54.5／55.4 → 49.5／51.1；種子 77：56.1／56.8 → 53.0／51.2；合併 55.6% → 51.2%。對戰時間中位數 17.7 → 18.2 秒。大逃殺（`ai-idle-sim` 200 場）平均 26.6 → 26.55 秒，各職業發呆、繞圈比例差不多。改了哪些技能列在 commit 訊息。
+- **沒達標**：單技能勝率差 ±5% 以內。兩個種子都超標：紅方 `mr_u4`、`sr_a4`、`mr_a5`、`rr_u3`、`tr_b4` 偏強（削了 10～20% 仍在 +6% 左右），`rr_u1` 約 −9%（處決傷害被目標剩餘血量封頂，加威力反而每次施放傷害下降，已還原，列為設計題）。`tr_b2`、`sr_a4` 的持續時間被 `SkillMechanics` 測試固定，這兩項沒改。
+- **派工**：主代理自己做（判斷題）；顧問（Fable）提醒把「整體勝率」與「單技能拉平」分開調、補種子 77 的基準、設迭代上限，照做。
+- **回退**：分支 `balance/g1-skills` 兩個 commit（數值、指紋重錄），一起 `git revert`。

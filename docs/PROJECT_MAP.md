@@ -14,6 +14,6 @@
 - **dev server**：`npm run dev`（port 3000，`0.0.0.0`）。
 
 ## 2. 暫存區 `C:\Git\_asset_staging\`（repo 之外）
-- `docs\`：舊手冊備份（**以 repo 為準**）；`art\terrain_grid.jpg`、`art\ref_*`（使用者風格參考，**不得進 repo**）；`sprites\`（10 張精靈＋manifest）；`assets3d\kaykit_adventurers\`；`tools\blender\...\blender.exe`（可攜）與 `tools\blender_scripts\`（`render_unit.py`、`pack_sprites.py`）；`audio_tmp\`。
+- `docs\`：舊手冊備份（**以 repo 為準**）；`art\terrain_grid.jpg`、`art\ref_*`（使用者風格參考，**不得進 repo**）；`sprites\`（10 張精靈＋manifest）；`assets3d\kaykit_adventurers\`；`tools\blender\...\blender.exe`（可攜）與 `tools\blender_scripts\`（`render_unit.py`、`pack_sprites.py`）；`audio_tmp\`；`art\status_art\`、`art\status_design\`、`art\status_art_spec\`（狀態美術對照板、原型、規格，11-20 從舊工作樹搬來，HANDOFF N）。
 - 美術風格：相機正交仰角 30°（=`ISO_SCALE_Y 0.5`）、四向原生渲染；BLUE＝皇家藍、RED＝深紅＋暗護甲。已知弱點：兩陣營辨識度偏弱。
 - 使用者機器細節：主螢幕 2560×1440 @ 239 Hz（量測用）；副螢幕 59 Hz（AMD 內顯，會污染量測要避開）；Python 3.10、Node 24、`msedge` 供 Playwright；Blender、PIL、ffmpeg 已在本機。

@@ -39,8 +39,10 @@
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
 | 可拆、有可跑驗收的實作包（含長時間、無人值守） | 不開子代理，主代理先加型別、先寫紅色驗收與提示詞，用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的 `gemini-4-neon-medium`、難或跨檔的 `gemini-4-neon-high`；大範圍、多檔、要讀很多再整理的 `gemini-pro-orchestrator-neon`。Gemini 池偏低或同一包兩次不及格收回 Claude：最下面一列的 Sonnet 子代理（全域 `agy-call`） |
 | 讀檔摘要、機械性改動、補測試、小而具體的包（一次 ≤3 個任務） | agy 的 Hydrogen（只讀加 `--mode plan`） | `gemini-4-hydrogen-high`；依全域 `agy-call` 檔位表 |
-| Codex：美術與視覺（概念稿、畫面判讀、渲染截圖審查）、邏輯根因、跨模型第二意見。**不派寫程式實作與架構** | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch` | 依 skill |
+| Codex：整包設計＋實作（給整包目標與驗收，不只給步驟）、美術與視覺（概念稿、畫面判讀、渲染截圖審查）、邏輯根因、跨模型第二意見 | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch`。沙盒不能 commit，由主代理審查後代為 commit | 實作 `gpt-6.1-sol`／xhigh（要加 `[codex-cost-ok]`）；看圖為主 `gpt-6-astra`；其餘依 skill |
 | Gemini 池偏低、或 Neon 兩次不及格的實作包 | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
+
+**動手原則**（雲端工作階段讀不到全域憲法，這裡寫一份）：定調類工作（看截圖反覆調整、前後相依的一條鏈、一個上下文裝得下）由主代理自己做；能拆成互不相依、有明確目標圖或數字驗收的包才外派。誰外派、派給誰依全域憲法的「Fable 預算」與 `~/.claude/QUOTA.md`。
 
 升級看問題難度和手上證據，不是固定「失敗兩次」；重試必須帶新的假設或新的證據，同一種探索跑兩次比直接升一級還貴。
 
@@ -48,7 +50,7 @@
 
 **Codex（GPT）**：用使用者的 ChatGPT Plus 額度（很緊）。呼叫方式、檔位、額度在全域 `codex-call` skill；本專案的 hook、合約副本同步在 `codex-dispatch` skill；hook 會擋下不合規的呼叫。
 
-**在桌面版 App 開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
+**在桌面版 App 開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的模型（使用者是 Max 5x：Opus、Fable、Sonnet 共用同一個週池，Fable 最多占一半）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
 
 ## 程序放在 skill（按需載入）
 常駐文字每一輪都佔上下文，只放每次都適用的規則；有明確觸發情境的程序寫成 `.claude/skills/<name>/SKILL.md`，強制規則寫進 hook（`tools/hooks/agent-guardrails.mjs`）。新增 skill 要在下表加一行觸發句，`tests/HarnessContract.test.ts` 會檢查。

@@ -1,5 +1,5 @@
 /** Pack the approved short-legged Blender sheep and copy accepted effect pixels.
- * node tools/assets/blender/pack_status_art.mjs C:/Git/_wt_status_art/docs/status_art
+ * node tools/assets/blender/pack_status_art.mjs C:/Git/_asset_staging/art/status_art
  * The input is read-only. Output is confined to public/assets/cc_bodies.
  * Blender source: render_status_art.py -- <render_dir> --short-legs --sheep-only
  */
