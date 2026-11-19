@@ -1,13 +1,12 @@
 import { forwardRef, isValidElement, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Popover } from 'radix-ui';
 import { UI_Z } from '../../../constants';
+import { COMBOBOX_TEXT } from '../../../data/ui/labels/primitives';
 import { Icons } from '../icons';
 import { cn } from './cn';
 import type { SelectOption, SelectProps } from './Select';
 
 const SIDE_OFFSET_PX = 4;
-const DEFAULT_SEARCH_PLACEHOLDER = '搜尋...';
-const DEFAULT_EMPTY_TEXT = '無符合項目';
 
 interface ComboboxProps extends SelectProps {
     searchPlaceholder?: string;
@@ -35,7 +34,7 @@ const stepEnabled = (list: SelectOption[], cur: number, dir: 1 | -1): number => 
 export const Combobox = forwardRef<HTMLButtonElement, ComboboxProps>(function Combobox(
     {
         value, onValueChange, options, groups, placeholder, ariaLabel, size = 'md', disabled, className,
-        searchPlaceholder = DEFAULT_SEARCH_PLACEHOLDER, emptyText = DEFAULT_EMPTY_TEXT, ...rest
+        searchPlaceholder = COMBOBOX_TEXT.searchPlaceholder, emptyText = COMBOBOX_TEXT.empty, ...rest
     },
     ref,
 ) {
