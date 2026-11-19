@@ -13,7 +13,10 @@ export const UI_WINDOW = {
     STORAGE_KEY: 'tacticalWindowsV1',
     SAVE_DEBOUNCE_MS: 300,
     HANDLE_PX: 8,
+    /** 觸控把手總厚度（左、右、下邊）：大部分在視窗外側，才不蓋住內容邊緣。 */
     HANDLE_PX_COARSE: 44,
+    /** 觸控把手伸進視窗內側的厚度；外側部分 = HANDLE_PX_COARSE - 此值，貼齊螢幕邊時外側縮小、內側相應加厚。 */
+    HANDLE_INNER_PX_COARSE: 12,
     TOUCH_TARGET_MIN_PX: 44,
     MAXIMIZE_MARGIN: 12,
     MIN_WIDTH: 260,

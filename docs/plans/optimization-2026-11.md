@@ -109,7 +109,7 @@ R1 畫面插值（獨立，渲染線第一條）
 | G5 | 行為編輯器（HANDOFF L4） | UI | G3、G4、U1 | L | 開工前由 Opus 另寫一頁設計給使用者看 |
 | U1 | `WindowDef` 布林改 `modes` | UI | — | S | agy Hydrogen 或 Sonnet |
 | U2 | bundle 切分、視窗延遲載入、體積預算 | UI | — | M | Sonnet 子代理 |
-| U3 | UI 小修：`testId`、`dbSignature`、平板縮放把手 | UI | — | S | agy Hydrogen（三個小包） |
+| U3 | UI 小修：`testId`、`dbSignature`、平板縮放把手（完成） | UI | — | S | agy Hydrogen（三個小包） |
 | U4 | 技能下拉加搜尋 | UI | U2 | S | Sonnet 子代理 |
 | U5 | 熱路徑配置（先量再做） | 引擎 | — | S | Sonnet 子代理 |
 | C1 | 合約校正（repo 合約與全域憲法不一致） | 文件 | 使用者同意 | S | Opus 提案，使用者核可 |
@@ -222,7 +222,7 @@ R1 畫面插值（獨立，渲染線第一條）
   - 玩家指令節點直接呼叫 `initiateCast` 之前，要先用 `aimCastAt` 設好或清掉施法目標（唯一寫入者是 `SkillStateMachine`）。
   - 地面施法的瞄準還沒收進 `castAim`：`CastPushPull` 對地面起手時仍靠清掉 `a.target` 讓管線改瞄格子，施法後由 `HasTarget` 重新選敵（G2 先接受，只發生在背水一戰的推拉）。G3 的 `ORDER_CAST` 帶 `q`、`r` 時會碰到同一件事：到時把「這次施法瞄單位還是瞄格子」收進 `castAim` 一處判斷，`CastPushPull` 就不必再清戰鬥目標。
 
-### G4 AI 圖鍵型別化與 profile（完成 2026-11-19，WORKLOG §2 CD；鍵型別改用 Record 標註，原因見該節）
+### G4 AI 圖鍵型別化與 profile（完成 2026-11-19，WORKLOG §2 CE；鍵型別改用 Record 標註，原因見該節）
 - **作法**：`BTDef.key` 的型別改成 `keyof typeof BTConditions | keyof typeof BTActions`（把兩張表從 `Record<string, …>` 改成 `satisfies`），找不到鍵變成編譯錯誤；加一個純函式 `validateModeGraph(graph)`（每條邊的兩端存在、每個模式有樹、`onFailure` 指向存在的模式），引擎建樹前呼叫，失敗就丟錯而不是塞假節點。`AISystem.buildAI` 目前忽略單位、全體共用一張圖：改成依職業查 profile（預設全部指向現在這張，行為不變）。
 - **驗收**：`npm run lint`；新測試餵壞掉的圖要報錯；`npm run balance:fingerprint` 0 差異。
 
@@ -233,7 +233,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **作法**：`types.ts` 的 `visibleInShowcase／visibleInManual／visibleOnGameOver` 換成 `modes: readonly AppMode[]`（先有 `SHOWCASE`、`MANUAL`、`GAME_OVER`，之後 G3、S3、G5 會加 `PLAY`、`REPLAY`、`EDIT`）；`data/ui/windows.ts` 改寫；`components/ui/window/windowRegistry.tsx` 的過濾函式改成查表；目前模式由 selector 給。型別由 Opus 先加好，代理只改使用處。
 - **驗收**：`tests/WindowStore.test.ts`、`npm run e2e:ui`、樣式基準 0 變動。
 
-### U2 bundle 切分與體積預算（完成 2026-11-19，WORKLOG §2 CD）
+### U2 bundle 切分與體積預算（完成 2026-11-19，WORKLOG §2 CF）
 - **作法**：
   1. `vite.config.ts` 加 `manualChunks`：react／react-dom 一包、UI 套件（radix、floating-ui、tanstack、lucide）一包，部署後舊訪客不用重抓。
   2. `windowRegistry.tsx` 的 `render` 改 `React.lazy`＋`Suspense`（fallback 用 `EmptyState`）：`logs`、`db`、`vfxmap`、`inspector`、`behaviorTree`、`monitor`、各設定視窗都是展示模式看不到的。確認 TanStack Virtual、Radix Select 跟著離開進入點。
@@ -243,7 +243,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **驗收**：`npm run build` 無 500 kB 警告或警告只剩引擎主包；`npm run e2e:ui` 每個視窗都開得起來；`node tools/ui-e2e/runtime-smoke.mjs`。
 - **不做**：特效登記表與零件烘焙器的延遲載入。
 
-### U3 UI 小修（三個獨立小包）
+### U3 UI 小修（三個獨立小包；完成 2026-11-19，WORKLOG §2 CG：`dbSignature` 量測後結案不做，平板把手驗收改用 1180×820，820 寬以下是底部面板）
 - `Tabs`、`Segmented` 加 `testId` 欄位，移除塞在 label 裡的 span；e2e 選擇器跟著改。
 - `engine/systems/ui/views/l3.ts` 的 `dbSignature` 每 100 ms 串一次整個技能庫：改成技能庫版本號（唯一寫入者 `UICommandSystem` 的 `UPDATE_SKILL` 與技能庫替換處各加一）。
 - 平板觸控下視窗左右縮放把手（`UI_WINDOW.HANDLE_PX_COARSE` 44 px）蓋住內容邊緣：把手改成跨在邊框上、大部分在視窗外側，內側只留 12 px；貼齊螢幕邊時才往內縮。先查 `web-guidance`（觸控目標大小）。驗收：`npm run e2e:ui` 加一則平板寬度下點得到視窗內最靠邊的控制項。

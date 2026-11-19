@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
 
-/** Measured right after the U2 split (WORKLOG §2 CD), gzip bytes of the entry chunk alone. */
+/** Measured right after the U2 split (WORKLOG §2 CF), gzip bytes of the entry chunk alone. */
 const MEASURED_ENTRY_GZIP = 250_000;
 /** Same measurement: entry + the vendor chunks index.html preloads (what a first visit downloads before the game starts). */
 const MEASURED_INITIAL_GZIP = 372_000;

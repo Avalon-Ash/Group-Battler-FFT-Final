@@ -798,12 +798,12 @@
 - 標示（`engine/renderers/tactical.ts`）：玩家單位腳下一圈脈動的金色光圈加淡淡的底色（畫在血條之下），頭上一個上下浮動的金色箭頭（畫在血條之上，人擠在一起也不會被蓋住）；不必選取就看得到，開戰前場上只有核心時箭頭貼著核心上方。位置全部讀 `UnitFrame`，`RenderSpec` 已加一列。
 - 看圖調過一輪：第一版箭頭畫在血條之下，被旁邊單位的血條蓋住；光圈 3 px 細線在岩漿地形上不明顯。改成箭頭在 HUD 之後畫、光圈加粗到 4 px 並加底色、鏡頭改成以單位為中心。
 - 驗證：`tests/DirectorPlayerFocus.test.ts` 4 則（一直是主角、開戰就框在它身上且留得出視野、多個玩家單位跟點選的、切回 AI 恢復）；`npm test` 165 檔 1577 則、lint、build、knip；`balance:fingerprint` 180/180；`runtime-smoke`；`perf:guard`（保真 6 張沒重錄：沒有玩家單位時畫面不變）；`e2e:ui` 246 項全過、`audit:ui` 0 違規。實跑截圖確認開戰前與戰鬥中都看得到光圈與箭頭、單位在畫面中央。
-### CD. 2026-11-19 優化開案書 G4 AI 圖鍵型別化與 profile（子工作階段）
+### CE. 2026-11-19 優化開案書 G4 AI 圖鍵型別化與 profile（子工作階段）
 - **鍵有型別**：`BTRegistry` 的 `BTConditions`／`BTActions` 標註成 `Record<BTConditionKey, …>`（兩個鍵清單是字面量聯集，少一個、多一個鍵都是編譯錯誤）。開案書寫的 `satisfies` 做不到：表內節點互相呼叫（`BTConditions["X"]`）會讓表型別循環，TS 靜默把整張表推成 `any`，鍵型別失效（用 `const x: number = BTConditions` 驗過不報錯）。`data/ai_profiles.ts` 的 `BTDef`／邊／圖改成可換鍵型別的泛型：本檔手寫的常數用 `BTNodeKey`／`BTConditionKey`（打錯鍵是編譯錯誤），`BTDef`／`AIModeGraph` 保持寬鬆字串，給外來資料（編輯器載入、存檔）與契約測試用，要先過驗證。
 - **`validateModeGraph`**（`engine/ai/ModeGraphValidation.ts`）：initial、邊兩端、`when`／`unless` 恰好一個且在登錄表、`onFailure`、小樹鍵、組合節點至少一個子節點；`AISystem.buildAI` 建樹前呼叫，不合格丟錯，刪掉 `console.warn` 加假節點的做法。
 - **profile**：`AI_PROFILE_BY_ROLE`（`data/ai_profiles.ts`）是職業對圖的唯一一張表，五個職業都指向 `AI_MODE_GRAPH`；玩家單位仍用 `PLAYER_MODE_GRAPH`。
 - 驗證：`npm run lint`、`npm test`（165 檔 1576 則）、`npm run knip`、`npm run build` 全過；`npm run balance:fingerprint` TEAMS／ROYALE／SQUADS 各 60/60 identical。新測試 `tests/ModeGraphKeys.test.ts`（`@ts-expect-error` 打錯鍵、壞圖被回報）。
-### CD. 2026-11-19 優化開案書 U2 bundle 切分與體積預算（Sonnet 子工作階段）
+### CF. 2026-11-19 優化開案書 U2 bundle 切分與體積預算（Sonnet 子工作階段）
 - **做了什麼**：`components/ui/window/windowRegistry.tsx` 的十個視窗本體改 `React.lazy`，`Suspense` 的 fallback（`EmptyState`「LOADING」）放在 `ToolWindow` 裡面，所以第一次開視窗時外框立刻出現、不跳版面；`hooks/useGameApp.ts` 的 `downloadSpec` 改成按下才動態 import `DesignExporter`（白皮書原文 `?raw`、常數表跟著離開進入點）；`vite.config.ts` 加 `manualChunks`（`vendor-react`、`vendor-ui` 兩包）；新增 `tools/check-bundle-budget.mjs`，掛在 `npm run build` 後面。
 - **前後對照**（`npm run build`，gzip 為 vite 輸出）：
 
@@ -818,3 +818,10 @@
 - **驗證**：`npm run lint`、`npm test`（164 檔 1573 項）、`npm run build`（含預算）、`npm run knip`、`npm run balance:fingerprint`（3 組各 60/60 identical）、`node tools/ui-e2e/runtime-smoke.mjs`（開發伺服器，StrictMode 下引擎推進、畫布變化）、`npm run perf:guard`（fidelity 與 perf-ab 全過，基準未動）、`npm run audit:ui -- all`（0 違規）、`npm run e2e:ui`（只剩已知的工作樹 403「no console/page errors」，樣式快照與各視窗項目全過）。
 - **已知（開發模式限定）**：Vite 開發伺服器第一次遇到延遲載入視窗裡新的相依時會做「依賴重新最佳化」並整頁重載，e2e 在乾淨快取的第一輪 `db` 視窗曾因此失敗一次（頁面被重載、手動模式狀態掉了），快取建好後不再發生。正式 build 不受影響。
 - **回退**：單一 commit，`git revert`。
+### CG. 2026-11-19 優化開案書 U3 UI 小修（Sonnet 子工作階段）
+- **`testId` 欄位**：`TabItem`、`SegmentedOption` 多了選填的 `testId`，直接寫在分頁／選項按鈕上；展示設定的四個分頁與四個方向鍵不再用 label 裡的 span 帶識別。順手去掉方向鍵選項的空 span（它在 flex 裡多佔一個 gap，圖示偏左約 2 px）。e2e 的選擇器 `showcase-tab-matrix` 改成 `showcase-tab-visual`（巢狀的 matrix span 本來就是同一個分頁），`ui-remount-audit.mjs` 的分頁名單同步。樣式快照 0 差異。
+- **`dbSignature` 結案不做**：量測（`node` 微基準，240 個技能、每個 5 欄位，2000 次暖機後跑 20000 次）每次 0.0198 ms、簽名 9059 字元；每秒 10 次共約 0.2 ms，是 16.7 ms 一幀的 0.1%以下。要改成版本號得在 `UPDATE_SKILL` 與 `MatchSnapshot` 還原（`skillDB.length = 0; push(...)` 原地改寫）兩處以上都加一，漏一處技能下拉就不更新，風險大於 0.2 ms 的收益。再有證據顯示它進了前十名再重開。
+- **平板觸控縮放把手**：左、右、下把手仍是 44 px 厚，但改成跨在邊框上：內側只留 `HANDLE_INNER_PX_COARSE`（12 px），其餘 32 px 在視窗外側；視窗貼齊螢幕邊時，外側取螢幕剩餘空間（最少 0），內側相應加厚。上緣把手維持 8 px 不外伸。因為把手在視窗外，觸控模式（粗指標、非窄版、非最大化、非收合）的視窗根節點不再 `overflow-hidden`，內容區自己加 `rounded-b-ui-window` 裁切。滑鼠與桌機路徑完全不變，樣式快照 0 差異。
+  - 前後量測（`E2E_ONLY=tablet-edge npm run e2e:ui`，1180×820 觸控；820 寬以下是底部面板沒有把手）：視窗內側被把手蓋住 45 px → 13 px（12 px 加 1 px 邊框）；視窗右、左、下緣內 14 px 的點擊從命中把手改成命中內容；把手外側 8 px 的點命中把手，拖曳它視窗寬 640 → 580。
+  - 新 e2e `runTabletEdgeSuite`（7 項）；`constants-snapshot.json` 加一個新鍵。
+- 驗證：lint、`npm test` 164 檔 1573 則、build、knip、`audit:ui -- all` 全過；`npm run e2e:ui` 只剩「no console/page errors」一項（工作樹字型經 `node_modules` 連結 403，環境造成），其餘全過。
