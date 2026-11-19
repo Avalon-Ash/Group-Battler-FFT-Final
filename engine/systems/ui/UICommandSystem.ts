@@ -2,11 +2,11 @@ import { GameEngine } from '../../game';
 import { UICommand, Role, Team } from '../../../types';
 import type { GameCommand } from '../../../types';
 import { isDeferredWhileRunning, isSimNeutral, isViewCommand } from '../../core/CommandQueue';
-import { pending } from '../../core/ContractPending';
 import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
 import { SCENE_DB } from '../../../data/scenes';
 import { AgentManager } from '../agentManager';
+import { sanitizeInsets } from '../../math/insets';
 import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 import { querySpawnableHexes } from './editorQueries';
@@ -463,9 +463,10 @@ export class UICommandSystem {
                 break;
             }
 
-            // [契約 R3] 導播避讓：型別已定，處理還沒實作
+            // [契約 R3] 導播避讓：四邊被 UI 蓋住的寬度（負數與非有限值清成 0），唯一寫入處
             case 'SET_VIEW_INSETS':
-                return pending('R3', cmd.type);
+                this.engine.director.viewInsets = sanitizeInsets(cmd);
+                break;
 
             // [契約 G3] 玩家操控。這裡只驗證指令合不合法；指令的寫入在 engine/core/Orders.ts，執行在玩家模式圖（PLAYER_MODE_GRAPH）
             case 'SET_CONTROLLER': {

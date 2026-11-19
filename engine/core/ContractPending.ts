@@ -17,8 +17,3 @@ export class ContractPending extends Error {
         this.name = 'ContractPending';
     }
 }
-
-/** 空殼的函式本體：`return pending('S2', 'captureMatch')` */
-export function pending(contract: ContractId, what: string): never {
-    throw new ContractPending(contract, what);
-}

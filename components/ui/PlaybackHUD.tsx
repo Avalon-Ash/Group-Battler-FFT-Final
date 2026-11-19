@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import type { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
+import { VIEW_INSET_KIND } from '../../hooks/useViewInsets';
 import { Icons } from './icons';
 import { UI_Z, UI_PIN, UI_PANEL_PARAM, UI_SETTINGS } from '../../constants';
 import { useCommands, useView } from '../../hooks/useEnginePort';
@@ -43,6 +44,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     return (
         <div
             ref={ref}
+            data-view-inset={hidden ? undefined : VIEW_INSET_KIND.BOTTOM_BAR}
             className={`transition-all duration-500 ${hidden ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}`}
             style={{ ...style, zIndex: UI_Z.HUD }}
             {...dragHandlers}

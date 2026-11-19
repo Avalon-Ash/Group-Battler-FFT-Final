@@ -3,11 +3,13 @@ import { useRef, useCallback } from 'react';
 import { GameEngine } from '../engine/game';
 import { HexUtils } from '../engine/utils';
 import { BLOCK_HEIGHT, HEX_SIZE, GAME_CAMERA_FIT } from '../constants';
+import { effectiveViewport } from '../engine/presentation/ViewInsets';
 import { queryMapKeys, queryTerrainHeight, queryCameraTargetZoom } from '../engine/systems/ui/editorQueries';
 
 /**
  * 攝像機座標映射鉤子 v29.0
  * 僅保留初始化與座標獲取。位移交給 CameraSystem。
+ * 契約 R3：手動置中依 effectiveViewport(width, height, engine.director.viewInsets) 計算縮放與中心位移。
  */
 export const useGameCamera = (engine: GameEngine) => {
     const camera = useRef({ x: 0, y: 0, zoom: 1.0 });
@@ -48,10 +50,11 @@ export const useGameCamera = (engine: GameEngine) => {
         const paddedW = mapWidth + HEX_SIZE * 3;
         const paddedH = mapHeight + HEX_SIZE * 3;
 
-        let targetZoom = Math.max(GAME_CAMERA_FIT.MIN_ZOOM, Math.min(GAME_CAMERA_FIT.MAX_ZOOM, Math.min(width / paddedW, height / paddedH)));
+        const vp = effectiveViewport(width, height, engine.director.viewInsets);
+        const targetZoom = Math.max(GAME_CAMERA_FIT.MIN_ZOOM, Math.min(GAME_CAMERA_FIT.MAX_ZOOM, Math.min(vp.w / paddedW, vp.h / paddedH)));
 
-        camera.current.x = visualCenterX;
-        camera.current.y = visualCenterY + offsetY;
+        camera.current.x = visualCenterX - vp.shiftX / targetZoom;
+        camera.current.y = visualCenterY + offsetY - vp.shiftY / targetZoom;
         camera.current.zoom = targetZoom;
         
         // 同步至物理系統
