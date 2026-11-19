@@ -6,6 +6,8 @@
 // ║  [ARCH] targetId 只在 update 開頭改，擊殺不切鏡           ║
 // ║  [ARCH] 主角是榜首：要贏過黏著分、至少看滿最短時間才換，  ║
 // ║  主角失效立刻換。計分在 DirectorRoster，取景在            ║
+// ║  玩家操控的單位（契約 G3）優先當主角，不看排分：玩家要   ║
+// ║  一直看得到自己控的那一隻，四周留 PLAYER_VIEW_RADIUS_PX。 ║
 // ║  DirectorFight／DirectorShot；鏡頭只收 CAMERA_MOVE。     ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -71,6 +73,8 @@ export class DirectorSystem {
 
     /** 導播關閉時的觀看陣營：玩家點選的單位（UICommand SET_WATCH_AGENT） */
     private pickedSide: number | null = null;
+    /** 玩家點選的單位（同一個指令）：場上有多個玩家操控的單位時，鏡頭優先跟它 */
+    private pickedId: string | null = null;
     /** 上次發出的 WATCH_SIDE；undefined＝還沒發過 */
     private publishedWatchSide: number | null | undefined = undefined;
 
@@ -80,8 +84,20 @@ export class DirectorSystem {
         });
     }
 
-    public setPickedSide(side: number | null): void {
+    public setPicked(agentId: string | null, side: number | null): void {
+        this.pickedId = agentId;
         this.pickedSide = side;
+    }
+
+    /** 鏡頭要跟的玩家單位：玩家操控、能上鏡；有好幾個時優先點選中的那一個。沒有回 undefined */
+    private playerAnchor(engine: GameEngine): Agent | undefined {
+        let first: Agent | undefined;
+        for (const a of engine.agents) {
+            if (a.controller !== 'PLAYER' || !this.isEligible(engine, a)) continue;
+            if (a.id === this.pickedId) return a;
+            first ??= a;
+        }
+        return first;
     }
 
     /**
@@ -131,6 +147,16 @@ export class DirectorSystem {
 
     private decideTarget(engine: GameEngine, ds: GameEngine['state']['director'], dt: number) {
         if (ds.focusTimer > 0) ds.focusTimer -= dt;
+
+        // 玩家操控的單位優先當主角（契約 G3）：不看排分、不等最短時間，別處的奧義也不搶鏡
+        const player = this.playerAnchor(engine);
+        if (player) {
+            if (ds.targetId !== player.id) {
+                ds.targetId = player.id;
+                ds.focusTimer = DIRECTOR_PARAM.MIN_HOLD_S;
+            }
+            return;
+        }
 
         const current = ds.targetId ? engine.agents.find(a => a.id === ds.targetId) : undefined;
         const top = this.roster.ranked[0];
@@ -196,7 +222,23 @@ export class DirectorSystem {
 
         // 3. 成員
         let members: ShotMember[] = [];
-        if (!this.engaged) {
+        const followsPlayer = anchor !== undefined && anchor.controller === 'PLAYER';
+        if (followsPlayer) {
+            // 玩家主角：開戰就跟著它（不先看全場），而且它永遠在畫面正中央。四個權重 0 的點把畫面撐開：
+            // 至少看得到四周 PLAYER_VIEW_RADIUS_PX；它的目標比較遠就撐到框得進目標（最多到遠景）。
+            const ax = anchor.px + anchor.physics.x;
+            const ay = VisualMath.getVisualBodyCenterY(anchor.py + anchor.physics.y, anchor.physics.z);
+            let r: number = DIRECTOR_PARAM.PLAYER_VIEW_RADIUS_PX;
+            const target = anchor.target;
+            if (target && this.isEligible(engine, target)) {
+                const reach = Math.hypot(target.px - anchor.px, target.py - anchor.py) + DIRECTOR_PARAM.UNIT_MARGIN_PX;
+                r = Math.min(Math.max(r, reach), DIRECTOR_PARAM.SHOT_RADIUS_PX.WIDE);
+            }
+            members = [
+                { x: ax, y: ay, weight: DIRECTOR_PARAM.ANCHOR_WEIGHT },
+                { x: ax - r, y: ay, weight: 0 }, { x: ax + r, y: ay, weight: 0 }, { x: ax, y: ay - r, weight: 0 }, { x: ax, y: ay + r, weight: 0 },
+            ];
+        } else if (!this.engaged) {
             for (const a of engine.agents) {
                 if (!this.isEligible(engine, a)) continue;
                 members.push({

@@ -209,6 +209,8 @@ export const DIRECTOR_PARAM = {
     RELATED_WEIGHT: 0.85,
     /** 空場中央鏡頭縮放（倍） */
     EMPTY_ZOOM: 0.7,
+    /** 主角是玩家操控的單位時，四周至少要看得到這麼遠（px，約 3.5 格，＝SHOT_RADIUS_PX.MID）：要看得到周圍才能點地面下指令，不能貼太近 */
+    PLAYER_VIEW_RADIUS_PX: 290,
     /** 主角的目標離主角超過這個距離就不框（px，約 8.5 格） */
     FIGHT_RADIUS_PX: 720,
     /** 主角還在走路時，目標要在這個距離內才框（px，約 3.5 格）：走過去的路上不拉全景 */

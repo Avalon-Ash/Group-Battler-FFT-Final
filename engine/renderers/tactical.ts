@@ -61,6 +61,7 @@ export class TacticalRenderer {
 
     public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number, frames: UnitFrameStore) {
         ctx.save();
+        this.drawPlayerRings(ctx, engine, globalTime, frames);
         const hFrame = highlight && highlight.hp > 0 ? frames.get(highlight) : undefined;
         if (highlight && hFrame) {
             // 單位的腳下高度一律來自 UnitFrame（含漂浮位移與移動過渡）；路徑格的高度維持以格為單位
@@ -114,6 +115,54 @@ export class TacticalRenderer {
         ctx.restore();
     }
 
+    /**
+     * 玩家操控的單位（契約 G3）腳下的光圈：一圈脈動的金線加淡淡的底色，不必選取也看得出控的是哪一隻。
+     * 畫在血條之下（drawOverlay）。位置來自 UnitFrame（和身體同一份腳點與高度，含畫面插值）。沒有玩家單位時什麼都不畫。
+     */
+    private drawPlayerRings(ctx: CanvasRenderingContext2D, engine: GameEngine, globalTime: number, frames: UnitFrameStore): void {
+        for (const a of engine.agents) {
+            if (a.controller !== 'PLAYER' || a.hp <= 0) continue;
+            const f = frames.get(a);
+            if (!f || !f.visible) continue;
+            ctx.save();
+            ctx.translate(f.footX, f.floorY);
+            ctx.scale(1, TACTICAL_DRAW.DESTINATION_SQUASH);
+            ctx.beginPath();
+            ctx.arc(0, 0, TACTICAL_DRAW.PLAYER_RING_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = TACTICAL_COLORS.PLAYER_MARK;
+            ctx.globalAlpha = TACTICAL_DRAW.PLAYER_RING_FILL_ALPHA;
+            ctx.fill();
+            ctx.strokeStyle = TACTICAL_COLORS.PLAYER_MARK;
+            ctx.lineWidth = TACTICAL_DRAW.PLAYER_RING_WIDTH;
+            ctx.globalAlpha = TACTICAL_DRAW.PLAYER_RING_ALPHA_BASE + Math.sin(globalTime * TACTICAL_DRAW.PLAYER_RING_PULSE_SPEED) * TACTICAL_DRAW.PLAYER_RING_ALPHA_PULSE;
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    /**
+     * 玩家操控的單位頭上的箭頭（朝下的金色三角形，深色描邊，上下浮動）。畫在血條之上（RenderPipeline 在 HUD 之後呼叫），
+     * 人擠在一起時才不會被別人的血條蓋住。開戰前場上只有核心、還沒有身體，箭頭改貼著核心上方。
+     */
+    public drawPlayerArrows(ctx: CanvasRenderingContext2D, engine: GameEngine, globalTime: number, frames: UnitFrameStore): void {
+        for (const a of engine.agents) {
+            if (a.controller !== 'PLAYER' || a.hp <= 0) continue;
+            const f = frames.get(a);
+            if (!f || !f.visible) continue;
+            const restY = engine.battleStarted ? f.hudAnchorY - TACTICAL_DRAW.PLAYER_ARROW_LIFT : f.floorY - TACTICAL_DRAW.PLAYER_ARROW_CORE_LIFT;
+            const tipY = restY + Math.sin(globalTime * TACTICAL_DRAW.PLAYER_ARROW_BOB_SPEED) * TACTICAL_DRAW.PLAYER_ARROW_BOB_PX;
+            ctx.beginPath();
+            ctx.moveTo(f.footX, tipY);
+            ctx.lineTo(f.footX - TACTICAL_DRAW.PLAYER_ARROW_HALF_WIDTH, tipY - TACTICAL_DRAW.PLAYER_ARROW_HEIGHT);
+            ctx.lineTo(f.footX + TACTICAL_DRAW.PLAYER_ARROW_HALF_WIDTH, tipY - TACTICAL_DRAW.PLAYER_ARROW_HEIGHT);
+            ctx.closePath();
+            ctx.fillStyle = TACTICAL_COLORS.PLAYER_MARK;
+            ctx.fill();
+            ctx.strokeStyle = TACTICAL_COLORS.PLAYER_MARK_OUTLINE;
+            ctx.lineWidth = TACTICAL_DRAW.PLAYER_ARROW_OUTLINE_WIDTH;
+            ctx.stroke();
+        }
+    }
     /** 目的地標記：壓扁的圓，貼在那一格的地面上（路徑終點、待執行的移動指令共用） */
     private drawDestination(ctx: CanvasRenderingContext2D, dest: Hex, engine: GameEngine, grid: GridSystem): void {
         const dP = HexUtils.toPx(dest.q, dest.r, engine.mapConfig);

@@ -226,6 +226,10 @@ export class RenderPipeline {
         CtxOpCounter.track('hud', () => {
             this.hud.draw(ctx, this.renderer.hud, this.frames, highlight, battleTime, engine.state.isLastStand);
         });
+        // 玩家單位頭上的箭頭畫在血條之上（契約 G3）；沒有玩家單位時不畫任何東西
+        CtxOpCounter.track('player-arrows', () => {
+            this.tactical.drawPlayerArrows(ctx, engine, realTime, this.frames);
+        });
         ctx.restore(); 
 
         if (engine.directorTargetId) {

@@ -12,6 +12,9 @@ export const TACTICAL_COLORS = {
     TARGET_ALLY: '#4ade80',
     TARGET_FADE: 'rgba(0, 0, 0, 0)',
     DIRECTOR_FRAME: 'rgba(6, 182, 212, 0.4)',
+    /** 玩家操控的單位：腳下光圈與頭上箭頭（契約 G3）。金色，和藍紅陣營色、白色路徑都分得開 */
+    PLAYER_MARK: '#facc15',
+    PLAYER_MARK_OUTLINE: 'rgba(0, 0, 0, 0.75)',
     DIRECTOR_REC: '#ef4444',
     DIRECTOR_TEXT: 'rgba(255, 255, 255, 0.8)',
     DEBUG_FPS: 'rgba(255, 255, 255, 0.5)',

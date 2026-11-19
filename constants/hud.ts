@@ -360,6 +360,25 @@ export const TACTICAL_DRAW = {
     DESTINATION_FILL_ALPHA: 0.3,
     /** 目的地輪廓不透明度（比例） */
     DESTINATION_LINE_ALPHA: 0.8,
+    /** 玩家單位腳下光圈半徑（px，畫的時候再套 DESTINATION_SQUASH 壓扁） */
+    PLAYER_RING_RADIUS: 40,
+    /** 玩家單位腳下光圈線寬（px） */
+    PLAYER_RING_WIDTH: 4,
+    /** 玩家單位腳下光圈的底色不透明度（比例）：圈內淡淡填滿，在花的地形上也看得出一塊 */
+    PLAYER_RING_FILL_ALPHA: 0.22,
+    /** 玩家單位腳下光圈不透明度的底與脈動幅度（比例）、脈動速度（弧度／秒） */
+    PLAYER_RING_ALPHA_BASE: 0.75,
+    PLAYER_RING_ALPHA_PULSE: 0.25,
+    PLAYER_RING_PULSE_SPEED: 4,
+    /** 玩家單位頭上箭頭：在血條錨點上方多高（px）、開戰前（場上只有核心、還沒有身體）離地多高（px）、半寬與高（px）、上下浮動幅度（px）與速度（弧度／秒） */
+    PLAYER_ARROW_LIFT: 30,
+    PLAYER_ARROW_CORE_LIFT: 78,
+    PLAYER_ARROW_HALF_WIDTH: 13,
+    PLAYER_ARROW_HEIGHT: 17,
+    PLAYER_ARROW_BOB_PX: 4,
+    PLAYER_ARROW_BOB_SPEED: 5,
+    /** 玩家單位頭上箭頭描邊線寬（px） */
+    PLAYER_ARROW_OUTLINE_WIDTH: 2,
     /** 既有目標連線離地高度（px） */
     TARGET_LIFT: 30,
     /** 目標連線實色起點（比例） */

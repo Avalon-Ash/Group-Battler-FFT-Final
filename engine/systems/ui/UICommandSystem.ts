@@ -119,7 +119,7 @@ export class UICommandSystem {
                 const agent = typeof cmd.agentId === 'string'
                     ? this.engine.agents.find(a => a.id === cmd.agentId)
                     : undefined;
-                this.engine.director.setPickedSide(agent ? agent.side : null);
+                this.engine.director.setPicked(agent ? agent.id : null, agent ? agent.side : null);
                 break;
             }
 
