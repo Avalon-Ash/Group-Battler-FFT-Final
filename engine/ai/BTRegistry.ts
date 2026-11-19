@@ -100,7 +100,27 @@ function hasLanding(a: Agent, s: Skill, engine: GameEngine): boolean {
     return true;
 }
 
-export const BTConditions: Record<string, BTConditionFn> = {
+/**
+ * 節點鍵（契約 G4）：模式圖定義（BTDef.key、邊的 when／unless）用這兩個型別，打錯是編譯錯誤。
+ * 兩張表用 Record<鍵, …> 標註：少一個鍵、多一個鍵都是編譯錯誤，所以清單與表不會悄悄分岔。
+ * 不用 satisfies 推導：表內節點互相呼叫（BTConditions["X"]）會讓表型別循環、被推成 any。
+ */
+export type BTConditionKey =
+    'IsDead' | 'IsAlive' | 'IsStunned' | 'IsBanished' |
+    'IsSilenced' | 'IsFeared' | 'CanMove' | 'IsEvading' |
+    'IsControlled' | 'HasOrder' | 'IsLastStand' | 'WantsRetreat' |
+    'CanTryRetreat' | 'TargetInBasicRange' | 'IsBoxedIn' | 'HasTarget' |
+    'HpBelow' | 'MpAbove' | 'IsInWarningZone' | 'IsInUrgentDanger' |
+    'HasEscapeRoute' | 'IsPinned' | 'IsInWarningZoneOrEvading' | 'SkillReady' |
+    'ActivationMet' | 'FindOptimalTarget' | 'IsTargetInRange' | 'HasPushPullSkill';
+export type BTActionKey =
+    'ObeyTaunt' | 'HoldGround' | 'OrderMove' | 'OrderAttack' |
+    'OrderCast' | 'Wait' | 'Idle' | 'EscapeWarning' |
+    'CastSkill' | 'MoveToOptimal' | 'ChaseTarget' | 'Reposition' |
+    'StrikeNearby' | 'Advance' | 'ForceJump' | 'CastPushPull';
+export type BTNodeKey = BTConditionKey | BTActionKey;
+
+export const BTConditions: Record<BTConditionKey, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
     "IsStunned": (a) => isIncapacitated(a),
@@ -413,7 +433,7 @@ function standBy(a: Agent): NodeState {
     return NodeState.RUNNING;
 }
 
-export const BTActions: Record<string, BTActionFn> = {
+export const BTActions: Record<BTActionKey, BTActionFn> = {
     // ── 玩家操控（契約 G3）：PLAYER_MODE_GRAPH 的節點。指令的寫入只經 engine/core/Orders.ts ──────────────
     /**
      * 被嘲諷：去打嘲諷者，蓋過指令與堅守（和 AI 單位的規則一致）。沒被嘲諷、嘲諷者已經不能打就回 FAILURE，交給後面的節點。

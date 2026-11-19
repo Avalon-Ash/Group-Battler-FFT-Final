@@ -1,6 +1,7 @@
 
-import { AIState, AIMode } from "../types";
+import { AIState, AIMode, Role } from "../types";
 import { SKILL_SLOTS } from "../constants";
+import type { BTConditionKey, BTNodeKey } from "../engine/ai/BTRegistry";
 
 /** 行為樹節點參數。鍵集合由 BTRegistry 實際使用者決定，新增鍵請同步擴充此型別。 */
 export interface BTArgs {
@@ -10,29 +11,37 @@ export interface BTArgs {
     amount?: number;
 }
 
-export interface BTDef {
+/**
+ * 行為樹節點定義，鍵型別 K 可換（契約 G4）：
+ *  - BTDef（K = string）：寬鬆形狀，給執行期與外來資料（編輯器載入、存檔）用，要先過 validateModeGraph；
+ *  - AuthoredBTDef（K = 登錄表的鍵）：本檔手寫的定義用，鍵打錯是編譯錯誤。
+ */
+export interface BTDefOf<K extends string> {
     type: 'SELECTOR' | 'SEQUENCE' | 'CONDITION' | 'ACTION';
     name: string;
-    children?: BTDef[];
-    key?: string; // Maps to Registry Key
+    children?: BTDefOf<K>[];
+    key?: K; // Maps to Registry Key
     args?: BTArgs;
 }
+export type BTDef = BTDefOf<string>;
+type AuthoredBTDef = BTDefOf<BTNodeKey>;
 
 /** 狀態拓樸的一條邊：when 成立（或 unless 不成立）就轉移；同一時間依陣列順序取第一條，順序就是優先序。 */
-interface AIModeEdgeDef {
+interface AIModeEdgeDefOf<C extends string> {
     from: readonly AIMode[] | '*';
     to: AIMode;
-    when?: string;
-    unless?: string;
+    when?: C;
+    unless?: C;
 }
 
-export interface AIModeDef {
-    tree: BTDef;
+interface AIModeDefOf<K extends string> {
+    tree: BTDefOf<K>;
     /** 小樹回 FAILURE 時，同一次決策內改走這個模式 */
     onFailure?: AIMode;
 }
+export type AIModeDef = AIModeDefOf<string>;
 
-const LAST_STAND_PUSH: BTDef = {
+const LAST_STAND_PUSH: AuthoredBTDef = {
     type: 'SEQUENCE',
     name: 'Last Stand',
     children: [
@@ -41,7 +50,7 @@ const LAST_STAND_PUSH: BTDef = {
     ]
 };
 
-const SKILL_PRIORITY: BTDef = {
+const SKILL_PRIORITY: AuthoredBTDef = {
     type: 'SELECTOR',
     name: 'Skill Priority',
     children: [
@@ -53,7 +62,7 @@ const SKILL_PRIORITY: BTDef = {
 };
 
 // 機動槽：技能自己宣告什麼情況值得放（Skill.activation），兩個戰鬥模式都先看它
-const MOBILITY: BTDef = {
+const MOBILITY: AuthoredBTDef = {
     type: 'SEQUENCE',
     name: 'Mobility',
     children: [
@@ -63,7 +72,7 @@ const MOBILITY: BTDef = {
 };
 
 // 目標在普攻射程外：順手打得到別人就打；否則技能 → 追擊 → 走位 → 前進，全失敗轉 UNSTICK
-const ENGAGE_TREE: BTDef = {
+const ENGAGE_TREE: AuthoredBTDef = {
     type: 'SELECTOR',
     name: 'Engage Actions',
     children: [
@@ -78,7 +87,7 @@ const ENGAGE_TREE: BTDef = {
 };
 
 // 目標在普攻射程內：只管出手；技能都在冷卻時追擊節點回 SUCCESS（就位等冷卻），不找路
-const FIGHT_TREE: BTDef = {
+const FIGHT_TREE: AuthoredBTDef = {
     type: 'SELECTOR',
     name: 'Fight Actions',
     children: [
@@ -101,13 +110,16 @@ const FIGHT_TREE: BTDef = {
  * 任何「移動」節點在 CanMove 為假（root/stun/放逐/恐懼）時必須失敗，不能回 RUNNING。
  */
 /** 一張模式圖（契約 G4）。AI 與玩家操控（契約 G3）都用這個形狀；engine/ai/ModeGraphValidation.ts 檢查它 */
-export interface AIModeGraph {
+interface AIModeGraphOf<K extends string, C extends string> {
     initial: AIMode;
-    modes: Partial<Record<AIMode, AIModeDef>>;
-    edges: readonly AIModeEdgeDef[];
+    modes: Partial<Record<AIMode, AIModeDefOf<K>>>;
+    edges: readonly AIModeEdgeDefOf<C>[];
 }
+export type AIModeGraph = AIModeGraphOf<string, string>;
+/** 手寫的圖（本檔常數）：鍵由登錄表檢查，賦值給 AIModeGraph 時自然變寬 */
+type AuthoredModeGraph = AIModeGraphOf<BTNodeKey, BTConditionKey>;
 
-export const AI_MODE_GRAPH: AIModeGraph = {
+export const AI_MODE_GRAPH: AuthoredModeGraph = {
     initial: 'ACQUIRE',
     modes: {
         DEAD: { tree: { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } } },
@@ -166,7 +178,7 @@ export const AI_MODE_GRAPH: AIModeGraph = {
  * 兩個模式都先看嘲諷：被嘲諷時去打嘲諷者（和 AI 單位一樣，嘲諷蓋過指令），嘲諷結束再照原本的做。
  * 指令的資料形狀在 types/Orders.ts，寫入只在 engine/core/Orders.ts。
  */
-export const PLAYER_MODE_GRAPH: AIModeGraph = {
+export const PLAYER_MODE_GRAPH: AuthoredModeGraph = {
     initial: 'HOLD',
     modes: {
         DEAD: { tree: { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } } },
@@ -206,8 +218,22 @@ export const PLAYER_MODE_GRAPH: AIModeGraph = {
     ],
 };
 
+/**
+ * AI 圖的 profile（契約 G4）：職業 → 模式圖，職業對圖的對應只有這一張表。
+ * 目前每個職業都指向同一張 AI_MODE_GRAPH（行為不變）；要給某職業不同的行為，改這裡指向別張圖。
+ * 只影響 AI 控制的單位；玩家操控的單位一律用 PLAYER_MODE_GRAPH（不分職業）。
+ * 每張被指到的圖，AISystem.buildAI 建樹前都會過 validateModeGraph。
+ */
+export const AI_PROFILE_BY_ROLE: Record<Role, AIModeGraph> = {
+    [Role.TANK]: AI_MODE_GRAPH,
+    [Role.WARRIOR]: AI_MODE_GRAPH,
+    [Role.RANGER]: AI_MODE_GRAPH,
+    [Role.MAGE]: AI_MODE_GRAPH,
+    [Role.SUPPORT]: AI_MODE_GRAPH,
+};
+
 // Helper to generate the repetitive skill check logic structure
-function createSkillRoutine(slot: number, label: string): BTDef {
+function createSkillRoutine(slot: number, label: string): AuthoredBTDef {
     return {
         type: 'SEQUENCE',
         name: `Try ${label}`,

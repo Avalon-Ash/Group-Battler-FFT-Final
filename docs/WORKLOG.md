@@ -791,3 +791,9 @@
 - 預設對局會碰到的既有機制都補了測試（`tests/PlayerOrders.test.ts` 共 13 則）：縮圈時站在警告格上下指令走得出去；目的地塌掉就清掉移動指令；嘲諷蓋過指令、指令留著；堅守中被推開，強制位移照常發生（強制位移不設 `isMoving`，不會被堅守取消）；被定身時留在 `ORDER` 模式不抖動；暫停時下的指令繼續後照做，回放相同。
 - `npm run e2e:ui` 加了 4 項玩家操控檢查（開關切換控制者、選取中的玩家單位點空地產生移動指令、下指令後選取不變、切回 AI 清掉指令），共 245 項通過。行為樹視窗對玩家單位畫的是玩家圖，新節點都有中文標籤；手機尺寸的 Inspector 那一列排版正常。
 - 已知的行為（都照契約的定義，試玩後再看要不要改）：堅守時射程內沒有敵人就不動，被遠程打不會還手；堅守的單位站在即將塌陷的格子上不會自己走開，會掉下去；移動指令的目的地被佔著時指令留著、每個 tick 重試；戰鬥中才接手的單位按重開後會變回 AI（重開還原的是開戰當下的快照）。
+
+### CD. 2026-11-19 優化開案書 G4 AI 圖鍵型別化與 profile（子工作階段）
+- **鍵有型別**：`BTRegistry` 的 `BTConditions`／`BTActions` 標註成 `Record<BTConditionKey, …>`（兩個鍵清單是字面量聯集，少一個、多一個鍵都是編譯錯誤）。開案書寫的 `satisfies` 做不到：表內節點互相呼叫（`BTConditions["X"]`）會讓表型別循環，TS 靜默把整張表推成 `any`，鍵型別失效（用 `const x: number = BTConditions` 驗過不報錯）。`data/ai_profiles.ts` 的 `BTDef`／邊／圖改成可換鍵型別的泛型：本檔手寫的常數用 `BTNodeKey`／`BTConditionKey`（打錯鍵是編譯錯誤），`BTDef`／`AIModeGraph` 保持寬鬆字串，給外來資料（編輯器載入、存檔）與契約測試用，要先過驗證。
+- **`validateModeGraph`**（`engine/ai/ModeGraphValidation.ts`）：initial、邊兩端、`when`／`unless` 恰好一個且在登錄表、`onFailure`、小樹鍵、組合節點至少一個子節點；`AISystem.buildAI` 建樹前呼叫，不合格丟錯，刪掉 `console.warn` 加假節點的做法。
+- **profile**：`AI_PROFILE_BY_ROLE`（`data/ai_profiles.ts`）是職業對圖的唯一一張表，五個職業都指向 `AI_MODE_GRAPH`；玩家單位仍用 `PLAYER_MODE_GRAPH`。
+- 驗證：`npm run lint`、`npm test`（165 檔 1576 則）、`npm run knip`、`npm run build` 全過；`npm run balance:fingerprint` TEAMS／ROYALE／SQUADS 各 60/60 identical。新測試 `tests/ModeGraphKeys.test.ts`（`@ts-expect-error` 打錯鍵、壞圖被回報）。
