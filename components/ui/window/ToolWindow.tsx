@@ -110,6 +110,12 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
 
     const isCollapsed = state.isCollapsed;
     const isMaximized = state.isMaximized;
+    // 螢幕邊還剩多少空間可以放把手的外側部分（視窗已被夾在畫面內，貼邊時為 0）
+    const outsideRoom: OutsideRoom = {
+        w: displayRect.x,
+        e: viewport.width - (displayRect.x + displayRect.width),
+        s: viewport.height - (displayRect.y + (isCollapsed ? 0 : displayRect.height)),
+    };
 
     const maxSheetHeightPx = Math.round(viewport.height * (UI_WINDOW.SHEET_MAX_VH / 100));
     const windowStyle: React.CSSProperties = isNarrow
@@ -152,7 +158,9 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             : 'shell-window mat-blur';
     // 把手貼在視窗邊緣且在最上層：內容要讓開，否則會蓋住貼邊的卷軸。觸控的卷軸不靠拖，不必讓
     const handleInset = !isMaximized && !isNarrow && !isCoarsePointer ? UI_WINDOW.HANDLE_PX : 0;
-    const windowClasses = `shell ${material} rounded-ui-window flex flex-col overflow-hidden select-none ${className}`;
+    // 觸控把手跨在邊框上、大半在視窗外側，所以視窗本身不能裁切；內容區自己圓角裁切
+    const handlesOutside = isCoarsePointer && !isMaximized && !isCollapsed && !isNarrow;
+    const windowClasses = `shell ${material} rounded-ui-window flex flex-col ${handlesOutside ? '' : 'overflow-hidden'} select-none ${className}`;
 
     return (
         <div
@@ -228,7 +236,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             {!isCollapsed && (
                 <div
                     data-window-body="true"
-                    className={`flex-1 overflow-auto relative text-text-base ${contentClassName}`}
+                    className={`flex-1 overflow-auto relative text-text-base ${handlesOutside ? 'rounded-b-ui-window' : ''} ${contentClassName}`}
                     style={{ touchAction: 'pan-y pan-x', marginRight: handleInset, marginBottom: handleInset }}
                 >
                     {children}
@@ -240,7 +248,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 <ResizeHandle
                     key={direction}
                     direction={direction}
-                    style={getHandleStyle(direction, isCoarsePointer)}
+                    style={getHandleStyle(direction, isCoarsePointer, outsideRoom)}
                     onPointerDown={handleResizePointerDown}
                     onPointerMove={handleResizePointerMove}
                     onPointerUp={handleResizePointerUp}
@@ -257,7 +265,14 @@ const RESIZE_DIRECTIONS: ResizeDirection[] = ['n', 's', 'w', 'e', 'nw', 'ne', 's
  * Handle geometry. Top-side handles always use the fine thickness so they never
  * cover the title-bar buttons, even on touch devices.
  */
-function getHandleStyle(direction: ResizeDirection, coarse: boolean): React.CSSProperties {
+type OutsideRoom = { w: number; e: number; s: number };
+
+/** 觸控把手往視窗外側伸出的距離：最多 HANDLE_PX_COARSE - HANDLE_INNER_PX_COARSE，受螢幕邊剩餘空間限制。 */
+function outsetOf(room: number): number {
+    return Math.max(0, Math.min(UI_WINDOW.HANDLE_PX_COARSE - UI_WINDOW.HANDLE_INNER_PX_COARSE, room));
+}
+
+function getHandleStyle(direction: ResizeDirection, coarse: boolean, room: OutsideRoom): React.CSSProperties {
     const edge = coarse && !direction.includes('n') ? UI_WINDOW.HANDLE_PX_COARSE : UI_WINDOW.HANDLE_PX;
     const corner = coarse ? Math.max(edge * UI_WINDOW.HANDLE_CORNER_FACTOR, UI_WINDOW.TOUCH_TARGET_MIN_PX) : edge * UI_WINDOW.HANDLE_CORNER_FACTOR;
     const base: React.CSSProperties = {
@@ -266,15 +281,19 @@ function getHandleStyle(direction: ResizeDirection, coarse: boolean): React.CSSP
         touchAction: 'none',
         cursor: `${direction}-resize`,
     };
+    // 滑鼠維持貼在視窗內側；觸控時左、右、下把手往外伸（上緣不外伸，免得蓋到上方內容）
+    const ow = coarse ? -outsetOf(room.w) : 0;
+    const oe = coarse ? -outsetOf(room.e) : 0;
+    const os = coarse ? -outsetOf(room.s) : 0;
     switch (direction) {
         case 'n': return { ...base, top: 0, left: corner, right: corner, height: edge };
-        case 's': return { ...base, bottom: 0, left: corner, right: corner, height: edge };
-        case 'w': return { ...base, left: 0, top: corner, bottom: corner, width: edge };
-        case 'e': return { ...base, right: 0, top: corner, bottom: corner, width: edge };
-        case 'nw': return { ...base, top: 0, left: 0, width: corner, height: corner };
-        case 'ne': return { ...base, top: 0, right: 0, width: corner, height: corner };
-        case 'sw': return { ...base, bottom: 0, left: 0, width: corner, height: corner };
-        case 'se': return { ...base, bottom: 0, right: 0, width: corner, height: corner };
+        case 's': return { ...base, bottom: os, left: corner, right: corner, height: edge };
+        case 'w': return { ...base, left: ow, top: corner, bottom: corner, width: edge };
+        case 'e': return { ...base, right: oe, top: corner, bottom: corner, width: edge };
+        case 'nw': return { ...base, top: 0, left: ow, width: corner, height: corner };
+        case 'ne': return { ...base, top: 0, right: oe, width: corner, height: corner };
+        case 'sw': return { ...base, bottom: os, left: ow, width: corner, height: corner };
+        case 'se': return { ...base, bottom: os, right: oe, width: corner, height: corner };
     }
 }
 

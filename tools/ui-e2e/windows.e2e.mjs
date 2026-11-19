@@ -1222,6 +1222,68 @@ const runTouchTargetAndReducedMotionSuite = async () => {
     await ctx.close();
 };
 
+const runTabletEdgeSuite = async () => {
+    console.log('\n── Tablet touch: window edge vs resize handle (U3)');
+    const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 }, hasTouch: true, isMobile: true });
+    await ctx.addInitScript(([k]) => { localStorage.removeItem(k); }, [STORAGE_KEY]);
+    const page = await ctx.newPage();
+    page.setDefaultTimeout(8000);
+    page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message.slice(0, 300)));
+    page.on('console', (m) => {
+        if (m.type() === 'error' && !/favicon|404/.test(m.text())) consoleErrors.push('console.error: ' + m.text().slice(0, 200));
+    });
+    await enterManualMode(page);
+    await page.waitForTimeout(400);
+    await openViaMenu(page, 'logs');
+    await page.waitForTimeout(300);
+
+    // 內容區最靠邊的點（視窗右緣、下緣往內 14 px）要是內容，不是把手；把手本體要夠大且大部分在視窗外
+    const probe = await page.evaluate(() => {
+        const win = document.querySelector('[data-window-id="logs"]');
+        const r = win.getBoundingClientRect();
+        const body = win.querySelector('[data-window-body="true"]');
+        const b = body.getBoundingClientRect();
+        const hit = (x, y) => document.elementFromPoint(x, y);
+        const handleOf = (el) => el?.getAttribute?.('data-handle-direction') ?? null;
+        const midY = (b.top + b.bottom) / 2;
+        const midX = (b.left + b.right) / 2;
+        const e = win.querySelector('[data-handle-direction="e"]').getBoundingClientRect();
+        const w = win.querySelector('[data-handle-direction="w"]').getBoundingClientRect();
+        return {
+            rect: { x: r.x, y: r.y, right: r.right, bottom: r.bottom },
+            viewport: { w: window.innerWidth, h: window.innerHeight },
+            innerRight: handleOf(hit(r.right - 14, midY)),
+            innerLeft: handleOf(hit(r.left + 14, midY)),
+            innerBottom: handleOf(hit(midX, r.bottom - 14)),
+            outsideRight: handleOf(hit(r.right + 8, midY)),
+            eWidth: e.width,
+            eInside: Math.max(0, r.right - e.left),
+            wInside: Math.max(0, w.right - r.left),
+        };
+    });
+    const detail = JSON.stringify(probe);
+    ok('tablet touch: content 14px inside the right edge is not a resize handle', probe.innerRight === null, detail);
+    ok('tablet touch: content 14px inside the left edge is not a resize handle', probe.innerLeft === null, detail);
+    ok('tablet touch: content 14px inside the bottom edge is not a resize handle', probe.innerBottom === null, detail);
+    ok('tablet touch: side handle keeps a 44px touch width', probe.eWidth >= 44, detail);
+    ok('tablet touch: side handle covers at most ~12px of the window interior', probe.eInside <= 14 && probe.wInside <= 14, detail);
+    ok('tablet touch: the outside part of the handle is grabbable', probe.outsideRight === 'e', detail);
+
+    // 抓外側的部分真的拉得動
+    const before = await rectOf(page, 'logs');
+    const gx = before.x + before.width + 8;
+    const gy = before.y + before.height / 2;
+    await page.mouse.move(gx, gy);
+    await page.mouse.down();
+    await page.mouse.move(gx - 60, gy, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    const after = await rectOf(page, 'logs');
+    ok('tablet touch: dragging the outside part of the E handle resizes the window', after.width < before.width - 40, JSON.stringify({ before: before.width, after: after.width }));
+    await page.screenshot({ path: join(OUT, 'tablet_edge_logs.png') });
+    await ctx.close();
+};
+
 const runTouchScrollSuite = async () => {
     console.log('\n── Touch Scroll (U12c)');
     const ctx = await browser.newContext({
@@ -1654,6 +1716,7 @@ try {
     if (!filterOnly || filterOnly.includes('inspector-cmd')) await runInspectorCommandSuite();
     if (!filterOnly || filterOnly.includes('bottom-sheet')) await runBottomSheetSuite();
     if (!filterOnly || filterOnly.includes('touch-reduced-motion')) await runTouchTargetAndReducedMotionSuite();
+    if (!filterOnly || filterOnly.includes('tablet-edge')) await runTabletEdgeSuite();
     if (!filterOnly || filterOnly.includes('touch-scroll')) await runTouchScrollSuite();
     if (!filterOnly || filterOnly.includes('editor')) await runEditorSuite();
     if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
