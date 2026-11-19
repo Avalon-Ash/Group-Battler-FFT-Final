@@ -51,7 +51,7 @@ try {
     // ── 每種元件都要出現在樣張頁 ──
     const REQUIRED = [
         'gallery-button-primary', 'gallery-button-secondary', 'gallery-button-danger', 'gallery-button-ghost', 'gallery-button-disabled',
-        'gallery-icon-button', 'gallery-segmented', 'gallery-tabs', 'gallery-select', 'gallery-select-grouped',
+        'gallery-icon-button', 'gallery-segmented', 'gallery-tabs', 'gallery-select', 'gallery-select-grouped', 'gallery-combobox',
         'gallery-slider', 'gallery-switch', 'gallery-input', 'gallery-number-input', 'gallery-textarea', 'gallery-color-input',
         'gallery-card', 'gallery-setting-row', 'gallery-section-heading', 'gallery-tag', 'gallery-meter', 'gallery-tooltip', 'gallery-empty-state',
     ];
@@ -101,6 +101,60 @@ try {
     await page.locator(tid('gallery-select-grouped')).click();
     await page.waitForTimeout(200);
     ok('select grouped: shows group labels', (await page.locator('[role="group"]').count()) >= 2);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+
+    // ── Combobox（U4 技能下拉搜尋）：可輸入過濾、鍵盤選取、Escape 不改值 ──
+    // 樣張用 SELECT_GROUPS 同一份資料：SUPPORT 組有「醫護 1」～「醫護 12」。
+    const combo = page.locator(tid('gallery-combobox'));
+    const comboBefore = (await combo.textContent())?.trim();
+    await combo.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(200);
+    const comboInput = page.locator('input[role="combobox"]');
+    ok('combobox: Enter opens a search input', (await comboInput.count()) === 1 && (await comboInput.isVisible()));
+    ok('combobox: search input gets focus', await comboInput.evaluate((el) => el === document.activeElement).catch(() => false));
+    ok('combobox: input reports expanded', (await comboInput.getAttribute('aria-expanded').catch(() => null)) === 'true');
+    const comboListId = await comboInput.getAttribute('aria-controls').catch(() => null);
+    const comboList = page.locator(comboListId ? `[id="${comboListId}"]` : '[data-none]');
+    ok('combobox: aria-controls points at a visible listbox', !!comboListId && (await comboList.getAttribute('role').catch(() => null)) === 'listbox' && (await comboList.isVisible().catch(() => false)));
+    const comboZ = await comboList.evaluate((el) => {
+        for (let n = el; n; n = n.parentElement) {
+            const z = getComputedStyle(n).zIndex;
+            if (z !== 'auto') return Number(z);
+        }
+        return 0;
+    }).catch(() => 0);
+    ok('combobox: popover sits on the POPOVER layer', comboZ >= 210, `z=${comboZ}`);
+    ok('combobox: unfiltered list shows group labels', (await comboList.locator('[role="group"]').count().catch(() => 0)) >= 2);
+    const allOptions = await comboList.locator('[role="option"]').count().catch(() => 0);
+    await page.keyboard.type('醫護 1');
+    await page.waitForTimeout(200);
+    const filtered = await comboList.locator('[role="option"]').allTextContents().catch(() => []);
+    ok('combobox: typing filters by label', filtered.length === 4 && filtered.every((t) => t.includes('醫護 1')), `n=${filtered.length}/${allOptions}`);
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(60);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(200);
+    const comboAfter = (await combo.textContent())?.trim();
+    ok('combobox: arrow keys and Enter choose a filtered option', !!comboAfter && comboAfter !== comboBefore && comboAfter.includes('醫護 1'), `${comboBefore} -> ${comboAfter}`);
+    ok('combobox: closes after choosing', (await page.locator('input[role="combobox"]').count()) === 0);
+    ok('combobox: focus returns to the trigger', await combo.evaluate((el) => el === document.activeElement));
+    await combo.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(200);
+    await page.keyboard.type('不存在的名字');
+    await page.waitForTimeout(150);
+    ok('combobox: no match shows zero options', (await page.locator('[role="option"]').count()) === 0);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    ok('combobox: Escape closes without changing the value', (await page.locator('input[role="combobox"]').count()) === 0 && (await combo.textContent())?.trim() === comboAfter);
+    await combo.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(200);
+    const comboAxe = await new AxeBuilder({ page }).analyze();
+    const comboSerious = comboAxe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    ok('combobox: axe clean while open', comboSerious.length === 0, comboSerious.map((v) => `${v.id}(${v.nodes.length})`).join(', '));
     await page.keyboard.press('Escape');
     await page.waitForTimeout(150);
 
