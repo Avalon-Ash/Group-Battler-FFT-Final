@@ -28,7 +28,11 @@
       "command(node tools/balance/ai-idle-sim.mjs --scenario=ROYALE --battles=20 --seed=21)",
       "command(node tools/balance/ai-idle-sim.mjs --scenario=MELEE_ROYALE --battles=20 --seed=21)",
       "command(npx vitest run tests/AdrIndex.test.ts)",
-      "command(npx vitest run tests/DocDrift.test.ts)"
+      "command(npx vitest run tests/DocDrift.test.ts)",
+      "command(npx vitest run tests/contracts/R.contract.test.ts)",
+      "command(npx vitest run tests/DirectorPlayerFocus.test.ts)",
+      "command(npx vitest run tests/DirectorFraming.test.ts)",
+      "command(npx vitest run tests/contracts/Manifest.test.ts)"
     ]
   }
 }

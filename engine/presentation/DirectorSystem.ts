@@ -8,6 +8,9 @@
 // ║  主角失效立刻換。計分在 DirectorRoster，取景在            ║
 // ║  玩家操控的單位（契約 G3）優先當主角，不看排分：玩家要   ║
 // ║  一直看得到自己控的那一隻，四周留 PLAYER_VIEW_RADIUS_PX。 ║
+// ║  [ARCH] 契約 R3：取景縮放、死區與焦點位移皆依              ║
+// ║  effectiveViewport(screenW, screenH, viewInsets) 計算，   ║
+// ║  主角落在未被 UI 蓋住的有效區域中央。                      ║
 // ║  DirectorFight／DirectorShot；鏡頭只收 CAMERA_MOVE。     ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -20,7 +23,7 @@ import { DirectorRoster } from "./DirectorRoster";
 import { DIRECTOR_PARAM, SHAKE_DIRECTOR_PARAM } from "../../constants";
 import { ShakeDirector } from "./ShakeDirector";
 import { VisualMath } from "../math/VisualMath";
-import type { ViewInsets } from "./ViewInsets";
+import { effectiveViewport, type ViewInsets } from "./ViewInsets";
 
 export class DirectorSystem {
     // Controls
@@ -254,7 +257,8 @@ export class DirectorSystem {
         // 4. measureMembers
         const ext = measureMembers(members);
 
-        // 5. 焦點與縮放
+        // 5. 焦點與縮放（契約 R3：以扣掉被 UI 蓋住四邊後的有效區域取景）
+        const vp = effectiveViewport(engine.screenW, engine.screenH, this.viewInsets);
         let rawFocusX: number;
         let rawFocusY: number;
         let zoom: number;
@@ -268,13 +272,13 @@ export class DirectorSystem {
         } else {
             rawFocusX = ext.cx;
             rawFocusY = ext.cy;
-            zoom = this.shot.update(ext, engine.screenW, engine.screenH, dt);
+            zoom = this.shot.update(ext, vp.w, vp.h, dt);
         }
 
-        // 6. 平滑焦點與視窗死區
+        // 6. 平滑焦點與視窗死區；最後將鏡頭目標依有效區域中心位移（除以 zoom 換算成世界座標）
         const focus = this.blend.apply(rawFocusX, rawFocusY, dt);
         this.lastFocus = focus;
-        const p = this.window.update(focus.x, focus.y, zoom, engine.screenW, engine.screenH);
-        return { x: p.x, y: p.y, zoom };
+        const p = this.window.update(focus.x, focus.y, zoom, vp.w, vp.h);
+        return { x: p.x - vp.shiftX / zoom, y: p.y - vp.shiftY / zoom, zoom };
     }
 }

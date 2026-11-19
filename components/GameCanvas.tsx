@@ -11,6 +11,7 @@ import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
 import { useCameraControl } from '../hooks/useCameraControl';
 import { useCompactViewport } from '../hooks/useCompactViewport';
+import { useViewInsets } from '../hooks/useViewInsets';
 import { GAME_CANVAS_PARAM } from '../constants';
 import { getRenderDpr } from '../engine/renderers/RenderQuality';
 import { PedestalGhostPainter } from '../engine/renderers/units/painters/PedestalGhostPainter';
@@ -59,6 +60,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     }
 
     const { camera, centerCamera, zoom } = useGameCamera(engine);
+    useViewInsets(wrapperRef, engine);
     useCameraControl({
         canvasRef, 
         onZoom: zoom,

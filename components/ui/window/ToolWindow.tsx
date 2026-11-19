@@ -4,6 +4,7 @@ import { UI_WINDOW } from '../../../constants';
 import { WINDOW_DEF_MAP } from '../../../data/ui/windows';
 import { useWindowState, useWindowActions, useTopmostOpenWindowId } from '../../../hooks/useWindowStore';
 import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowInteraction';
+import { VIEW_INSET_KIND } from '../../../hooks/useViewInsets';
 import { clampRect, getMaximizedRect, getWindowLayerZ } from './windowStore';
 import { Icons } from '../icons';
 import { IconButton } from '../primitives';
@@ -166,6 +167,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         <div
             ref={windowRef}
             data-window-id={id}
+            data-view-inset={isNarrow ? VIEW_INSET_KIND.BOTTOM_SHEET : undefined}
             // Capture phase: title/handle handlers stop propagation, so raising must not rely on bubbling.
             onPointerDownCapture={() => actions.front(id)}
             onPointerDown={(e) => e.stopPropagation()}
