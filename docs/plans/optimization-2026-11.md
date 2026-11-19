@@ -105,7 +105,7 @@ R1 畫面插值（獨立，渲染線第一條）
 | G1 | 技能平衡（HANDOFF J，併 A 的 AOE、G 的藍方勝率） | 邏輯 | S1 | L | Opus 自己做（判斷），批次模擬背景跑 |
 | G2 | 施法目標與戰鬥目標分開，拆 `_savedCombatTarget`（完成） | 邏輯 | — | M | Opus 自己做 |
 | G3 | 玩家操控（HANDOFF L2 Controller） | 邏輯＋UI | G2、S3、U1 | L | Opus 自己做；UI 小包可派 Sonnet |
-| G4 | AI 圖鍵型別化、驗證、每職業 profile | 邏輯 | — | S～M | Sonnet 子代理 |
+| G4 | AI 圖鍵型別化、驗證、每職業 profile（完成） | 邏輯 | — | S～M | Sonnet 子代理 |
 | G5 | 行為編輯器（HANDOFF L4） | UI | G3、G4、U1 | L | 開工前由 Opus 另寫一頁設計給使用者看 |
 | U1 | `WindowDef` 布林改 `modes` | UI | — | S | agy Hydrogen 或 Sonnet |
 | U2 | bundle 切分、視窗延遲載入、體積預算 | UI | — | M | Sonnet 子代理 |
@@ -222,7 +222,7 @@ R1 畫面插值（獨立，渲染線第一條）
   - 玩家指令節點直接呼叫 `initiateCast` 之前，要先用 `aimCastAt` 設好或清掉施法目標（唯一寫入者是 `SkillStateMachine`）。
   - 地面施法的瞄準還沒收進 `castAim`：`CastPushPull` 對地面起手時仍靠清掉 `a.target` 讓管線改瞄格子，施法後由 `HasTarget` 重新選敵（G2 先接受，只發生在背水一戰的推拉）。G3 的 `ORDER_CAST` 帶 `q`、`r` 時會碰到同一件事：到時把「這次施法瞄單位還是瞄格子」收進 `castAim` 一處判斷，`CastPushPull` 就不必再清戰鬥目標。
 
-### G4 AI 圖鍵型別化與 profile
+### G4 AI 圖鍵型別化與 profile（完成 2026-11-19，WORKLOG §2 CD；鍵型別改用 Record 標註，原因見該節）
 - **作法**：`BTDef.key` 的型別改成 `keyof typeof BTConditions | keyof typeof BTActions`（把兩張表從 `Record<string, …>` 改成 `satisfies`），找不到鍵變成編譯錯誤；加一個純函式 `validateModeGraph(graph)`（每條邊的兩端存在、每個模式有樹、`onFailure` 指向存在的模式），引擎建樹前呼叫，失敗就丟錯而不是塞假節點。`AISystem.buildAI` 目前忽略單位、全體共用一張圖：改成依職業查 profile（預設全部指向現在這張，行為不變）。
 - **驗收**：`npm run lint`；新測試餵壞掉的圖要報錯；`npm run balance:fingerprint` 0 差異。
 

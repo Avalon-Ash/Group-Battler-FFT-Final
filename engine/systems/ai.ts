@@ -1,17 +1,21 @@
 
 import { Agent, GameEngine } from "../game";
 import { BTNode, Selector, Sequence, Condition, Action } from "../behaviorTree";
-import { AI_MODE_GRAPH, PLAYER_MODE_GRAPH, type AIModeDef, type BTDef } from "../../data/ai_profiles";
+import { AI_PROFILE_BY_ROLE, PLAYER_MODE_GRAPH, type AIModeDef, type BTDef } from "../../data/ai_profiles";
+import { validateModeGraph } from "../ai/ModeGraphValidation";
 import { ModeMachine, type ModeEdge } from "../ai/ModeMachine";
-import { BTConditions, BTActions } from "../ai/BTRegistry";
-import { NodeState, AIMode } from "../../types";
+import { BTConditions, BTActions, type BTConditionKey, type BTActionKey } from "../ai/BTRegistry";
+import { AIMode } from "../../types";
 
 export class AISystem {
     
     // 單位的 AI 是一台狀態機（ModeMachine）；每個模式一棵小樹，圖是資料。
-    // 控制者決定用哪一張圖（契約 G3）：AI 用 AI_MODE_GRAPH，玩家用 PLAYER_MODE_GRAPH。
+    // 控制者決定用哪一張圖（契約 G3）：玩家用 PLAYER_MODE_GRAPH，AI 依職業查 AI_PROFILE_BY_ROLE（契約 G4）。
+    // 建樹前驗證，圖有問題就丟錯，不塞假節點帶過。
     public buildAI(a: Agent, engine: GameEngine): BTNode {
-        const graph = a.controller === 'PLAYER' ? PLAYER_MODE_GRAPH : AI_MODE_GRAPH;
+        const graph = a.controller === 'PLAYER' ? PLAYER_MODE_GRAPH : AI_PROFILE_BY_ROLE[a.role];
+        const problems = validateModeGraph(graph);
+        if (problems.length > 0) throw new Error(`AI 模式圖不合格：\n${problems.join('\n')}`);
         const modes = (Object.entries(graph.modes) as [AIMode, AIModeDef][]).map(([mode, def]) => ({
             mode,
             tree: this.parseNode(def.tree, engine),
@@ -19,7 +23,7 @@ export class AISystem {
         }));
         const edges = graph.edges.map((e): ModeEdge => {
             const key = (e.when ?? e.unless) as string;
-            const cond = BTConditions[key];
+            const cond = BTConditions[key as BTConditionKey];
             return {
                 from: e.from,
                 to: e.to,
@@ -53,25 +57,14 @@ export class AISystem {
                 break;
 
             case 'CONDITION':
-                const condFn = def.key ? BTConditions[def.key] : null;
-                if (!condFn) {
-                    console.warn(`AI Builder: Missing Condition Key '${def.key}'`);
-                    // Fallback to avoid crash
-                    node = new Condition(def.name, () => false); 
-                } else {
-                    node = new Condition(def.name, (agent: Agent) => condFn(agent, engine, def.args ?? {}));
-                }
+                // 鍵已由 validateModeGraph 保證存在
+                const condFn = BTConditions[def.key as BTConditionKey];
+                node = new Condition(def.name, (agent: Agent) => condFn(agent, engine, def.args ?? {}));
                 break;
 
             case 'ACTION':
-                const actFn = def.key ? BTActions[def.key] : null;
-                if (!actFn) {
-                    console.warn(`AI Builder: Missing Action Key '${def.key}'`);
-                    // Fallback
-                    node = new Action(def.name, () => NodeState.FAILURE); // Failure
-                } else {
-                    node = new Action(def.name, (agent: Agent) => actFn(agent, engine, def.args ?? {}));
-                }
+                const actFn = BTActions[def.key as BTActionKey];
+                node = new Action(def.name, (agent: Agent) => actFn(agent, engine, def.args ?? {}));
                 break;
                 
             default: {

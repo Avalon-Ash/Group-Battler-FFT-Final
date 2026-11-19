@@ -798,3 +798,8 @@
 - 標示（`engine/renderers/tactical.ts`）：玩家單位腳下一圈脈動的金色光圈加淡淡的底色（畫在血條之下），頭上一個上下浮動的金色箭頭（畫在血條之上，人擠在一起也不會被蓋住）；不必選取就看得到，開戰前場上只有核心時箭頭貼著核心上方。位置全部讀 `UnitFrame`，`RenderSpec` 已加一列。
 - 看圖調過一輪：第一版箭頭畫在血條之下，被旁邊單位的血條蓋住；光圈 3 px 細線在岩漿地形上不明顯。改成箭頭在 HUD 之後畫、光圈加粗到 4 px 並加底色、鏡頭改成以單位為中心。
 - 驗證：`tests/DirectorPlayerFocus.test.ts` 4 則（一直是主角、開戰就框在它身上且留得出視野、多個玩家單位跟點選的、切回 AI 恢復）；`npm test` 165 檔 1577 則、lint、build、knip；`balance:fingerprint` 180/180；`runtime-smoke`；`perf:guard`（保真 6 張沒重錄：沒有玩家單位時畫面不變）；`e2e:ui` 246 項全過、`audit:ui` 0 違規。實跑截圖確認開戰前與戰鬥中都看得到光圈與箭頭、單位在畫面中央。
+### CD. 2026-11-19 優化開案書 G4 AI 圖鍵型別化與 profile（子工作階段）
+- **鍵有型別**：`BTRegistry` 的 `BTConditions`／`BTActions` 標註成 `Record<BTConditionKey, …>`（兩個鍵清單是字面量聯集，少一個、多一個鍵都是編譯錯誤）。開案書寫的 `satisfies` 做不到：表內節點互相呼叫（`BTConditions["X"]`）會讓表型別循環，TS 靜默把整張表推成 `any`，鍵型別失效（用 `const x: number = BTConditions` 驗過不報錯）。`data/ai_profiles.ts` 的 `BTDef`／邊／圖改成可換鍵型別的泛型：本檔手寫的常數用 `BTNodeKey`／`BTConditionKey`（打錯鍵是編譯錯誤），`BTDef`／`AIModeGraph` 保持寬鬆字串，給外來資料（編輯器載入、存檔）與契約測試用，要先過驗證。
+- **`validateModeGraph`**（`engine/ai/ModeGraphValidation.ts`）：initial、邊兩端、`when`／`unless` 恰好一個且在登錄表、`onFailure`、小樹鍵、組合節點至少一個子節點；`AISystem.buildAI` 建樹前呼叫，不合格丟錯，刪掉 `console.warn` 加假節點的做法。
+- **profile**：`AI_PROFILE_BY_ROLE`（`data/ai_profiles.ts`）是職業對圖的唯一一張表，五個職業都指向 `AI_MODE_GRAPH`；玩家單位仍用 `PLAYER_MODE_GRAPH`。
+- 驗證：`npm run lint`、`npm test`（165 檔 1576 則）、`npm run knip`、`npm run build` 全過；`npm run balance:fingerprint` TEAMS／ROYALE／SQUADS 各 60/60 identical。新測試 `tests/ModeGraphKeys.test.ts`（`@ts-expect-error` 打錯鍵、壞圖被回報）。
