@@ -59,6 +59,24 @@ export class AgentManager {
         agent.weight = stats.weight;
     }
 
+    /**
+     * EDIT_AGENT 換職業：血量上限、魔力上限換成新職業的（大逃殺照 spawnHp 縮小差距），
+     * 現有血量、魔力照原本的比例縮放（開戰前是滿血，換完仍是滿血；還活著的不會被縮成 0）。
+     * 上限的來源和生成同一處（UNIT_DB、spawnHp），移動數值走 applyRoleMotion。
+     */
+    public static applyRoleChange(agent: Agent, engine: Pick<GameEngine, 'battleSetup'>) {
+        const stats = UNIT_DB[agent.role];
+        if (!stats) return;
+        const hpRatio = agent.maxHp > 0 ? agent.hp / agent.maxHp : 1;
+        const mpRatio = agent.maxMp > 0 ? agent.mp / agent.maxMp : 0;
+        agent.maxHp = AgentManager.spawnHp(agent.role, engine) ?? stats.maxHp;
+        const hp = Math.round(agent.maxHp * hpRatio);
+        agent.hp = agent.hp > 0 ? Math.max(1, hp) : 0;
+        agent.maxMp = stats.maxMp;
+        agent.mp = Math.round(agent.maxMp * mpRatio);
+        AgentManager.applyRoleMotion(agent);
+    }
+
     /** 換控制者（契約 G3）後重建這個單位的 AI：圖由控制者決定（AISystem.buildAI）。開戰前不用，開戰時 prepareForBattle 會建 */
     public static rebuildAI(agent: Agent, engine: GameEngine): void {
         agent.bt = engine.ai.buildAI(agent, engine);

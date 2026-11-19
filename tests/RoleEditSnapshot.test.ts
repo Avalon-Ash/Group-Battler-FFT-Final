@@ -8,9 +8,10 @@ import { buildBattle, runTicks, emit, stateOf } from './contracts/simState';
 /**
  * 開戰前用 EDIT_AGENT 換職業：職業導出、快照不存的欄位（移速、移動類型、跳躍、重量）要跟著換，
  * 還原快照後才和現場一致（契約 S2；職業→數值只在 AgentManager.applyRoleMotion 對應）。
+ * 血量、魔力上限也換成新職業的（AgentManager.applyRoleChange），和直接生成該職業一樣。
  */
 const ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-const derived = (a: Agent) => [a.role, a.moveSpeed, a.movementType, a.jump, a.weight].join('/');
+const derived = (a: Agent) => [a.role, a.moveSpeed, a.movementType, a.jump, a.weight, a.maxHp, a.hp, a.maxMp, a.mp].join('/');
 
 /** 直接生成該職業的單位時的導出欄位 */
 const spawned = (role: Role): string => {
@@ -18,6 +19,14 @@ const spawned = (role: Role): string => {
     const a = e.agentManager.addAgent(e, Team.BLUE, 0, 0, undefined, role);
     if (!a) throw new Error('spawn failed');
     return derived(a);
+};
+
+/** 直接生成該職業的單位時的血量上限 */
+const spawnedMaxHp = (role: Role): number => {
+    const e = new GameEngine({ audio: false });
+    const a = e.agentManager.addAgent(e, Team.BLUE, 0, 0, undefined, role);
+    if (!a) throw new Error('spawn failed');
+    return a.maxHp;
 };
 
 describe('開戰前換職業與開戰快照', () => {
@@ -42,5 +51,32 @@ describe('開戰前換職業與開戰快照', () => {
         emit(b, { type: 'START_GAME', seed: 5 });
         runTicks(b, 600);
         expect(stateOf(b)).toBe(stateOf(a));
+    });
+
+    it('開戰後換職業：血量照比例縮放，還活著的不會變 0', () => {
+        const e = new GameEngine({ audio: false });
+        const a = e.agentManager.addAgent(e, Team.BLUE, 0, 0, undefined, Role.TANK);
+        if (!a) throw new Error('spawn failed');
+        const tankMax = a.maxHp;
+        a.hp = tankMax / 2;
+        emit(e, { type: 'EDIT_AGENT', agentId: a.id, role: Role.MAGE });
+        const mageMax = spawnedMaxHp(Role.MAGE);
+        expect(a.maxHp).toBe(mageMax);
+        expect(a.hp).toBe(Math.round(mageMax / 2));
+
+        a.hp = 1;
+        emit(e, { type: 'EDIT_AGENT', agentId: a.id, role: Role.TANK });
+        expect(a.maxHp).toBe(tankMax);
+        expect(a.hp).toBeGreaterThanOrEqual(1);
+    });
+
+    it('同一指令另給的 maxHp 蓋過職業血量', () => {
+        const e = new GameEngine({ audio: false });
+        const a = e.agentManager.addAgent(e, Team.BLUE, 0, 0, undefined, Role.TANK);
+        if (!a) throw new Error('spawn failed');
+        const custom = spawnedMaxHp(Role.MAGE) + 1;
+        emit(e, { type: 'EDIT_AGENT', agentId: a.id, role: Role.MAGE, maxHp: custom, hp: custom });
+        expect(a.maxHp).toBe(custom);
+        expect(a.hp).toBe(custom);
     });
 });
