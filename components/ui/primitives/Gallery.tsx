@@ -3,7 +3,7 @@ import { UI_Z } from '../../../constants';
 import { rgbChannelsToHex, UI_TOKENS } from '../../../data/ui/tokens';
 import { Icons } from '../icons';
 import {
-    Button, Card, ColorInput, EmptyState, IconButton, Input, Meter, NumberInput, SectionHeading, Segmented,
+    Button, Card, ColorInput, Combobox, EmptyState, IconButton, Input, Meter, NumberInput, SectionHeading, Segmented,
     Select, SettingRow, Slider, Switch, Tabs, TabsContent, Tag, Textarea, Tooltip,
     type SegmentedOption, type SelectGroup, type SelectOption,
 } from './index';
@@ -56,6 +56,7 @@ export function Gallery() {
     const [segment, setSegment] = useState('select');
     const [pick, setPick] = useState('alpha');
     const [groupPick, setGroupPick] = useState('guard');
+    const [comboPick, setComboPick] = useState('guard');
     const [slider, setSlider] = useState(SAMPLE_SLIDER);
     const [enabled, setEnabled] = useState(false);
     const [text, setText] = useState('');
@@ -90,6 +91,7 @@ export function Gallery() {
                 <div className="flex flex-wrap items-center gap-2">
                     <Select data-testid="gallery-select" ariaLabel="單位代號" value={pick} onValueChange={setPick} options={SELECT_OPTIONS} className="w-48" />
                     <Select data-testid="gallery-select-grouped" ariaLabel="職業分組" value={groupPick} onValueChange={setGroupPick} groups={SELECT_GROUPS} className="w-48" />
+                    <Combobox data-testid="gallery-combobox" ariaLabel="職業搜尋" value={comboPick} onValueChange={setComboPick} groups={SELECT_GROUPS} className="w-48" />
                 </div>
                 <Tabs data-testid="gallery-tabs" value={tab} onValueChange={setTab} tabs={TAB_ITEMS}>
                     {TAB_ITEMS.map((t) => (
