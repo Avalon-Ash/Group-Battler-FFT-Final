@@ -109,7 +109,7 @@ R1 畫面插值（獨立，渲染線第一條）
 | G5 | 行為編輯器（HANDOFF L4） | UI | G3、G4、U1 | L | 開工前由 Opus 另寫一頁設計給使用者看 |
 | U1 | `WindowDef` 布林改 `modes` | UI | — | S | agy Hydrogen 或 Sonnet |
 | U2 | bundle 切分、視窗延遲載入、體積預算 | UI | — | M | Sonnet 子代理 |
-| U3 | UI 小修：`testId`、`dbSignature`、平板縮放把手 | UI | — | S | agy Hydrogen（三個小包） |
+| U3 | UI 小修：`testId`、`dbSignature`、平板縮放把手（完成） | UI | — | S | agy Hydrogen（三個小包） |
 | U4 | 技能下拉加搜尋 | UI | U2 | S | Sonnet 子代理 |
 | U5 | 熱路徑配置（先量再做） | 引擎 | — | S | Sonnet 子代理 |
 | C1 | 合約校正（repo 合約與全域憲法不一致） | 文件 | 使用者同意 | S | Opus 提案，使用者核可 |
@@ -243,7 +243,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **驗收**：`npm run build` 無 500 kB 警告或警告只剩引擎主包；`npm run e2e:ui` 每個視窗都開得起來；`node tools/ui-e2e/runtime-smoke.mjs`。
 - **不做**：特效登記表與零件烘焙器的延遲載入。
 
-### U3 UI 小修（三個獨立小包）
+### U3 UI 小修（三個獨立小包；完成 2026-11-19，WORKLOG §2 CD：`dbSignature` 量測後結案不做，平板把手驗收改用 1180×820，820 寬以下是底部面板）
 - `Tabs`、`Segmented` 加 `testId` 欄位，移除塞在 label 裡的 span；e2e 選擇器跟著改。
 - `engine/systems/ui/views/l3.ts` 的 `dbSignature` 每 100 ms 串一次整個技能庫：改成技能庫版本號（唯一寫入者 `UICommandSystem` 的 `UPDATE_SKILL` 與技能庫替換處各加一）。
 - 平板觸控下視窗左右縮放把手（`UI_WINDOW.HANDLE_PX_COARSE` 44 px）蓋住內容邊緣：把手改成跨在邊框上、大部分在視窗外側，內側只留 12 px；貼齊螢幕邊時才往內縮。先查 `web-guidance`（觸控目標大小）。驗收：`npm run e2e:ui` 加一則平板寬度下點得到視窗內最靠邊的控制項。
