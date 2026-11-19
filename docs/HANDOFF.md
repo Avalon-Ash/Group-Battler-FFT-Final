@@ -1,6 +1,6 @@
 # 交接：還沒做的事（TBD）
 
-> 更新：2026-11-09。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
+> 更新：2026-11-19。**新工作階段先讀 `docs/plans/optimization-2026-11.md` §3.1（交接：現況、派工順序、R3／R4 派工單要補的事）。** **本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態

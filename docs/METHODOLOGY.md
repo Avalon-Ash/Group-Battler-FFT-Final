@@ -64,6 +64,8 @@
 - 多數既有原始檔是 CRLF，編輯時保持原行尾；新檔寫 LF。（確認 2026-10-19）
 - 工作樹的 `node_modules` 是指向主資料夾的 junction：工作樹內不跑 npm 安裝；移除工作樹先 `cmd /c rmdir <工作樹>\node_modules` 再不加 `--force` 移除（hook 會擋）。（確認 2026-10-29）
 - `AgentRunner` 時序測試是 Windows 專用，高負載下會偶發失敗；CI 在 Linux 上排除它。（確認 2026-10-29）
+- 工作樹裡跑 `e2e:ui`，字型檔經 `node_modules` junction 會回 403，「no console/page errors」那項失敗；e2e 的定案結果在主資料夾跑。（確認 2026-11-19）
+- 臨時探針寫進 `tools/ui-e2e/out/`（不進版控）再用 `node` 執行；scratchpad 裡的腳本 import 不到 `vite`，`node -e` 的雙引號裡有反引號會被 shell 當指令執行。（確認 2026-11-19）
 <!-- env-facts:end -->
 
 ## 7. 在 Claude Code 使用的注意

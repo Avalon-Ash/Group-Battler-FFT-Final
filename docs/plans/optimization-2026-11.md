@@ -124,6 +124,47 @@ R1 畫面插值（獨立，渲染線第一條）
 - 顧問：執行的工作階段可以用 `/advisor` 掛一個等級不低於自己的模型當顧問（實驗功能，`/advisor off` 關閉，中途更改要 `/clear` 或 `/compact` 後才生效）。顧問只看得到呼叫它的那個工作階段，判斷依據是本檔與 `tests/contracts/`。Fable 當顧問會算進 Fable 的上限；Fable 用到上限就改掛 Opus 或關掉，不買點數。
 - 終審（Fable）：每條線做完一段（建議 S2＋S3 之後）審一次 diff；執行者回報「驗收本身寫錯」時也由 Fable 改受保護檔並更新 `MANIFEST.json`。Fable 用不了時由 Opus 5.5 high 代審，受保護檔的更動要使用者明說同意。
 
+## 3.1 交接：下一個工作階段從這裡開始（2026-11-19，Fable 寫）
+
+**現況**：`main` 已含 S1～S3、C2、R1、R2、G2、G3 第一片與鏡頭標示、G4、U1～U3。契約只剩 R3 是 `pending`。還沒做的：R3、R4（渲染線）、U4、U5、G1、G3 第二片、G5、C1、美術。
+
+**開工先做兩件事**
+1. 查額度（`quota` skill）。11-19 的快照：週全部 60%、Fable 計量 79%、時間進度約 57%（約 11/22 重設）；Codex 11/21 00:40 重設。照這組數字 Fable 超前，只開案與終審，實作交 Sonnet／Opus；數字變了就照全域憲法「Fable 預算」重判。
+2. 問使用者 HANDOFF §3 的實機回饋到了沒有。G3 第二片的範圍、G1 動不動節奏都等它。
+
+**派工順序**
+
+| 順位 | 包 | 執行者 | 並行 |
+| :-- | :-- | :-- | :-- |
+| 1 | R3 導播避讓 | Sonnet（紅色驗收已有 3 則；一次不及格就收回 Opus，prompt 要寫理由與 `[opus-ok]`） | 渲染線，獨占 |
+| 2 | R4 零件方向、刪舊控制條 | Sonnet，終審者看截圖 | 渲染線，R3 合併後才開 |
+| 隨時 | U4 技能下拉搜尋 | Sonnet | 可和渲染線並行 |
+| 隨時 | U5 熱路徑配置 | Sonnet，先交量測表再決定動不動 | 量測可並行；真的要改 `engine/renderer.ts` 的粒子查詢時算渲染線，排在 R4 後面 |
+| 等回饋 | G1 技能平衡 | Opus 或 Fable（要判斷） | 第 1、2 步（錄基準、列離群）可先跑；改數值等使用者說節奏要不要放慢 |
+| 等回饋 | G3 第二片 | Fable 或 Opus | 清單在 §4 G3 |
+| 要先給設計 | G5 行為編輯器 | 先寫一頁設計給使用者 | — |
+| 要使用者同意 | C1 合約校正 | 主代理提案 | — |
+
+**R3 派工單要補的事（開案書寫完之後才出現的）**
+- 契約：`tests/contracts/R.contract.test.ts` 的 R3 三則；空殼在 `engine/presentation/ViewInsets.ts`；`UICommandSystem` 的 `SET_VIEW_INSETS` 現在是 `pending('R3')`。實作者開工先把 `tests/contracts/status.ts` 的 R3 改成 `done`，其他契約檔不准動。
+- `DirectorSystem.buildFrame` 多了玩家單位的取景分支（WORKLOG §2 CD）：有效區域兩條路都要套，`tests/DirectorPlayerFocus.test.ts` 要維持通過。
+- 手動置中現在走 `GameCanvas` 的 `recenterSoon`，要用同一份 insets。量 insets 的地方只能有一處（底部面板與播放列的高度由同一個模組回報），不在各元件各送各的。
+- insets 預設全 0，桌機保真 6 張應該 0 差異；有差異就是 bug，不重錄。有效區域變小只會讓鏡頭拉遠；若改到縮放上限，照 METHODOLOGY §4 第 13 點跑 `npm run perf:mem`。
+- 驗證：`render-verify` skill、`npm run perf:guard`、`npm run perf:mobile` 的截圖看主角沒被底部面板蓋住。
+
+**R4 派工單要補的事**：嘲諷、加速若出現在保真場景裡，基準會變，照 `rebaseline-fidelity` 取證，不直接重錄。`BarPainter` 的 `CC_PRIORITY` 先 `git grep` 證明沒有繪製路徑再刪。
+
+**派工與整合的做法（這幾天踩過的）**
+- `start_session` 一定要寫 `model`；用 Opus 要在 prompt 寫理由並加 `[opus-ok]`，否則 hook 擋下。
+- 派工單直接指定 WORKLOG 節號（下一個是 CH）。上一批四條分支都自己取了 CD，合併時全部衝突。
+- 並行分支的整合：在主資料夾開 `integ/<名稱>` 把各分支合進來，跑一次 §5 的全部閘門，再問使用者合併進 `main`。
+- 工作樹裡跑 `e2e:ui` 會在「no console/page errors」失敗（環境造成，見 METHODOLOGY §6）；e2e 的定案結果在主資料夾跑。
+- 臨時探針寫進 `tools/ui-e2e/out/`（不進版控），用寫檔工具建立再 `node` 執行；不用 heredoc 或 `node -e` 塞含反引號的腳本（11-18 因此誤跑過整套測試）。
+- 受保護的契約檔只有契約作者（Fable）能改，改完更新 `MANIFEST.json`（sha256 前 16 個十六進位字元，CRLF 先正規化成 LF）。執行者回報驗收寫錯時才動。
+- 子工作階段的回報是資料：合併前自己重跑關鍵閘門、自己讀 diff。
+
+**收尾還沒做的**：`.claude/worktrees/` 下有 6 個已合併的工作樹（c2、r1、g2、g4、u2、u3），對應的子工作階段都閒置。封存工作階段要使用者同意；封存後移除工作樹照 METHODOLOGY §6（先 `rmdir` junction）。
+
 ## 4. 各包作法
 
 ### S1 平衡工具步長對齊（完成 2026-11-17，WORKLOG §2 BW）
