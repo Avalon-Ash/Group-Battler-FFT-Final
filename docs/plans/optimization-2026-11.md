@@ -110,7 +110,7 @@ R1 畫面插值（獨立，渲染線第一條）
 | U1 | `WindowDef` 布林改 `modes` | UI | — | S | agy Hydrogen 或 Sonnet |
 | U2 | bundle 切分、視窗延遲載入、體積預算 | UI | — | M | Sonnet 子代理 |
 | U3 | UI 小修：`testId`、`dbSignature`、平板縮放把手（完成） | UI | — | S | agy Hydrogen（三個小包） |
-| U4 | 技能下拉加搜尋 | UI | U2 | S | Sonnet 子代理 |
+| U4 | 技能下拉加搜尋（完成 2026-11-19，WORKLOG §2 CH） | UI | U2 | S | Sonnet 子代理（實際：agy Neon high） |
 | U5 | 熱路徑配置（先量再做） | 引擎 | — | S | Sonnet 子代理 |
 | C1 | 合約校正（repo 合約與全域憲法不一致） | 文件 | 使用者同意 | S | Opus 提案，使用者核可 |
 | 美術 | `BLOOD`／`PHYSICAL` DoT 畫面、羊模型、聖印衝擊圖示 | 美術 | Codex 11/21 刷新 | — | 走 `art-round`，不在本檔展開 |
@@ -126,7 +126,7 @@ R1 畫面插值（獨立，渲染線第一條）
 
 ## 3.1 交接：下一個工作階段從這裡開始（2026-11-19，Fable 寫）
 
-**現況**：`main` 已含 S1～S3、C2、R1、R2、G2、G3 第一片與鏡頭標示、G4、U1～U3。契約只剩 R3 是 `pending`。還沒做的：R3、R4（渲染線）、U4、U5、G1、G3 第二片、G5、C1、美術。
+**現況**：`main` 已含 S1～S3、C2、R1、R2、G2、G3 第一片與鏡頭標示、G4、U1～U4。契約只剩 R3 是 `pending`。還沒做的：R3、R4（渲染線）、U5、G1、G3 第二片、G5、C1、美術。
 
 **開工先做兩件事**
 1. 查額度（`quota` skill）。11-19 的快照：週全部 60%、Fable 計量 79%、時間進度約 57%（約 11/22 重設）；Codex 11/21 00:40 重設。照這組數字 Fable 超前，只開案與終審，實作交 Sonnet／Opus；數字變了就照全域憲法「Fable 預算」重判。
@@ -138,7 +138,6 @@ R1 畫面插值（獨立，渲染線第一條）
 | :-- | :-- | :-- | :-- |
 | 1 | R3 導播避讓 | Sonnet（紅色驗收已有 3 則；一次不及格就收回 Opus，prompt 要寫理由與 `[opus-ok]`） | 渲染線，獨占 |
 | 2 | R4 零件方向、刪舊控制條 | Sonnet，終審者看截圖 | 渲染線，R3 合併後才開 |
-| 隨時 | U4 技能下拉搜尋 | Sonnet | 可和渲染線並行 |
 | 隨時 | U5 熱路徑配置 | Sonnet，先交量測表再決定動不動 | 量測可並行；真的要改 `engine/renderer.ts` 的粒子查詢時算渲染線，排在 R4 後面 |
 | 等回饋 | G1 技能平衡 | Opus 或 Fable（要判斷） | 第 1、2 步（錄基準、列離群）可先跑；改數值等使用者說節奏要不要放慢 |
 | 等回饋 | G3 第二片 | Fable 或 Opus | 清單在 §4 G3 |
@@ -293,7 +292,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - `engine/systems/ui/views/l3.ts` 的 `dbSignature` 每 100 ms 串一次整個技能庫：改成技能庫版本號（唯一寫入者 `UICommandSystem` 的 `UPDATE_SKILL` 與技能庫替換處各加一）。
 - 平板觸控下視窗左右縮放把手（`UI_WINDOW.HANDLE_PX_COARSE` 44 px）蓋住內容邊緣：把手改成跨在邊框上、大部分在視窗外側，內側只留 12 px；貼齊螢幕邊時才往內縮。先查 `web-guidance`（觸控目標大小）。驗收：`npm run e2e:ui` 加一則平板寬度下點得到視窗內最靠邊的控制項。
 
-### U4 技能下拉搜尋
+### U4 技能下拉搜尋（完成 2026-11-19，WORKLOG §2 CH：146 行，沒用 Virtual、沒加 `cmdk`）
 - Radix Select 沒有搜尋。用 Radix Popover＋輸入框＋既有的 TanStack Virtual 列表組一個 Combobox primitive（放 `components/ui/primitives/`，進 Gallery）；不加新依賴。若實作超過約 150 行或無障礙做不齊，改用 `cmdk` 並先問使用者（新增依賴）。
 
 ### U5 熱路徑配置（先量再做）

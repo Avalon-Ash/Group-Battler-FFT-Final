@@ -825,3 +825,14 @@
   - 前後量測（`E2E_ONLY=tablet-edge npm run e2e:ui`，1180×820 觸控；820 寬以下是底部面板沒有把手）：視窗內側被把手蓋住 45 px → 13 px（12 px 加 1 px 邊框）；視窗右、左、下緣內 14 px 的點擊從命中把手改成命中內容；把手外側 8 px 的點命中把手，拖曳它視窗寬 640 → 580。
   - 新 e2e `runTabletEdgeSuite`（7 項）；`constants-snapshot.json` 加一個新鍵。
 - 驗證：lint、`npm test` 164 檔 1573 則、build、knip、`audit:ui -- all` 全過；`npm run e2e:ui` 只剩「no console/page errors」一項（工作樹字型經 `node_modules` 連結 403，環境造成），其餘全過。
+### CH. 2026-11-19 優化開案書 U4 技能下拉加搜尋（agy Gemini 4 Neon high 試跑）
+- **做了什麼**：新 primitive `components/ui/primitives/Combobox.tsx`（Radix Popover＋輸入框，沿用 `SelectOption`／`SelectProps`，層級用 `UI_Z.POPOVER`；方向鍵、Home／End、Enter、跳過 disabled、中文輸入法組字中不攔鍵），進 Gallery；`UnitStatusTab` 的技能槽改用它。預設文字在 `data/ui/labels/primitives.ts`（代理原本寫在元件裡，主代理移過去）。沒用 TanStack Virtual：技能數幾十個，`max-h-72` 捲動就夠，開案書的「超過約 150 行改 `cmdk`」沒觸發（146 行），不加依賴。
+- **派工方式**：主代理先寫紅色驗收（`tools/ui-e2e/ui-gallery.e2e.mjs` 的 combobox 14 項，受保護），agy `gemini-4-neon-high` 實作，12 分 24 秒一次過，沒碰驗收。執行者評估與額度記在全域 `agy-call` 的 `MODELS.md`。
+- 驗證：worktree 內 gallery e2e ALL PASS、lint、`npm test` 1580 則、knip。合併後在主資料夾（CH＋CI 一起）重跑：lint、`npm test` 167 檔 1586 則、build（預算內：進入點 252.5／257.5 kB）、knip、`balance:fingerprint` 三組各 60/60、gallery e2e、`e2e:ui` ALL PASSED、`audit:ui -- all` 0 違規。未驗：技能槽本身沒有專屬互動 e2e（只有 Gallery 那一顆），手機上輸入法與底部面板的手感待實機。
+- **回退**：merge commit `git revert -m 1`。
+### CI. 2026-11-19 DECISIONS 拆出 ADR（agy Orchestrator（Neon）試跑）
+- **做了什麼**：架構級決策拆成 `docs/adr/0001`～`0022`（一決策一檔：背景／決定／放棄的做法／後果／證據），規則與範本在 `docs/adr/README.md`；背水一戰的改版拆成 0009（已取代）→ 0010。`docs/DECISIONS.md` 改成索引＋小決定，章節標題（§1～§5、「AI 與大逃殺」、「UI」）保留，其他檔的「DECISIONS §4」引用不用改。合併：0001（禁 3D 後端＋特效預烘）、0007（保真基準＋同環境 A/B）。查不到的欄位照規定寫「原紀錄沒有寫」。
+- **閘門**：`tests/AdrIndex.test.ts`（主代理先寫的紅色驗收）檢查編號連續、狀態三種寫法、五個章節、取代鏈雙向一致、索引連到每一份、DECISIONS 錨點還在。
+- **派工方式**：agy `gemini-pro-orchestrator-neon`（Neon 規劃、Hydrogen 執行），22 分一次過；Orchestrator 不收 `--effort`。
+- 驗證：AdrIndex、DocDrift、`npm test` 1586 則。
+- **回退**：merge commit `git revert -m 1`。

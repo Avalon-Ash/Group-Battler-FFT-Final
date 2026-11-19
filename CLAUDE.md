@@ -65,5 +65,6 @@
 ## 文件分工
 - `docs/HANDOFF.md`：只放 TBD（待確認、待決定、待辦）。做完就刪。
 - `docs/METHODOLOGY.md`：怎麼工作、審查、量測、環境陷阱。
-- `docs/DECISIONS.md`：已定的決策與理由。
+- `docs/DECISIONS.md`：已定決策的索引與小決定（口味、小取捨）。
+- `docs/adr/`：架構級決策，一決策一檔；推翻時新開一份、舊的標「已取代」，不改原文（規則在 `docs/adr/README.md`，`tests/AdrIndex.test.ts` 檢查）。
 - `docs/WORKLOG.md`：完成紀錄（平常不讀）。一輪做完在這裡加一節，HANDOFF 同步刪掉對應項目。
