@@ -7,7 +7,7 @@
 
 - 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）。最近完成：單位狀態美術與 Inspector 狀態面板（WORKLOG §2 BR，11-09 實機看得出、不閃）、機動技射程與落點（WORKLOG §2 BQ，11-09 實機確認突進收斂、後撤不保守）、音訊喚醒（WORKLOG §2 BO）、手機記憶體修正（BN）、導播改框主角與目標（BM）、技能管線重建與機動槽（WORKLOG §2 BL，11-09 實機確認鉤子與推人自然、頻率不高；平衡待調）、導播改排分清單與緩進緩出群組、切畫質不再瞬跳（WORKLOG §2 BJ，待實機確認）、詠唱環隨單位移動破圖修正（WORKLOG §2 BI）、手機奧義掉幀修好（貼地特效改合成圖＋預烘六角遮罩，WORKLOG §2 BH）、縮圈塌陷不再重置鏡頭、近戰被打回頭、陣營染色、背水一戰改從最後一圈倒數算起（WORKLOG §2 BG）、AI 狀態拓樸與大逃殺規則（WORKLOG §2 BD）、震動收歸導演、大逃殺模式、換場背景淡化（WORKLOG §2 AW）、遮擋剪影灰白修正（AX）。
 - **派工**：agy 可多線同跑（11-04 實測 4 條，不同資料夾）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。
-- **額度**：Claude（Pro）每週要省。Codex 到 11 月底有兩次重置要用完（使用者 11-04），美術視覺與邏輯根因多派（額度看 `~/.claude/QUOTA.md`）。長線實作走 agy 的 Gemini 3.8 Flash，要判斷的收回 Claude（`agent-prompt` skill）。Antigravity 額度由使用者回報、記在 `~/.claude/QUOTA.md`。
+- **額度**：Claude（Pro）每週要省。Codex 到 11 月底有兩次重置要用完（使用者 11-04），美術視覺與邏輯根因多派（額度看 `~/.claude/QUOTA.md`）。可拆的實作走 agy（實作 Neon、雜事 Hydrogen，`CLAUDE.md` 派工表），Gemini 池偏低或兩次不及格收回 Claude（`agent-prompt` skill）。Antigravity 額度由使用者回報、記在 `~/.claude/QUOTA.md`。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
 - 本機標籤 `archive/lionheart-skin-trials` 保留 S0 沒收的預覽圖與 OPUS 交接。
 - 逐檔人工審計已由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、`NoLocalHash`），清冊 CSV 已刪（11-02）。

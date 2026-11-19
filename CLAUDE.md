@@ -5,7 +5,7 @@
 
 ## 角色
 你是這個專案的主代理：負責設計、規劃、架構決策、審查 diff、修高階問題、本機驗證、合併。
-機械性、長時間的實作交給 Gemini 3.8 Flash（規格明確的；要判斷的收回 Claude）：你寫 `docs/<NAME>_AGENT_PROMPT.md`，再用 agy 直接派（`agent-prompt` skill）；不順利才改請使用者在 IDE 用 `/goal` 啟動。你的產出是那份提示詞，不是程式碼本身。
+可拆、有可跑驗收的實作交給 agy（實作 Gemini 4 Neon、雜事 Hydrogen；檔位在全域 `agy-call`，2026-11-19 起）：你寫 `docs/<NAME>_AGENT_PROMPT.md`，再用 agy 直接派（`agent-prompt` skill）；不順利才改請使用者在 IDE 用 `/goal` 啟動。你的產出是那份提示詞，不是程式碼本身。
 使用者額度有限，所以審查時先看 `git diff main...<branch> --stat`，只讀程式碼變更（hook、`.claude/**`、`.codex/**`、設定檔也算程式碼），不整份讀代理報告。
 
 使用者用繁體中文，回覆要簡潔。
@@ -37,10 +37,10 @@
 | 跑指令並彙整結果、小型機械性修改 | `worker` | Sonnet／medium |
 | 第二意見審查 diff、追 bug 根因 | `reviewer` | Sonnet／high |
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
-| 超長、無人值守的實作 | 不開子代理，拆成 ≤3 任務的小包寫提示詞，主代理用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的 `gemini-3.8-flash-high`；要跨檔判斷的、或 Flash 兩次不及格的收回 Claude：agy 的 `claude-sonnet-5-5-medium` → 下一列的 Sonnet 子代理（全域 `agy-call`） |
-| 只讀的摘要、大量讀檔（省 Claude Pro 額度時） | agy 的 Flash（`--mode plan`） | 依全域 `agy-call` 檔位表 |
+| 可拆、有可跑驗收的實作包（含長時間、無人值守） | 不開子代理，主代理先加型別、先寫紅色驗收與提示詞，用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的 `gemini-4-neon-medium`、難或跨檔的 `gemini-4-neon-high`；大範圍、多檔、要讀很多再整理的 `gemini-pro-orchestrator-neon`。Gemini 池偏低或同一包兩次不及格收回 Claude：最下面一列的 Sonnet 子代理（全域 `agy-call`） |
+| 讀檔摘要、機械性改動、補測試、小而具體的包（一次 ≤3 個任務） | agy 的 Hydrogen（只讀加 `--mode plan`） | `gemini-4-hydrogen-high`；依全域 `agy-call` 檔位表 |
 | Codex：美術與視覺（概念稿、畫面判讀、渲染截圖審查）、邏輯根因、跨模型第二意見。**不派寫程式實作與架構** | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch` | 依 skill |
-| 要判斷的實作小包，agy 的 Sonnet 池見底時 | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
+| Gemini 池偏低、或 Neon 兩次不及格的實作包 | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
 
 升級看問題難度和手上證據，不是固定「失敗兩次」；重試必須帶新的假設或新的證據，同一種探索跑兩次比直接升一級還貴。
 
@@ -66,5 +66,5 @@
 - `docs/HANDOFF.md`：只放 TBD（待確認、待決定、待辦）。做完就刪。
 - `docs/METHODOLOGY.md`：怎麼工作、審查、量測、環境陷阱。
 - `docs/DECISIONS.md`：已定決策的索引與小決定（口味、小取捨）。
-- `docs/adr/`：架構級決策，一決策一檔；推翻時新開一份、舊的標「已取代」，不改原文（規則在 `docs/adr/README.md`，`tests/AdrIndex.test.ts` 檢查）。
+- `docs/adr/`：架構級決策，一決策一檔；推翻時新開一份、舊的標「已取代」，不改原文（規則在 `docs/adr/README.md`；`tests/AdrIndex.test.ts` 呼叫 `tools/adr/check-adr.mjs` 檢查，腳本正本在全域 `adr` skill）。
 - `docs/WORKLOG.md`：完成紀錄（平常不讀）。一輪做完在這裡加一節，HANDOFF 同步刪掉對應項目。

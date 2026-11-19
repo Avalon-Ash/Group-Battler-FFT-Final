@@ -33,7 +33,7 @@
 - 必須包含五個章節標題：`## 背景`、`## 決定`、`## 放棄的做法`、`## 後果`、`## 證據`。
 - 每份篇幅控制在 20～50 行，使用繁體中文，只寫事實與理由，不寫效果形容詞。
 - 原紀錄查不到的欄位（例如未記載曾考慮的替代方案）填寫「原紀錄沒有寫。」，不可自行補編。
-- `## 證據` 只列 repo 內真實存在的檔案路徑（由 `tests/DocDrift.test.ts` 檢查）、WORKLOG 節次、設計文件章節或 commit SHA。
+- `## 證據` 只列 repo 內真實存在的檔案路徑（由 `tests/DocDrift.test.ts` 與 `tools/adr/check-adr.mjs` 檢查；後者由 `tests/AdrIndex.test.ts` 呼叫，正本在全域 `adr` skill）、WORKLOG 節次、設計文件章節或 commit SHA。
 
 ### 範本
 
