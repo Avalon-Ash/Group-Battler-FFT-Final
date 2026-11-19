@@ -24,7 +24,7 @@ export const BLUE_BASIC: Skill[] = [
         id: 'tb_b3', role: Role.TANK, team: Team.BLUE, tag: 'BASIC',
         name: '聖印衝擊', desc: '回魔打擊',
         range: 1, cast: 0.6, cd: 1.0, cost: 0, gain: 35,
-        type: 'SINGLE', power: 60, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0,
+        type: 'SINGLE', power: 54, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'PHYSICAL'
     },
     {
@@ -151,7 +151,7 @@ export const BLUE_BASIC: Skill[] = [
         id: 'mb_b4', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC',
         name: '奧術彈射', desc: '小範圍彈跳',
         range: 5, cast: 0.5, cd: 1.2, cost: 0, gain: 30,
-        type: 'SINGLE', power: 40, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900,
+        type: 'SINGLE', power: 44, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900,
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE',
         onHit: [{ action: 'CHAIN', jumps: 2, radius: 2, falloff: 0.7 }],
     },
@@ -175,7 +175,7 @@ export const BLUE_BASIC: Skill[] = [
     {
         id: 'sb_b2', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC',
         name: '靈泉湧流', desc: '極速回魔',
-        range: 5, cast: 0.4, cd: 0.8, cost: 0, gain: 45, // Range 5->4
+        range: 5, cast: 0.4, cd: 0.8, cost: 0, gain: 38, // Range 5->4
         type: 'SINGLE', power: 50, color: '#bfdbfe', visual: 'BOLT', projectileSpeed: 1000,
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'BOLT', element: 'LIGHTNING'
     },
