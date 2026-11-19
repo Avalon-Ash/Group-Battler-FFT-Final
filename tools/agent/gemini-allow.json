@@ -26,7 +26,9 @@
       "command(node tools/balance/ai-idle-sim.mjs --scenario=TEAMS --battles=20 --seed=21)",
       "command(node tools/balance/ai-idle-sim.mjs --scenario=MELEE --battles=20 --seed=21)",
       "command(node tools/balance/ai-idle-sim.mjs --scenario=ROYALE --battles=20 --seed=21)",
-      "command(node tools/balance/ai-idle-sim.mjs --scenario=MELEE_ROYALE --battles=20 --seed=21)"
+      "command(node tools/balance/ai-idle-sim.mjs --scenario=MELEE_ROYALE --battles=20 --seed=21)",
+      "command(npx vitest run tests/AdrIndex.test.ts)",
+      "command(npx vitest run tests/DocDrift.test.ts)"
     ]
   }
 }
