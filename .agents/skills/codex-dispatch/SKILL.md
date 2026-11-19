@@ -8,7 +8,7 @@ description: 本專案派工給 Codex（GPT）的專屬規則：額度暫停、h
 通用的檔位表、額度、呼叫方式在全域 `codex-call` skill（`~/.claude/skills/codex-call`，只在本機；雲端工作階段沒有 Codex）。本檔只放這個 repo 加上的規則，兩份都照做，本檔優先。
 
 ## 派不派
-- Codex 只派美術視覺與邏輯根因，不派寫程式實作（全域 `codex-call`）。HANDOFF §1 註明額度不足時不派：美術視覺改由主代理自己看，邏輯第二意見改由主代理或 Claude 子代理。
+- Codex 可派整包設計＋實作、美術視覺、邏輯根因（檔位照全域 `codex-call`；2026-11-20 C1 起和全域一致，以前本專案只派美術與根因）。額度很緊或見底時不派：實作走 agy Neon 或 Claude，美術視覺改由主代理自己看，邏輯第二意見改由主代理或 Claude 子代理。
 - 可寫任務的提示詞照 `agent-prompt` skill 的 Codex 版（獨立 clone、`safe.directory`、受保護檔案）。
 
 ## hook（`tools/hooks/agent-guardrails.mjs`）

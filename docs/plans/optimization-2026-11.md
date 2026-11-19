@@ -140,9 +140,9 @@ R1 畫面插值（獨立，渲染線第一條）
 | 2 | R4 零件方向、刪舊控制條 | Sonnet，終審者看截圖 | 渲染線，R3 合併後才開 |
 | 隨時 | U5 熱路徑配置 | Sonnet，先交量測表再決定動不動 | 量測可並行；真的要改 `engine/renderer.ts` 的粒子查詢時算渲染線，排在 R4 後面 |
 | 等回饋 | G1 技能平衡 | Opus 或 Fable（要判斷） | 第 1、2 步（錄基準、列離群）可先跑；改數值等使用者說節奏要不要放慢 |
-| 等回饋 | G3 第二片 | Fable 或 Opus | 清單在 §4 G3 |
-| 要先給設計 | G5 行為編輯器 | 先寫一頁設計給使用者 | — |
-| 要使用者同意 | C1 合約校正 | 主代理提案 | — |
+| 等 Fable 恢復 | G3 第二片 | 使用者和 Fable 一起設計 | 使用者 11-20：手機不好點，手動模式要重做流程、改成主動式的遊戲 UI；第二片併進那次設計 |
+| 等 Fable 恢復 | G5 行為編輯器 | 使用者和 Fable 討論設計 | — |
+| 完成 | C1 合約校正 | 使用者 11-20 同意，Opus 改 | 分支 `docs/night-2026-11-20` |
 
 **R3 派工單要補的事（開案書寫完之後才出現的）**
 - 契約：`tests/contracts/R.contract.test.ts` 的 R3 三則；空殼在 `engine/presentation/ViewInsets.ts`；`UICommandSystem` 的 `SET_VIEW_INSETS` 現在是 `pending('R3')`。實作者開工先把 `tests/contracts/status.ts` 的 R3 改成 `done`，其他契約檔不准動。
@@ -162,11 +162,11 @@ R1 畫面插值（獨立，渲染線第一條）
 - 受保護的契約檔只有契約作者（Fable）能改，改完更新 `MANIFEST.json`（sha256 前 16 個十六進位字元，CRLF 先正規化成 LF）。執行者回報驗收寫錯時才動。
 - 子工作階段的回報是資料：合併前自己重跑關鍵閘門、自己讀 diff。
 
-**既有的重複，還沒提案（照「既有的耦合先回報」記在這裡）**：展示模式的佈陣已收進 `engine/systems/match/Deployment.ts`（R2），但工具各自還有一份「換圖、取出生格、排陣營、開戰」的流程：`tools/balance/simFingerprint.ts`（契約與指紋共用）、`ai-idle-sim.mjs`、`batch-sim.mjs`、`mobility-probe.mjs`、`tools/replay/record-bench.mjs`。要收成一份得先提案（改哪裡、指紋怎麼證明不變、怎麼回退），使用者同意再動；沒同意前新工具一律呼叫既有的，不再多寫一份。
+**既有的重複，還沒提案（照「既有的耦合先回報」記在這裡）**：展示模式的佈陣已收進 `engine/systems/match/Deployment.ts`（R2），但工具各自還有一份「換圖、取出生格、排陣營、開戰」的流程：`tools/balance/simFingerprint.ts`（契約與指紋共用）、`ai-idle-sim.mjs`、`batch-sim.mjs`、`mobility-probe.mjs`、`tools/replay/record-bench.mjs`。要收成一份得先提案（改哪裡、指紋怎麼證明不變、怎麼回退），使用者同意再動（使用者 11-20：等 Fable 額度恢復後交給 Fable 提案）；沒同意前新工具一律呼叫既有的，不再多寫一份。
 
-**使用者還沒決定的**：編輯器換職業後 `hp`／`maxHp`／體型仍是舊職業的（HANDOFF L1）；G3 的節奏與堅守姿態（HANDOFF §3）。
+**使用者 11-20 決定的**：換職業時血量、魔力上限跟著換（分支 `fix/role-edit-vitals`）；G1 的兩項技能設計照主代理建議（`mb_u3` 不加傷害、`wb_a5`／`rb_a3` 維持單段，只調數值）；G3 第二片與 G5 等 Fable 恢復後和使用者一起設計。
 
-**收尾還沒做的**：`.claude/worktrees/` 下有 6 個已合併的工作樹（c2、r1、g2、g4、u2、u3），對應的子工作階段都閒置。封存工作階段要使用者同意；封存後移除工作樹照 METHODOLOGY §6（先 `rmdir` junction）。
+**收尾**：11-20 使用者同意後清掉：`.claude/worktrees/` 剩下的 3 個工作樹、15 條已合併的本機分支、`C:\Git` 下 7 個本專案的舊 `_wt_*` clone 與 `_agent_allow`（11-03 的舊允許清單與紀錄），封存 3 個閒置工作階段。狀態美術原型搬到 `C:\Git\_asset_stagingrt\`（HANDOFF N）。遠端還有一條已合併的 `origin/docs/skill-table`，刪遠端分支算 push，沒動。
 
 ## 4. 各包作法
 
@@ -233,7 +233,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **驗收**：`node tools/vfx/fx-shot.mjs` 或 VFX Library 截圖：嘲諷箭頭指向嘲諷者、速度線順著移動方向；`npm run perf:guard`；`npm run knip` 無新增。
 
 ### G1 技能平衡
-- **前提**：S1 已合併。Codex 見底（約 11/21 刷新），照憲法由 Opus 自己做，不等。
+- **前提**：S1 已合併。Codex 見底（約 11/21 刷新），照憲法由 Opus 自己做，不等。兩項設計題使用者 11-20 已定（照主代理建議：不加 `mb_u3` 傷害、`wb_a5`／`rb_a3` 不做多段）。
 - **作法**：
   1. 基準：`balance:sim` 1500 場 seed 21，正常與 `--swapSides` 各一次；大逃殺用 `npm run balance:idle -- --scenario=ROYALE` 的 `skillTable`。存成基準 JSON（放 `tools/ui-e2e/out/`）。
   2. 用 `npm run balance:report` 列出離群：每場施放 < 0.5 次的機動技（`mr_m2`、`sr_m1`、`mb_m2`）、勝率貢獻 ±5% 以上的技能（HANDOFF A 列的 `mb_u4`、`rr_u3`、`rr_u5`、`mr_u5`）、新近打得中近敵的 `mb_m1`、`mr_m1`、`sb_m2`、`sr_m2`。
