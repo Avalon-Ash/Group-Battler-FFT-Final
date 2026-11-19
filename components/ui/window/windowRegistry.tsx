@@ -1,18 +1,30 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { AppMode, WindowDef, WindowId } from '../../../types';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
-import { LogTab } from '../../inspector/tabs/LogTab';
-import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
-import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
-import { DirectorMonitorHUD } from '../DirectorMonitorHUD';
-import { DirectorSettingsWindow, GameplaySettingsWindow } from '../settings/SettingsWindows';
-import { ShowcaseSettings } from '../showcase/ShowcaseSettings';
-import { AudioSettingsWindow } from '../settings/AudioSettingsWindow';
-import { UnitInspectorBody } from '../inspector/UnitInspectorBody';
-import { BehaviorTreeWindow } from '../behaviorTree/BehaviorTreeWindow';
 import { Icons } from '../icons';
+import { EmptyState } from '../primitives';
 import { ToolWindow } from './ToolWindow';
 import { windowStore } from './windowStore';
+
+/**
+ * Window bodies load on first open (U2): Showcase never shows them, so they stay out of the entry
+ * chunk. The Suspense fallback lives inside the window frame, so opening one shows the same
+ * chrome immediately and the body fills in. Add new windows here, not as static imports.
+ */
+const LogTab = React.lazy(() => import('../../inspector/tabs/LogTab').then((m) => ({ default: m.LogTab })));
+const SkillDbTab = React.lazy(() => import('../../inspector/tabs/SkillDbTab').then((m) => ({ default: m.SkillDbTab })));
+const VFXMapTab = React.lazy(() => import('../../inspector/tabs/VFXMapTab').then((m) => ({ default: m.VFXMapTab })));
+const DirectorMonitorHUD = React.lazy(() => import('../DirectorMonitorHUD').then((m) => ({ default: m.DirectorMonitorHUD })));
+const DirectorSettingsWindow = React.lazy(() => import('../settings/SettingsWindows').then((m) => ({ default: m.DirectorSettingsWindow })));
+const GameplaySettingsWindow = React.lazy(() => import('../settings/SettingsWindows').then((m) => ({ default: m.GameplaySettingsWindow })));
+const ShowcaseSettings = React.lazy(() => import('../showcase/ShowcaseSettings').then((m) => ({ default: m.ShowcaseSettings })));
+const AudioSettingsWindow = React.lazy(() => import('../settings/AudioSettingsWindow').then((m) => ({ default: m.AudioSettingsWindow })));
+const UnitInspectorBody = React.lazy(() => import('../inspector/UnitInspectorBody').then((m) => ({ default: m.UnitInspectorBody })));
+const BehaviorTreeWindow = React.lazy(() => import('../behaviorTree/BehaviorTreeWindow').then((m) => ({ default: m.BehaviorTreeWindow })));
+
+const WindowLoading: React.FC = () => (
+    <EmptyState data-testid="window-loading" icon={<Icons.Database className="h-8 w-8" />} title="LOADING" />
+);
 
 // 視窗定義是純資料，由這裡（UI 組裝層）登錄進 store，data/ui 不反向依賴 components
 windowStore.registerDefs(WINDOW_DEFINITIONS);
@@ -108,7 +120,7 @@ export const RegisteredWindows: React.FC<{ onCloseInspector?: () => void; mode: 
                         contentClassName={reg.flush ? 'p-0' : 'p-3'}
                         onClose={def.id === 'inspector' ? onCloseInspector : undefined}
                     >
-                        {reg.render()}
+                        <Suspense fallback={<WindowLoading />}>{reg.render()}</Suspense>
                     </ToolWindow>
                 );
             })}

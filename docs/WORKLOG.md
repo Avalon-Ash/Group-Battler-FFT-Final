@@ -791,3 +791,19 @@
 - 預設對局會碰到的既有機制都補了測試（`tests/PlayerOrders.test.ts` 共 13 則）：縮圈時站在警告格上下指令走得出去；目的地塌掉就清掉移動指令；嘲諷蓋過指令、指令留著；堅守中被推開，強制位移照常發生（強制位移不設 `isMoving`，不會被堅守取消）；被定身時留在 `ORDER` 模式不抖動；暫停時下的指令繼續後照做，回放相同。
 - `npm run e2e:ui` 加了 4 項玩家操控檢查（開關切換控制者、選取中的玩家單位點空地產生移動指令、下指令後選取不變、切回 AI 清掉指令），共 245 項通過。行為樹視窗對玩家單位畫的是玩家圖，新節點都有中文標籤；手機尺寸的 Inspector 那一列排版正常。
 - 已知的行為（都照契約的定義，試玩後再看要不要改）：堅守時射程內沒有敵人就不動，被遠程打不會還手；堅守的單位站在即將塌陷的格子上不會自己走開，會掉下去；移動指令的目的地被佔著時指令留著、每個 tick 重試；戰鬥中才接手的單位按重開後會變回 AI（重開還原的是開戰當下的快照）。
+
+### CD. 2026-11-19 優化開案書 U2 bundle 切分與體積預算（Sonnet 子工作階段）
+- **做了什麼**：`components/ui/window/windowRegistry.tsx` 的十個視窗本體改 `React.lazy`，`Suspense` 的 fallback（`EmptyState`「LOADING」）放在 `ToolWindow` 裡面，所以第一次開視窗時外框立刻出現、不跳版面；`hooks/useGameApp.ts` 的 `downloadSpec` 改成按下才動態 import `DesignExporter`（白皮書原文 `?raw`、常數表跟著離開進入點）；`vite.config.ts` 加 `manualChunks`（`vendor-react`、`vendor-ui` 兩包）；新增 `tools/check-bundle-budget.mjs`，掛在 `npm run build` 後面。
+- **前後對照**（`npm run build`，gzip 為 vite 輸出）：
+
+| | 進入點 JS | 進入點 gzip | 首次載入總 gzip（進入點＋preload） |
+| :-- | :-- | :-- | :-- |
+| 切分前（本包 main） | 1,364.30 kB | 422.48 kB | 422.5 kB（單一 chunk） |
+| 只做延遲載入 | 1,195.91 kB | 360.10 kB | 360.1 kB |
+| 加 `manualChunks`（現況） | 846.76 kB | 249.8 kB | 371.7 kB（`vendor-react` 69.4 kB、`vendor-ui` 52.5 kB 可跨部署快取） |
+
+  延遲載入的視窗各自成 chunk（`SkillDbTab` 13.1 kB、`UnitInspectorBody` 6.6 kB、`DesignExporter` 26.9 kB 等）。TanStack Virtual、Radix Select 跟著 `SkillDbTab`／`UnitInspectorBody` 一起離開進入點的部分已離開；仍在進入點用到的 Radix 在 `vendor-ui`。首次造訪總下載量沒有變少（比切分前少約 50 kB 是白皮書與視窗內容延後），好處在每次部署後重複造訪只重抓 250 kB。開案書預期進入點 gzip 280～300 kB，實際 250 kB 較好；build 的 500 kB 警告只剩引擎主包（846 kB，開案書允許）。
+- **預算**：`tools/check-bundle-budget.mjs` 量 `dist/index.html` 指到的進入點與 modulepreload，gzip 後進入點 ≤ 257.5 kB（實測 249.8 ×1.03）、首次載入總和 ≤ 383.2 kB（實測 371.7 ×1.03）；超過退出碼 1，`--print` 只印數字。調高預算要在這裡寫理由。
+- **驗證**：`npm run lint`、`npm test`（164 檔 1573 項）、`npm run build`（含預算）、`npm run knip`、`npm run balance:fingerprint`（3 組各 60/60 identical）、`node tools/ui-e2e/runtime-smoke.mjs`（開發伺服器，StrictMode 下引擎推進、畫布變化）、`npm run perf:guard`（fidelity 與 perf-ab 全過，基準未動）、`npm run audit:ui -- all`（0 違規）、`npm run e2e:ui`（只剩已知的工作樹 403「no console/page errors」，樣式快照與各視窗項目全過）。
+- **已知（開發模式限定）**：Vite 開發伺服器第一次遇到延遲載入視窗裡新的相依時會做「依賴重新最佳化」並整頁重載，e2e 在乾淨快取的第一輪 `db` 視窗曾因此失敗一次（頁面被重載、手動模式狀態掉了），快取建好後不再發生。正式 build 不受影響。
+- **回退**：單一 commit，`git revert`。

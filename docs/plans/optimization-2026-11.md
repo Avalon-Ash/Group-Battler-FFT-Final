@@ -233,7 +233,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **作法**：`types.ts` 的 `visibleInShowcase／visibleInManual／visibleOnGameOver` 換成 `modes: readonly AppMode[]`（先有 `SHOWCASE`、`MANUAL`、`GAME_OVER`，之後 G3、S3、G5 會加 `PLAY`、`REPLAY`、`EDIT`）；`data/ui/windows.ts` 改寫；`components/ui/window/windowRegistry.tsx` 的過濾函式改成查表；目前模式由 selector 給。型別由 Opus 先加好，代理只改使用處。
 - **驗收**：`tests/WindowStore.test.ts`、`npm run e2e:ui`、樣式基準 0 變動。
 
-### U2 bundle 切分與體積預算
+### U2 bundle 切分與體積預算（完成 2026-11-19，WORKLOG §2 CD）
 - **作法**：
   1. `vite.config.ts` 加 `manualChunks`：react／react-dom 一包、UI 套件（radix、floating-ui、tanstack、lucide）一包，部署後舊訪客不用重抓。
   2. `windowRegistry.tsx` 的 `render` 改 `React.lazy`＋`Suspense`（fallback 用 `EmptyState`）：`logs`、`db`、`vfxmap`、`inspector`、`behaviorTree`、`monitor`、各設定視窗都是展示模式看不到的。確認 TanStack Virtual、Radix Select 跟著離開進入點。
