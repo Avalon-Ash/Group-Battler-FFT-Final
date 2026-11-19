@@ -1,5 +1,7 @@
+/// <reference types="vitest/config" />
 import path from 'path';
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { execSync } from 'child_process';
 
@@ -23,12 +25,21 @@ function manualChunks(id: string): string | undefined {
     return undefined;
 }
 
+/**
+ * 工作階段的工作樹放在 .claude/worktrees/ 底下，每個都是整份專案的副本。相依掃描、檔案監看、測試都不能進去：
+ * 否則開發伺服器冷啟動的時間隨工作樹數量增加（6 個時 e2e 第一次開頁就超過 8 秒逾時），測試也會把副本裡的一起跑。
+ */
+const AGENT_WORKTREES = '.claude/**';
+
 export default defineConfig({
     base: './',
     server: {
         port: 3000,
         host: '0.0.0.0',
+        watch: { ignored: [`**/${AGENT_WORKTREES}`] },
     },
+    optimizeDeps: { entries: ['index.html'] },
+    test: { exclude: [...configDefaults.exclude, AGENT_WORKTREES] },
     plugins: [react()],
     define: {
         __BUILD_ID__: JSON.stringify(buildId()),
