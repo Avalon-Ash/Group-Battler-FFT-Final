@@ -6,6 +6,7 @@ export { Tabs, TabsContent } from './Tabs';
 export type { TabItem } from './Tabs';
 export { Select } from './Select';
 export type { SelectGroup, SelectOption } from './Select';
+export { Combobox } from './Combobox';
 export { Slider } from './Slider';
 export { Switch } from './Switch';
 export { Input } from './Input';
