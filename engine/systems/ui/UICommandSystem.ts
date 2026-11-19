@@ -181,8 +181,8 @@ export class UICommandSystem {
 
                 if (cmd.role && Object.values(Role).includes(cmd.role)) {
                     agent.role = cmd.role;
-                    // 職業導出的移動數值跟著換；血量、魔力、技能、體型等編輯器欄位維持原值
-                    AgentManager.applyRoleMotion(agent);
+                    // 職業導出的血量、魔力上限與移動數值跟著換（同一指令另給的 maxHp／hp 在下面覆寫）；技能、體型（男女外觀，不由職業決定）維持原值
+                    AgentManager.applyRoleChange(agent, this.engine);
                 }
                 if (
                     typeof cmd.maxHp === 'number' &&
