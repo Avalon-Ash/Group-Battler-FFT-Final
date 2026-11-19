@@ -916,7 +916,7 @@ const TARGET_ELEMENTS_SHOWCASE = [
     { id: 'showcase_enter_btn', selector: '[data-testid="showcase-enter-btn"]' },
     { id: 'window_showcase_settings', selector: '[data-window-id="showcaseSettings"]' },
     { id: 'showcase_settings_tab_system', selector: '[data-testid="showcase-tab-system"]' },
-    { id: 'showcase_settings_tab_matrix', selector: '[data-testid="showcase-tab-matrix"]' },
+    { id: 'showcase_settings_tab_matrix', selector: '[data-testid="showcase-tab-visual"]' },
     { id: 'showcase_settings_slider_timescale', selector: '[data-testid="showcase-slider-timescale"]' },
 ];
 

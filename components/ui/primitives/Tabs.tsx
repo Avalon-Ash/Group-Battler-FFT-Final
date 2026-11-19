@@ -6,6 +6,8 @@ export interface TabItem {
     value: string;
     label: ReactNode;
     title?: string;
+    /** 寫在分頁按鈕本身的 data-testid。 */
+    testId?: string;
 }
 
 export interface TabsProps extends Omit<ComponentPropsWithoutRef<'div'>, 'dir' | 'onChange'> {
@@ -24,7 +26,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
         <RadixTabs.Root ref={ref} value={value} onValueChange={onValueChange} className={cn('flex flex-col gap-3', className)} {...rest}>
             <RadixTabs.List className="ui-tablist flex flex-wrap items-end gap-1">
                 {tabs.map((tab) => (
-                    <RadixTabs.Trigger key={tab.value} value={tab.value} title={tab.title} className="ui-tab ui-heading h-control-sm px-3">
+                    <RadixTabs.Trigger key={tab.value} value={tab.value} title={tab.title} data-testid={tab.testId} className="ui-tab ui-heading h-control-sm px-3">
                         {tab.label}
                     </RadixTabs.Trigger>
                 ))}

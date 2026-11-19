@@ -51,11 +51,8 @@ const SHOWCASE_TABS: TabItem[] = [
     },
     {
         value: 'VISUAL',
-        label: (
-            <span data-testid="showcase-tab-visual">
-                <span data-testid="showcase-tab-matrix">VISUAL</span>
-            </span>
-        ),
+        label: 'VISUAL',
+        testId: 'showcase-tab-visual',
         title: 'VISUAL',
     },
     {
@@ -91,25 +88,29 @@ const LAYOUT_OPTIONS: { value: LayoutPreset; label: string; testId: string }[] =
 const DIRECTION_OPTIONS: SegmentedOption[] = [
     {
         value: 'DOWN',
-        label: <span data-testid="showcase-direction-down" />,
+        label: null,
+        testId: 'showcase-direction-down',
         icon: <Icons.DirectionDown className="h-4 w-4" />,
         title: '向下',
     },
     {
         value: 'UP',
-        label: <span data-testid="showcase-direction-up" />,
+        label: null,
+        testId: 'showcase-direction-up',
         icon: <Icons.DirectionUp className="h-4 w-4" />,
         title: '向上',
     },
     {
         value: 'LEFT',
-        label: <span data-testid="showcase-direction-left" />,
+        label: null,
+        testId: 'showcase-direction-left',
         icon: <Icons.DirectionLeft className="h-4 w-4" />,
         title: '向左',
     },
     {
         value: 'RIGHT',
-        label: <span data-testid="showcase-direction-right" />,
+        label: null,
+        testId: 'showcase-direction-right',
         icon: <Icons.DirectionRight className="h-4 w-4" />,
         title: '向右',
     },

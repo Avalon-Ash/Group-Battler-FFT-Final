@@ -8,6 +8,8 @@ export interface SegmentedOption {
     icon?: ReactNode;
     title?: string;
     disabled?: boolean;
+    /** 寫在選項按鈕本身的 data-testid。 */
+    testId?: string;
 }
 
 export interface SegmentedProps extends Omit<ComponentPropsWithoutRef<'div'>, 'dir' | 'onChange' | 'aria-label'> {
@@ -38,6 +40,7 @@ export const Segmented = forwardRef<HTMLDivElement, SegmentedProps>(function Seg
                     value={opt.value}
                     title={opt.title}
                     disabled={opt.disabled}
+                    data-testid={opt.testId}
                     className="ctl ctl-ghost inline-flex h-control-sm items-center justify-center gap-1 px-3 text-ui-body font-bold whitespace-nowrap"
                 >
                     {opt.icon}

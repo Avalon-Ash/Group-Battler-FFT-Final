@@ -29,7 +29,7 @@ mkdirSync(OUT, { recursive: true });
 
 const START_TEXT = 'START SIMULATION';
 const WINDOW_IDS = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'audioSettings'];
-const SHOWCASE_TABS = ['system', 'camera', 'matrix', 'gameplay'];
+const SHOWCASE_TABS = ['system', 'camera', 'visual', 'gameplay'];
 
 const launch = async () => {
     for (const channel of ['msedge', 'chrome']) {
