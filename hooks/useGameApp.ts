@@ -15,7 +15,6 @@ import { useEngineView, refreshEngineViews } from './useEngineView';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, EventMap } from '../types';
-import { DesignExporter } from '../engine/presentation/DesignExporter';
 // 佈陣流：種子都從它取，不碰模擬流（結果記在開戰快照裡，契約 S2）
 import { setupSeed } from '../engine/math/rng';
 import { MatchFlowSystem } from '../engine/systems/match/MatchFlowSystem';
@@ -252,7 +251,12 @@ export const useGameApp = () => {
                 const file = playing?.active ? playing.file : (engine.commands.matchStart ? exportReplay(engine) : null);
                 if (file) startReplay(engine, file);
             }),
-            downloadSpec: DesignExporter.downloadAll,
+            /** 白皮書原文與常數表只在按下載時才載入（U2），不進進入點 */
+            downloadSpec: () => {
+                import('../engine/presentation/DesignExporter')
+                    .then((m) => m.DesignExporter.downloadAll())
+                    .catch((err: unknown) => console.error(err));
+            },
             handleSelectAgent: (a: Agent | null) => selectionStore.set(a ? [a.id] : [])
         }
     };
