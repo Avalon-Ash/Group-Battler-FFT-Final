@@ -18,9 +18,20 @@ import type { PartSpec } from '../../engine/renderers/vfxparts/PartSpec';
 
 export type StatusAnchor = 'GROUND' | 'BODY' | 'HEAD';
 
+/** [契約 R4] 零件的方向來源：TOWARD_SOURCE＝指向施加者（嘲諷者），MOVE＝移動方向（靜止時依 facing） */
+export type StatusOrient = 'TOWARD_SOURCE' | 'MOVE';
+
+/** [契約 R4] 有方向的零件：toward＝方向來源；nativeAngle＝零件在 rotation 0 時指向的螢幕角度（弧度，0＝右、π/2＝下） */
+export interface StatusPartOrient {
+    toward: StatusOrient;
+    nativeAngle: number;
+}
+
 /** 狀態零件層＝共用零件層（data/vfx/parts/partLayer.ts）＋掛在單位的哪個錨點 */
 export interface StatusPartLayer extends PartLayer {
     anchor: StatusAnchor;
+    /** [契約 R4] 有值時 rotation 改由方向決定（StatusDirection.statusAngle − nativeAngle）；方向為 null 時沿用 rotation */
+    orient?: StatusPartOrient;
 }
 
 /** 圖示列的小圖示：一到兩個零件疊在圓底上（rotation 弧度、scale 相對零件原尺寸的倍率） */

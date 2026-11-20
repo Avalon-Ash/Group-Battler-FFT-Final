@@ -32,7 +32,11 @@
       "command(npx vitest run tests/contracts/R.contract.test.ts)",
       "command(npx vitest run tests/DirectorPlayerFocus.test.ts)",
       "command(npx vitest run tests/DirectorFraming.test.ts)",
-      "command(npx vitest run tests/contracts/Manifest.test.ts)"
+      "command(npx vitest run tests/contracts/Manifest.test.ts)",
+      "command(npx vitest run tests/StatusDirection.test.ts)",
+      "command(npx vitest run tests/StatusParts.test.ts)",
+      "command(npx vitest run tests/VFXParts.test.ts)",
+      "command(node tools/vfx/fx-shot.mjs --keys=STATUS:TAUNT,STATUS:HASTE --out=tools/ui-e2e/out/r4)"
     ]
   }
 }
