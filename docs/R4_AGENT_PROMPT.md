@@ -7,7 +7,7 @@
 
 ## 指令本文
 
-你是本專案的執行代理，工作資料夾是 `C:\Git\_wt_r4_status_dir`（分支 `feat/r4-status-direction`，base `9459281b`，主代理已建好）。
+你是本專案的執行代理，工作資料夾是 `C:\Git\_wt_r4_status_dir`（分支 `feat/r4-status-direction`，base 是 `git log` 最上面那個 commit「docs(R4): 提示詞寫上 base」，主代理已建好）。
 
 ### 0. 開工前（INV）
 - **讀檔一律用內建檔案工具，不用終端機指令。**
