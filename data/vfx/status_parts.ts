@@ -11,6 +11,8 @@
 // ║  狀態；其餘狀態只留身上（BODY／立體 GROUND）的小零件；全部    ║
 // ║  狀態另由圖示列列出。配色依控制種類（MMO／FFT 慣例），用       ║
 // ║  vfxPalette 的 STATUS_* 色帶，不借陣營色帶（LION_／ASH_）。   ║
+// ║  有 orient 的層由 StatusOrchestrator 經 StatusDirection 算角，║
+// ║  PartLayerPainter 套用旋轉與反向飄移。                       ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { PartLayer } from './parts/partLayer';
@@ -18,9 +20,20 @@ import type { PartSpec } from '../../engine/renderers/vfxparts/PartSpec';
 
 export type StatusAnchor = 'GROUND' | 'BODY' | 'HEAD';
 
+/** [契約 R4] 零件的方向來源：TOWARD_SOURCE＝指向施加者（嘲諷者），MOVE＝移動方向（靜止時依 facing） */
+export type StatusOrient = 'TOWARD_SOURCE' | 'MOVE';
+
+/** [契約 R4] 有方向的零件：toward＝方向來源；nativeAngle＝零件在 rotation 0 時指向的螢幕角度（弧度，0＝右、π/2＝下） */
+interface StatusPartOrient {
+    toward: StatusOrient;
+    nativeAngle: number;
+}
+
 /** 狀態零件層＝共用零件層（data/vfx/parts/partLayer.ts）＋掛在單位的哪個錨點 */
 export interface StatusPartLayer extends PartLayer {
     anchor: StatusAnchor;
+    /** [契約 R4] 有值時 rotation 改由方向決定（StatusDirection.statusAngle − nativeAngle）；方向為 null 時沿用 rotation */
+    orient?: StatusPartOrient;
 }
 
 /** 圖示列的小圖示：一到兩個零件疊在圓底上（rotation 弧度、scale 相對零件原尺寸的倍率） */
@@ -119,12 +132,12 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
             { spec: { kind: 'sigil', radius: 12, emblem: 'hornSkull', ramp: 'STATUS_DREAD' }, anchor: 'HEAD', lift: 0, shake: 1.6, alpha: 0.95, blend: 'source-over' },
         ],
     },
-    /** 嘲諷（紅）：頭上上下彈跳的倒三角（「看這裡」），背後紅色放射光 */
+    /** 嘲諷（紅）：頭上上下彈跳的倒三角（尖端指向嘲諷者），背後紅色放射光 */
     TAUNT: {
         priority: 65, category: 'HARD_CC',
         icon: [{ spec: { kind: 'sigil', radius: 6, emblem: 'invTriangle', ramp: 'STATUS_RED' } }],
         layers: [
-            { spec: { kind: 'sigil', radius: 12, emblem: 'invTriangle', ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, bob: { amp: 3, hz: 2 }, alpha: 0.95, blend: 'source-over' },
+            { spec: { kind: 'sigil', radius: 12, emblem: 'invTriangle', ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, bob: { amp: 3, hz: 2 }, alpha: 0.95, blend: 'source-over', orient: { toward: 'TOWARD_SOURCE', nativeAngle: Math.PI / 2 } },
             { spec: { kind: 'rays', radius: 24, count: 8, ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, spin: 0.7, alpha: 0.55, decor: true },
         ],
     },
@@ -209,12 +222,12 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
             { spec: { kind: 'glow', radius: 4, ramp: 'STATUS_GREEN', hard: true }, anchor: 'BODY', count: 3, orbitRadius: 12, lift: -20, rise: { height: 50, period: 1.8 }, alpha: 0.9 },
         ],
     },
-    /** 加速（青白）：身上快速上升的速度線 */
+    /** 加速（青白）：身上沿移動方向往身後流的速度線 */
     HASTE: {
         priority: 18, category: 'BUFF',
         icon: [{ spec: { kind: 'spark', length: 12, ramp: 'STATUS_WIND' }, rotation: -Math.PI / 4 }],
         layers: [
-            { spec: { kind: 'spark', length: 12, ramp: 'STATUS_WIND' }, anchor: 'BODY', count: 3, orbitRadius: 12, rotation: -Math.PI / 2, lift: -14, rise: { height: 36, period: 0.7 }, alpha: 0.9 },
+            { spec: { kind: 'spark', length: 12, ramp: 'STATUS_WIND' }, anchor: 'BODY', count: 3, orbitRadius: 12, rotation: -Math.PI / 2, lift: -14, rise: { height: 36, period: 0.7 }, alpha: 0.9, orient: { toward: 'MOVE', nativeAngle: 0 } },
         ],
     },
     /** 反傷（銀白）：環繞身體的六角鏡片 */

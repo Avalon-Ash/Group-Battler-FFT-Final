@@ -1,24 +1,53 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  StatusOrchestrator — 單位狀態特效渲染分發                  ║
+// ║  職責：分發六角零件版狀態層（StatusPartPainter，表在        ║
+// ║        data/vfx/status_parts.ts）與護盾稜柱（ShieldPainter），║
+// ║        並經 StatusDirection 算出有方向狀態層的方向角傳給     ║
+// ║        StatusPartPainter。                                  ║
+// ║  上游：RenderPipeline（UnitFrameStore、mapConfig）。         ║
+// ║  [ARCH] 座標一律讀 UnitFrame（RenderSpec §3、§4），本檔不取  ║
+// ║  地形高度；方向 context 與方向表建一次重用，每幀不配置物件。 ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { ShieldPainter } from "./painters/ShieldPainter";
 import { StatusPartPainter } from "./painters/StatusPartPainter";
-import { UnitFrameStore } from "../frame/UnitFrame";
+import { UnitFrameStore, type UnitFrame } from "../frame/UnitFrame";
 import { HexLayout } from "../../../types";
 import { unitFallProgress } from "../../../data/units/appearance/fallMotion";
+import { HexUtils, type MapConfig } from "../../utils";
+import { statusAngle } from "./StatusDirection";
+import type { StatusOrient } from "../../../data/vfx/status_parts";
 
-/**
- * ECS Status Orchestrator v12
- * 負責所有單位狀態特效的渲染分發：六角零件版狀態層（StatusPartPainter，表在 data/vfx/status_parts.ts）＋護盾稜柱（ShieldPainter）。
- * [ARCH] 座標一律讀 UnitFrame（engine/renderers/frame/UnitFrame.ts；RenderSpec §3、§4），本檔不取得地形高度。
- */
+const EMPTY_FRAMES: readonly UnitFrame[] = [];
+const ZERO_POINT = { x: 0, y: 0 };
+
 export class StatusOrchestrator {
+    private _mapConfig: MapConfig | null = null;
+    private readonly _hexToPx = (q: number, r: number): { x: number; y: number } =>
+        this._mapConfig ? HexUtils.toPx(q, r, this._mapConfig) : ZERO_POINT;
+    private readonly _dirCtx: {
+        frames: readonly UnitFrame[];
+        hexToPx: (q: number, r: number) => { x: number; y: number };
+    } = {
+        frames: EMPTY_FRAMES,
+        hexToPx: this._hexToPx,
+    };
+    private readonly _dirs: Record<StatusOrient, number | null> = {
+        TOWARD_SOURCE: null,
+        MOVE: null,
+    };
 
     public draw(
         ctx: CanvasRenderingContext2D,
         frames: UnitFrameStore,
         globalTime: number,
         layout: HexLayout = 'FLAT',
-        isTileValid?: (q: number, r: number) => boolean
+        isTileValid?: (q: number, r: number) => boolean,
+        mapConfig?: MapConfig
     ) {
         const list = frames.list;
+        this._mapConfig = mapConfig ?? null;
+        this._dirCtx.frames = list;
         for (let i = 0; i < list.length; i++) {
             const frame = list[i];
             const agent = frame.agent;
@@ -31,7 +60,14 @@ export class StatusOrchestrator {
             if (agent.banished && isTileValid && !isTileValid(agent.q, agent.r)) continue;
 
             // 1. 零件版狀態層（腳下 → 投影中心 → 頭頂；放逐中只留放逐／凝滯與腳下層）
-            StatusPartPainter.draw(ctx, frame, globalTime, layout);
+            this._dirs.TOWARD_SOURCE = agent.effects.TAUNT.remaining > 0
+                ? statusAngle('TOWARD_SOURCE', frame, this._dirCtx)
+                : null;
+            // 沒有地圖設定就沒有格心座標：不給方向（沿用零件原本的 rotation），不拿原點當目標
+            this._dirs.MOVE = agent.effects.HASTE.remaining > 0 && this._mapConfig
+                ? statusAngle('MOVE', frame, this._dirCtx)
+                : null;
+            StatusPartPainter.draw(ctx, frame, globalTime, layout, this._dirs);
 
             // 2. 護盾 (Volumetric Shell)：貼合頭頂高度的稜柱，跟隨 bodyCenterY；放逐中不畫
             if (!agent.banished) {

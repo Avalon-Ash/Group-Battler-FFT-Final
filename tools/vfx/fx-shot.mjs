@@ -10,6 +10,8 @@
  *   詠唱：--keys=CAST:tb_u3,CAST:tr_a3（技能 id）。同一對單位，技能所屬陣營的單位對另一方開始詠唱（詠唱環、聖域、光點、能量柱）；
  *     --t 依詠唱時間給（例：1.2 秒的奧義用 --t=0.2,0.5,0.8,1.1）。
  *   護盾：--keys=SHIELD:BLUE,SHIELD:RED。同一對單位，該陣營的單位掛滿護盾，鏡頭對準它。
+ *   狀態：--keys=STATUS:TAUNT,STATUS:HASTE。沿用同一對單位：TAUNT 讓藍方被紅方嘲諷（effects.TAUNT.remaining／sourceId）；
+ *     HASTE 讓藍方掛加速並沿往側邊的路徑移動。
  *   危害：--keys=HAZARD:FIRE,HAZARD:POISON,HAZARD:ICE,HAZARD:GRAVITY。地圖中央那格與鄰格登記一個空間危害
  *     （中心＝那格），建議 --t=1.2,1.5,1.8（避開生成那一下的命中特效）。
  *   地圖：--scene=ICE（SCENE_DB 的 id；預設用展示地圖），同一個特效在不同群系的亮度比較用。
@@ -49,6 +51,10 @@ const PROJ_ZOOM = 1.0;
 /** 危害模式（HAZARD:<類型>）：截圖範圍與縮放 */
 const HAZARD_CROP = { w: 520, h: 360 };
 const HAZARD_ZOOM = 1.4;
+/** 狀態模式（STATUS:TAUNT／STATUS:HASTE）：截圖範圍與縮放 */
+const STATUS_TAUNT_CROP = { w: 380, h: 220 };
+const STATUS_HASTE_CROP = { w: 300, h: 220 };
+const STATUS_HASTE_ZOOM = 1.7;
 
 const server = await createServer({ root, server: { port: 3197, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 let browser = null;
@@ -131,13 +137,15 @@ try {
         return null;
     }, { projCols: PROJ_COLS, scene: SCENE });
     if (!spot) throw new Error('no free tile');
-    // 投射物模式：放好那一對單位（全部鍵共用；RED 鍵由紅方往藍方打）
-    if (keys.some((k) => k.startsWith('PROJ:') || k.startsWith('CAST:') || k.startsWith('SHIELD:'))) {
+    // 投射物／詠唱／護盾／狀態模式：放好那一對單位（全部鍵共用；RED 鍵由紅方往藍方打）
+    if (keys.some((k) => k.startsWith('PROJ:') || k.startsWith('CAST:') || k.startsWith('SHIELD:') || k.startsWith('STATUS:'))) {
         if (!spot.foe) throw new Error(`no free tile for the projectile target ${JSON.stringify(spot)}`);
         await page.evaluate(async (spot) => {
             const e = window.__TACTICAL_ENGINE__;
             const types = await import('/types.ts');
             const cmd = (c) => e.bus.emit('UI_COMMAND', c);
+            // 暫停後再放單位，確保 PLACE_AGENT 立即套用（不進執行中指令佇列）
+            cmd({ type: 'STOP_GAME' });
             cmd({ type: 'PLACE_AGENT', team: types.Team.BLUE, q: spot.q, r: spot.r, hp: 99999, role: types.Role.MAGE });
             window.__projBlue = e.agents[e.agents.length - 1];
             cmd({ type: 'PLACE_AGENT', team: types.Team.RED, q: spot.foe.q, r: spot.foe.r, hp: 99999, role: types.Role.MAGE });
@@ -154,15 +162,79 @@ try {
         const isBeam = key.startsWith('BEAM:');
         const isProj = key.startsWith('PROJ:') || key.startsWith('CAST:');
         const isHazard = key.startsWith('HAZARD:');
-        // 投射物模式的鏡頭對準兩單位中點；護盾模式對準該陣營的單位
-        const cam = isProj ? { x: (spot.x + spot.foe.x) / 2, y: (spot.y + spot.foe.y) / 2, gz: (spot.gz + spot.foe.gz) / 2 } : key === 'SHIELD:RED' ? spot.foe : spot;
-        const zoom = key.startsWith('FALL:') ? FALL_ZOOM : isProj ? PROJ_ZOOM : isHazard ? HAZARD_ZOOM : 2.0;
+        const isStatusTaunt = key === 'STATUS:TAUNT';
+        const isStatusHaste = key === 'STATUS:HASTE';
+        // 投射物／TAUNT 模式的鏡頭對準兩單位中點；護盾模式對準該陣營的單位
+        const cam = (isProj || isStatusTaunt)
+            ? { x: (spot.x + spot.foe.x) / 2, y: (spot.y + spot.foe.y) / 2, gz: (spot.gz + spot.foe.gz) / 2 }
+            : key === 'SHIELD:RED' ? spot.foe : spot;
+        const pairDist = spot.foe ? Math.hypot(spot.foe.x - spot.x, spot.foe.y - spot.y) : 1;
+        const statusTauntZoom = Math.min(1.4, (STATUS_TAUNT_CROP.w - 110) / Math.max(1, pairDist));
+        const zoom = key.startsWith('FALL:') ? FALL_ZOOM
+            : isProj ? PROJ_ZOOM
+            : isHazard ? HAZARD_ZOOM
+            : isStatusTaunt ? statusTauntZoom
+            : isStatusHaste ? STATUS_HASTE_ZOOM
+            : 2.0;
+        const clip = isHazard ? { x: 480 - HAZARD_CROP.w / 2, y: 300 - HAZARD_CROP.h * 0.6, width: HAZARD_CROP.w, height: HAZARD_CROP.h }
+            : isProj ? { x: 480 - PROJ_CROP.w / 2, y: 300 - PROJ_CROP.h * 0.72, width: PROJ_CROP.w, height: PROJ_CROP.h }
+            : isStatusTaunt ? { x: 480 - STATUS_TAUNT_CROP.w / 2, y: 300 - STATUS_TAUNT_CROP.h * 0.72, width: STATUS_TAUNT_CROP.w, height: STATUS_TAUNT_CROP.h }
+            : isStatusHaste ? { x: 480 - STATUS_HASTE_CROP.w / 2, y: 300 - STATUS_HASTE_CROP.h * 0.72, width: STATUS_HASTE_CROP.w, height: STATUS_HASTE_CROP.h }
+            : key.startsWith('DEATH:') ? { x: 480 - DEATH_CROP.w / 2, y: 300 - DEATH_CROP.h * 0.7, width: DEATH_CROP.w, height: DEATH_CROP.h }
+            : key.startsWith('FALL:') ? { x: 480 - FALL_CROP.w / 2, y: 300 - FALL_CROP.h * 0.75, width: FALL_CROP.w, height: FALL_CROP.h }
+            : isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h }
+            : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h };
         await page.evaluate(async ({ key, spot, cam, lift, isBeam, beamDx, beamDy, fallH, projSpeed, zoom }) => {
             const e = window.__TACTICAL_ENGINE__;
             e.renderer.vfx.reset();
             e.renderer.camera.snapTo(cam.x, cam.y - cam.gz, zoom);
             window.__stepFrames(2);
-            if (key.startsWith('SHIELD:')) {
+            if (key.startsWith('STATUS:')) {
+                const blue = window.__projBlue;
+                const red = window.__projRed;
+                // 清乾淨前一個 STATUS 鍵留下的狀態與移動
+                for (const a of [blue, red]) {
+                    a.spawnTimer = 0;
+                    a.effects.TAUNT.remaining = 0; a.effects.TAUNT.max = 0; a.effects.TAUNT.sourceId = null;
+                    a.effects.HASTE.remaining = 0; a.effects.HASTE.max = 0; a.effects.HASTE.value = 0;
+                    a.path = []; a.trajectory = []; a.isMoving = false; a.moveProgress = 0;
+                }
+                e.updateAgentPosition(blue, spot.q, spot.r);
+                blue.px = spot.x; blue.py = spot.y;
+                blue.physics.x = 0; blue.physics.y = 0; blue.physics.vx = 0; blue.physics.vy = 0;
+                const kind = key.split(':')[1];
+                if (kind === 'TAUNT') {
+                    blue.effects.TAUNT.remaining = 10;
+                    blue.effects.TAUNT.max = 10;
+                    blue.effects.TAUNT.sourceId = red.id;
+                } else if (kind === 'HASTE') {
+                    blue.effects.HASTE.remaining = 10;
+                    blue.effects.HASTE.max = 10;
+                    blue.effects.HASTE.value = 50;
+                    // 找一條往側邊走的合法路徑（最多 3 格）
+                    let bestPath = [];
+                    for (const [dq, dr] of [[1, 0], [1, -1], [-1, 0], [-1, 1], [0, 1], [0, -1]]) {
+                        const path = [];
+                        let cq = spot.q, cr = spot.r;
+                        for (let step = 0; step < 3; step++) {
+                            const nq = cq + dq, nr = cr + dr;
+                            const occ = e.getAgentAt(nq, nr);
+                            if (!e.isValid(nq, nr) || e.hasObstacle(nq, nr) || (occ && occ !== blue)) break;
+                            path.push({ q: nq, r: nr });
+                            cq = nq; cr = nr;
+                        }
+                        if (path.length > bestPath.length) bestPath = path;
+                        if (bestPath.length >= 2) break;
+                    }
+                    if (bestPath.length > 0) {
+                        blue.path = bestPath;
+                        blue.trajectory = bestPath;
+                        blue.isMoving = true;
+                        blue.moveProgress = 0;
+                        blue.moveSpeedMult = 1.0;
+                    }
+                }
+            } else if (key.startsWith('SHIELD:')) {
                 // SHIELD:<BLUE|RED>：該陣營的單位掛滿護盾
                 const a = key === 'SHIELD:RED' ? window.__projRed : window.__projBlue;
                 a.maxShield = 300;
@@ -235,14 +307,28 @@ try {
                 const kinds = {}; for (const p of ps) { const k = p.type + ':' + (p.fxScale ?? 1).toFixed(2); kinds[k] = (kinds[k] || 0) + 1; }
                 return { queue: e.renderer.sequences.actionQueue.length, n: ps.length, kinds };
             })));
-            frames.push(await page.screenshot({ clip: isHazard ? { x: 480 - HAZARD_CROP.w / 2, y: 300 - HAZARD_CROP.h * 0.6, width: HAZARD_CROP.w, height: HAZARD_CROP.h } : isProj ? { x: 480 - PROJ_CROP.w / 2, y: 300 - PROJ_CROP.h * 0.72, width: PROJ_CROP.w, height: PROJ_CROP.h } : key.startsWith('DEATH:') ? { x: 480 - DEATH_CROP.w / 2, y: 300 - DEATH_CROP.h * 0.7, width: DEATH_CROP.w, height: DEATH_CROP.h } : key.startsWith('FALL:') ? { x: 480 - FALL_CROP.w / 2, y: 300 - FALL_CROP.h * 0.75, width: FALL_CROP.w, height: FALL_CROP.h } : isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h } : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
+            frames.push(await page.screenshot({ clip }));
         }
         if (sharp) {
-            const row = await sharp({ create: { width: CROP.w * frames.length, height: CROP.h, channels: 3, background: '#000' } })
-                .composite(frames.map((f, i) => ({ input: f, left: i * CROP.w, top: 0 }))).png().toBuffer();
+            const row = await sharp({ create: { width: clip.width * frames.length, height: clip.height, channels: 3, background: '#000' } })
+                .composite(frames.map((f, i) => ({ input: f, left: i * clip.width, top: 0 }))).png().toBuffer();
             writeFileSync(join(outDir, `${key.replace(/:/g, "_")}.png`), row);
         } else {
-            frames.forEach((f, i) => writeFileSync(join(outDir, `${key.replace(/:/g, "_")}_${i}.png`), f));
+            const b64s = frames.map((f) => f.toString('base64'));
+            const rowB64 = await page.evaluate(async ({ b64s, w, h }) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = w * b64s.length;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                for (let i = 0; i < b64s.length; i++) {
+                    const img = new Image();
+                    img.src = `data:image/png;base64,${b64s[i]}`;
+                    await img.decode();
+                    ctx.drawImage(img, i * w, 0);
+                }
+                return canvas.toDataURL('image/png').split(',')[1];
+            }, { b64s, w: clip.width, h: clip.height });
+            writeFileSync(join(outDir, `${key.replace(/:/g, "_")}.png`), Buffer.from(rowB64, 'base64'));
         }
         console.log('saved', key);
     }

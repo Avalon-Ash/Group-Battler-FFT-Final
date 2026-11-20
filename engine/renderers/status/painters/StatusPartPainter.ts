@@ -13,13 +13,14 @@
 // ║  之後），所以貼地層限制在腳下那格（GROUND_MAX_RADIUS），不做   ║
 // ║  鋪設。解析後的 sprite 依（隊伍、版面、狀態）快取，品質階層   ║
 // ║  改變時整份重解；每幀不配置物件。                            ║
+// ║  上游：StatusOrchestrator（傳入 UnitFrame 與預先算好的方向角）。║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Agent } from "../../../core/Agent";
 import { Team, type HexLayout } from "../../../../types";
 import {
     STATUS_PARTS, STATUS_PART_ORDER, STATUS_PART_RENDER,
-    type StatusPartKey, type StatusPartLayer, type StatusAnchor,
+    type StatusPartKey, type StatusPartLayer, type StatusAnchor, type StatusOrient,
 } from "../../../../data/vfx/status_parts";
 import { resolveBodyType } from "../../../../data/units/appearance/bodyTypes";
 import { projectionCenterHeight, projectionTopHeight } from "../../../../data/units/appearance/projection";
@@ -53,7 +54,13 @@ function resolveSet(orderIdx: number, team: number, layoutIdx: number): Resolved
 }
 
 export const StatusPartPainter = {
-    draw(ctx: CanvasRenderingContext2D, frame: UnitFrame, t: number, layout: HexLayout): void {
+    draw(
+        ctx: CanvasRenderingContext2D,
+        frame: UnitFrame,
+        t: number,
+        layout: HexLayout,
+        dirs?: Readonly<Record<StatusOrient, number | null>>
+    ): void {
         const agent: Agent = frame.agent;
         const tier = getQualityTier();
         if (tier !== resolvedTier) {
@@ -115,7 +122,12 @@ export const StatusPartPainter = {
                     if (r.layer.anchor !== anchor) continue;
                     if (r.layer.flat && anchor === 'GROUND' && k !== groundWinner) continue;
                     if (cutDecor && r.layer.decor) continue;
-                    drawPartLayer(ctx, r, x, ay, t, align);
+                    const orient = r.layer.orient;
+                    if (orient && dirs) {
+                        drawPartLayer(ctx, r, x, ay, t, align, 1, dirs[orient.toward], orient.nativeAngle);
+                    } else {
+                        drawPartLayer(ctx, r, x, ay, t, align);
+                    }
                 }
             }
         }

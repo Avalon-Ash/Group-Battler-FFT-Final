@@ -12,6 +12,7 @@
 // ║  剪影只畫在擋住單位的地塊柱與障礙物上（SilhouetteMask，§13）。║
 // ║  轉場黑幕：最上層、只在轉場中（OUT 漸黑、IN 漸亮）。         ║
 // ║  [ARCH] 毒材質在 update 排程準備，draw 只登記活躍頁。     ║
+// ║  [ARCH] statusOrchestrator.draw 另收 mapConfig 算狀態方向。║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -349,9 +350,9 @@ export class RenderPipeline {
             }
         }
         
-        // [FIX] Pass layout and map validity to StatusOrchestrator
+        // [FIX] Pass layout, map validity and mapConfig to StatusOrchestrator
         CtxOpCounter.track('status', () => {
-            this.renderer.statusOrchestrator.draw(ctx, this.frames, t, engine.mapConfig.layout, this._isTileValid ?? undefined);
+            this.renderer.statusOrchestrator.draw(ctx, this.frames, t, engine.mapConfig.layout, this._isTileValid ?? undefined, engine.mapConfig);
         });
     }
 }
