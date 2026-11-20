@@ -55,6 +55,7 @@
 
 ## AI 與大逃殺（2026-11-02）
 - AI 行為採狀態拓樸（`AI_MODE_GRAPH`）加每狀態一棵小樹，詳見 [0008](adr/0008-ai-mode-topology-small-trees.md)。
+- 站在敵方危害區上依風險決定去留（會死、血少、出口在旁才走；2026-11-20，使用者提議看血量），詳見 [0023](adr/0023-hazard-stay-or-leave-by-risk.md)。
 - 近戰在跳躍力內可打高低差，推翻 R6 規則 A。理由：規則 A 讓貼著的兩人都打不到，是全坦克發呆的主因。依提案先做，等使用者實機確認。
 - 貼地鋪設不用路徑裁切（2026-11-03）：合成圖配預烘三色六角遮罩、走畫布變換，詳見 [0011](adr/0011-ground-drape-baked-hex-mask.md)。
 - 背水一戰於最後一圈開始倒數時觸發（警告格數＝地塊數−1）、不提早收地圖、不加新 AI 模式，詳見 [0010](adr/0010-last-stand-final-ring-countdown.md)（取代 [0009](adr/0009-last-stand-early-trigger.md)）。

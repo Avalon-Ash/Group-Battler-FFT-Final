@@ -884,3 +884,12 @@
 ### CQ. 2026-11-20 優化開案書 U5 熱路徑配置（量完結案，主代理 Opus）
 - 臨時探針（CDP `HeapProfiler.startSampling`，間隔 4 KB）：20 人戰鬥，前 20 秒 19～20 人在場，配置共 1.7 MB；前三名 `BattleLogger.log` 19.5%、`vfx/state.getParticle` 14%、`RenderList.next` 9.7%。60 秒版（單位會被斬殺、墜落、縮圈，20→6 人）2.5 MB，排名相同。
 - 開案書的三個候選（`getTerrainHeight` 組字串、tick 開頭 `agents.filter`、`getSpatialHazardsAt`）都不在前 10 名，照本包規則不改。
+
+### CR. 2026-11-20 站在敵方危害區上依風險決定去留（ADR 0023，主代理 Opus，使用者提議看血量）
+- 原本 `WantsRetreat`、`IsInUrgentDanger`、`IsInWarningZone` 各自判斷「腳下有敵方危害就走」，和縮圈警告格同等對待；全場型危害幾乎沒有安全格，整隊在持續時間內一直找路。
+- 新模組 `engine/ai/HazardRisk.ts`（參數 `constants/ai.ts` `HAZARD_RISK`）：留到結束的傷害 ≥ 血量 × 0.7、或血量 < 30%（會扣血時）、或出口 ≤ 1 步 → 走；其他留下繼續打。BT 的三個條件改呼叫它（`mustLeaveHazard`）。縮圈警告格不變。驗收 `tests/HazardRisk.test.ts`（7 則）。
+- 平衡（兩種站位各 1500 場）：藍方 seed 21 50.6→50.7%、seed 77 52.2→52.5%；`mr_u4` 勝率差 +5.6→+3.0%（21）、+4.2→+2.7%（77），`rr_u3` +4.6→+4.3%、+5.8→+5.3%，`mr_a2` 沒變。
+- `ai-idle-sim` 200 場 seed 21（main 對照）：TEAMS 撤退時間坦克 6.03→4.13%、戰士 3.76→2.74%、遠程 3.41→2.50%、法師 3.95→3.56%、輔助 4.29→3.19%；攻擊時間略增；發呆、過早逃跑沒有變差；尋路呼叫每秒約 +20%（坦克 1.06→1.30）。ROYALE 同方向。
+- 驗證：lint、build、knip、smoke、指紋重錄後 PASS；`npm test` 只有 `AgentRunner` 時序測試在整套負載下逾時（單獨跑 7/7 通過）。
+- 沒做：尋路、選目標、落點仍各自判斷「這格有沒有敵方危害」（ADR 0023 後果），第二階段再看。
+- **回退**：`git revert` 這個 commit（含指紋）。

@@ -8,6 +8,20 @@ export const AI_MODE_RULES = {
     MAX_HOPS_PER_TICK: 6,
 } as const;
 
+/**
+ * 站在敵方危害區上要不要走（engine/ai/HazardRisk.ts；縮圈警告格不走這裡，照舊一定逃）。
+ * 留下＝承受「每秒傷害 × 剩餘秒數」但繼續輸出；離開＝走出去的路上照樣挨打又停止輸出，
+ * 所以只有會死、血少、或出口就在旁邊時才走。
+ */
+export const HAZARD_RISK = {
+    /** 留到危害結束的傷害 ≥ 目前血量 × 這個比例 → 離開（留下會死或接近死）。 */
+    LETHAL_HP_FRAC: 0.7,
+    /** 血量比例低於這個值、而且危害會扣血 → 離開。 */
+    LOW_HP_FRAC: 0.3,
+    /** 走到最近安全格的步數 ≤ 這個值 → 順手離開（出口就在旁邊，損失的輸出時間很短）。 */
+    NEAR_EXIT_STEPS: 1,
+} as const;
+
 export const BT_RULES = {
     /** 擊退預測步頻（次／秒）。 */
     PREDICTION_TICKS_PER_SEC: 30,

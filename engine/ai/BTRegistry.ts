@@ -20,9 +20,23 @@ import { canStepUp } from "../math/ClimbRule";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 import { sameSide } from '../core/Allegiance';
+import { hazardVerdict, type HazardRiskContext } from './HazardRisk';
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => NodeState;
+
+/** HazardRisk 的引擎轉接（重用一個物件，每次判斷不配置） */
+let riskEngine: GameEngine | null = null;
+const riskCtx: HazardRiskContext = {
+    getSpatialHazardsAt: (q, r) => riskEngine!.getSpatialHazardsAt(q, r),
+    stepsToSafety: (a) => riskEngine!.movement.pathfinder.stepsToSafety(a, riskEngine!),
+};
+
+/** 站在 (q, r) 的敵方危害上該不該走（規則只在 engine/ai/HazardRisk.ts） */
+function mustLeaveHazard(a: Agent, q: number, r: number, engine: GameEngine): boolean {
+    riskEngine = engine;
+    return hazardVerdict(a, q, r, riskCtx) === 'LEAVE';
+}
 
 /** 離最近敵人的格距（沒有敵人回 Infinity） */
 function distToNearestEnemy(a: Agent, cell: Hex, engine: GameEngine): number {
@@ -143,7 +157,7 @@ export const BTConditions: Record<BTConditionKey, BTConditionFn> = {
         if (BTConditions["IsEvading"](a, engine, args)) return true;
         if (!BTConditions["IsInUrgentDanger"](a, engine, args)) return false;
         if (!engine.map.isValid(a.q, a.r)) return true;
-        if (engine.getSpatialHazardsAt(a.q, a.r).some(h => !sameSide(h, a))) return true;
+        if (mustLeaveHazard(a, a.q, a.r, engine)) return true;
         return secondsBeforeLeaving(a, engine) <= 0;
     },
     // 被困時才重試逃生：逃不掉就留在 TRAPPED，不要每次決策在兩個模式之間彈
@@ -184,9 +198,8 @@ export const BTConditions: Record<BTConditionKey, BTConditionFn> = {
         if (!engine.map.isValid(a.q, a.r)) return true;
         if (engine.isWarningTile(myKey)) return true;
         
-        // [NEW] Check for enemy spatial hazards
-        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => !sameSide(h, a));
-        if (enemyHazards.length > 0) return true;
+        // 敵方危害：照 HazardRisk 的去留判斷（扛得住又出口遠就留下來打）
+        if (mustLeaveHazard(a, a.q, a.r, engine)) return true;
 
         // Project based on physics velocity (knockback)
         const isKnockedBack = Math.abs(a.physics.vx) > 100 || Math.abs(a.physics.vy) > 100;
@@ -200,8 +213,7 @@ export const BTConditions: Record<BTConditionKey, BTConditionFn> = {
             const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
             if (engine.isWarningTile(HexUtils.key(predHex))) return true;
 
-            const enemyHazardsAtPred = engine.getSpatialHazardsAt(predHex.q, predHex.r).filter(h => !sameSide(h, a));
-            if (enemyHazardsAtPred.length > 0) return true;
+            if (mustLeaveHazard(a, predHex.q, predHex.r, engine)) return true;
         }
 
         return false;
@@ -212,9 +224,8 @@ export const BTConditions: Record<BTConditionKey, BTConditionFn> = {
         if (!engine.map.isValid(a.q, a.r)) return true;
         if (engine.isWarningTile(myKey)) return true;
         
-        // [NEW] Check for enemy hazards
-        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => !sameSide(h, a));
-        if (enemyHazards.length > 0) return true;
+        // 敵方危害：照 HazardRisk 的去留判斷
+        if (mustLeaveHazard(a, a.q, a.r, engine)) return true;
 
         // [FIX] Danger is objective. Cooldown should not hide it.
         // But we allow a small grace period for physics-based knockbacks to settle.
@@ -229,8 +240,7 @@ export const BTConditions: Record<BTConditionKey, BTConditionFn> = {
         const pixelKey = HexUtils.key(pixelHex);
         if (engine.isWarningTile(pixelKey)) return true;
         
-        const enemyHazardsAtPixel = engine.getSpatialHazardsAt(pixelHex.q, pixelHex.r).filter(h => !sameSide(h, a));
-        if (enemyHazardsAtPixel.length > 0) return true;
+        if (mustLeaveHazard(a, pixelHex.q, pixelHex.r, engine)) return true;
 
         return false;
     },

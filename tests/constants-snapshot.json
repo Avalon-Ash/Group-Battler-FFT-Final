@@ -233,6 +233,11 @@
     "DEFAULT_SPEED": 800,
     "MIN_DURATION": 0.1
   },
+  "HAZARD_RISK": {
+    "LETHAL_HP_FRAC": 0.7,
+    "LOW_HP_FRAC": 0.3,
+    "NEAR_EXIT_STEPS": 1
+  },
   "HAZARD_RULES": {
     "DEFAULT_DURATION": 5,
     "TICK_INTERVAL": 0.5,
