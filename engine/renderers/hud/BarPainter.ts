@@ -1,5 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
-// ║  BarPainter — 單位頭頂的血條／護盾／魔力／詠唱條／控制條    ║
+// ║  BarPainter — 單位頭頂的血條／護盾／魔力／詠唱條            ║
+// ║  職責：繪製單位頭頂的血條、護盾、魔力條與詠唱條。            ║
+// ║  上游：HUDRenderer（傳入 UnitFrame.footX／hudAnchorY）。    ║
 // ║  [ARCH] 座標規則見 RenderSpec §3、§4（錨點＝投影頭頂上方）。  ║
 // ║  填色條是預烘焙 sprite（漸層＋光暈＋高光，依顏色、高度、裝置  ║
 // ║  縮放快取），每幀只切片 drawImage；不建立漸層、不設 shadowBlur。║
@@ -7,7 +9,6 @@
 
 import { Agent } from "../../game";
 import { HUD_COLORS, HUD_BAR, RENDER_HOTSPOT_CACHE } from "../../../constants";
-import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { getAgentSkin } from "../../../data/units/factionTint";
 import { isGlowSpritesEnabled } from "../RenderQuality";
 import { createCanvas } from "../../graphics/CanvasUtils";
@@ -62,27 +63,6 @@ function drawSkin(ctx: CanvasRenderingContext2D, skin: BarSkin, x: number, y: nu
     const sw = Math.min(c.width, Math.ceil((skin.pad + fillW) * skin.scale));
     ctx.drawImage(c, 0, 0, sw, c.height, x - skin.pad, y - skin.pad, sw / skin.scale, c.height / skin.scale);
 }
-
-type CCTimerKey = 'banishTimer' | 'stunTimer' | 'fearTimer' | 'tauntTimer' | 'silenceTimer' | 'rootTimer' | 'blindTimer';
-type CCMaxKey = 'banishMax' | 'stunMax' | 'silenceMax';
-interface CCPriorityItem {
-    key: CCTimerKey;
-    name: string;
-    color: string;
-    /** 有記錄最大值的欄位；沒有的用 HUD_BAR.CC.DEFAULT_MAX */
-    max: CCMaxKey | null;
-}
-
-/** 控制條優先序（高→低）：名稱與顏色來自 STATUS_VISUALS */
-const CC_PRIORITY: readonly CCPriorityItem[] = [
-    { key: 'banishTimer', name: STATUS_VISUALS.BANISH.label, color: STATUS_VISUALS.BANISH.primaryColor, max: 'banishMax' },
-    { key: 'stunTimer', name: STATUS_VISUALS.STUN.label, color: STATUS_VISUALS.STUN.primaryColor, max: 'stunMax' },
-    { key: 'fearTimer', name: STATUS_VISUALS.FEAR.label, color: STATUS_VISUALS.FEAR.primaryColor, max: null },
-    { key: 'tauntTimer', name: STATUS_VISUALS.TAUNT.label, color: STATUS_VISUALS.TAUNT.primaryColor, max: null },
-    { key: 'silenceTimer', name: STATUS_VISUALS.SILENCE.label, color: STATUS_VISUALS.SILENCE.primaryColor, max: 'silenceMax' },
-    { key: 'rootTimer', name: STATUS_VISUALS.ROOT.label, color: STATUS_VISUALS.ROOT.primaryColor, max: null },
-    { key: 'blindTimer', name: STATUS_VISUALS.BLIND.label, color: STATUS_VISUALS.BLIND.primaryColor, max: null },
-];
 
 export const BarPainter = {
     /** @param devScale 裝置縮放（quantizeDeviceScale，HUDRenderer 每幀算一次） */
@@ -172,33 +152,6 @@ export const BarPainter = {
                 ctx.strokeRect(startX, castBarY, totalW, B.CAST.HEIGHT);
             }
         }
-
-        // 控制條（優先序最高的一個）
-        const cc = this.getHighestPriorityCC(agent);
-        if (cc) {
-            const C = B.CC;
-            const ccY = startY - C.OFFSET;
-            const time = agent[cc.key];
-            const maxTime = cc.max ? (agent[cc.max] || time) : C.DEFAULT_MAX;
-            ctx.fillStyle = HUD_COLORS.CC_BAR.bg;
-            ctx.fillRect(startX, ccY, totalW, C.HEIGHT);
-            ctx.fillStyle = cc.color;
-            ctx.fillRect(startX, ccY, totalW * Math.min(1, Math.max(0, time / maxTime)), C.HEIGHT);
-            ctx.fillStyle = HUD_COLORS.CC_BAR.text;
-            ctx.font = C.FONT;
-            ctx.textAlign = 'center';
-            ctx.fillText(cc.name, startX + totalW / 2, ccY - C.LABEL_GAP);
-            ctx.strokeStyle = HUD_COLORS.CC_BAR.border;
-            ctx.strokeRect(startX, ccY, totalW, C.HEIGHT);
-        }
-    },
-
-    /** 成立中、優先序最高的控制（CC_PRIORITY 依序第一個）；沒有回傳 null */
-    getHighestPriorityCC(agent: Agent): CCPriorityItem | null {
-        for (let i = 0; i < CC_PRIORITY.length; i++) {
-            if ((agent[CC_PRIORITY[i].key] || 0) > 0) return CC_PRIORITY[i];
-        }
-        return null;
     },
 
     /** 測試／工具用：丟掉 sprite 快取 */

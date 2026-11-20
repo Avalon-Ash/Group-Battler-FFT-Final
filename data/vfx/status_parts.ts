@@ -11,6 +11,8 @@
 // ║  狀態；其餘狀態只留身上（BODY／立體 GROUND）的小零件；全部    ║
 // ║  狀態另由圖示列列出。配色依控制種類（MMO／FFT 慣例），用       ║
 // ║  vfxPalette 的 STATUS_* 色帶，不借陣營色帶（LION_／ASH_）。   ║
+// ║  有 orient 的層由 StatusOrchestrator 經 StatusDirection 算角，║
+// ║  PartLayerPainter 套用旋轉與反向飄移。                       ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { PartLayer } from './parts/partLayer';
@@ -130,12 +132,12 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
             { spec: { kind: 'sigil', radius: 12, emblem: 'hornSkull', ramp: 'STATUS_DREAD' }, anchor: 'HEAD', lift: 0, shake: 1.6, alpha: 0.95, blend: 'source-over' },
         ],
     },
-    /** 嘲諷（紅）：頭上上下彈跳的倒三角（「看這裡」），背後紅色放射光 */
+    /** 嘲諷（紅）：頭上上下彈跳的倒三角（尖端指向嘲諷者），背後紅色放射光 */
     TAUNT: {
         priority: 65, category: 'HARD_CC',
         icon: [{ spec: { kind: 'sigil', radius: 6, emblem: 'invTriangle', ramp: 'STATUS_RED' } }],
         layers: [
-            { spec: { kind: 'sigil', radius: 12, emblem: 'invTriangle', ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, bob: { amp: 3, hz: 2 }, alpha: 0.95, blend: 'source-over' },
+            { spec: { kind: 'sigil', radius: 12, emblem: 'invTriangle', ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, bob: { amp: 3, hz: 2 }, alpha: 0.95, blend: 'source-over', orient: { toward: 'TOWARD_SOURCE', nativeAngle: Math.PI / 2 } },
             { spec: { kind: 'rays', radius: 24, count: 8, ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, spin: 0.7, alpha: 0.55, decor: true },
         ],
     },
@@ -220,12 +222,12 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
             { spec: { kind: 'glow', radius: 4, ramp: 'STATUS_GREEN', hard: true }, anchor: 'BODY', count: 3, orbitRadius: 12, lift: -20, rise: { height: 50, period: 1.8 }, alpha: 0.9 },
         ],
     },
-    /** 加速（青白）：身上快速上升的速度線 */
+    /** 加速（青白）：身上沿移動方向往身後流的速度線 */
     HASTE: {
         priority: 18, category: 'BUFF',
         icon: [{ spec: { kind: 'spark', length: 12, ramp: 'STATUS_WIND' }, rotation: -Math.PI / 4 }],
         layers: [
-            { spec: { kind: 'spark', length: 12, ramp: 'STATUS_WIND' }, anchor: 'BODY', count: 3, orbitRadius: 12, rotation: -Math.PI / 2, lift: -14, rise: { height: 36, period: 0.7 }, alpha: 0.9 },
+            { spec: { kind: 'spark', length: 12, ramp: 'STATUS_WIND' }, anchor: 'BODY', count: 3, orbitRadius: 12, rotation: -Math.PI / 2, lift: -14, rise: { height: 36, period: 0.7 }, alpha: 0.9, orient: { toward: 'MOVE', nativeAngle: 0 } },
         ],
     },
     /** 反傷（銀白）：環繞身體的六角鏡片 */

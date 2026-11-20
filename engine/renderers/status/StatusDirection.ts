@@ -27,6 +27,31 @@ export interface StatusDirectionContext {
  * TOWARD_SOURCE：從 frame 的腳點指向嘲諷者 frame 的腳點（atan2(dy, dx)）。
  * MOVE：移動中＝從 (agent.px, agent.py) 指向 path[0] 的格心；靜止或沒有路徑＝facing > 0 時 0，否則 π。
  */
-export function statusAngle(_orient: StatusOrient, _frame: StatusFrameRef, _ctx: StatusDirectionContext): number | null {
-    return null; // [契約 R4] 空殼：由實作者補上
+export function statusAngle(orient: StatusOrient, frame: StatusFrameRef, ctx: StatusDirectionContext): number | null {
+    if (orient === 'TOWARD_SOURCE') {
+        const sourceId = frame.agent.effects.TAUNT.sourceId;
+        if (!sourceId) return null;
+        const frames = ctx.frames;
+        for (let i = 0; i < frames.length; i++) {
+            const other = frames[i];
+            if (other.agent.id === sourceId) {
+                if (other.agent.hp <= 0 || other.agent.fullyDead || other.agent.outOfBounds) return null;
+                const dx = other.footX - frame.footX;
+                const dy = other.floorY - frame.floorY;
+                if (dx === 0 && dy === 0) return null;
+                return Math.atan2(dy, dx);
+            }
+        }
+        return null;
+    }
+
+    const agent = frame.agent;
+    if (agent.isMoving && agent.path.length > 0) {
+        const next = agent.path[0];
+        const target = ctx.hexToPx(next.q, next.r);
+        const dx = target.x - agent.px;
+        const dy = target.y - agent.py;
+        if (dx !== 0 || dy !== 0) return Math.atan2(dy, dx);
+    }
+    return agent.facing > 0 ? 0 : Math.PI;
 }

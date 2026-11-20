@@ -3,9 +3,13 @@
 // ║  職責：把一層解析成 PartSprite（resolvePartLayer，呼叫端快取）║
 // ║        並在錨點畫出份數／繞行／上升／自轉／律動／抖動        ║
 // ║        （drawPartLayer，每幀只做 drawImage 與變換，零配置）  ║
+// ║  上游：StatusPartPainter、HazardPainter。                   ║
 // ║  [ARCH] 錨點由呼叫端給（螢幕座標，已含漂浮與高度）；這裡只   ║
 // ║  加相對偏移。flat 層在地面平面旋轉到版面方向（align）再壓扁 ║
 // ║  ISO_SCALE_Y；prism（立體零件）的版面在解析時注入、不旋轉。  ║
+// ║  有 orientAngle 時改用 orientAngle − nativeAngle 取代固定   ║
+// ║  rotation，且 rise 改沿反方向（−orientAngle）飄移；未傳時   ║
+// ║  與原輸出逐位元相同。                                        ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { HexLayout } from "../../../types";
@@ -41,8 +45,18 @@ export function resolvePartLayer<L extends PartLayer>(layer: L, team: number, la
     return { layer, sprite: vfxPartStore.get(spec, layer.flat ? layoutAlign(layout) : 0), count: Math.max(1, layer.count ?? 1) };
 }
 
-/** 在錨點 (x, y) 畫一層。alphaMul 給整組淡入淡出用（危害快結束時）。 */
-export function drawPartLayer(ctx: CanvasRenderingContext2D, r: ResolvedPartLayer, x: number, y: number, t: number, align: number, alphaMul: number = 1): void {
+/** 在錨點 (x, y) 畫一層。alphaMul 給整組淡入淡出用（危害快結束時）；orientAngle 非 null 時覆寫方向與 rise 飄移方向。 */
+export function drawPartLayer(
+    ctx: CanvasRenderingContext2D,
+    r: ResolvedPartLayer,
+    x: number,
+    y: number,
+    t: number,
+    align: number,
+    alphaMul: number = 1,
+    orientAngle?: number | null,
+    nativeAngle: number = 0
+): void {
     const L = r.layer;
     const C = VFX_PARTS.LAYER;
     const orbitR = L.orbitRadius ?? 0;
@@ -51,7 +65,8 @@ export function drawPartLayer(ctx: CanvasRenderingContext2D, r: ResolvedPartLaye
     if (L.pulse) scale *= 1 + L.pulse.amp * Math.sin(t * TAU * L.pulse.hz);
     let lift = L.lift ?? 0;
     if (L.bob) lift += L.bob.amp * Math.sin(t * TAU * L.bob.hz);
-    let rotation = L.rotation ?? 0;
+    const hasOrient = orientAngle !== undefined && orientAngle !== null;
+    let rotation = hasOrient ? (orientAngle - nativeAngle) : (L.rotation ?? 0);
     if (L.spin) rotation += t * L.spin;
     if (L.flat) rotation += align;
     const shakeX = L.shake ? Math.sin(t * TAU * C.SHAKE_HZ) * L.shake : 0;
@@ -60,6 +75,8 @@ export function drawPartLayer(ctx: CanvasRenderingContext2D, r: ResolvedPartLaye
     const baseAlpha = (L.alpha ?? 1) * alphaMul;
     // 沒有繞行也沒有上升：各份均分旋轉角（漩渦臂），否則疊在同一點毫無意義
     const fan = !L.rise && orbitR <= 0;
+    const dirCos = hasOrient && L.rise ? Math.cos(orientAngle) : 0;
+    const dirSin = hasOrient && L.rise ? Math.sin(orientAngle) : 0;
     const n = r.count;
     for (let i = 0; i < n; i++) {
         const phase = i / n;
@@ -68,9 +85,16 @@ export function drawPartLayer(ctx: CanvasRenderingContext2D, r: ResolvedPartLaye
         let alpha = baseAlpha;
         if (L.rise) {
             const p = (t / L.rise.period + phase) % 1;
-            oy = -p * L.rise.height;
             alpha *= Math.sin(p * Math.PI);
-            ox = Math.cos(phase * TAU * C.GOLDEN_ANGLE) * orbitR;
+            const spread = Math.cos(phase * TAU * C.GOLDEN_ANGLE) * orbitR;
+            if (hasOrient) {
+                const dist = p * L.rise.height;
+                ox = -dirCos * dist - dirSin * spread;
+                oy = -dirSin * dist + dirCos * spread;
+            } else {
+                oy = -p * L.rise.height;
+                ox = spread;
+            }
         } else if (orbitR > 0) {
             const a = phase * TAU + t * orbitSpd;
             ox = Math.cos(a) * orbitR;
