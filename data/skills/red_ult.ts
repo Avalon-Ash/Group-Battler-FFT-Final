@@ -132,7 +132,7 @@ export const RED_ULT: Skill[] = [
         hits: { count: 8, interval: 0.08, cadence: 'ACCEL' },
         element: 'FIRE',
         visualHitEffect: 'FX_ULT_RED_INFERNO',
-        onImpact: [{ action: 'HAZARD', kind: 'FIRE', duration: 5 }],
+        onImpact: [{ action: 'HAZARD', kind: 'FIRE', duration: 3.5 }],
         onHit: [{ action: 'STATUS', status: 'DOT', duration: 5, force: 56 }],
     },
     {
@@ -194,7 +194,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 10, power: 250, color: '#a3e635',
         visual: 'SMASH', projectileSpeed: 0,
         visualHitEffect: 'FX_ULT_RED_POISON_RAIN', element: 'POISON',
-        onImpact: [{ action: 'HAZARD', kind: 'POISON', duration: 6 }],
+        onImpact: [{ action: 'HAZARD', kind: 'POISON', duration: 4 }],
         onHit: [{ action: 'STATUS', status: 'DOT', duration: 6, force: 32 }],
     },
     {

@@ -93,7 +93,7 @@ export const BLUE_ACTIVE: Skill[] = [
         type: 'AOE', aoeRadius: 1, power: 105, color: '#bae6fd', visual: 'BOMB', projectileSpeed: 900,
         element: 'ICE',
         visualHitEffect: 'FX_ACTIVE_BLUE_FROST_SNAP', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW',
-        onImpact: [{ action: 'HAZARD', kind: 'ICE', duration: 1.5 }],
+        onImpact: [{ action: 'HAZARD', kind: 'ICE', duration: 0.75 }],
         onHit: [{ action: 'STATUS', status: 'STUN', duration: 1.0 }],
     },
     {
