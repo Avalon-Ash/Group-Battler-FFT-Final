@@ -144,7 +144,7 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 
 ## 6. 3D Source Packs (Obstacle pre-render) — docs/VISUAL_ROADMAP.md §B
 
-Source models only. They live in `C:\Git\_asset_stagingssets3d\` (outside the repo) and are pre-rendered in Blender; only the rendered sprites will enter `public/assets/obstacles/` (each sprite gets its own row when added).
+Source models only. They live in `C:\Git\_asset_staging\assets3d\` (outside the repo) and are pre-rendered in Blender; only the rendered sprites will enter `public/assets/obstacles/` (each sprite gets its own row when added).
 
 | Staging Path | Source Pack | Author | Source URL | License | Attribution Required | Size | Added Date |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |

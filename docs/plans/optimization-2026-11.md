@@ -126,7 +126,7 @@ R1 畫面插值（獨立，渲染線第一條）
 
 ## 3.1 交接：下一個工作階段從這裡開始（2026-11-19，Fable 寫）
 
-**現況**：`main` 已含 S1～S3、C2、R1、R2、G2、G3 第一片與鏡頭標示、G4、U1～U4。契約只剩 R3 是 `pending`。還沒做的：R3、R4（渲染線）、U5、G1、G3 第二片、G5、C1、美術。
+**現況**：`main` 已含 S1～S3、C2、R1、R2、G2、G3 第一片與鏡頭標示、G4、U1～U4。契約只剩 R3 是 `pending`。還沒做的：R3、R4（渲染線）、U5、G1、G3 第二片、G5、C1、美術。**11-20 更新**：R3、C1、G1 第一輪已合併進 `main`，契約全部 `done`；剩 R4、U5、G1 第二輪（紅方強招查機制、大逃殺量測）、G3 第二片、G5、美術。
 
 **開工先做兩件事**
 1. 查額度（`quota` skill）。11-19 的快照：週全部 60%、Fable 計量 79%、時間進度約 57%（約 11/22 重設）；Codex 11/21 00:40 重設。照這組數字 Fable 超前，只開案與終審，實作交 Sonnet／Opus；數字變了就照全域憲法「Fable 預算」重判。
@@ -136,13 +136,13 @@ R1 畫面插值（獨立，渲染線第一條）
 
 | 順位 | 包 | 執行者 | 並行 |
 | :-- | :-- | :-- | :-- |
-| 1 | R3 導播避讓（11-20 做完，分支 `feat/r3-view-insets`，agy Neon high＋Opus 審查） | Sonnet（紅色驗收已有 3 則；一次不及格就收回 Opus，prompt 要寫理由與 `[opus-ok]`） | 渲染線，獨占 |
-| 2 | R4 零件方向、刪舊控制條 | Sonnet，終審者看截圖 | 渲染線，R3 合併後才開（11-20 刻意沒開：R3 未合併，R4 可能要重錄保真） |
+| 完成 | R3 導播避讓（11-20 合併，agy Neon high＋Opus 審查，WORKLOG §2 CL） | — | — |
+| 2 | R4 零件方向、刪舊控制條 | agy Neon high，Opus 審 diff 與截圖（11-20 起 Fable 吃緊，不叫終審） | 渲染線，R3 已合併，可開 |
 | 隨時 | U5 熱路徑配置 | Sonnet，先交量測表再決定動不動 | 量測可並行；真的要改 `engine/renderer.ts` 的粒子查詢時算渲染線，排在 R4 後面 |
 | 等回饋 | G1 技能平衡 | Opus 或 Fable（要判斷） | 第 1、2 步（錄基準、列離群）可先跑；改數值等使用者說節奏要不要放慢 |
 | 等 Fable 恢復 | G3 第二片 | 使用者和 Fable 一起設計 | 使用者 11-20：手機不好點，手動模式要重做流程、改成主動式的遊戲 UI；第二片併進那次設計 |
 | 等 Fable 恢復 | G5 行為編輯器 | 使用者和 Fable 討論設計 | — |
-| 完成 | C1 合約校正 | 使用者 11-20 同意，Opus 改 | 分支 `docs/night-2026-11-20` |
+| 完成 | C1 合約校正 | 使用者 11-20 同意，Opus 改 | 11-20 合併，WORKLOG §2 CJ |
 
 **R3 派工單要補的事（開案書寫完之後才出現的）**
 - 契約：`tests/contracts/R.contract.test.ts` 的 R3 三則；空殼在 `engine/presentation/ViewInsets.ts`；`UICommandSystem` 的 `SET_VIEW_INSETS` 現在是 `pending('R3')`。實作者開工先把 `tests/contracts/status.ts` 的 R3 改成 `done`，其他契約檔不准動。
@@ -164,9 +164,9 @@ R1 畫面插值（獨立，渲染線第一條）
 
 **既有的重複，還沒提案（照「既有的耦合先回報」記在這裡）**：展示模式的佈陣已收進 `engine/systems/match/Deployment.ts`（R2），但工具各自還有一份「換圖、取出生格、排陣營、開戰」的流程：`tools/balance/simFingerprint.ts`（契約與指紋共用）、`ai-idle-sim.mjs`、`batch-sim.mjs`、`mobility-probe.mjs`、`tools/replay/record-bench.mjs`。要收成一份得先提案（改哪裡、指紋怎麼證明不變、怎麼回退），使用者同意再動（使用者 11-20：等 Fable 額度恢復後交給 Fable 提案）；沒同意前新工具一律呼叫既有的，不再多寫一份。
 
-**使用者 11-20 決定的**：換職業時血量、魔力上限跟著換（分支 `fix/role-edit-vitals`）；G1 的兩項技能設計交給主代理決定（「按妳建議改」），主代理選了不改（`mb_u3` 不加傷害、`wb_a5`／`rb_a3` 維持單段，只調數值）；事先沒把建議列給使用者，使用者原意若是「改」要重開；G3 第二片與 G5 等 Fable 恢復後和使用者一起設計。
+**使用者 11-20 決定的**：換職業時血量、魔力上限跟著換（11-20 合併，WORKLOG §2 CK）；G1 的兩項技能設計確認不改（`mb_u3` 不加傷害、`wb_a5`／`rb_a3` 維持單段，只調數值），`rr_u1` 接受偏弱（DECISIONS §5）；G3 第二片與 G5 等 Fable 恢復後和使用者一起設計。
 
-**收尾**：11-20 使用者同意後清掉：`.claude/worktrees/` 剩下的 3 個工作樹、15 條已合併的本機分支、`C:\Git` 下 7 個本專案的舊 `_wt_*` clone 與 `_agent_allow`（11-03 的舊允許清單與紀錄），封存 3 個閒置工作階段。狀態美術原型搬到 `C:\Git\_asset_stagingrt\`（HANDOFF N）。遠端還有一條已合併的 `origin/docs/skill-table`，刪遠端分支算 push，沒動。
+**收尾**：11-20 使用者同意後清掉：`.claude/worktrees/` 剩下的 3 個工作樹、15 條已合併的本機分支、`C:\Git` 下 7 個本專案的舊 `_wt_*` clone 與 `_agent_allow`（11-03 的舊允許清單與紀錄），封存 3 個閒置工作階段。狀態美術原型搬到 `C:\Git\_asset_staging\art\`（HANDOFF N）。遠端已合併的 `origin/docs/skill-table` 11-20 使用者同意後刪除；之後已合併的分支直接刪，不用問。
 
 ## 4. 各包作法
 
