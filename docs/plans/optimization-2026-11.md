@@ -137,9 +137,9 @@ R1 畫面插值（獨立，渲染線第一條）
 | 順位 | 包 | 執行者 | 並行 |
 | :-- | :-- | :-- | :-- |
 | 完成 | R3 導播避讓（11-20 合併，agy Neon high＋Opus 審查，WORKLOG §2 CL） | — | — |
-| 2 | R4 零件方向、刪舊控制條 | agy Neon high，Opus 審 diff 與截圖（11-20 起 Fable 吃緊，不叫終審） | 渲染線，R3 已合併，可開 |
-| 隨時 | U5 熱路徑配置 | Sonnet，先交量測表再決定動不動 | 量測可並行；真的要改 `engine/renderer.ts` 的粒子查詢時算渲染線，排在 R4 後面 |
-| 等回饋 | G1 技能平衡 | Opus 或 Fable（要判斷） | 第 1、2 步（錄基準、列離群）可先跑；改數值等使用者說節奏要不要放慢 |
+| 完成 | R4 零件方向、刪舊控制條（11-20，agy Neon high＋Opus 審查，WORKLOG §2 CO） | — | — |
+| 結案 | U5 熱路徑配置（11-20 量測：20 人 20 秒配置 1.7 MB，前 10 名沒有任何候選，照本包規則不改，WORKLOG §2 CQ） | — | — |
+| 進行中 | G1 技能平衡（第一輪 §2 CM、第二輪 §2 CP 已合併；剩單技能 ±5% 與危害區設計題，見 HANDOFF J） | Opus；設計題問使用者 | — |
 | 等 Fable 恢復 | G3 第二片 | 使用者和 Fable 一起設計 | 使用者 11-20：手機不好點，手動模式要重做流程、改成主動式的遊戲 UI；第二片併進那次設計 |
 | 等 Fable 恢復 | G5 行為編輯器 | 使用者和 Fable 討論設計 | — |
 | 完成 | C1 合約校正 | 使用者 11-20 同意，Opus 改 | 11-20 合併，WORKLOG §2 CJ |
@@ -228,7 +228,7 @@ R1 畫面插值（獨立，渲染線第一條）
 - **作法**：新增畫面指令 `SET_VIEW_INSETS`（上、右、下、左，CSS px；加進 `VIEW_COMMAND_TYPES`，不進紀錄）。UI 層在底部面板開合、播放列高度改變時送出。`engine/presentation/DirectorSystem.ts` 把 `screenW／screenH` 換成扣掉 insets 的有效區域交給 `DirectorShot` 與鏡頭視窗，焦點往上偏移 `(下 − 上) / 2`。手動模式的置中（`centerCamera`）用同一份 insets。
 - **驗收**：`tests/` 的導播測試加一則：有 200 px 底部 inset 時，主角的螢幕 Y 落在有效區域的中央帶內。`perf:mobile` 模擬下截圖看主角沒被面板蓋住。HANDOFF E 的另一項（別處的奧義拍不到）不在本包。
 
-### R4 嘲諷、加速零件方向；刪舊控制條
+### R4 嘲諷、加速零件方向；刪舊控制條（完成 2026-11-20，WORKLOG §2 CO）
 - **作法**：`EffectSlot.sourceId` 已記嘲諷者，`engine/renderers/status/` 的零件畫法加一個方向輸入：嘲諷＝從單位指向嘲諷者（讀兩者的 `UnitFrame`，不自己算高度），加速＝移動方向（靜止時用 `facing`）。方向在 `StatusOrchestrator` 算好傳給 painter。`engine/renderers/hud/BarPainter.ts` 的 `CC_PRIORITY` 與相關型別讀的是已不存在的欄位，先 `git grep` 證明沒有繪製路徑用到再刪。
 - **驗收**：`node tools/vfx/fx-shot.mjs` 或 VFX Library 截圖：嘲諷箭頭指向嘲諷者、速度線順著移動方向；`npm run perf:guard`；`npm run knip` 無新增。
 
@@ -295,7 +295,7 @@ R1 畫面插值（獨立，渲染線第一條）
 ### U4 技能下拉搜尋（完成 2026-11-19，WORKLOG §2 CH：146 行，沒用 Virtual、沒加 `cmdk`）
 - Radix Select 沒有搜尋。用 Radix Popover＋輸入框＋既有的 TanStack Virtual 列表組一個 Combobox primitive（放 `components/ui/primitives/`，進 Gallery）；不加新依賴。若實作超過約 150 行或無障礙做不齊，改用 `cmdk` 並先問使用者（新增依賴）。
 
-### U5 熱路徑配置（先量再做）
+### U5 熱路徑配置（先量再做；2026-11-20 量完結案不做，WORKLOG §2 CQ）
 - **先量**：`npm run perf:profile` 加配置取樣（CDP `HeapProfiler.startSampling`），20 人戰鬥 60 秒，列出配置量前 10 名的函式。
 - **候選**（都要量測支持才動）：`GameEngine.getTerrainHeight` 與 `engine/renderer.ts` 粒子落地查詢在 `collapsingTiles.size === 0` 時直接跳過組字串；`tick` 開頭的 `agents.filter` 改成有單位 `fullyDead` 才重建；`getSpatialHazardsAt` 的 `filter＋some`。
 - **驗收**：配置量前後對照寫進 WORKLOG；`npm run balance:fingerprint` 0 差異；`npm run perf:guard`。前 10 名裡沒有這些候選就結案不做。

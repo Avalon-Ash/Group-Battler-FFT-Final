@@ -866,3 +866,21 @@
 
 ### CN. 2026-11-20 實機確認清單結案（使用者）
 - 使用者確認 HANDOFF §3 的 9 項都過了，清單清空：R3 導播避讓手機底部 UI（CL）、技能下拉搜尋（CH）、玩家操控的鏡頭與標示（CD）、對局流程移出 React 含音訊（CA）、工具視窗延遲載入與平板把手（CF、CG）、畫面插值（BY）、狀態美術與面板（BR）、機動技落點（BQ）、技能管線（BL）。
+
+### CO. 2026-11-20 優化開案書 R4 嘲諷、加速零件方向；刪舊控制條（agy Gemini 4 Neon high＋主代理審查）
+- 主代理先加型別與空殼（`engine/renderers/status/StatusDirection.ts`、`status_parts` 的 `orient`）與紅色驗收 `tests/StatusDirection.test.ts`（9 則），再派 Neon high。第一次派工在開工檢查就停：提示詞寫了舊計時欄位名（`DocDrift` 擋）、空殼多匯出一個型別（knip 擋），都是主代理的錯；修好重派一次完成。
+- `StatusOrchestrator` 每幀算方向（嘲諷＝指向嘲諷者的腳點，加速＝`path[0]` 的格心，靜止依 `facing`），`drawPartLayer` 收 `orientAngle`：有方向時 rotation＝方向−nativeAngle、rise 沿反方向；沒傳時輸出不變（保真 6 張通過，沒重錄）。主代理補：沒有 `mapConfig` 時加速不給方向。
+- 刪 `BarPainter` 讀舊計時欄位的控制條與型別。`fx-shot.mjs` 加 `STATUS:TAUNT`／`STATUS:HASTE`。
+- 驗證：`tests/StatusDirection.test.ts` 9/9、lint、build、knip、smoke、`perf:guard` 通過；截圖上嘲諷標記太小，倒三角轉向沒有用肉眼確認（HANDOFF §3）。
+- **回退**：`git revert` R4 的合併 commit。
+
+### CP. 2026-11-20 優化開案書 G1 技能平衡第二輪（主代理 Opus）
+- 拆解（seed 21，兩種站位各 1500 場，每招拿掉一個部件）：`mr_u4` 拿掉毒區 +7.8→−2.0%、`rr_u3` 拿掉火區 +6.1→−0.3%、`mr_a5` 回魔 35→18 +6.1→+0.9%、`sr_a4` 拿掉燃魔 +6.5→+3.4%、`tr_b4` 暈眩 0.5→0.25 只 +5.8→+4.8%。第一輪削威力推不動，是削錯部件。
+- v1（部件削一半）藍方 52.5%；v2 加削 `rb_a1` 暈眩、`rb_u4` 定身，幾乎無效（52.4%）；v3（定案）：`mr_u4` 毒區 6→4 秒、`rr_u3` 火區 5→3.5 秒、`sr_a4` 燃魔 18→12、`mr_a5` 回魔 35→28、`rb_a1` 冰區 1.5→0.75 秒（勝率差 +6.3→+2.1／−1.8%）。藍方 seed 21 50.6%、seed 77 52.2%，平均 51.4%；對戰時間中位數 18.2～18.3 秒。指紋重錄。
+- 大逃殺 `ai-idle-sim --scenario=ROYALE` 300 場 seed 21：基準勝率 10%，奧義與主動技裡偏強的有 `tb_a1`、`sb_u4`、`rr_u3`、`sb_a1`、`tb_a5`、`sr_a2`、`mr_u4`（z>3），偏弱 `rb_u1`、`wr_a1`；普攻與機動技綁職業，勝率反映職業強弱。樣本小，沒調。
+- 沒達標：單技能 ±5%（HANDOFF J）。量測檔在 `tools/ui-e2e/out/g1r2-*`（不進版控）。
+- **回退**：`git revert` G1 第二輪的合併 commit（數值與指紋一起）。
+
+### CQ. 2026-11-20 優化開案書 U5 熱路徑配置（量完結案，主代理 Opus）
+- 臨時探針（CDP `HeapProfiler.startSampling`，間隔 4 KB）：20 人戰鬥，前 20 秒 19～20 人在場，配置共 1.7 MB；前三名 `BattleLogger.log` 19.5%、`vfx/state.getParticle` 14%、`RenderList.next` 9.7%。60 秒版（單位會被斬殺、墜落、縮圈，20→6 人）2.5 MB，排名相同。
+- 開案書的三個候選（`getTerrainHeight` 組字串、tick 開頭 `agents.filter`、`getSpatialHazardsAt`）都不在前 10 名，照本包規則不改。
