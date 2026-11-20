@@ -22,7 +22,7 @@ export type StatusAnchor = 'GROUND' | 'BODY' | 'HEAD';
 export type StatusOrient = 'TOWARD_SOURCE' | 'MOVE';
 
 /** [契約 R4] 有方向的零件：toward＝方向來源；nativeAngle＝零件在 rotation 0 時指向的螢幕角度（弧度，0＝右、π/2＝下） */
-export interface StatusPartOrient {
+interface StatusPartOrient {
     toward: StatusOrient;
     nativeAngle: number;
 }

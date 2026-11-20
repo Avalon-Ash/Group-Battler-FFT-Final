@@ -7,12 +7,12 @@
 
 ## 指令本文
 
-你是本專案的執行代理，工作資料夾是 `C:\Git\_wt_r4_status_dir`（分支 `feat/r4-status-direction`，base 是 `git log` 最上面那個 commit「docs(R4): 提示詞寫上 base」，主代理已建好）。
+你是本專案的執行代理，工作資料夾是 `C:\Git\_wt_r4_status_dir`（分支 `feat/r4-status-direction`，base 是 `git log` 最上面那個 commit（提示詞本身），主代理已建好）。
 
 ### 0. 開工前（INV）
 - **讀檔一律用內建檔案工具，不用終端機指令。**
 - 先讀：`AGENTS.md`（全部）、`engine/renderers/RenderSpec.ts`（§3、§4）、本檔 §1 列的每個檔案的方框檔頭。
-- 只確認 `git rev-parse HEAD` 與 `git status`（必須乾淨），不建分支、不切分支。先跑並記進報告：`npm run lint`、`npm test`、`npm run build`、`npm run knip`。`npm test` 預期只有 `tests/StatusDirection.test.ts` 的 7 則失敗（紅色驗收）；`knip` 預期只回報 `StatusDirection.ts` 的未使用匯出。有其他失敗就停下回報。
+- 只確認 `git rev-parse HEAD` 與 `git status`（必須乾淨），不建分支、不切分支。先跑並記進報告：`npm run lint`、`npm test`、`npm run build`、`npm run knip`。`npm test` 預期 `tests/StatusDirection.test.ts` 有 7 則失敗（紅色驗收）；`tests/AgentRunner.test.ts` 的時序測試在高負載下會逾時，這是已知的偶發失敗（Windows 專用，CI 排除），記進報告後照常開工，不要修它。`knip` 開工時可能回報 `StatusDirection.ts` 的未使用匯出（還沒接上）。其他失敗就停下回報。
 - **只能跑這些指令**（每個指令單獨一次呼叫，字串照抄，不加 `cd`、不用 `&&` 或 `;` 串接；清單外的指令會被拒，而且會讓整個執行結束，需要別的指令就寫進報告，不要嘗試）：
   - `git status`
   - `git diff`
@@ -42,7 +42,7 @@
 - **嘲諷者**：`agent.effects.TAUNT.sourceId`（`engine/core/Effects.ts`，施加時寫入）。
 - **移動**：`agent.isMoving`、`agent.path`（`Hex[]`，`path[0]` 是下一格）、`agent.px／py`（世界座標，`HexUtils.toPx` 同座標系）、`agent.facing`（1 或 −1）。`UnitFrame.footX = agent.px + physics.x`，`floorY = footY − groundH`（`engine/renderers/frame/UnitFrame.ts` 約 383～461 行）。
 - **繪製路徑**：`engine/renderers/RenderPipeline.ts:354` 呼叫 `StatusOrchestrator.draw(ctx, this.frames, t, engine.mapConfig.layout, …)`；`StatusOrchestrator`（`engine/renderers/status/StatusOrchestrator.ts`）逐個 frame 呼叫 `StatusPartPainter.draw`；painter 用 `drawPartLayer`（`engine/renderers/vfxparts/PartLayerPainter.ts:45`）畫每一層，rotation 在第 54～56 行由 `layer.rotation`＋`spin`＋`align` 組成，rise 位移在第 69～73 行固定往上（`oy = -p * height`）。`drawPartLayer` 也被奧義零件共用。
-- **舊控制條**：`engine/renderers/hud/BarPainter.ts` 第 66～86 行 `CCTimerKey`／`CCMaxKey`／`CCPriorityItem`／`CC_PRIORITY`，第 196～201 行 `getHighestPriorityCC`，以及 `drawUnitBars` 裡「控制條（優先序最高的一個）」那段（約 176～193 行）。它讀 `agent.banishTimer` 這類欄位。
+- **舊控制條**：`engine/renderers/hud/BarPainter.ts` 第 66～86 行 `CCTimerKey`／`CCMaxKey`／`CCPriorityItem`／`CC_PRIORITY`，第 196～201 行 `getHighestPriorityCC`，以及 `drawUnitBars` 裡「控制條（優先序最高的一個）」那段（約 176～193 行）。它讀的是 ECS 改版前的舊計時欄位（清單在 `tests/legacyEffectFields.ts`），Agent 上已經沒有這些欄位。刪掉之後 `tests/EffectFieldsRatchet.test.ts` 會要求把 `EFFECT_FIELDS_BASELINE` 的對應計數往下調：**只准往下調到實際數字**（收緊方向），不准調高或刪項目。報告與註解裡不要寫出那些舊欄位名（`tests/DocDrift.test.ts` 會擋）。
 - **截圖工具**：`tools/vfx/fx-shot.mjs` 目前沒有狀態模式；它的 `SHIELD:<TEAM>` 模式（地圖中央一對藍紅單位、鏡頭對準）最接近。
 
 ### 2. 目標與規則（DOM）
