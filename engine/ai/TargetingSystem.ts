@@ -14,6 +14,7 @@ import { OBSTACLE_DB } from "../../data/obstacles";
 import { canStepUp, jumpLayers } from "../math/ClimbRule";
 import { isGroundMeleeRange } from "./MeleeAttack";
 import { sameSide } from '../core/Allegiance';
+import { hazardTolerable } from './HazardRisk';
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
 
@@ -103,7 +104,7 @@ export class TargetingSystem {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
         const hazardsOnTile = spatial.getSpatialHazardsAt(a.q, a.r);
-        const inDanger = spatial.isCollapsingSoon(myKey) || hazardsOnTile.some(h => !sameSide(h, a));
+        const inDanger = spatial.isCollapsingSoon(myKey) || !hazardTolerable(a, hazardsOnTile);
 
         // 如果不在危險中，且正在詠唱非普攻技能，則鎖定目標不更新
         if (!inDanger && a.castingSkillIdx !== -1) {

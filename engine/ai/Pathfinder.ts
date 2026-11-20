@@ -8,6 +8,7 @@ import { OBSTACLE_DB } from "../../data/obstacles";
 import { TargetingSystem } from "./TargetingSystem";
 import { isGroundMeleeRange, isMeleeAttackCell } from "./MeleeAttack";
 import { sameSide } from '../core/Allegiance';
+import { hazardTolerable } from './HazardRisk';
 
 interface PQNode {
     hash: number;
@@ -134,8 +135,10 @@ export class Pathfinder {
                 const enemyHazards = spatial.getSpatialHazardsAt(nHex.q, nHex.r).filter(h => !sameSide(h, startAgent));
                 if (enemyHazards.length > 0) {
                     if (!isEscaping) {
-                        // 嘗試完全避開危險塗層
-                        moveCost += PATH_RULES.ENEMY_HAZARD_COST;
+                        // 扛得住就小繞（照樣可以穿過去追人），扛不住才盡量避開（HazardRisk，ADR 0023 第二階段）
+                        moveCost += hazardTolerable(startAgent, enemyHazards)
+                            ? PATH_RULES.TOLERABLE_HAZARD_COST
+                            : PATH_RULES.ENEMY_HAZARD_COST;
                     } else {
                         // 逃生優先，但稍微避開危險塗層
                         moveCost += 3;

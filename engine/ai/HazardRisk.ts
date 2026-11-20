@@ -35,20 +35,30 @@ export function hazardStayDamage(a: Agent, hazards: readonly SpatialHazard[]): n
     return dmg;
 }
 
+function hasEnemyHazard(a: Agent, hazards: readonly SpatialHazard[]): boolean {
+    for (let i = 0; i < hazards.length; i++) {
+        if (!sameSide(hazards[i], a)) return true;
+    }
+    return false;
+}
+
+/**
+ * 這些危害扛不扛得住（不看出口）：沒有敵方危害、不扣血、或留到結束不致命且血量不低 → true。
+ * 尋路、接近、重新站位用它決定能不能走進或站上這格（第二階段）；去留判斷也以它為底。
+ */
+export function hazardTolerable(a: Agent, hazards: readonly SpatialHazard[]): boolean {
+    if (!hasEnemyHazard(a, hazards)) return true;
+    const dmg = hazardStayDamage(a, hazards);
+    if (dmg <= 0) return true;
+    if (a.maxHp > 0 && a.hp / a.maxHp < HAZARD_RISK.LOW_HP_FRAC) return false;
+    return dmg < a.hp * HAZARD_RISK.LETHAL_HP_FRAC;
+}
+
 /** 站在 (q, r) 的去留判斷。q, r 可以是預測的落點（擊退中），出口步數仍從單位目前位置算。 */
 export function hazardVerdict(a: Agent, q: number, r: number, ctx: HazardRiskContext): HazardVerdict {
     const hazards = ctx.getSpatialHazardsAt(q, r);
-    let enemy = false;
-    for (let i = 0; i < hazards.length; i++) {
-        if (!sameSide(hazards[i], a)) { enemy = true; break; }
-    }
-    if (!enemy) return 'NONE';
-
-    const dmg = hazardStayDamage(a, hazards);
-    if (dmg > 0) {
-        if (a.maxHp > 0 && a.hp / a.maxHp < HAZARD_RISK.LOW_HP_FRAC) return 'LEAVE';
-        if (dmg >= a.hp * HAZARD_RISK.LETHAL_HP_FRAC) return 'LEAVE';
-    }
+    if (!hasEnemyHazard(a, hazards)) return 'NONE';
+    if (!hazardTolerable(a, hazards)) return 'LEAVE';
     if (ctx.stepsToSafety(a) <= HAZARD_RISK.NEAR_EXIT_STEPS) return 'LEAVE';
     return 'STAY';
 }

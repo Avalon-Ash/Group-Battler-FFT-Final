@@ -1,6 +1,6 @@
 // 站在敵方危害區上的去留判斷（engine/ai/HazardRisk.ts）。
 import { describe, it, expect } from 'vitest';
-import { hazardVerdict, hazardStayDamage, type HazardRiskContext } from '../engine/ai/HazardRisk';
+import { hazardVerdict, hazardStayDamage, hazardTolerable, type HazardRiskContext } from '../engine/ai/HazardRisk';
 import { Agent } from '../engine/core/Agent';
 import { Team, type SpatialHazard } from '../types';
 import { HAZARD_RISK } from '../constants';
@@ -30,6 +30,30 @@ describe('hazardStayDamage', () => {
         const me = unit(Team.BLUE, 1000, 1000);
         // 50／0.5 秒 × 4 秒 = 400；20／0.5 × 2 = 80；友方的 999 不算
         expect(hazardStayDamage(me, [hazard(50, 4), hazard(20, 2), hazard(999, 9, Team.BLUE)])).toBeCloseTo(480, 6);
+    });
+});
+
+describe('hazardTolerable（能不能走進或站上這格，不看出口）', () => {
+    it('沒有敵方危害、或危害不扣血 → 扛得住', () => {
+        const low = unit(Team.BLUE, 100, 2000);
+        expect(hazardTolerable(low, [])).toBe(true);
+        expect(hazardTolerable(low, [hazard(50, 4, Team.BLUE)])).toBe(true);
+        expect(hazardTolerable(low, [hazard(0, 5)])).toBe(true);
+    });
+
+    it('留到結束不致命且血量不低 → 扛得住；致命或血少 → 扛不住', () => {
+        expect(hazardTolerable(unit(Team.BLUE, 2000, 2000), [hazard(50, 4)])).toBe(true);   // 400 < 1400
+        expect(hazardTolerable(unit(Team.BLUE, 560, 2000), [hazard(50, 4)])).toBe(false);   // 400 ≥ 392
+        expect(hazardTolerable(unit(Team.BLUE, 500, 2000), [hazard(10, 2)])).toBe(false);   // 血 25%
+    });
+
+    it('和去留判斷一致：扛不住一定 LEAVE；扛得住時只有出口在旁才 LEAVE', () => {
+        const big = unit(Team.BLUE, 2000, 2000);
+        expect(hazardTolerable(big, [hazard(50, 4)])).toBe(true);
+        expect(hazardVerdict(big, 0, 0, ctx([hazard(50, 4)], Infinity))).toBe('STAY');
+        const small = unit(Team.BLUE, 560, 2000);
+        expect(hazardTolerable(small, [hazard(50, 4)])).toBe(false);
+        expect(hazardVerdict(small, 0, 0, ctx([hazard(50, 4)], Infinity))).toBe('LEAVE');
     });
 });
 

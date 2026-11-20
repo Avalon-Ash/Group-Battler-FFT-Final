@@ -20,7 +20,7 @@ import { canStepUp } from "../math/ClimbRule";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 import { sameSide } from '../core/Allegiance';
-import { hazardVerdict, type HazardRiskContext } from './HazardRisk';
+import { hazardVerdict, hazardTolerable, type HazardRiskContext } from './HazardRisk';
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => NodeState;
@@ -87,7 +87,7 @@ function bestAdvanceCell(a: Agent, engine: GameEngine): Hex | null {
         if (h.q === a.q && h.r === a.r) continue;
         if (engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
         if (engine.isCollapsingSoon(HexUtils.key(h))) continue;
-        if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => !sameSide(hz, a))) continue;
+        if (!hazardTolerable(a, engine.getSpatialHazardsAt(h.q, h.r))) continue;
         const d = distToNearestEnemy(a, h, engine);
         const step = HexUtils.dist(a, h);
         if (d < bestDist || (d === bestDist && best && step < bestStep)) {
@@ -895,7 +895,7 @@ export const BTActions: Record<BTActionKey, BTActionFn> = {
             if (h.q === a.q && h.r === a.r) continue;
             if (!engine.map.isValid(h.q, h.r) || engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
             if (engine.isCollapsingSoon(HexUtils.key(h))) continue;
-            if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => !sameSide(hz, a))) continue;
+            if (!hazardTolerable(a, engine.getSpatialHazardsAt(h.q, h.r))) continue;
             if (meleeAware && isMeleeAttackCell(engine.movement.targeting, h, a.target.q, a.target.r, basicRange, engine, a.jump)) {
                 // 攻擊格之間挑離自己最近的；有任何攻擊格就勝過「只是格距更近」的格
                 const step = HexUtils.dist(a, h);

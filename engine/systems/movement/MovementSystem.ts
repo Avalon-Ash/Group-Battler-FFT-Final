@@ -18,6 +18,7 @@ import { getHazardSpeedMult } from "../HazardSystem";
 import { slowSpeedMult } from "../../core/Effects";
 import { hexEventPos } from "../../events/EventPos";
 import { sameSide } from '../../core/Allegiance';
+import { hazardTolerable } from '../../ai/HazardRisk';
 
 export class MovementSystem {
     public pathfinder: Pathfinder;
@@ -118,9 +119,9 @@ export class MovementSystem {
                 let pathValid = true;
                 for (const hex of a.path) {
                     const hexKey = HexUtils.key(hex);
-                    const enemyHazards = spatial.getSpatialHazardsAt(hex.q, hex.r).filter(h => !sameSide(h, a));
-                    const hasEnemyHazard = enemyHazards.length > 0;
-                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isCollapsingSoon(hexKey) || hasEnemyHazard))) {
+                    // 扛得住的敵方危害不讓路徑作廢（HazardRisk，ADR 0023 第二階段）
+                    const intolerable = !hazardTolerable(a, spatial.getSpatialHazardsAt(hex.q, hex.r));
+                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isCollapsingSoon(hexKey) || intolerable))) {
                         pathValid = false;
                         break;
                     }

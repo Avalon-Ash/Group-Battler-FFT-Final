@@ -99,8 +99,10 @@ export const PATH_RULES = {
     WARNING_COST: 20,
     /** 逃生尋路警告格成本（分）。 */
     ESCAPE_WARNING_COST: 5,
-    /** 敵方危害格成本（分）。 */
+    /** 敵方危害格成本（分）：扛不住的危害（HazardRisk.hazardTolerable 為 false）。 */
     ENEMY_HAZARD_COST: 15,
+    /** 扛得住的敵方危害格成本（分）：每踩一格等於多走 2 格（基本步成本 1），繞路多 2 格以內就繞、更遠就直接穿過。 */
+    TOLERABLE_HAZARD_COST: 2,
     /** 非上坡移動額外成本（分）。 */
     DESCENT_COST: 0.2,
     /** 找到安全格後可提前結束的迭代門檻（次）。 */
