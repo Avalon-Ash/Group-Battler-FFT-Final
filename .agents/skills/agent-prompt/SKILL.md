@@ -23,7 +23,7 @@ description: 撰寫給 agy 低階代理（Claude Sonnet 5.5 或 Gemini，主代�
 - 某輪需要別的確切指令（例如某支量測腳本）就加進清單，跟該輪一起 commit。
 
 ## 派給 Codex 時（整包設計＋實作、美術視覺、邏輯根因）
-- **先選檔位**（全域 `codex-call` skill 檔位表）：整包設計＋實作用 `gpt-6.1-sol`／xhigh（給整包目標、驗收與停下條件，不只給步驟；驗收由主代理在沙盒外重跑），看圖為主的包用 `gpt-6-astra`／high，美術視覺與邏輯根因用 `gpt-6.1-sol`／medium，摘要用 `gpt-6-luna`／low。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
+- **先選檔位**（全域 `codex-call` skill 檔位表）：整包設計＋實作用 `gpt-6.2-sol`／xhigh（給整包目標、驗收與停下條件，不只給步驟；驗收由主代理在沙盒外重跑），看圖為主的包用 `gpt-6.2-astra`／high，美術視覺用 `gpt-6.2-sol`／medium，讀碼找根因用 `gpt-6.1-sol`／medium（6.2 Sol 讀碼庫答題退步）；6.2 的派工單要求把碰到的阻礙寫進報告，摘要用 `gpt-6-luna`／low。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
 - **工作樹**：同上的獨立 clone。linked worktree 的 metadata 在主資料夾 `.git` 裡、junction 的 `node_modules` 沙盒寫不進去，都會讓 Codex 在開工前卡住（2026-10-26 R1 卡了三次）。agy 代理在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，agy 代理和 Codex 共用這個限制。
 - **git 擁有者檢查**：獨立 clone 在 Codex 沙盒裡會被判定 dubious ownership，`git status` 等全部失敗，Luna 會照規定直接停下（2026-10-29 O6）。INV 要寫明「所有 git 指令一律 `git -c safe.directory=<工作樹> …`（單次參數，不改設定）」；測試裡呼叫 git 的也要帶這個參數（`MagicNumberBudget`、`ToolsReferenced`、`NoLocalHash` 已改）。
 - **沙盒限制要寫進提示詞**：workspace-write 沙盒連獨立 clone 的 `.git` 都唯讀，**Codex 不能 commit**（同 agy 代理，主代理代為 commit，訊息加 `Co-Authored-By: Codex`）。測試指令寫 `npx vitest run --exclude "**/AgentRunner.test.ts"`（那 2 項在沙盒內必失敗），主代理在沙盒外補跑完整 `npm test`。寫明「中途不要詢問；遇到停下條件就寫報告後結束」，非互動執行時它問了也沒人答（要答用 `task --resume-last`）。

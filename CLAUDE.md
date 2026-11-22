@@ -39,7 +39,7 @@
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
 | 可拆、有可跑驗收的實作包（含長時間、無人值守） | 不開子代理，主代理先加型別、先寫紅色驗收與提示詞，用 agy 逐包派（`agent-prompt` skill；不順利才改 IDE `/goal`） | 規格明確的 `gemini-4-neon-medium`、難或跨檔的 `gemini-4-neon-high`；大範圍、多檔、要讀很多再整理的 `gemini-pro-orchestrator-neon`。Gemini 池偏低或同一包兩次不及格收回 Claude：最下面一列的 Sonnet 子代理（全域 `agy-call`） |
 | 讀檔摘要、機械性改動、補測試、小而具體的包（一次 ≤3 個任務） | agy 的 Hydrogen（只讀加 `--mode plan`） | `gemini-4-hydrogen-high`；依全域 `agy-call` 檔位表 |
-| Codex：整包設計＋實作（給整包目標與驗收，不只給步驟）、美術與視覺（概念稿、畫面判讀、渲染截圖審查）、邏輯根因、跨模型第二意見 | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch`。沙盒不能 commit，由主代理審查後代為 commit | 實作 `gpt-6.1-sol`／xhigh（要加 `[codex-cost-ok]`）；看圖為主 `gpt-6-astra`；其餘依 skill |
+| Codex：整包設計＋實作（給整包目標與驗收，不只給步驟）、美術與視覺（概念稿、畫面判讀、渲染截圖審查）、邏輯根因、跨模型第二意見 | Codex，檔位表在全域 `codex-call` skill，本專案規則在 `codex-dispatch`。沙盒不能 commit，由主代理審查後代為 commit | 實作 `gpt-6.2-sol`／xhigh（要加 `[codex-cost-ok]`）；看圖為主 `gpt-6.2-astra`；其餘依 skill |
 | Gemini 池偏低、或 Neon 兩次不及格的實作包 | `general-purpose` 子代理，`model: sonnet`，在獨立 clone；prompt 開頭要求先讀 `AGENTS.md`（內建子代理讀不到本檔）。`worker` 有 3 檔上限，不適合 | Sonnet |
 
 **動手原則**（雲端工作階段讀不到全域憲法，這裡寫一份）：定調類工作（看截圖反覆調整、前後相依的一條鏈、一個上下文裝得下）由主代理自己做；能拆成互不相依、有明確目標圖或數字驗收的包才外派。誰外派、派給誰依全域憲法的「Fable 預算」與 `~/.claude/QUOTA.md`。

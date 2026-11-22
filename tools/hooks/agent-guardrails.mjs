@@ -66,7 +66,7 @@ function destructivePushReason(cmd) {
 
 // Codex（GPT）額度：使用者是 ChatGPT Plus，Astra 每 5 小時只有 5～45 則（全域 codex-call skill）
 const CODEX_COST_OK = '[codex-cost-ok]';
-const CODEX_TIERS = '檔位表（全域 codex-call skill）：大量讀檔／摘要 gpt-6-luna＋medium、長線實作 gpt-6.1-sol＋medium、跨模型審查 gpt-6.1-sol。';
+const CODEX_TIERS = '檔位表（全域 codex-call skill）：大量讀檔／摘要 gpt-6-luna＋medium、整包實作 gpt-6.2-sol＋xhigh（加 [codex-cost-ok]）、看圖為主 gpt-6.2-astra＋high、讀碼根因與跨模型審查 gpt-6.1-sol。';
 // 一段指令的開頭可帶環境變數、env、完整路徑（含引號包住的路徑，如 PowerShell 的 & "C:\…\node.exe"）
 const CMD_HEAD = String.raw`^\s*(?:env\s+)?(?:\w+=\S*\s+)*(?:"[^"]*[\\/]|'[^']*[\\/]|[^\s"']*[\\/])?`;
 const CODEX_TASK = new RegExp(`${CMD_HEAD}(?:node(?:\\.exe)?["']?\\s.*codex-companion\\.mjs["']?\\s+task\\b|codex(?:\\.exe)?["']?\\s+exec\\b)`, 'i');
