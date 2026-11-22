@@ -3,6 +3,8 @@
 > 範圍：專案架構盤點＋ `docs/HANDOFF.md` 全部待辦，排成可執行的包。
 > 執行者照本檔拆包做，不重新設計；覺得某包不合理就回報，不自己改方向。做完一包：`docs/WORKLOG.md` 加一節、`docs/HANDOFF.md` 刪對應項、本檔該包標「完成」。全部做完刪本檔。
 > 每個數字後面附產生它的指令；沒附的是讀程式碼的推論，會標「推論」。
+>
+> **2026-11-22 結案**：S1～S3、R1～R4、G2、G4、U1～U5、C1、C2 做完；G1 兩輪做完。剩下的 G1 收尾、G3 第二片、G5、工具佈陣收斂都移到 `docs/HANDOFF.md` §2（J、L），待辦以 HANDOFF 為準。本檔不刪：契約測試與 ADR 0014、0017～0022 引用它當出處，契約規則與各包作法仍以本檔為準。§3.1 是當時的交接，留作紀錄。
 
 ## 契約（2026-11-17 已定義，分支 `arch/contracts`）
 
@@ -99,20 +101,20 @@ R1 畫面插值（獨立，渲染線第一條）
 | S2 | 開戰快照＋種子＋引擎選項（完成） | 地基 | — | M | Opus 自己做 |
 | S3 | 回放播放器、seek／undo、回放檔當基準場景（完成） | 地基 | S2 | M～L | Opus 自己做 |
 | R1 | 畫面插值（先量再做；完成） | 渲染 | — | M | Opus 自己做（看圖定調） |
-| R2 | 對局流程移出 React（MatchFlow） | 渲染（生命週期） | S2 | L | Opus 設計＋紅色驗收，Sonnet 子代理補實作 |
-| R3 | 導播避讓手機底部 UI（HANDOFF E） | 渲染 | — | S | Opus 自己做 |
-| R4 | 嘲諷、加速零件的方向輸入；刪 `BarPainter` 舊控制條（HANDOFF A） | 渲染 | — | S | Sonnet 子代理，Opus 看圖 |
-| G1 | 技能平衡（HANDOFF J，併 A 的 AOE、G 的藍方勝率） | 邏輯 | S1 | L | Opus 自己做（判斷），批次模擬背景跑 |
+| R2 | 對局流程移出 React（MatchFlow；完成） | 渲染（生命週期） | S2 | L | Opus 設計＋紅色驗收，Sonnet 子代理補實作 |
+| R3 | 導播避讓手機底部 UI（HANDOFF E；完成） | 渲染 | — | S | Opus 自己做 |
+| R4 | 嘲諷、加速零件的方向輸入；刪 `BarPainter` 舊控制條（HANDOFF A；完成） | 渲染 | — | S | Sonnet 子代理，Opus 看圖 |
+| G1 | 技能平衡（HANDOFF J，併 A 的 AOE、G 的藍方勝率；兩輪做完，收尾移到 HANDOFF J） | 邏輯 | S1 | L | Opus 自己做（判斷），批次模擬背景跑 |
 | G2 | 施法目標與戰鬥目標分開，拆 `_savedCombatTarget`（完成） | 邏輯 | — | M | Opus 自己做 |
-| G3 | 玩家操控（HANDOFF L2 Controller） | 邏輯＋UI | G2、S3、U1 | L | Opus 自己做；UI 小包可派 Sonnet |
+| G3 | 玩家操控（HANDOFF L2 Controller；第一片完成，第二片移到 HANDOFF L） | 邏輯＋UI | G2、S3、U1 | L | Opus 自己做；UI 小包可派 Sonnet |
 | G4 | AI 圖鍵型別化、驗證、每職業 profile（完成） | 邏輯 | — | S～M | Sonnet 子代理 |
-| G5 | 行為編輯器（HANDOFF L4） | UI | G3、G4、U1 | L | 開工前由 Opus 另寫一頁設計給使用者看 |
-| U1 | `WindowDef` 布林改 `modes` | UI | — | S | agy Hydrogen 或 Sonnet |
-| U2 | bundle 切分、視窗延遲載入、體積預算 | UI | — | M | Sonnet 子代理 |
+| G5 | 行為編輯器（HANDOFF L4；移到 HANDOFF L） | UI | G3、G4、U1 | L | 開工前由 Opus 另寫一頁設計給使用者看 |
+| U1 | `WindowDef` 布林改 `modes`（完成） | UI | — | S | agy Hydrogen 或 Sonnet |
+| U2 | bundle 切分、視窗延遲載入、體積預算（完成） | UI | — | M | Sonnet 子代理 |
 | U3 | UI 小修：`testId`、`dbSignature`、平板縮放把手（完成） | UI | — | S | agy Hydrogen（三個小包） |
 | U4 | 技能下拉加搜尋（完成 2026-11-19，WORKLOG §2 CH） | UI | U2 | S | Sonnet 子代理（實際：agy Neon high） |
-| U5 | 熱路徑配置（先量再做） | 引擎 | — | S | Sonnet 子代理 |
-| C1 | 合約校正（repo 合約與全域憲法不一致） | 文件 | 使用者同意 | S | Opus 提案，使用者核可 |
+| U5 | 熱路徑配置（先量再做；量完結案） | 引擎 | — | S | Sonnet 子代理 |
+| C1 | 合約校正（repo 合約與全域憲法不一致；完成） | 文件 | 使用者同意 | S | Opus 提案，使用者核可 |
 | 美術 | `BLOOD`／`PHYSICAL` DoT 畫面、羊模型、聖印衝擊圖示 | 美術 | Codex 11/21 刷新 | — | 走 `art-round`，不在本檔展開 |
 
 建議順序：第一個工作階段 S1＋S2；第二個 S3；之後渲染線 R1 → R2 → R3 → R4，邏輯線 G1 → G2 → G3，UI 線 U1 → U2 → U3 隨時插空檔。
@@ -126,7 +128,7 @@ R1 畫面插值（獨立，渲染線第一條）
 
 ## 3.1 交接：下一個工作階段從這裡開始（2026-11-19，Fable 寫）
 
-**現況**：`main` 已含 S1～S3、C2、R1、R2、G2、G3 第一片與鏡頭標示、G4、U1～U4。契約只剩 R3 是 `pending`。還沒做的：R3、R4（渲染線）、U5、G1、G3 第二片、G5、C1、美術。**11-20 更新**：R3、C1、G1 第一輪已合併進 `main`，契約全部 `done`；剩 R4、U5、G1 第二輪（紅方強招查機制、大逃殺量測）、G3 第二片、G5、美術。
+**現況（11-20 的紀錄；最新狀態看 HANDOFF）**：`main` 已含 S1～S3、C2、R1、R2、G2、G3 第一片與鏡頭標示、G4、U1～U4。契約只剩 R3 是 `pending`。還沒做的：R3、R4（渲染線）、U5、G1、G3 第二片、G5、C1、美術。**11-20 更新**：R3、C1、G1 第一輪已合併進 `main`，契約全部 `done`；剩 R4、U5、G1 第二輪（紅方強招查機制、大逃殺量測）、G3 第二片、G5、美術。
 
 **開工先做兩件事**
 1. 查額度（`quota` skill）。11-19 的快照：週全部 60%、Fable 計量 79%、時間進度約 57%（約 11/22 重設）；Codex 11/21 00:40 重設。照這組數字 Fable 超前，只開案與終審，實作交 Sonnet／Opus；數字變了就照全域憲法「Fable 預算」重判。
