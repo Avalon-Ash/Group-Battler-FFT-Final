@@ -6,6 +6,7 @@ export const BT_NODE_LABEL: Readonly<Record<string, string>> = {
     'Hold': '堅守',
     'Obey Taunt': '被嘲諷：打嘲諷者',
     'Hold Ground': '原地堅守',
+    'Counter Attack': '反擊攻擊者',
     'Follow Order': '執行指令',
     'Order: Move': '指令：移動',
     'Order: Attack': '指令：攻擊',

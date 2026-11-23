@@ -6,7 +6,7 @@
 import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex, Skill } from "../../types";
 import { HexUtils } from "../utils";
-import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES } from "../../constants";
+import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM, TARGET_RULES, PLAY_PARAM } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isActionBlocked, isIncapacitated } from "../core/Effects";
 import { planDashLanding, planRetreatLanding } from "../systems/combat/LandingPlanner";
@@ -128,7 +128,7 @@ export type BTConditionKey =
     'HasEscapeRoute' | 'IsPinned' | 'IsInWarningZoneOrEvading' | 'SkillReady' |
     'ActivationMet' | 'FindOptimalTarget' | 'IsTargetInRange' | 'HasPushPullSkill';
 export type BTActionKey =
-    'ObeyTaunt' | 'HoldGround' | 'OrderMove' | 'OrderAttack' |
+    'ObeyTaunt' | 'CounterAttack' | 'HoldGround' | 'OrderMove' | 'OrderAttack' |
     'OrderCast' | 'Wait' | 'Idle' | 'EscapeWarning' |
     'CastSkill' | 'MoveToOptimal' | 'ChaseTarget' | 'Reposition' |
     'StrikeNearby' | 'Advance' | 'ForceJump' | 'CastPushPull';
@@ -457,6 +457,20 @@ export const BTActions: Record<BTActionKey, BTActionFn> = {
         // 別的招正在前搖：放完再說
         if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== basicIdx) return NodeState.RUNNING;
         return strikeOrChase(a, engine, taunter, basicIdx);
+    },
+    /**
+     * 反擊姿態（PLAY P7）：最後打自己的敵人還活著、在 PLAY_PARAM.COUNTER_LEASH_HEX 格內，就用普攻追著打；
+     * 不是反擊姿態、沒被打過、攻擊者死了或跑遠了 → FAILURE（交給堅守）。
+     */
+    "CounterAttack": (a, engine) => {
+        if (a.stance !== 'COUNTER' || a.lastHitSourceId === null) return NodeState.FAILURE;
+        const foe = engine.agents.find(o => o.id === a.lastHitSourceId);
+        const basicIdx = a.skills.findIndex(s => s?.tag === 'BASIC');
+        if (!foe || !isLiveEnemy(a, foe, engine) || basicIdx < 0) return NodeState.FAILURE;
+        if (HexUtils.dist(a, foe) > PLAY_PARAM.COUNTER_LEASH_HEX) return NodeState.FAILURE;
+        // 別的招正在前搖：放完再說
+        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== basicIdx) return NodeState.RUNNING;
+        return strikeOrChase(a, engine, foe, basicIdx);
     },
     /**
      * 沒有指令：原地堅守。不追、不逃；現在站的地方普攻打得到人就打，

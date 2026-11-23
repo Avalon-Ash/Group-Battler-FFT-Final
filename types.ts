@@ -204,7 +204,7 @@ export type EffectSlots = Record<EffectKind, EffectSlot>;
 
 
 import type { Agent } from './engine/core/Agent';
-import type { ControllerKind } from './types/Orders';
+import type { ControllerKind, Stance } from './types/Orders';
 import type { MatchPhase } from './types/Match';
 import type { AimState } from './types/Play';
 
@@ -462,6 +462,8 @@ export type UICommand =
     | { type: 'STOP_GAME' }
     /** 契約 G3：切換控制者與玩家指令（types/Orders.ts）。都是 GameCommand：戰鬥中排到 tick 開頭、進紀錄 */
     | { type: 'SET_CONTROLLER'; agentId: string; controller: ControllerKind }
+    /** 玩家單位沒有指令時的姿態（PLAY P7）；只收玩家控制的單位 */
+    | { type: 'SET_STANCE'; agentId: string; stance: Stance }
     | { type: 'ORDER_MOVE'; agentId: string; q: number; r: number }
     | { type: 'ORDER_ATTACK'; agentId: string; targetId: string }
     | { type: 'ORDER_CAST'; agentId: string; slot: number; targetId?: string; q?: number; r?: number }

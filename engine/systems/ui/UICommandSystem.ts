@@ -498,6 +498,13 @@ export class UICommandSystem {
                 break;
             }
 
+            case 'SET_STANCE': {
+                const agent = this.playerUnit(cmd.agentId);
+                if (!agent || (cmd.stance !== 'HOLD' && cmd.stance !== 'COUNTER')) break;
+                agent.stance = cmd.stance;
+                break;
+            }
+
             case 'ORDER_MOVE': {
                 const agent = this.playerUnit(cmd.agentId);
                 if (!agent || !Number.isInteger(cmd.q) || !Number.isInteger(cmd.r)) break;

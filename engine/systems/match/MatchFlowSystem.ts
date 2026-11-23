@@ -260,6 +260,8 @@ export class MatchFlowSystem {
         const id = this.heroId;
         if (hero === null || id === null) return;
         this.send({ type: 'SET_CONTROLLER', agentId: id, controller: 'PLAYER' });
+        // PLAY 的主角沒有指令時反擊（使用者 11-23）；手動模式的玩家單位維持堅守
+        this.send({ type: 'SET_STANCE', agentId: id, stance: 'COUNTER' });
         hero.skillIds?.forEach((skillId, slot) => {
             if (skillId !== undefined) this.send({ type: 'SET_AGENT_SKILL', agentId: id, slot, skillId });
         });

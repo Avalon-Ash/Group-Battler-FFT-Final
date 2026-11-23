@@ -3,7 +3,7 @@
 // 生命週期（存檔／重置）在 AgentLifecycle.ts；其他邏輯請移至對應 System。
 
 import { Skill, Hex, BodyTypeId, EffectSlots, SpecialVisualStatus, AgentView, FactionLook } from "../../types";
-import type { ControllerKind, Order } from "../../types";
+import type { ControllerKind, Order, Stance } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import type { AIMode } from "../../types";
 import { RagdollBone } from "../types/ragdoll";
@@ -68,6 +68,8 @@ export class Agent {
     public castTarget: Agent | null = null;
     /** [契約 G3] 控制者：決定用哪一張模式圖。唯一寫入者 UICommandSystem（SET_CONTROLLER） */
     public controller: ControllerKind = 'AI';
+    /** 玩家單位沒有指令時的姿態（PLAY P7；唯一寫入者 UICommandSystem 的 SET_STANCE，見 AgentOwnership） */
+    public stance: Stance = 'HOLD';
     /** [契約 G3] 玩家指令（null＝沒有）。ORDER_* 指令寫入，玩家圖的執行節點在完成時清掉 */
     public order: Order | null = null;
     public aiState: AIState = AIState.IDLE;

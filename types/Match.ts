@@ -4,7 +4,7 @@
 
 import type { Team, Role, Skill, ZoneConfig, BattleSetup, HexLayout, BodyTypeId, FactionLook } from '../types';
 import type { CommandRecord } from '../engine/core/CommandQueue';
-import type { ControllerKind, Order } from './Orders';
+import type { ControllerKind, Order, Stance } from './Orders';
 
 /** 開戰瞬間的一個單位。其餘欄位（速度、跳躍、技能物件、行為樹）由職業與 skillIds 導出，不存。 */
 interface MatchUnitSnapshot {
@@ -22,6 +22,8 @@ interface MatchUnitSnapshot {
     look: FactionLook;
     /** 控制者（契約 G3）；省略＝AI */
     controller?: ControllerKind;
+    /** 沒有指令時的姿態（PLAY P7）；省略＝HOLD */
+    stance?: Stance;
     /** 開戰前下的指令（契約 G3）；省略＝沒有。開戰後的指令在指令紀錄裡，不在這 */
     order?: Order;
     /** AI 決策間隔（生成或重置時抽的抖動，會影響模擬） */

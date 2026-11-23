@@ -2537,6 +2537,7 @@
   "PLAY_PARAM": {
     "AIM_SLOWMO_FACTOR": 0.3,
     "FACTIONS": 2,
-    "UNITS_PER_SIDE": 5
+    "UNITS_PER_SIDE": 5,
+    "COUNTER_LEASH_HEX": 8
   }
 }

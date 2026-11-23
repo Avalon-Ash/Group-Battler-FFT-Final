@@ -111,6 +111,8 @@ export const PLAY_PARAM = {
     /** 一場 PLAY 幾個陣營、每邊幾人（主角算在藍方裡；實際人數仍會被地圖的出生格總池夾住） */
     FACTIONS: 2,
     UNITS_PER_SIDE: 5,
+    /** 反擊姿態（Stance COUNTER）只追這個距離內的攻擊者（格）；依賴：遠程普攻射程約 4～6 格，要追得到它 */
+    COUNTER_LEASH_HEX: 8,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

@@ -189,6 +189,8 @@ export const PLAYER_MODE_GRAPH: AuthoredModeGraph = {
                 name: 'Hold',
                 children: [
                     { type: 'ACTION', name: 'Obey Taunt', key: 'ObeyTaunt' },
+                    // 反擊姿態才會成功；預設的堅守姿態直接 FAILURE，行為和契約 G3 一樣
+                    { type: 'ACTION', name: 'Counter Attack', key: 'CounterAttack' },
                     { type: 'ACTION', name: 'Hold Ground', key: 'HoldGround' },
                 ],
             },

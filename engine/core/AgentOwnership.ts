@@ -153,6 +153,13 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/core/MatchSnapshot.ts'],
         note: '控制者（契約 G3）：決定這個單位用 AI 圖還是玩家圖。只由 SET_CONTROLLER 改；還原開戰快照時照快照寫回。',
     },
+    stance: {
+        group: 'ai',
+        kind: 'single',
+        owners: ['engine/systems/ui/UICommandSystem.ts'],
+        lifecycle: ['engine/core/MatchSnapshot.ts'],
+        note: '玩家單位沒有指令時的姿態（PLAY P7）：只由 SET_STANCE 改；還原開戰快照時照快照寫回。',
+    },
     aiMode: {
         group: 'ai',
         kind: 'single',

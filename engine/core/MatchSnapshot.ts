@@ -67,6 +67,7 @@ export function captureMatch(engine: GameEngine): MatchSnapshot {
             ...(a.bodyType !== undefined ? { bodyType: a.bodyType } : {}),
             look: { ...a.look },
             ...(a.controller !== 'AI' ? { controller: a.controller } : {}),
+            ...(a.stance !== 'HOLD' ? { stance: a.stance } : {}),
             ...(a.order ? { order: { ...a.order } } : {}),
             aiUpdateInterval: a.aiUpdateInterval,
         })),
@@ -117,6 +118,7 @@ export function restoreMatch(engine: GameEngine, snapshot: MatchSnapshot): void 
         a.maxMp = u.maxMp;
         a.aiUpdateInterval = u.aiUpdateInterval;
         a.controller = u.controller ?? 'AI';
+        a.stance = u.stance ?? 'HOLD';
         if (u.order) issueOrder(a, { ...u.order });
         saveAgentState(a);
     }

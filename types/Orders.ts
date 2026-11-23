@@ -5,6 +5,13 @@
 export type ControllerKind = 'AI' | 'PLAYER';
 
 /**
+ * 玩家單位沒有指令時的姿態（PLAY 模式 P7，docs/plans/play-mode.md）：
+ *  - HOLD：原地堅守（契約 G3 的預設），射程內有敵人才普攻。
+ *  - COUNTER：堅守，但被敵人打了就去打最後打自己的那個（PLAY_PARAM.COUNTER_LEASH_HEX 格內），打完回堅守。
+ */
+export type Stance = 'HOLD' | 'COUNTER';
+
+/**
  * 玩家單位目前的指令（Agent.order；null＝沒有指令）。
  *  - MOVE：走到那一格；到了就清掉。走不到（被擋、被定身）時保留，能走了再走。
  *  - ATTACK：鎖定這個目標並用普攻打它（不在射程內就靠近）；目標死亡或消失就清掉。
