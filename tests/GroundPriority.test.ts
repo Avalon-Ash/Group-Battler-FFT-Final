@@ -18,6 +18,11 @@ describe('ground fill priority', () => {
         expect(resolveGroundLayers(F.Hazard | F.Status)).toMatchObject({ hazard: 1, status: 0.25 });
         expect(resolveGroundLayers(F.Status | F.Zone | F.Light)).toMatchObject({ status: 1, zone: 0, light: 0 });
     });
+    it('range edge yields to a cast footprint on the same cell (PLAY aim preview sits inside the range wash)', () => {
+        expect(resolveGroundLayers(F.Range)).toMatchObject({ range: 1 });
+        expect(resolveGroundLayers(F.Range | F.Cast)).toMatchObject({ range: 0, cast: 1 });
+    });
+
     it('allows at most one full fill for all 256 combinations, including ties', () => {
         for (let flags = 0; flags < F.Range * 2; flags++) {
             const m = resolveGroundLayers(flags);

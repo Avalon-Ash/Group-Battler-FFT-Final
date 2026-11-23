@@ -15,7 +15,7 @@ import {
     queryWorldAtScreenPoint,
 } from '../engine/systems/ui/editorQueries';
 import { pickAgentAt } from './pickAgentAt';
-import { resolveTap } from '../engine/systems/ui/tapIntent';
+import { resolveTap, hoverHexOf } from '../engine/systems/ui/tapIntent';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
 export interface DraggedObstacle {
@@ -120,7 +120,7 @@ export const useGameInput = (props: GameInputProps) => {
             // 尚未按過指標時也要更新懸停格（放置預覽、格子高亮）
             if (activePointers.current.size === 0) {
                 const hover = getHexFromEvent(e.clientX, e.clientY);
-                hoveredHexRef.current = (hover && queryIsValidHex(engine, hover.q, hover.r)) ? hover : null;
+                hoveredHexRef.current = hoverHexOf(engine, configRef.current.selectedAgent, hover, () => getAgentFromEvent(e, hover) ?? null);
             }
             return;
         }
@@ -128,7 +128,7 @@ export const useGameInput = (props: GameInputProps) => {
         const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
         const dx = sx - lastPointerPos.current.x, dy = sy - lastPointerPos.current.y;
         const h = getHexFromEvent(e.clientX, e.clientY);
-        hoveredHexRef.current = (h && queryIsValidHex(engine, h.q, h.r)) ? h : null;
+        hoveredHexRef.current = hoverHexOf(engine, configRef.current.selectedAgent, h, () => getAgentFromEvent(e, h) ?? null);
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
             const driftThreshold = e.pointerType === 'touch' ? GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX : GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;

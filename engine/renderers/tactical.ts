@@ -16,7 +16,7 @@ import { RenderList } from "./RenderList";
 import { GridRenderStrategy } from "./grid/GridRenderStrategy";
 import { GridCache } from "./grid/GridCache";
 import { sameSide } from '../core/Allegiance';
-import { queryCastTargeting } from '../systems/ui/castTargeting';
+import { aimedCast } from '../systems/ui/castTargeting';
 
 export interface RenderCamera {
     x: number;
@@ -60,10 +60,10 @@ export class TacticalRenderer {
     public update(dt: number, engine: GameEngine) {
     }
 
-    public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number, frames: UnitFrameStore) {
+    public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number, frames: UnitFrameStore, hoveredHex: Hex | null = null) {
         ctx.save();
         this.drawPlayerRings(ctx, engine, globalTime, frames);
-        this.drawAimTargets(ctx, engine, globalTime, frames);
+        this.drawAimTargets(ctx, engine, globalTime, frames, hoveredHex);
         const hFrame = highlight && highlight.hp > 0 ? frames.get(highlight) : undefined;
         if (highlight && hFrame) {
             // 單位的腳下高度一律來自 UnitFrame（含漂浮位移與移動過渡）；路徑格的高度維持以格為單位
@@ -143,15 +143,15 @@ export class TacticalRenderer {
     }
 
     /**
-     * PLAY 瞄準中（engine.state.aim）：這一招點得下去的單位腳下畫一圈（敵方紅、友方綠）。
-     * 「能點誰」讀 queryCastTargeting（和 HUD、點擊同一個判斷）；位置讀 UnitFrame。沒有瞄準時什麼都不畫。
+     * PLAY 瞄準中（engine.state.aim）：這一招點得下去的單位腳下畫一圈（敵方紅、友方綠）；
+     * 游標格（tapIntent.hoverHexOf：點下去會施放的位置）上的那一個畫粗、不脈動，表示點下去打它。
+     * 「能點誰」讀 aimedCast／queryCastTargeting（和 HUD、點擊同一個判斷）；位置讀 UnitFrame。沒有瞄準時什麼都不畫。
      */
-    private drawAimTargets(ctx: CanvasRenderingContext2D, engine: GameEngine, globalTime: number, frames: UnitFrameStore): void {
-        const aim = engine.state.aim;
-        if (!aim) return;
-        const hero = engine.agents.find((a) => a.id === aim.agentId);
-        const targeting = hero ? queryCastTargeting(engine, hero, aim.slot) : null;
-        if (!hero || !targeting) return;
+    private drawAimTargets(ctx: CanvasRenderingContext2D, engine: GameEngine, globalTime: number, frames: UnitFrameStore, hoveredHex: Hex | null): void {
+        const aimed = aimedCast(engine);
+        if (!aimed) return;
+        const { hero, targeting } = aimed;
+        const focus = hoveredHex ? engine.getAgentAt(hoveredHex.q, hoveredHex.r) : undefined;
         const alpha = TACTICAL_DRAW.AIM_RING_ALPHA_BASE + Math.sin(globalTime * TACTICAL_DRAW.PLAYER_RING_PULSE_SPEED) * TACTICAL_DRAW.AIM_RING_ALPHA_PULSE;
         for (const id of targeting.unitIds) {
             const unit = engine.agents.find((a) => a.id === id);
@@ -163,8 +163,9 @@ export class TacticalRenderer {
             ctx.beginPath();
             ctx.arc(0, 0, TACTICAL_DRAW.AIM_RING_RADIUS, 0, Math.PI * 2);
             ctx.strokeStyle = sameSide(unit, hero) ? TACTICAL_COLORS.TARGET_ALLY : TACTICAL_COLORS.TARGET_ENEMY;
-            ctx.lineWidth = TACTICAL_DRAW.AIM_RING_WIDTH;
-            ctx.globalAlpha = alpha;
+            const focused = unit === focus;
+            ctx.lineWidth = focused ? TACTICAL_DRAW.AIM_RING_FOCUS_WIDTH : TACTICAL_DRAW.AIM_RING_WIDTH;
+            ctx.globalAlpha = focused ? 1 : alpha;
             ctx.stroke();
             ctx.restore();
         }

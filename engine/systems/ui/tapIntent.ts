@@ -71,3 +71,24 @@ export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex 
     }
     return { kind: 'NONE' };
 }
+
+/**
+ * 游標停在這裡時要標的格子（給戰場的滑過格、範圍預覽與目標圈）。
+ * 沒在瞄準：游標所在的格子（地圖外是 null）。瞄準中：這時點下去會施放的位置——點到的單位所在的格子
+ * 或那一格地面；點了不會施放就是 null。和點擊用同一個 resolveTap，預覽一定等於點擊。
+ * @param tapped 取指標下的單位（和點擊同一個 pickAgentAt）；只在瞄準中才呼叫
+ */
+export function hoverHexOf(engine: GameEngine, selected: Agent | null, hex: Hex | null, tapped: () => Agent | null): Hex | null {
+    const aim = engine.state.aim;
+    if (aim === null || selected === null || aim.agentId !== selected.id) {
+        return hex && engine.isValid(hex.q, hex.r) ? hex : null;
+    }
+    const intent = resolveTap(engine, selected, hex, tapped());
+    if (intent.kind !== 'ORDER' || intent.command.type !== 'ORDER_CAST') return null;
+    const cmd = intent.command;
+    if (cmd.targetId !== undefined) {
+        const unit = engine.agents.find((a) => a.id === cmd.targetId);
+        return unit ? { q: unit.q, r: unit.r } : null;
+    }
+    return cmd.q !== undefined && cmd.r !== undefined ? { q: cmd.q, r: cmd.r } : null;
+}

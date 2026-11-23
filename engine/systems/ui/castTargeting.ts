@@ -12,7 +12,7 @@
 import type { GameEngine } from '../../game';
 import type { Agent } from '../../core/Agent';
 import type { CastTargeting, Skill } from '../../../types';
-import { skillTeams, isSkillTarget } from '../../core/SkillQueries';
+import { skillTeams, isSkillTarget, castMotion } from '../../core/SkillQueries';
 
 /** 主角第 slot 槽的技能；槽位不合法或空著是 null */
 function slotSkill(engine: GameEngine, hero: Agent, slot: number): Skill | null {
@@ -22,19 +22,25 @@ function slotSkill(engine: GameEngine, hero: Agent, slot: number): Skill | null 
 }
 
 /**
- * 選目標的方式：射程 0 對自己（按一下就放）；機動技可點地面（往那裡位移）；範圍技可點地面；其他點單位。
- * 射程 0 要先判斷：機動技裡射程 0 的是以自身為中心的擊退（tb_m2、mb_m2 等），沒有位移；
- * 若給它點地面，施放指令要站上那一格（射程 0）才放，走不到就一直卡著。
+ * 選目標的方式：射程 0 對自己（按一下就放）；範圍技可點地面；其他點單位。
+ * 機動技依出手時實際怎麼動（castMotion，使用者 2026-11-24 選）：往目標去（突進、瞬移）＝可點地面；
+ * 後撤＝按一下就放（退的方向由引擎依威脅決定，和點哪裡無關）；不動自己的（鉤拉、擊退）照一般規則，
+ * 單體只能點單位（點地面等於對空地放）。
+ * 射程 0 要先判斷：施放指令要站上那一格才放，給射程 0 的招點地面會走不到而一直卡著。
  */
 function targetModeOf(skill: Skill): CastTargeting['mode'] {
     if (skill.range === 0) return 'SELF';
-    if (skill.tag === 'MOBILITY') return 'UNIT_OR_GROUND';
+    if (skill.tag === 'MOBILITY') {
+        const motion = castMotion(skill);
+        if (motion === 'BACK') return 'SELF';
+        if (motion === 'TOWARD') return 'UNIT_OR_GROUND';
+    }
     return skill.type === 'AOE' ? 'UNIT_OR_GROUND' : 'UNIT';
 }
 
 /**
  * 主角第 slot 槽現在的選目標規則；那一槽沒有技能（或 slot 超出範圍）是 null。
- *  - 射程 0 的技能（含機動技）：SELF；其餘的範圍技（type AOE）與機動技（tag MOBILITY）：UNIT_OR_GROUND；其他：UNIT。
+ *  - 射程 0 的技能與後撤類機動技：SELF；範圍技（type AOE）與往目標位移的機動技：UNIT_OR_GROUND；其他：UNIT。
  *  - unitIds：活著、還在場上、陣營符合 teams 的單位（ENEMY 不含自己；ALLY、ANY 含自己），依 engine.agents 的順序。
  */
 export function queryCastTargeting(engine: GameEngine, hero: Agent, slot: number): CastTargeting | null {
@@ -47,6 +53,20 @@ export function queryCastTargeting(engine: GameEngine, hero: Agent, slot: number
         range: skill.range,
         unitIds: engine.agents.filter((a) => isCastTarget(engine, hero, slot, a)).map((a) => a.id),
     };
+}
+
+/**
+ * 正在瞄準的主角與那一招（engine.state.aim）；沒在瞄準、主角不在、那一槽空著是 null。
+ * 戰場上的射程格、範圍預覽（GridRenderStrategy）與目標圈（TacticalRenderer）都讀它，不各自解析 aim。
+ */
+export function aimedCast(engine: GameEngine): { hero: Agent; skill: Skill; targeting: CastTargeting } | null {
+    const aim = engine.state.aim;
+    if (!aim) return null;
+    const hero = engine.agents.find((a) => a.id === aim.agentId);
+    if (!hero) return null;
+    const skill = slotSkill(engine, hero, aim.slot);
+    const targeting = queryCastTargeting(engine, hero, aim.slot);
+    return skill && targeting ? { hero, skill, targeting } : null;
 }
 
 /**

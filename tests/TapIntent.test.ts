@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/core/Agent';
-import { resolveTap } from '../engine/systems/ui/tapIntent';
+import { resolveTap, hoverHexOf } from '../engine/systems/ui/tapIntent';
 import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
 import { buildBattle, emit } from './contracts/simState';
 
@@ -75,5 +75,46 @@ describe('resolveTap', () => {
         if (move.kind !== 'ORDER') throw new Error('expected an order');
         emit(e, move.command);
         expect(hero.order).toEqual({ type: 'MOVE', q: dest.q, r: dest.r });
+    });
+});
+
+/** 瞄準引導的游標格：預覽必須等於點擊（同一個 resolveTap），範圍預覽與目標加粗都讀它 */
+describe('hoverHexOf', () => {
+    const aimSetup = () => {
+        const { e, hero, friend, foe } = setup();
+        emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'PLAYER' });
+        const aoe = e.skillDB.find((s) => s.type === 'AOE' && s.range > 0 && s.tag !== 'MOBILITY');
+        const hit = e.skillDB.find((s) => s.type === 'SINGLE' && s.range > 0 && s.teams === undefined && s.power > 0 && s.tag !== 'MOBILITY');
+        if (!aoe || !hit) throw new Error('資料庫缺範圍技或單體傷害技');
+        emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 1, skillId: aoe.id });
+        emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 2, skillId: hit.id });
+        return { e, hero, friend, foe };
+    };
+
+    it('沒在瞄準：就是游標所在的格子，地圖外是 null；不去取指標下的單位', () => {
+        const { e, hero } = aimSetup();
+        const empty = emptyHex(e);
+        const never = () => { throw new Error('沒瞄準時不該取單位'); };
+        expect(hoverHexOf(e, hero, empty, never)).toEqual(empty);
+        expect(hoverHexOf(e, hero, { q: 999, r: 999 }, never)).toBeNull();
+        expect(hoverHexOf(e, hero, null, never)).toBeNull();
+    });
+
+    it('瞄準單體技：停在敵人身上＝敵人的格子；停在空地或隊友身上＝null（點了不會施放）', () => {
+        const { e, hero, friend, foe } = aimSetup();
+        emit(e, { type: 'SET_AIM', aim: { agentId: hero.id, slot: 2 } });
+        const empty = emptyHex(e);
+        expect(hoverHexOf(e, hero, empty, () => foe)).toEqual({ q: foe.q, r: foe.r });
+        expect(hoverHexOf(e, hero, empty, () => null)).toBeNull();
+        expect(hoverHexOf(e, hero, friend, () => friend)).toBeNull();
+    });
+
+    it('瞄準範圍技：停在空地＝那一格；停在敵人身上＝敵人的格子（和 resolveTap 的施放位置一致）', () => {
+        const { e, hero, foe } = aimSetup();
+        emit(e, { type: 'SET_AIM', aim: { agentId: hero.id, slot: 1 } });
+        const empty = emptyHex(e);
+        expect(hoverHexOf(e, hero, empty, () => null)).toEqual(empty);
+        expect(resolveTap(e, hero, empty, null)).toMatchObject({ kind: 'ORDER', command: { q: empty.q, r: empty.r } });
+        expect(hoverHexOf(e, hero, empty, () => foe)).toEqual({ q: foe.q, r: foe.r });
     });
 });

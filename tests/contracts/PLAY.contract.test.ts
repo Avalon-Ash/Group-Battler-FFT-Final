@@ -235,7 +235,6 @@ describe('契約 P5 選目標規則', () => {
             aoe: pick('有射程的範圍技', (s) => s.type === 'AOE' && s.range > 0),
             hit: pick('單體傷害技', (s) => s.type === 'SINGLE' && s.range > 0 && s.teams === undefined && s.power > 0),
             heal: pick('單體治療技', (s) => s.type === 'SINGLE' && s.range > 0 && s.teams === undefined && s.power < 0),
-            mobility: pick('機動技', (s) => s.tag === 'MOBILITY'),
         };
     };
     /** 主角＝藍方第一個單位、玩家控制；四槽換成：自身、範圍、單體傷害、單體治療（開戰前，讀 skillIds） */
@@ -266,10 +265,19 @@ describe('契約 P5 選目標規則', () => {
         expect(queryCastTargeting(e, hero, 3)).toMatchObject({ slot: 3, mode: 'UNIT', teams: 'ALLY', range: heal.range });
     });
 
-    contractTest('P5', '機動技＝UNIT_OR_GROUND（點地面往那裡位移）', () => {
-        const { e, hero, mobility } = setup();
-        emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 3, skillId: mobility.id });
-        expect(queryCastTargeting(e, hero, 3)).toMatchObject({ slot: 3, mode: 'UNIT_OR_GROUND', range: mobility.range });
+    // 使用者 2026-11-24：機動技照出手時實際怎麼動分三種（探針：鉤拉、擊退點地面等於對空地放；後撤方向和點哪裡無關）
+    contractTest('P5', '機動技：往目標位移＝UNIT_OR_GROUND；後撤＝SELF；不動自己的單體技＝UNIT', () => {
+        const { e, hero } = setup();
+        const motionOf = (s: Skill) => (s.onCast ?? []).map((a) => a.action);
+        const mob = e.skillDB.filter((s) => s.tag === 'MOBILITY' && s.range > 0);
+        const toward = mob.find((s) => motionOf(s).includes('DASH'));
+        const back = mob.find((s) => motionOf(s).includes('RETREAT'));
+        const still = mob.find((s) => motionOf(s).length === 0 && s.type === 'SINGLE');
+        if (!toward || !back || !still) throw new Error('資料庫缺少突進、後撤或不動的單體機動技');
+        for (const [s, mode] of [[toward, 'UNIT_OR_GROUND'], [back, 'SELF'], [still, 'UNIT']] as const) {
+            emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 3, skillId: s.id });
+            expect(queryCastTargeting(e, hero, 3)).toMatchObject({ slot: 3, mode, range: s.range });
+        }
     });
 
     contractTest('P5', 'unitIds 和 isCastTarget 一致；ORDER_CAST 對名單內成立、名單外被拒', () => {

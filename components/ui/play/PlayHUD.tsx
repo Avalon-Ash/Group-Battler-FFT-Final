@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { UI_SETTINGS, UI_Z } from '../../../constants';
+import { TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
 import { SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
 import { selectHeroBar, type HeroBarView, type HeroSkillSlotView } from '../../../engine/systems/ui/views/play';
 import { useCommands, useView } from '../../../hooks/useEnginePort';
@@ -20,6 +20,12 @@ export interface PlayHUDProps {
 /** 觀戰時的倍率選項（在 UI_SETTINGS.TIME_SCALE 的範圍內） */
 const SPECTATE_SPEEDS: readonly number[] = [UI_SETTINGS.TIME_SCALE.default, 2, 4];
 const SLOT_KEYS: readonly string[] = ['1', '2', '3', '4'];
+/** 技能鈕頂端的對象色帶：和戰場上瞄準時的目標圈同一組顏色（敵紅、友綠），不限對象用主角標記的金色 */
+const TEAM_MARK_COLOR: Readonly<Record<HeroSkillSlotView['teams'], string>> = {
+    ENEMY: TACTICAL_COLORS.TARGET_ENEMY,
+    ALLY: TACTICAL_COLORS.TARGET_ALLY,
+    ANY: TACTICAL_COLORS.PLAYER_MARK,
+};
 
 export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
     const bar = useView(selectHeroBar);
@@ -108,6 +114,7 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
                                     {s.cooldownFrac > 0 && (
                                         <span aria-hidden className="absolute inset-x-0 bottom-0 bg-surface-base/60" style={{ height: `${s.cooldownFrac * 100}%` }} />
                                     )}
+                                    <span aria-hidden data-testid={`play-skill-mark-${s.slot}`} data-teams={s.teams} className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: TEAM_MARK_COLOR[s.teams] }} />
                                     <span className="absolute left-1 top-1 font-mono text-ui-label text-fg-muted">{SLOT_KEYS[s.slot]}</span>
                                     <span className="relative w-full truncate text-center text-ui-label">{s.name}</span>
                                 </Button>

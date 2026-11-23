@@ -125,9 +125,11 @@ export const GridOverlays = {
                 const R = G.RANGE;
                 const castColor = groundPriority.castColorAt(q, r);
                 if (castColor && layers.cast > 0) {
+                    ctx.globalCompositeOperation = R.CAST_BLEND;
                     ctx.globalAlpha = layers.cast;
                     drawTile(ctx, castColor, castColor, R.FILL_ALPHA, R.EDGE_ALPHA, R.CORE_ALPHA, size, layout);
                     ctx.globalAlpha = 1;
+                    ctx.globalCompositeOperation = 'screen';
                 }
                 if (layers.range > 0) drawTile(ctx, rangeColor, rangeColor, 0, R.EDGE_ALPHA, R.CORE_ALPHA, size, layout);
             }

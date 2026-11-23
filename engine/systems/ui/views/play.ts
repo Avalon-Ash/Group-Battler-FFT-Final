@@ -41,6 +41,8 @@ export interface HeroSkillSlotView {
     readonly tag: Skill['tag'];
     /** 選目標方式（castTargeting） */
     readonly mode: CastTargeting['mode'];
+    /** 對誰有效（castTargeting.teams）：HUD 的對象標記讀它 */
+    readonly teams: CastTargeting['teams'];
     /** 現在放不放得出來；不能放時的原因（SkillStateMachine.activationBlock，和 AI 同一個判斷） */
     readonly block: ActivationBlock | null;
     /** 冷卻剩幾成（0＝好了、1＝剛放） */
@@ -79,7 +81,7 @@ export function selectHeroBar(engine: GameEngine): HeroBarView | null {
         // 開戰前 skills 還是空的：activationBlock 讀 skills，開戰後才有意義
         const block = engine.battleStarted ? activationBlock(hero, slot) : null;
         const cooldownFrac = skill.cd > 0 ? quantize(Math.min(1, Math.max(0, (hero.curCDs[slot] || 0) / skill.cd))) : 0;
-        slots.push({ slot, name: skill.name, tag: skill.tag, mode: targeting.mode, block, cooldownFrac, cost: skill.cost });
+        slots.push({ slot, name: skill.name, tag: skill.tag, mode: targeting.mode, teams: targeting.teams, block, cooldownFrac, cost: skill.cost });
     });
     const aim = engine.state.aim;
     const view: HeroBarView = {

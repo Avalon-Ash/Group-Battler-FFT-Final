@@ -28,7 +28,8 @@ const layers: readonly GroundLayers[] = Array.from({ length: F.Range * 2 }, (_, 
     const cast = !!(flags & F.Cast), hazard = !!(flags & F.Hazard), status = !!(flags & F.Status);
     const higherThanZone = urgent || cast || hazard || status;
     return Object.freeze({
-        range: flags & F.Range ? 1 : 0,
+        // 射程只描格邊；同格有施法範圍時讓給範圍（兩者都是 screen 疊加的格邊，疊在一起會洗成白色、分不出來，PLAY 瞄準時範圍預覽一定落在射程裡）
+        range: flags & F.Range ? (cast ? 0 : 1) : 0,
         urgent: urgent ? 1 : 0,
         warning: flags & F.Warning ? (flags & F.LastStand ? 0 : 1) : 0,
         lastStand: flags & F.LastStand ? 1 : 0,

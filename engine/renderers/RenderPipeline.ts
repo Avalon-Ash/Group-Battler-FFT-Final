@@ -220,7 +220,7 @@ export class RenderPipeline {
             this.ultWorld.draw(ctx, battleTime);
         });
         CtxOpCounter.track('tactical-overlay', () => {
-            this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime, this.frames);
+            this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime, this.frames, hoveredHex);
         });
         
         // this.frames 已由 drawWorld() 建立（先於此處執行）

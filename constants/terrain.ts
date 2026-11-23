@@ -43,7 +43,9 @@ export const GRID_OVERLAY = {
      * FILL_ALPHA＝底色、EDGE_ALPHA＝內緣光、CORE_ALPHA＝細芯線；預警整格不透明度在 ALPHA_MIN～＋ALPHA_PULSE 間以 FREQ 律動。
      */
     WARNING: { FREQ: 5, ALPHA_MIN: 0.65, ALPHA_PULSE: 0.35, FILL: '#ff2a1f', EDGE: '#ffb0a6', FILL_ALPHA: 0.75, EDGE_ALPHA: 0.8, CORE_ALPHA: 0.45 },
-    RANGE: { FILL_ALPHA: 0.1, EDGE_ALPHA: 0.55, CORE_ALPHA: 0.3 },
+    /** 射程（只描格邊）與施法範圍（詠唱預警、PLAY 範圍預覽：底色＋格邊，施法者陣營色）。CAST_BLEND＝施法範圍的混合方式：
+     *  screen 在亮色地面（冰原、沙漠）上同色系會被洗掉看不見（2026-11-24 PLAY 截圖），所以施法範圍用一般疊加，射程維持 screen */
+    RANGE: { FILL_ALPHA: 0.35, EDGE_ALPHA: 0.55, CORE_ALPHA: 0.3, CAST_BLEND: 'source-over' as GlobalCompositeOperation },
     HOVER: { STROKE: '#ffffff', FILL_ALPHA: 0, EDGE_ALPHA: 0.6, CORE_ALPHA: 0.55 },
     /** 柔光格烘焙：倍率、底色與內緣半徑（格半徑比例）、內緣光線寬與模糊（px）、芯線寬、畫布邊距（px） */
     TILE: { BAKE_SCALE: 2, FILL_RADIUS: 0.95, EDGE_RADIUS: 0.86, EDGE_W: 3, EDGE_BLUR: 2.5, CORE_W: 0.8, PAD: 6 },

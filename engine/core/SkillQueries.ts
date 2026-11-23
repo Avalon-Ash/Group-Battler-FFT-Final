@@ -92,6 +92,16 @@ export function hasIntentIn(skill: Skill, intents: ReadonlySet<SkillIntent>): bo
     return false;
 }
 
+/** 出手時施法者自己怎麼位移（讀 onCast）：TOWARD＝往目標去（DASH 突進、BLINK 瞬移到目標身邊）、BACK＝往遠離目標的方向後撤（RETREAT）、null＝不動 */
+export type CastMotion = 'TOWARD' | 'BACK';
+export function castMotion(skill: Pick<Skill, 'onCast'>): CastMotion | null {
+    for (const a of skill.onCast ?? []) {
+        if (a.action === 'DASH' || a.action === 'BLINK') return 'TOWARD';
+        if (a.action === 'RETREAT') return 'BACK';
+    }
+    return null;
+}
+
 /** 這個職業、這一隊能帶的技能：職業相同，且技能沒有限定隊伍或限定的就是這一隊（生成單位與 PLAY 選主角共用） */
 export function roleSkills(db: readonly Skill[], role: Role, team: Team): Skill[] {
     return db.filter((s) => s.role === role && (s.team === undefined || s.team === team));

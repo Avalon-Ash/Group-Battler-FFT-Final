@@ -868,9 +868,10 @@
       "CORE_ALPHA": 0.45
     },
     "RANGE": {
-      "FILL_ALPHA": 0.1,
+      "FILL_ALPHA": 0.35,
       "EDGE_ALPHA": 0.55,
-      "CORE_ALPHA": 0.3
+      "CORE_ALPHA": 0.3,
+      "CAST_BLEND": "source-over"
     },
     "HOVER": {
       "STROKE": "#ffffff",
@@ -2392,7 +2393,8 @@
     "AIM_RING_RADIUS": 34,
     "AIM_RING_WIDTH": 3,
     "AIM_RING_ALPHA_BASE": 0.7,
-    "AIM_RING_ALPHA_PULSE": 0.3
+    "AIM_RING_ALPHA_PULSE": 0.3,
+    "AIM_RING_FOCUS_WIDTH": 6
   },
   "HUD_TEXT_MOTION": {
     "POOL_SIZE": 50,

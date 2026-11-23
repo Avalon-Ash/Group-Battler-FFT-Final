@@ -19,6 +19,7 @@ import { VisualMath } from "../../math/VisualMath";
 import { groundPriority, GroundFlag as F, isCasterCenteredTelegraph } from './GroundPriority';
 import { HAZARD_VISUALS } from '../../../data/vfx/hazard_visuals';
 import { STATUS_VISUALS } from '../../../data/vfx/status_visuals';
+import { aimedCast } from '../../systems/ui/castTargeting';
 
 export class GridRenderStrategy {
     private _unitPresence = new Set<string>();
@@ -65,6 +66,17 @@ export class GridRenderStrategy {
                         }
                     }
                 }
+            }
+        }
+
+        // PLAY 瞄準中：射程格改看瞄準的那一招與主角（同滑過技能時的射程格）；範圍技在游標格（已是「點下去會施放的位置」，
+        // tapIntent.hoverHexOf）畫出命中範圍，用和詠唱預警同一個 getImpactArea 與同一層 Cast 疊層
+        const aimed = aimedCast(engine);
+        const rangeSkill = aimed ? aimed.skill : hoveredSkill;
+        const rangeOwner = aimed ? aimed.hero : highlightAgent;
+        if (aimed && hoveredHex && aimed.skill.type === 'AOE') {
+            for (const c of engine.movement.targeting.getImpactArea(aimed.hero, hoveredHex, aimed.skill, engine)) {
+                groundPriority.addCast(c.q, c.r, aimed.hero);
             }
         }
 
@@ -116,7 +128,7 @@ export class GridRenderStrategy {
             op.oDanger = engine.zones.getZoneAt(q, r); 
             
             // Mix player hover range and AI casting AOE
-            const isHoverRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
+            const isHoverRange = this.checkIsRange(q, r, h, rangeSkill, rangeOwner, engine);
             const isCastAOE = groundPriority.castColorAt(q, r) !== undefined;
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const isWarning = engine.map.warningTiles.has(key);
@@ -147,7 +159,7 @@ export class GridRenderStrategy {
                 overlayOp.sortBias = 0;
                 overlayOp.tsize = HEX_SIZE;
                 overlayOp.oRange = isHoverRange || isCastAOE;
-                overlayOp.oRangeCol = hoveredSkill?.color || '';
+                overlayOp.oRangeCol = rangeSkill?.color || '';
                 overlayOp.oHover = isHover;
                 overlayOp.oWarning = isWarning;
                 overlayOp.oLastStand = isLastStand;

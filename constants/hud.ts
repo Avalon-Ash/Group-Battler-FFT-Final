@@ -384,6 +384,8 @@ export const TACTICAL_DRAW = {
     AIM_RING_WIDTH: 3,
     AIM_RING_ALPHA_BASE: 0.7,
     AIM_RING_ALPHA_PULSE: 0.3,
+    /** 游標下、點下去會打到的那一個目標圈線寬（px；比 AIM_RING_WIDTH 粗，不脈動） */
+    AIM_RING_FOCUS_WIDTH: 6,
     /** 既有目標連線離地高度（px） */
     TARGET_LIFT: 30,
     /** 目標連線實色起點（比例） */
