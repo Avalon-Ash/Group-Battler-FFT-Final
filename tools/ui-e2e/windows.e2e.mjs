@@ -1704,6 +1704,92 @@ const runAudioSettingsSuite = async () => {
     await ctx.close();
 };
 
+/** PLAY 模式（docs/plans/play-mode.md P4～P6）：主畫面 PLAY → 選主角 → HUD → 瞄準點敵人 → 施放指令 → 停下 → 暫停 → 結算 → 再來一場 → 回主畫面。桌機與手機各一次。 */
+const runPlaySuite = async () => {
+    for (const [tag, viewport] of [['desktop', { width: 1280, height: 800 }], ['phone', { width: 390, height: 844 }]]) {
+        console.log(`\n── PLAY mode (${tag})`);
+        const ctx = await browser.newContext({ viewport });
+        const page = await ctx.newPage();
+        page.setDefaultTimeout(15000);
+        page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message.slice(0, 300)));
+        page.on('console', (m) => {
+            if (m.type() === 'error' && !/favicon|404/.test(m.text())) consoleErrors.push('console.error: ' + m.text().slice(0, 200));
+        });
+        await page.goto(baseUrl);
+        await page.waitForSelector('[data-testid="showcase-play-btn"]');
+        await page.click('[data-testid="showcase-play-btn"]');
+        await page.waitForSelector('[data-testid="play-setup"]');
+        await page.click('[data-testid="play-role-RANGER"]');
+        await page.click('[data-testid="play-start-btn"]');
+        await page.waitForSelector('[data-testid="play-hud"]');
+        const start = await page.evaluate(() => {
+            const e = window.__TACTICAL_ENGINE__;
+            const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
+            return { role: hero?.role, controller: hero?.controller, stance: hero?.stance, hud: document.querySelector('[data-hud]')?.getAttribute('data-hud') };
+        });
+        ok(`PLAY ${tag}: the chosen hero is player-controlled and countering; tool bars hidden`, start.role === 'RANGER' && start.controller === 'PLAYER' && start.stance === 'COUNTER' && start.hud === 'off', JSON.stringify(start));
+        const hudBox = await page.locator('[data-testid="play-hud"]').boundingBox();
+        ok(`PLAY ${tag}: HUD fits inside the viewport`, !!hudBox && hudBox.x >= 0 && hudBox.x + hudBox.width <= viewport.width + 1, JSON.stringify(hudBox));
+
+        await page.click('[data-testid="play-skill-2"]');
+        const aim = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+        ok(`PLAY ${tag}: pressing a skill starts aiming`, aim?.slot === 2 && await page.locator('[data-testid="play-aim-hint"]').waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false), JSON.stringify(aim));
+        const foe = await page.evaluate(() => {
+            const e = window.__TACTICAL_ENGINE__;
+            const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
+            const canvas = document.querySelector('canvas');
+            const rect = canvas.getBoundingClientRect();
+            const cam = e.renderer.camera;
+            const inView = e.agents.filter((a) => a.side !== hero.side && a.hp > 0).map((a) => {
+                const h = e.map?.getTerrainHeight ? e.map.getTerrainHeight(a.q, a.r) : 0;
+                return { id: a.id, x: rect.left + (a.px - cam.x) * cam.zoom + rect.width / 2, y: rect.top + (a.py - h - cam.y) * cam.zoom + rect.height / 2 };
+            }).filter((p) => p.x > 20 && p.x < rect.width - 20 && p.y > 80 && p.y < rect.height - 220);
+            return inView[0] ?? null;
+        });
+        if (foe) {
+            await page.mouse.click(foe.x, foe.y);
+            await page.waitForTimeout(300);
+            const cast = await page.evaluate(() => {
+                const e = window.__TACTICAL_ENGINE__;
+                const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
+                // 射程內的話指令可能已經放完清掉：看指令紀錄
+                const logged = e.commands.log.some((r) => r.cmd.type === 'ORDER_CAST' && r.cmd.agentId === hero?.id && r.cmd.slot === 2);
+                return { logged, aim: e.state.aim };
+            });
+            ok(`PLAY ${tag}: tapping an enemy while aiming issues a cast order and ends aiming`, cast.logged && cast.aim === null, JSON.stringify(cast));
+        } else {
+            ok(`PLAY ${tag}: an enemy is on screen to aim at`, false, 'no enemy in view');
+        }
+        await page.keyboard.press('s');
+        await page.waitForTimeout(200);
+        const lastCmd = await page.evaluate(() => window.__TACTICAL_ENGINE__.commands.log.slice(-1)[0]?.cmd?.type);
+        ok(`PLAY ${tag}: S sends a stop order`, lastCmd === 'ORDER_STOP', String(lastCmd));
+        await page.keyboard.press(' ');
+        await page.waitForTimeout(200);
+        const paused = await page.evaluate(() => !window.__TACTICAL_ENGINE__.isRunning);
+        await page.keyboard.press(' ');
+        await page.waitForTimeout(200);
+        const resumed = await page.evaluate(() => window.__TACTICAL_ENGINE__.isRunning);
+        ok(`PLAY ${tag}: space pauses and resumes`, paused && resumed, JSON.stringify({ paused, resumed }));
+
+        await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
+        await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
+        const seed = await page.evaluate(() => window.__TACTICAL_ENGINE__.commands.matchStart?.seed);
+        ok(`PLAY ${tag}: the result screen shows an outcome`, ['WIN', 'LOSE', 'DRAW'].includes(await page.getAttribute('[data-testid="play-result"]', 'data-outcome')));
+        await page.click('[data-testid="play-next-btn"]');
+        await page.waitForSelector('[data-testid="play-hud"]');
+        const again = await page.evaluate((s) => ({ isPlay: window.__TACTICAL_ENGINE__.matchFlow.isPlay, newSeed: window.__TACTICAL_ENGINE__.commands.matchStart?.seed !== s }), seed);
+        ok(`PLAY ${tag}: next battle keeps PLAY with a new seed`, again.isPlay && again.newSeed, JSON.stringify(again));
+        await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
+        await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
+        await page.click('[data-testid="play-menu-btn"]');
+        await page.waitForSelector('[data-testid="showcase-play-btn"]');
+        const back = await page.evaluate(() => ({ isPlay: window.__TACTICAL_ENGINE__.matchFlow.isPlay, isShowcase: window.__TACTICAL_ENGINE__.matchFlow.isShowcase }));
+        ok(`PLAY ${tag}: main menu returns to the showcase`, !back.isPlay && back.isShowcase, JSON.stringify(back));
+        await ctx.close();
+    }
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -1721,6 +1807,7 @@ try {
     if (!filterOnly || filterOnly.includes('editor')) await runEditorSuite();
     if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
     if (!filterOnly || filterOnly.includes('audio-settings')) await runAudioSettingsSuite();
+    if (!filterOnly || filterOnly.includes('play')) await runPlaySuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));
