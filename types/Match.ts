@@ -67,6 +67,8 @@ export interface SessionView {
     readonly isShowcase: boolean;
     /** [契約 P1] PLAY 模式（一隻主角由玩家操控，docs/plans/play-mode.md） */
     readonly isPlay: boolean;
+    /** [契約 P1] PLAY 模式的主角單位 id；不在 PLAY 或還沒生成是 null */
+    readonly playHeroId: string | null;
     readonly winner: Team | null;
     readonly winnerId: string | null;
     readonly winnerSide: number | null;

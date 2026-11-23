@@ -469,9 +469,9 @@ export class UICommandSystem {
                 this.engine.director.viewInsets = sanitizeInsets(cmd);
                 break;
 
-            // [契約 P2] 選目標時放慢：state.time.aimFactor 的唯一寫入者（ADR 0025）
-            case 'SET_AIM_SLOWMO':
-                throw new ContractPending('P2', 'SET_AIM_SLOWMO');
+            // [契約 P2] 選目標：engine.state.aim 的唯一寫入者（ADR 0025）。只收玩家單位、有技能的槽，其他一律當取消
+            case 'SET_AIM':
+                throw new ContractPending('P2', 'SET_AIM');
 
             // [契約 G3] 玩家操控。這裡只驗證指令合不合法；指令的寫入在 engine/core/Orders.ts，執行在玩家模式圖（PLAYER_MODE_GRAPH）
             case 'SET_CONTROLLER': {

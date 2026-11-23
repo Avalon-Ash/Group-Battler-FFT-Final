@@ -18,7 +18,7 @@
 import { factorySkills } from "./core/MatchSnapshot";
 import type { MatchFlowSystem } from "./systems/match/MatchFlowSystem";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, BattleSetup, ActionState, SpatialHazard, SpatialProvider, Point } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, BattleSetup, ActionState, SpatialHazard, SpatialProvider, Point, AimState } from "../types";
 import { HexUtils, MapConfig } from "./utils";
 import { AUDIO, BT_RULES, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS, UI_SETTINGS } from "../constants";
 import { Agent } from "./core/Agent";
@@ -71,8 +71,9 @@ export class GameEngine implements SpatialProvider {
         spatialHazards: [] as SpatialHazard[],
         victory: { victoryTimer: 0, winningTeam: null as Team | null, winnerId: null as string | null, isFinishing: false },
         /** tick：已跑完的 tick 數（唯一寫入者 TimeSystem.tick；restart／clear 歸零），指令紀錄用它定位 */
-        /** aimFactor：選目標時的放慢倍率（[契約 P2]，唯一寫入者 UICommandSystem 的 SET_AIM_SLOWMO，ADR 0025）；每幀跑幾個 tick 看 effectiveTimeScale，不影響模擬結果 */
-        time: { battleTime: 0, tick: 0, timeScale: 1.0, targetTimeScale: 1.0, aimFactor: 1.0 },
+        time: { battleTime: 0, tick: 0, timeScale: 1.0, targetTimeScale: 1.0 },
+        /** [契約 P2] 正在選目標（ADR 0025）：唯一寫入者 UICommandSystem（SET_AIM；開新的一場、RESET_GAME 取消）。表現層讀它畫高亮，遊戲迴圈讀它放慢；不影響模擬結果 */
+        aim: null as AimState | null,
         isLastStand: false,
         finalHex: null as Hex | null
     };

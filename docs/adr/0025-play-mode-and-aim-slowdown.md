@@ -1,4 +1,4 @@
-# 0025 PLAY 模式與瞄準放慢的倍率擁有者
+# 0025 PLAY 模式、瞄準狀態與放慢的擁有者
 
 狀態：採用
 日期：2026-11-23
@@ -12,14 +12,16 @@ G3 第一片（ADR 0022）讓玩家在手動模式的 Inspector 接手一個單�
 ## 決定
 
 - PLAY 是獨立的應用模式（`AppMode` 的 `'PLAY'`）：流程由 `MatchFlowSystem` 的一個分支負責（選主角 → 佈陣 → 開戰 → 結算 → 再來一場），佈陣用 `engine/systems/match/Deployment.ts`，不另寫一份。手動模式維持編輯用途。
-- 瞄準放慢是另一個倍率因子 `state.time.aimFactor`，唯一寫入者是 `UICommandSystem` 的 `SET_AIM_SLOWMO`（畫面指令，不進紀錄）。每幀跑幾個固定步長 tick 用 `timeScale × aimFactor` 計算。`targetTimeScale` 的三個既有寫入者不動，也不新增寫入者。
-- 「哪個技能正在選目標」是 UI 狀態，只存在 React 端；引擎只收到最後的 `ORDER_CAST`。可選目標的判斷是 `engine/systems/ui/` 的一個純函式，HUD 與戰場高亮共用。
+- 「哪個玩家單位的第幾槽正在選目標」存在引擎 `engine.state.aim`，唯一寫入者是 `UICommandSystem`：`SET_AIM`（畫面指令，不進紀錄；只收玩家單位、有技能的槽），開新的一場與 `RESET_GAME` 時取消。Canvas 疊層與 React HUD 讀同一份。
+- 放慢不是另一個寫入的倍率：`effectiveTimeScale(state)` 由 `aim` 推導（瞄準中乘 `PLAY_PARAM.AIM_SLOWMO_FACTOR`），遊戲迴圈的固定步長與表現層拆時間都用它。`targetTimeScale` 的三個既有寫入者不動，也不新增寫入者。
+- 「這招能點誰」只在 `engine/systems/ui/castTargeting.ts` 的 `isCastTarget` 判斷，HUD、疊層、`resolveTap`、`ORDER_CAST` 的驗證共用。
 - PLAY 模式不提供 undo；undo 留在手動模式與回放。
 
 ## 放棄的做法
 
 - 在手動模式裡接手後換一套操作介面：工具視窗與遊戲 HUD 混在同一個模式，`WindowDef.modes` 分不開。
 - 瞄準時送 `SET_TIME_SCALE`：會蓋掉玩家選的倍率與結算慢動作，取消瞄準時也不知道該還原成多少。
+- 瞄準狀態只放 React（初版）：Canvas 疊層讀不到；放慢的倍率要另存一份，結算、離開 PLAY 時沒人重設（Fable 終審 2026-11-23）。
 - 整場放慢：會改變一場的時長與平衡量測的意義。
 
 ## 後果

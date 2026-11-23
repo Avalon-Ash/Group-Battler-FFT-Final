@@ -17,9 +17,15 @@ export interface PlayHero {
  * 一個技能槽怎麼選目標：
  *  - SELF：射程 0，按下就對自己放，不用選目標。
  *  - UNIT：點一個單位（敵友看 teams）。
- *  - UNIT_OR_GROUND：範圍技，可以點單位或地面格。
+ *  - UNIT_OR_GROUND：範圍技與機動技，可以點單位或地面格（機動技點地面＝往那裡位移）。
  */
 type CastTargetMode = 'SELF' | 'UNIT' | 'UNIT_OR_GROUND';
+
+/** 正在選目標：哪個玩家單位的第幾槽（[契約 P2]，engine.state.aim；null＝沒有在瞄準） */
+export interface AimState {
+    readonly agentId: string;
+    readonly slot: number;
+}
 
 /** 主角某一槽現在的選目標規則：HUD 的瞄準狀態與戰場高亮共用，判斷只在 queryCastTargeting。 */
 export interface CastTargeting {

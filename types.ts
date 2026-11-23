@@ -206,6 +206,7 @@ export type EffectSlots = Record<EffectKind, EffectSlot>;
 import type { Agent } from './engine/core/Agent';
 import type { ControllerKind } from './types/Orders';
 import type { MatchPhase } from './types/Match';
+import type { AimState } from './types/Play';
 
 /** 單位的陣營外觀：用哪一隊的皮膚（圖集、棋座樣式），以及藍色系要換成什麼色相（null＝不換）。分配與換色規則在 data/units/factionTint.ts */
 export interface FactionLook {
@@ -448,8 +449,8 @@ export type UICommand =
     | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | boolean | Team | undefined }
     | { type: 'RESET_GAME' }
     | { type: 'SET_TIME_SCALE'; timeScale: number }
-    /** [契約 P2] 選目標時放慢（ADR 0025）：畫面指令、不進紀錄；唯一寫入 state.time.aimFactor（active＝PLAY_PARAM.AIM_SLOWMO_FACTOR，否則 1） */
-    | { type: 'SET_AIM_SLOWMO'; active: boolean }
+    /** [契約 P2] 開始／取消選目標（ADR 0025）：畫面指令、不進紀錄；engine.state.aim 的唯一寫入者。瞄準中時間放慢（effectiveTimeScale） */
+    | { type: 'SET_AIM'; aim: AimState | null }
     | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId; /** 陣營（Allegiance）；省略時等於 team。大逃殺每人一個 */ side?: number; /** 陣營外觀（三個以上陣營的換色）；省略時等於 team 原色 */ look?: FactionLook }
     | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
     /** 玩家點選觀看的單位（單位檢查器）；導播關閉時擊殺播報只給它的陣營。null＝沒點 */
@@ -498,7 +499,7 @@ export type ViewCommand = Extract<UICommand, { type:
     | 'SET_AUDIO_VOLUME'
     | 'SET_AUDIO_MUTED'
     | 'SET_AUDIO_ANNOUNCER'
-    | 'SET_AIM_SLOWMO';
+    | 'SET_AIM';
 }>;
 export type GameCommand = Exclude<UICommand, ViewCommand>;
 

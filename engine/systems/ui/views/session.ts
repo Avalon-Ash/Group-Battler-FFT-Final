@@ -16,6 +16,7 @@ export function selectSessionView(engine: GameEngine): SessionView {
     const setup = flow ? flow.matchSetup : matchSetupOf(engine, engine.battleSetup);
     const isShowcase = flow ? flow.isShowcase : false;
     const isPlay = flow ? flow.isPlay : false;
+    const playHeroId = flow && isPlay ? flow.playHeroId : null;
     const winner = result ? result.winner : null;
     const winnerId = result ? result.winnerId : null;
     const winnerSide = result ? result.winnerSide : null;
@@ -27,6 +28,7 @@ export function selectSessionView(engine: GameEngine): SessionView {
         && prev.isPlaying === engine.isRunning
         && prev.isShowcase === isShowcase
         && prev.isPlay === isPlay
+        && prev.playHeroId === playHeroId
         && prev.winner === winner
         && prev.winnerId === winnerId
         && prev.winnerSide === winnerSide
@@ -36,7 +38,7 @@ export function selectSessionView(engine: GameEngine): SessionView {
         return prev;
     }
     // battleSetup 存自己的副本：引擎的設定物件會被原地覆寫（restoreMatch），直接拿來比永遠相等
-    const next: SessionView = { phase, isPlaying: engine.isRunning, isShowcase, isPlay, winner, winnerId, winnerSide, unitCount, battleSetup: { ...setup } };
+    const next: SessionView = { phase, isPlaying: engine.isRunning, isShowcase, isPlay, playHeroId, winner, winnerId, winnerSide, unitCount, battleSetup: { ...setup } };
     sessionCache.set(engine, next);
     return next;
 }

@@ -10,12 +10,13 @@ import type { GameEngine } from '../../game';
 import type { Agent } from '../../core/Agent';
 import type { Hex, UICommand } from '../../../types';
 import { sameSide } from '../../core/Allegiance';
+import { ContractPending } from '../../core/ContractPending';
 
 export type TapIntent =
     /** 選取這個單位；null＝取消選取 */
     | { kind: 'SELECT'; agent: Agent | null }
     /** 對選取中的玩家單位下指令 */
-    | { kind: 'ORDER'; command: Extract<UICommand, { type: 'ORDER_MOVE' | 'ORDER_ATTACK' }> }
+    | { kind: 'ORDER'; command: Extract<UICommand, { type: 'ORDER_MOVE' | 'ORDER_ATTACK' | 'ORDER_CAST' }> }
     /** 點到不能走的地方：維持選取，不動作 */
     | { kind: 'NONE' };
 
@@ -34,8 +35,13 @@ function canTakeOrders(engine: GameEngine, unit: Agent | null): unit is Agent {
  * 其他情況照舊：點單位就選取，點空地取消選取。
  * @param hex 點到的格子（沒點在地圖上是 null）
  * @param tapped 按下時那一格上的單位（沒有是 null）
+ *
+ * [契約 P5] 瞄準中（engine.state.aim 是選取中的單位）：點到 isCastTarget 的單位＝ORDER_CAST 對它；
+ * UNIT_OR_GROUND 的招點到空地（地圖上、不是障礙物）＝ORDER_CAST 對那一格；其他點擊不動作（不改選取、不移動）。
+ * PLAY 模式不瞄準時：點隊友不改選取（主角一直是選取中的單位），其餘照上面的規則。
  */
 export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex | null, tapped: Agent | null): TapIntent {
+    if (engine.state.aim !== null || engine.matchFlow?.isPlay) throw new ContractPending('P5', 'resolveTap：瞄準與 PLAY 模式的點擊規則');
     if (!canTakeOrders(engine, selected)) return { kind: 'SELECT', agent: tapped };
 
     if (tapped) {
