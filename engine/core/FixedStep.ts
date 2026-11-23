@@ -9,15 +9,14 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { AimState } from '../../types';
-import { ContractPending } from './ContractPending';
+import { PLAY_PARAM } from '../../constants';
 
 /**
  * [契約 P2] 這一幀實際用的倍率：瞄準中＝timeScale × PLAY_PARAM.AIM_SLOWMO_FACTOR，否則 timeScale（ADR 0025）。
  * 遊戲迴圈把它傳給 planFixedSteps，表現層拆時間也用它；模擬一律固定步長，所以放慢只改每幀跑幾個 tick。
  */
 export function effectiveTimeScale(state: { readonly time: { readonly timeScale: number }; readonly aim: AimState | null }): number {
-    void state;
-    throw new ContractPending('P2', 'effectiveTimeScale');
+    return state.aim !== null ? state.time.timeScale * PLAY_PARAM.AIM_SLOWMO_FACTOR : state.time.timeScale;
 }
 
 export interface FixedStepPlan {

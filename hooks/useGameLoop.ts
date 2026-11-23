@@ -4,7 +4,7 @@ import { GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { getRenderDpr, getDefaultQualityGovernor } from '../engine/renderers/RenderQuality';
 import { GAME_LOOP_PARAM } from '../constants';
-import { planFixedSteps } from '../engine/core/FixedStep';
+import { planFixedSteps, effectiveTimeScale } from '../engine/core/FixedStep';
 import { stepSimulation } from '../engine/core/Replay';
 
 export const useGameLoop = (
@@ -140,8 +140,8 @@ export const useGameLoop = (
 
             if (engine.isRunning) {
                 // 固定步長：倍率只決定跑幾個 tick，每個 tick 的 dt 都一樣（engine/core/FixedStep.ts）。
-                // 倍率在 tick 裡緩動（TimeSystem），這一幀讀到的倍率套用到整幀，變化下一幀才反映。
-                const plan = planFixedSteps(acc, dt, engine.timeScale, step, GAME_LOOP_PARAM.MAX_TICKS_PER_FRAME);
+                // 倍率在 tick 裡緩動（TimeSystem），這一幀讀到的倍率套用到整幀，變化下一幀才反映。瞄準中另外放慢（ADR 0025）。
+                const plan = planFixedSteps(acc, dt, effectiveTimeScale(engine.state), step, GAME_LOOP_PARAM.MAX_TICKS_PER_FRAME);
                 acc = plan.acc;
                 for (let i = 0; i < plan.ticks && engine.isRunning; i++) {
                     // 模擬前進的唯一入口：步長在它裡面決定；回放中它先餵到期的紀錄（engine/core/Replay.ts）
@@ -150,7 +150,7 @@ export const useGameLoop = (
             }
             
             // 畫面插值（契約 R1）：累加餘量／步長＝這一幀落在最後一個 tick 之後多遠。沒在跑或暫停時畫最新狀態（1）
-            const interpAlpha = engine.isRunning && engine.timeScale > 0 ? acc / step : 1;
+            const interpAlpha = engine.isRunning && effectiveTimeScale(engine.state) > 0 ? acc / step : 1;
             // Renderer update now handles time splitting internally using Engine state
             rendererRef.current.update(dt / 1000, engine, cameraRef, interpAlpha);
             drawCallbackRef.current(ctx, fpsRef.current);

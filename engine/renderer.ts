@@ -25,6 +25,7 @@ import { TacticalRenderer } from "./renderers/tactical";
 
 import { PointerProjector } from "./math/PointerProjector";
 import { HexUtils } from "./utils";
+import { effectiveTimeScale } from "./core/FixedStep";
 
 export { Camera };
 
@@ -200,7 +201,8 @@ export class GameRenderer {
 
         // 2. SSOT Time Calculation
         // Simulation Time Delta = Real DT * TimeScale (0 if paused)
-        const simDt = engine.isRunning ? dt * engine.timeScale : 0;
+        // 表現層拆時間和固定步長用同一個倍率（瞄準中放慢，ADR 0025），特效才會跟著變慢
+        const simDt = engine.isRunning ? dt * effectiveTimeScale(engine.state) : 0;
         const battleTime = engine.battleTime; // SSOT from Logic
 
         // 3. Sequence System (Logic Driven)

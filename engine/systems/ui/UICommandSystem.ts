@@ -10,7 +10,6 @@ import { sanitizeInsets } from '../../math/insets';
 import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 import { querySpawnableHexes } from './editorQueries';
-import { ContractPending } from '../../core/ContractPending';
 import { captureMatch, restoreMatch } from '../../core/MatchSnapshot';
 import { issueOrder, clearOrder } from '../../core/Orders';
 import { sameSide } from '../../core/Allegiance';
@@ -250,6 +249,8 @@ export class UICommandSystem {
             }
 
             case 'RESET_GAME': {
+                // 瞄準不帶到重開後（ADR 0025：state.aim 只在這個系統寫）
+                this.engine.state.aim = null;
                 // 還原開戰快照：同一張地圖、同一批單位站回原位（契約 S2）。不播種，下一個 START_GAME 才播種
                 const start = this.engine.commands.matchStart;
                 if (start) {
@@ -393,6 +394,8 @@ export class UICommandSystem {
                 if (this.startsNewMatch()) {
                     // 開新的一場：先記下起點（開戰快照＋種子），再用種子重設模擬流與體型鹽（契約 S2）
                     const seed = (cmd.seed ?? freshSeed()) >>> 0;
+                    // 上一場的瞄準不帶進新的一場（ADR 0025）
+                    this.engine.state.aim = null;
                     this.engine.commands.beginMatch({ snapshot: captureMatch(this.engine), seed });
                     this.engine.agentManager.matchSalt = seed;
                     this.engine.seedSimulation(seed);
@@ -470,8 +473,14 @@ export class UICommandSystem {
                 break;
 
             // [契約 P2] 選目標：engine.state.aim 的唯一寫入者（ADR 0025）。只收玩家單位、有技能的槽，其他一律當取消
-            case 'SET_AIM':
-                throw new ContractPending('P2', 'SET_AIM');
+            case 'SET_AIM': {
+                const aim = cmd.aim;
+                const agent = aim ? this.playerUnit(aim.agentId) : null;
+                const valid = aim !== null && agent !== null && Number.isInteger(aim.slot)
+                    && aim.slot >= 0 && aim.slot < agent.skillIds.length && agent.skillIds[aim.slot] !== null;
+                this.engine.state.aim = valid ? { agentId: aim.agentId, slot: aim.slot } : null;
+                break;
+            }
 
             // [契約 G3] 玩家操控。這裡只驗證指令合不合法；指令的寫入在 engine/core/Orders.ts，執行在玩家模式圖（PLAYER_MODE_GRAPH）
             case 'SET_CONTROLLER': {
