@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import GameCanvas from './components/GameCanvas';
 import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
 import { PlaybackHUD } from './components/ui/PlaybackHUD';
@@ -10,6 +10,11 @@ import { useWindowActions, useWindowState } from './hooks/useWindowStore';
 import { FactionWarning } from './components/ui/FactionWarning';
 import { useGameApp } from './hooks/useGameApp';
 import { EngineProvider } from './hooks/useEnginePort';
+import { useCompactViewport } from './hooks/useCompactViewport';
+
+// PLAY 模式的畫面延遲載入：展示模式用不到，不進進入點（docs/plans/play-mode.md P4）
+const PlaySetup = lazy(() => import('./components/ui/play/PlaySetup').then((m) => ({ default: m.PlaySetup })));
+const PlayResult = lazy(() => import('./components/ui/play/PlayResult').then((m) => ({ default: m.PlayResult })));
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
@@ -19,6 +24,8 @@ function App() {
   const inspectorState = useWindowState('inspector');
   const isInspectorOpen = inspectorState?.isOpen ?? false;
   const prevSelectedAgentIdRef = useRef<string | null>(null);
+  const [playSetupOpen, setPlaySetupOpen] = useState(false);
+  const isCompact = useCompactViewport();
 
   useEffect(() => {
     const currentId = state.selectedAgent?.id ?? null;
@@ -34,7 +41,7 @@ function App() {
   }, [state.selectedAgent, isInspectorOpen, windowActions]);
 
   const isGameOver = state.appMode === 'GAME_OVER';
-  const hideHUD = state.isShowcaseMode || isGameOver;
+  const hideHUD = state.isShowcaseMode || isGameOver || state.isPlayMode;
 
   const handleEnterManualMode = () => {
     windowActions.close('showcaseSettings');
@@ -49,12 +56,32 @@ function App() {
       {state.isShowcaseMode && (
         <ShowcaseOverlay 
             onEnter={handleEnterManualMode}
+            onPlay={() => setPlaySetupOpen(true)}
             battleSetup={state.battleSetup}
             engine={engineRef.current} 
             showDirectorMonitor={isMonitorOpen}
             setShowDirectorMonitor={(v: boolean) => (v ? windowActions.open('monitor') : windowActions.close('monitor'))}
         />
       )}
+
+      <Suspense fallback={null}>
+        {playSetupOpen && state.isShowcaseMode && (
+          <PlaySetup
+            isCompact={isCompact}
+            onCancel={() => setPlaySetupOpen(false)}
+            onStart={(hero) => { setPlaySetupOpen(false); actions.startPlay(hero); }}
+          />
+        )}
+        {state.playOutcome !== null && (
+          <PlayResult
+            outcome={state.playOutcome}
+            isCompact={isCompact}
+            onNext={actions.nextPlayMatch}
+            onMenu={actions.exitPlay}
+            onOpenLogs={() => windowActions.open('logs')}
+          />
+        )}
+      </Suspense>
 
       <PlaybackHUD 
           hidden={hideHUD}
@@ -91,6 +118,7 @@ function App() {
                 selectedAgent={state.selectedAgent}
                 hoveredSkill={state.hoveredSkill}
                 isShowcaseMode={state.isShowcaseMode}
+                isPlayMode={state.isPlayMode}
                 spawnMode={state.spawnMode}
                 draftRole={state.draftRole}
                 draftBodyType={state.draftBodyType}

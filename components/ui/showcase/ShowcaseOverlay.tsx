@@ -10,6 +10,8 @@ import { Button } from '../primitives';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
+    /** 進入 PLAY 的選主角畫面（P4） */
+    onPlay?: () => void;
     /** 場上這一局的陣營設定：標題卡依它標示雙陣營或大逃殺 */
     battleSetup?: BattleSetup;
     engine?: unknown; 
@@ -17,7 +19,7 @@ interface ShowcaseOverlayProps {
     setShowDirectorMonitor?: (v: boolean) => void;
 }
 
-export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battleSetup }) => {
+export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, onPlay, battleSetup }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isRoyale = !!battleSetup && battleSetup.factions >= ROYALE_RULES.MIN_FACTIONS;
     const modeLabel = !battleSetup
@@ -73,6 +75,12 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, battl
                     </div>
                     <div className="hero-sub">SSOT CORE ONLINE</div>
                 </header>
+                {onPlay && (
+                    <Button data-testid="showcase-play-btn" variant="primary" onClick={onPlay}
+                        title="PLAY" className="hero-cta mat-blur">
+                        PLAY
+                    </Button>
+                )}
                 <Button data-testid="showcase-enter-btn" onClick={onEnter}
                     title="START SIMULATION" className="hero-cta mat-blur">
                     START SIMULATION

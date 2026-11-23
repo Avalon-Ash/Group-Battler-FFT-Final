@@ -37,6 +37,12 @@ const DEPLOY_ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Rol
 /** 陣營用的外觀：只有藍、紅兩套皮膚，雙數陣營藍、單數紅（陣營 0／1 和 Team 數值相同） */
 const factionTeam = (side: number): Team => (side % 2 === 0 ? Team.BLUE : Team.RED);
 
+/** PLAY 的主角站在哪個陣營（planPlayRoster 把這個陣營的第一格換成主角） */
+export const PLAY_HERO_SIDE = 0;
+
+/** PLAY 主角的隊伍（選主角畫面列技能用；由主角的陣營導出，不另寫一份） */
+export const PLAY_HERO_TEAM: Team = factionTeam(PLAY_HERO_SIDE);
+
 /**
  * 排一批陣容。round 是第幾次排（體型雜湊的鹽、外觀分配的種子之一），lookSalt 是這顆流程的外觀鹽。
  * 三個以上陣營每局重新分配外觀色；兩個陣營用原色。
@@ -66,7 +72,7 @@ export function planRoster(setup: BattleSetup, round: number, lookSalt: number):
  */
 export function planPlayRoster(setup: BattleSetup, round: number, lookSalt: number, heroRole: Role): RosterSlot[] {
     const plan = planRoster(setup, round, lookSalt);
-    const i = plan.findIndex((s) => s.side === 0);
+    const i = plan.findIndex((s) => s.side === PLAY_HERO_SIDE);
     if (i >= 0) plan[i] = { ...plan[i], role: heroRole, hero: true };
     return plan;
 }

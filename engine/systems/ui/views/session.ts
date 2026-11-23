@@ -1,6 +1,7 @@
 import type { GameEngine } from '../../../game';
 import type { AppMode, HexLayout, SessionView } from '../../../../types';
 import { enginePhase, liveResult, matchSetupOf } from '../../match/MatchFlowSystem';
+import { PLAY_HERO_SIDE } from '../../match/Deployment';
 
 const sessionCache = new WeakMap<GameEngine, SessionView>();
 
@@ -75,4 +76,11 @@ export function selectBoardView(engine: GameEngine): BoardView {
     const next: BoardView = { mapW: w, mapH: h, hexLayout: layout, sceneId };
     boardCache.set(engine, next);
     return next;
+}
+
+/** PLAY 這一場的結果（從主角的陣營看）；不在 PLAY 或還沒打完是 null。平手（同歸於盡）是 DRAW。 */
+export function playOutcome(view: SessionView): 'WIN' | 'LOSE' | 'DRAW' | null {
+    if (!view.isPlay || view.phase !== 'RESULT_HOLD') return null;
+    if (view.winnerSide === null) return 'DRAW';
+    return view.winnerSide === PLAY_HERO_SIDE ? 'WIN' : 'LOSE';
 }

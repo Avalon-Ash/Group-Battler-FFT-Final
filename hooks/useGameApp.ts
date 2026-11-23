@@ -15,10 +15,11 @@ import { useEngineView, refreshEngineViews } from './useEngineView';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId, EventMap } from '../types';
+import type { PlayHero } from '../types';
 // 佈陣流：種子都從它取，不碰模擬流（結果記在開戰快照裡，契約 S2）
 import { setupSeed } from '../engine/math/rng';
 import { MatchFlowSystem } from '../engine/systems/match/MatchFlowSystem';
-import { selectSessionView, selectBoardView, appModeOf } from '../engine/systems/ui/views/session';
+import { selectSessionView, selectBoardView, appModeOf, playOutcome } from '../engine/systems/ui/views/session';
 import { spriteAtlasStore } from '../engine/renderers/units/SpriteAtlasStore';
 import { BUILD_ID, exportReplay, startReplay, takeOver } from '../engine/core/Replay';
 import { downloadReplay, fetchPublicReplay, pickReplayFile, readReplayFile, replayQuery, type LoadedReplay } from '../engine/presentation/ReplayIO';
@@ -157,6 +158,12 @@ export const useGameApp = () => {
         engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_WATCH_AGENT', agentId: watchSelectedAgentId });
     }, [watchSelectedAgentId]);
 
+    /** PLAY 模式（P4）：開一場之後選取主角（點擊規則與鏡頭都看選取中的單位） */
+    const selectPlayHero = (engine: GameEngine) => {
+        const id = engine.matchFlow?.playHeroId ?? null;
+        selectionStore.set(id ? [id] : []);
+    };
+
     /** 換一張新戰場並照目前的陣營設定發陣容（骰子、下一關共用），不開戰 */
     const newBattlefield = () => {
         leaveReplay();
@@ -166,7 +173,7 @@ export const useGameApp = () => {
     return {
         engineRef,
         state: {
-            appMode: appModeOf(session), isShowcaseMode: session.isShowcase, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup,
+            appMode: appModeOf(session), isShowcaseMode: session.isShowcase, isPlayMode: session.isPlay, playOutcome: playOutcome(session), isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, winnerId: session.winnerId, winnerSide: session.winnerSide, battleSetup: session.battleSetup,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: board.mapW, mapH: board.mapH, currentSceneId: board.sceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: board.hexLayout,
             selectedAgent: selectedAgentId ? (engineRef.current.agents.find((a) => a.id === selectedAgentId) ?? null) : null, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
@@ -183,6 +190,24 @@ export const useGameApp = () => {
             setShowDirectorMonitor: (v: boolean) => setHud(p => ({...p, showDirectorMonitor: v}))
         },
         actions: {
+            /** 進入 PLAY：選好的主角開一場（P4） */
+            startPlay: (hero: PlayHero) => {
+                leaveReplay();
+                act((engine) => {
+                    engine.matchFlow?.startPlay(hero);
+                    selectPlayHero(engine);
+                });
+            },
+            /** PLAY 結算後再來一場：同一個主角設定 */
+            nextPlayMatch: () => act((engine) => {
+                engine.matchFlow?.nextPlayMatch();
+                selectPlayHero(engine);
+            }),
+            /** 離開 PLAY 回主畫面（展示模式） */
+            exitPlay: () => {
+                selectionStore.clear();
+                act((engine) => engine.matchFlow?.exitPlay());
+            },
             /** 回到手動：停下、清盤、還原玩家自己的陣營設定 */
             enterManualMode: () => {
                 leaveReplay();

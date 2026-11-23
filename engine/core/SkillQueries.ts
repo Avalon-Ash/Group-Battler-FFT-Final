@@ -7,7 +7,7 @@
 // ║  不看動作細節。                                           ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { HitAction, Skill, SkillIntent, SkillStatus, SkillTeams } from '../../types';
+import type { HitAction, Role, Skill, SkillIntent, SkillStatus, SkillTeams, Team } from '../../types';
 import { sameSide } from './Allegiance';
 
 type HitActionKind = HitAction['action'];
@@ -90,6 +90,11 @@ export function hasIntentIn(skill: Skill, intents: ReadonlySet<SkillIntent>): bo
         if (intents.has(own[i])) return true;
     }
     return false;
+}
+
+/** 這個職業、這一隊能帶的技能：職業相同，且技能沒有限定隊伍或限定的就是這一隊（生成單位與 PLAY 選主角共用） */
+export function roleSkills(db: readonly Skill[], role: Role, team: Team): Skill[] {
+    return db.filter((s) => s.role === role && (s.team === undefined || s.team === team));
 }
 
 /** 這招對誰有效。沒寫就看威力：傷害打敵人、治療打友軍、威力 0 不限 */

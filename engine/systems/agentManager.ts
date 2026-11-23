@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";           // GameEngine 仍從 game.ts 取（避免循環依賴）
-import { hasHitAction } from "../core/SkillQueries";
+import { hasHitAction, roleSkills } from "../core/SkillQueries";
 import { Agent } from "../core/Agent";
 import { Role, Team, Skill, BodyTypeId, AnimState, ActionState, FactionLook } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
 import { UNIT_DB } from "../../data/units";
@@ -117,7 +117,7 @@ export class AgentManager {
         a.bodyType = bodyTypeOverride ?? pickBodyType(a.id, this.matchSalt);
         AgentManager.applyRoleStats(a, hpOverride ?? AgentManager.spawnHp(a.role, engine), false);
 
-        const validSkills = engine.skillDB.filter(s => s.role === a.role && (s.team === undefined || s.team === team));
+        const validSkills = roleSkills(engine.skillDB, a.role, team);
         const rndS = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(random() * ar.length)].id : null;
         // 大逃殺的大招與主動從所有職業、隊伍抽（普攻仍照職業）。獨自一人的陣營不抽要靠隊友才有用的自傷補血。
         const { factions, unitsPerFaction } = engine.battleSetup;

@@ -24,6 +24,8 @@ interface GameCanvasProps {
     selectedAgent: Agent | null; 
     hoveredSkill: Skill | null;
     isShowcaseMode: boolean; 
+    /** PLAY 模式有自己的結算畫面（App 畫 PlayResult），這裡不畫手動的勝利畫面 */
+    isPlayMode?: boolean;
     spawnMode: 'RANDOM' | 'DRAFT';
     draftRole: Role; 
     draftBodyType?: BodyTypeId;
@@ -45,7 +47,7 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, onOpenLogs, onReplay, onSaveReplay 
+        isShowcaseMode, isPlayMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, onOpenLogs, onReplay, onSaveReplay 
     } = props;
     const isCompact = useCompactViewport();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -195,7 +197,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 }} 
                 onContextMenu={(e) => e.preventDefault()}
             />
-            {winner !== null && !isShowcaseMode && (
+            {winner !== null && !isShowcaseMode && !isPlayMode && (
                 <VictoryOverlay
                     winner={winner}
                     winnerId={winnerId}
