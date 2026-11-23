@@ -630,7 +630,7 @@ describe('技能描述承諾的機制真的裝上了', () => {
         ['rb_b3', { action: 'TRUE_STRIKE' }],
         ['wr_b5', { action: 'RAGE', value: 1 }],
         ['mr_b1', { action: 'RANDOM_POWER', min: 0.5, max: 1.5 }],
-        ['sb_b4', { action: 'DISPEL', polarity: 'DEBUFF' }],
+        ['sb_b4', { action: 'DISPEL', polarity: 'BUFF' }],
         ['sr_b4', { action: 'SELF_DAMAGE', value: 30 }],
         ['tb_b2', { action: 'CHANCE', chance: 0.3, then: [{ action: 'STATUS', status: 'STUN', duration: 0.5 }] }],
         ['rb_b2', { action: 'STATUS', status: 'SLOW', duration: 1.5, force: 0.3 }],

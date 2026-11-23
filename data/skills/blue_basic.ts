@@ -193,7 +193,7 @@ export const BLUE_BASIC: Skill[] = [
         range: 5, cast: 0.5, cd: 1.2, cost: 0, gain: 30, // Range 5->4
         type: 'SINGLE', power: 40, color: '#a7f3d0', visual: 'BOLT', projectileSpeed: 1500,
         visualHitEffect: 'FX_HIT_BLUE_HOLY', visualProjectileEffect: 'BOLT', element: 'HOLY',
-        onHit: [{ action: 'DISPEL', polarity: 'DEBUFF' }],
+        onHit: [{ action: 'DISPEL', polarity: 'BUFF' }], // 傷害技打在敵人身上：驅散它的增益（G1 第三輪，原本驅散減益等於沒有效果）
     },
     {
         id: 'sb_b5', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC',
