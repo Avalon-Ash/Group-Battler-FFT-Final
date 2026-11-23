@@ -951,3 +951,12 @@
 - **大逃殺加樣本**（只量沒改）：`ai-idle-sim --scenario=ROYALE --battles=1500`，種子 21、77 各一次（各約 140 秒）。職業勝率（每場 2 人，期望 20%）：坦克 13.5／15.5%、戰士 10.6／10.2%、遠程 24.2／27.3%、法師 27.0／25.3%、輔助 24.0／21.0%。單技能和同職業同槽的其他招比（奧義、主動技；`tools/ui-e2e/out/royale-z.mjs`，不進版控），兩個種子都同方向 |z|≥3 的：偏強 `tb_u3`（21.8／23.4% 對 7.4／8.1%）、`tb_a1`（24.5／23.4% 對 10.0%）、`tr_a4`、`tb_a5`、`wr_u5`、`wr_a5`、`wr_a3`、`rr_u2`；偏弱 `tb_u2`（1.0／4.3%）、`mb_u3`（1.5／4.2%）、`sr_u3`、`tr_a3`。CP 的 300 場名單裡 `tb_a1`、`tb_a5` 這次也偏強；`rr_u3` 只有種子 21 超標。
 - **工具佈陣開案書**：API 點數的 Fable 5.2 寫 `docs/plans/tool-deployment.md`（single 附 9 個檔）。第一次 high、上限 40000：思考用掉 36882，正文只寫到 §1 就截斷（$2.03）；第二次 medium、上限 48000、限制篇幅，end_turn（$1.36）。等使用者決定（HANDOFF L 第 4 項）。
 - **回退**：射程 0 的修正一個 commit，`git revert`。
+
+### DA. 2026-11-24 PLAY 瞄準引導、機動技選目標分三種、預警參數（主代理 Opus，使用者：問顧問、用現成資源、照推薦分三種、調共用預警參數）
+- 盤點（顧問確認方向）：射程格（`GridRenderStrategy.checkIsRange`）、游標格（`useGameInput` 的 `hoveredHexRef`，本來就在 UI 層）、施法範圍（`getImpactArea`＋Cast 疊層）、目標圈（`drawAimTargets`）都已存在，這輪只接線；撤回上一版提案的 ADR、手機兩段確認、按兩次自動施放、虛線。
+- 機動技點地面探針（14 招）：鉤拉、擊退對空地照樣放出；突進只往點的方向走 1 格；後撤退 1 格、方向和點哪裡無關。改成照 `castMotion` 分三種（突進／瞬移＝UNIT_OR_GROUND、後撤＝SELF、其他照一般規則），契約 P5 與 MANIFEST 同步。
+- 接線：`castTargeting.aimedCast` 是解析 aim 的唯一處；`tapIntent.hoverHexOf` 讓瞄準中的游標格＝點下去會施放的位置（同一個 resolveTap）；技能鈕頂端對象色帶讀 `TACTICAL_COLORS`；目標圈游標下那一個加粗（`AIM_RING_FOCUS_WIDTH`）。
+- 範圍預覽一開始看不見：頁面裡直接 import 模組查證，旗標都對（Cast＋Range），是外觀問題——射程與施法範圍同格都用 screen 疊格邊會洗成白色；冰原、沙漠上 screen 會把同色系填色吃掉。`GroundPriority` 加「同格有施法範圍時射程讓開」，`GRID_OVERLAY.RANGE` 填色 0.1→0.35、新增 `CAST_BLEND` source-over。沙漠、VOID 清楚，冰原可辨但偏弱。
+- 驗證：lint、`npm test` 175 檔（`AgentRunner` 時序偶發一次，單獨重跑過）、build、knip、runtime-smoke（battleTime 0.52→4.60）、`perf:fidelity` 6 張（`battle_frozen` 取證後獨立重錄，地形 5 張 0 差異）、`perf-ab --assert` 通過。截圖探針 `tools/ui-e2e/out/aim-shots.mjs`（不進版控）。
+- 沒驗的：手感與預警會不會太搶眼，等使用者實機。`onCast` 位移判斷散在 `SkillExecutor`、`BTRegistry`、`SkillStateMachine` 三處（既有耦合，沒動，待提案）。
+- **回退**：`git revert` 重錄那個 commit 與功能 commit（順序：先重錄、後功能）。
