@@ -1,5 +1,5 @@
 
-import { useRef, useEffect, MutableRefObject, useState } from 'react';
+import { useRef, useEffect, MutableRefObject, useState, useCallback } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role, BodyTypeId } from '../types';
 import { HexUtils, Vector } from '../engine/utils';
@@ -99,10 +99,17 @@ export const useGameInput = (props: GameInputProps) => {
         lastHoverPointerRef.current = e.pointerType === 'touch' ? null : { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType };
         resolveHover(e);
     };
-    /** 每幀呼叫（GameCanvas 畫之前）：滑鼠不動時，按 1～4 開始瞄準、單位走開、鏡頭移動，游標格也跟著現在的局面 */
-    const refreshHover = () => {
-        if (lastHoverPointerRef.current) resolveHover(lastHoverPointerRef.current);
-    };
+    /**
+     * 每幀呼叫（GameCanvas 畫之前）：瞄準中滑鼠不動時（按 1～4 開始瞄準、單位走開、鏡頭移動），游標格也跟著現在的局面；
+     * 瞄準結束那一幀再算一次，換回一般的游標格。不在瞄準時不重算（游標格照舊只隨 pointermove 更新）。
+     * 穩定的函式（和事件處理一樣只讀 ref），交給每幀迴圈不會換手。
+     */
+    const wasAimingRef = useRef(false);
+    const refreshHover = useCallback(() => {
+        const aiming = engine.state.aim !== null;
+        if ((aiming || wasAimingRef.current) && lastHoverPointerRef.current) resolveHover(lastHoverPointerRef.current);
+        wasAimingRef.current = aiming;
+    }, []);
 
     const handlePointerDown = (e: PointerEvent) => {
         activePointers.current.add(e.pointerId);
