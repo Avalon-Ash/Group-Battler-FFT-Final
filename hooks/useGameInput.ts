@@ -12,7 +12,9 @@ import {
     queryObstacleTypeAt,
     queryHexAtScreenPoint,
     queryHexToWorldSnap,
+    queryWorldAtScreenPoint,
 } from '../engine/systems/ui/editorQueries';
+import { pickAgentAt } from './pickAgentAt';
 import { resolveTap } from '../engine/systems/ui/tapIntent';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
@@ -76,6 +78,13 @@ export const useGameInput = (props: GameInputProps) => {
         );
     };
 
+    /** 指標下的單位：身體框命中優先、退回格子（規則只在 pickAgentAt；hex 是同一個指標位置的格子） */
+    const getAgentFromEvent = (e: PointerEvent, hex: Hex | null): Agent | undefined => {
+        const renderer = rendererRef.current;
+        const world = queryWorldAtScreenPoint(e.clientX, e.clientY, canvasRef.current, renderer?.camera, cachedRectRef.current ?? undefined);
+        return pickAgentAt(engine, renderer?.unit, world, renderer?.camera.zoom ?? 1, e.pointerType, hex);
+    };
+
     const handlePointerDown = (e: PointerEvent) => {
         activePointers.current.add(e.pointerId);
         if (activePointers.current.size > 1) { interactionMode.current = 'IDLE'; return; }
@@ -89,8 +98,8 @@ export const useGameInput = (props: GameInputProps) => {
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
         const h = getHexFromEvent(e.clientX, e.clientY);
-        const agent = h ? queryAgentAt(engine, h.q, h.r) : undefined;
-        
+        const agent = getAgentFromEvent(e, h);
+
         if (agent) { 
             pressedAgentRef.current = agent; 
             setPressedAgent(agent); 

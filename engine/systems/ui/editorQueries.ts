@@ -5,7 +5,7 @@
  * Safe to call with null/undefined engine or renderer references, returning sensible fallbacks.
  */
 
-import { BattleSetup, Hex, Camera, HexSpatialLookup } from '../../../types';
+import { BattleSetup, Hex, Camera, HexSpatialLookup, Point } from '../../../types';
 import { GameEngine, Agent } from '../../game';
 import { PointerProjector } from '../../math/PointerProjector';
 import { HexUtils } from '../../utils';
@@ -216,6 +216,20 @@ export function queryHexAtScreenPoint(
         spatialCache,
         cachedRect
     );
+}
+
+/**
+ * Converts screen/pointer coordinates into world coordinates (camera unprojection).
+ */
+export function queryWorldAtScreenPoint(
+    clientX: number,
+    clientY: number,
+    canvas: HTMLCanvasElement | null | undefined,
+    camera: Camera | null | undefined,
+    cachedRect?: DOMRect
+): Point | null {
+    if (!canvas || !camera) return null;
+    return PointerProjector.cssToWorld(clientX, clientY, canvas, camera, cachedRect);
 }
 
 /**

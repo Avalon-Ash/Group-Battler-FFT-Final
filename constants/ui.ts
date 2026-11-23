@@ -248,6 +248,12 @@ export const GAME_INPUT_PARAM = {
     DRAG_DRIFT_TOUCH_PX: 18,
     /** 滑鼠拖曳判定漂移門檻（px） */
     DRAG_DRIFT_MOUSE_PX: 8,
+    /** 單位可點範圍（UnitPick）：身體框半寬 ÷ 身體框高（腳底到血條錨點）。依賴：精靈大致的寬高比 */
+    PICK_HALF_WIDTH_RATIO: 0.35,
+    /** 單位可點範圍向外多擴的螢幕像素（滑鼠，準） */
+    PICK_PAD_MOUSE_PX: 4,
+    /** 單位可點範圍向外多擴的螢幕像素（觸控，手指粗）；依賴：DRAG_DRIFT_TOUCH_PX 同為觸控誤差量級 */
+    PICK_PAD_TOUCH_PX: 14,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

@@ -76,6 +76,19 @@ export class PointerProjector {
         };
     }
 
+    /** SSOT: CSS 滑鼠座標 → 世界座標（cssToHex 的前半段；單位命中用） */
+    public static cssToWorld(
+        cssX: number,
+        cssY: number,
+        canvas: HTMLCanvasElement,
+        camera: Camera,
+        cachedRect?: DOMRect
+    ): Point {
+        const rect = cachedRect ?? canvas.getBoundingClientRect();
+        const canvasPt = this.cssToCanvas(cssX, cssY, canvas, rect);
+        return this.canvasToWorld(canvasPt.x, canvasPt.y, rect.width, rect.height, camera);
+    }
+
     /**
      * SSOT: CSS 滑鼠座標 → Hex 格子（一站式）
      * 這是 useGameInput 唯一應該呼叫的方法。
@@ -89,15 +102,8 @@ export class PointerProjector {
         cache?: HexSpatialLookup,
         cachedRect?: DOMRect
     ): Hex | null {
-        const rect = cachedRect ?? canvas.getBoundingClientRect();
-        const canvasPt = this.cssToCanvas(cssX, cssY, canvas, rect);
-        
         // 傳遞 CSS 邏輯尺寸 (rect.width/height) 給投影，避免混入 DPR 導致的偏移
-        const worldPt = this.canvasToWorld(
-            canvasPt.x, canvasPt.y,
-            rect.width, rect.height,
-            camera
-        );
+        const worldPt = this.cssToWorld(cssX, cssY, canvas, camera, cachedRect);
         return GridSpatial.getHexAtWorldPoint(worldPt.x, worldPt.y, engine, cache);
     }
 

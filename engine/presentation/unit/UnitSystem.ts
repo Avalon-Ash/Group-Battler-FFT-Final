@@ -13,11 +13,14 @@
 // ║  AOE 地面預警是平貼的：不畫在 AURA op 裡，登記進            ║
 // ║  GroundDrapeLayer 逐格鋪在頂面（RenderSpec §9），否則同高度   ║
 // ║  的前方地塊會蓋掉它（看起來穿到地板下）。                  ║
+// ║  點擊命中（pickAgent）：記住最近一幀的 UnitFrame 快照，判斷  ║
+// ║  只在 renderers/frame/UnitPick.ts（身體框＋容差＋最前面優先）。║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { UnitFrame, UnitFrameStore } from "../../renderers/frame/UnitFrame";
+import { pickUnitFrame } from "../../renderers/frame/UnitPick";
 import { UnitBodyPainter } from "../../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../../renderers/units/painters/UnitShadowPainter";
 import { UnitCorePainter } from "../../renderers/units/painters/UnitCorePainter";
@@ -31,6 +34,15 @@ import type { GroundDrapeLayer } from "../../renderers/GroundDrape";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 
 export class UnitRenderSystem {
+    /** 最近一幀提交時的單位快照（輸入層點擊命中用；只讀，唯一寫入者仍是 UnitFrameStore.build） */
+    private pickFrames: UnitFrameStore | null = null;
+
+    /** 世界座標的點點到哪個單位（含容差，單位世界像素；判斷在 UnitPick）。還沒畫過任何一幀就是 null */
+    public pickAgent(worldX: number, worldY: number, padWorld: number): Agent | null {
+        if (!this.pickFrames) return null;
+        return pickUnitFrame(this.pickFrames.list, worldX, worldY, padWorld)?.agent ?? null;
+    }
+
     public submitRenderables(
         renderList: RenderList,
         frames: UnitFrameStore,
@@ -38,6 +50,7 @@ export class UnitRenderSystem {
         highlightAgent: Agent | null,
         drape?: GroundDrapeLayer
     ) {
+        this.pickFrames = frames;
         const list = frames.list;
         for (let i = 0; i < list.length; i++) {
             const f = list[i];
