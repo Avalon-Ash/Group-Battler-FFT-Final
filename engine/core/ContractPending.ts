@@ -4,8 +4,9 @@
 // ║        ContractPending。紅色驗收（tests/contracts）看到它  ║
 // ║        算「待辦」，看到其他錯誤照樣失敗。                  ║
 // ║  [ARCH] 一包實作完成＝該包不再有任何地方丟 ContractPending，║
-// ║  並把 tests/contracts/status.ts 的狀態改成 done。全部契約  ║
-// ║  完成後刪除本檔。正式遊玩路徑不得呼叫還是空殼的函式。      ║
+// ║  並把 tests/contracts/status.ts 的狀態改成 done。目前全部  ║
+// ║  契約包都已 done；機制留給之後的契約包（受保護的驗收與     ║
+// ║  contractTest.ts 依賴本檔）。正式遊玩路徑不得呼叫空殼。    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 /** 契約包代號：S、G、R、U 開頭對應 docs/plans/optimization-2026-11.md，P 開頭對應 docs/plans/play-mode.md 的拆包表 */

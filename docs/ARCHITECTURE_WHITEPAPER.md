@@ -101,3 +101,10 @@
 - 鏡頭只框主角和它的目標，打主角的人與別處的奧義都不算；舊目標多留一下，死了立刻離開。（`engine/presentation/DirectorFight.ts`）
 - 取景範圍換算成特寫、中景、全景三種景別，以遲滯與最短停留防抖，再經鏡頭視窗死區與焦點平滑轉場；純計算，不依賴引擎與繪製管線。參數在 `DIRECTOR_PARAM`。（`engine/presentation/DirectorShot.ts`、`constants/render.ts`）
 - 導播只決定目標，透過 `CAMERA_MOVE` 交給鏡頭；鏡頭負責平移、縮放與跟隨平滑。（`engine/presentation/CameraSystem.ts`）
+
+## 16. 對局流程、回放與玩家操控
+
+- 對局流程（展示回合、手動的隨機戰場、PLAY 模式）在引擎端，用真實時間推進；階段多半由引擎狀態推導，不監聽匯流排。佈陣只在 `Deployment`。（`engine/systems/match/MatchFlowSystem.ts`、`engine/systems/match/Deployment.ts`、ADR 0021）
+- 回放＝開戰快照＋種子＋開戰後指令；遊戲指令排到 tick 開頭套用並記錄，seek 與 undo 都從快照重跑。（`engine/core/MatchSnapshot.ts`、`engine/core/Replay.ts`、`engine/core/CommandQueue.ts`、ADR 0015、0018、0019）
+- 玩家操控＝換一張模式圖（`PLAYER_MODE_GRAPH`），指令（`ORDER_*`）驗證在 `UICommandSystem`、寫入在 `engine/core/Orders.ts`、執行在玩家圖的節點；沒指令時依姿態堅守或反擊。（`data/ai_profiles.ts`、`engine/ai/BTRegistry.ts`、ADR 0022）
+- PLAY 模式：選目標的狀態 `engine.state.aim` 只由 `UICommandSystem` 寫，瞄準中放慢由 `effectiveTimeScale` 推導；「這招能點誰」只在 `castTargeting`，HUD、戰場高亮、點擊、`ORDER_CAST` 驗證共用；點到哪個單位只在 `UnitPick`。（`engine/core/FixedStep.ts`、`engine/systems/ui/castTargeting.ts`、`engine/renderers/frame/UnitPick.ts`、ADR 0025）
