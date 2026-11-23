@@ -5,6 +5,7 @@ import { HexUtils } from '../engine/utils';
 import { captureMatch } from '../engine/core/MatchSnapshot';
 import { exportReplay, startReplay, stepSimulation, undoLastCommand } from '../engine/core/Replay';
 import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
+import { queryCastTargeting } from '../engine/systems/ui/castTargeting';
 import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
 import { AI_MODE_GRAPH, PLAYER_MODE_GRAPH, type BTDef } from '../data/ai_profiles';
 import { SKILL_SLOTS } from '../constants';
@@ -249,4 +250,31 @@ describe('玩家操控（契約 G3 以外的行為）', () => {
         while (again.state.time.tick < file.endTick && again.isRunning) stepSimulation(again, session);
         expect(stateOf(again)).toBe(live);
     }, 60000);
+
+    // 射程 0 的機動技是自身周圍的擊退（tb_m2、mb_m2 等），沒有位移。曾被歸成 UNIT_OR_GROUND：
+    // 點地面後要站上那一格才放，走不到就一直卡著（2026-11-24 探針：12 種情況 15 秒內都沒放出）。
+    it('射程 0 的機動技按一下就放：選目標是 SELF；敵人貼身時不帶目標的施放指令會放出去', () => {
+        const { e, hero } = setup();
+        const zeroRange = e.skillDB.filter((s) => s.tag === 'MOBILITY' && s.range === 0);
+        expect(zeroRange.length).toBeGreaterThan(0);
+        for (const s of zeroRange) {
+            emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 3, skillId: s.id });
+            expect(queryCastTargeting(e, hero, 3)?.mode).toBe('SELF');
+        }
+
+        emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 3, skillId: zeroRange[0].id });
+        emit(e, { type: 'START_GAME', seed: 7 });
+        runTicks(e, 1);
+        const foe = nearestFoe(e, hero);
+        const adj = HexUtils.neighbors(hero).find((h) => e.isValid(h.q, h.r) && !e.isBlocked(h.q, h.r, foe.id));
+        if (!adj) throw new Error('主角旁邊沒有空格');
+        emit(e, { type: 'MOVE_AGENT', agentId: foe.id, q: adj.q, r: adj.r });
+        runTicks(e, 1);
+        expect(HexUtils.dist(foe, hero)).toBe(1);
+        emit(e, { type: 'ORDER_CAST', agentId: hero.id, slot: 3 });
+        // 詠唱 0.2～0.3 秒；給到 1 秒
+        runTicks(e, 60);
+        expect(hero.curCDs[3]).toBeGreaterThan(0);
+        expect(hero.order).toBeNull();
+    });
 });

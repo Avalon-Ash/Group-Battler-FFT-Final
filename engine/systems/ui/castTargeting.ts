@@ -21,16 +21,20 @@ function slotSkill(engine: GameEngine, hero: Agent, slot: number): Skill | null 
     return id ? engine.skillDB.find((s) => s.id === id) ?? null : null;
 }
 
-/** 選目標的方式：機動技一律可點地面（往那裡位移）；射程 0 對自己；範圍技可點地面；其他點單位 */
+/**
+ * 選目標的方式：射程 0 對自己（按一下就放）；機動技可點地面（往那裡位移）；範圍技可點地面；其他點單位。
+ * 射程 0 要先判斷：機動技裡射程 0 的是以自身為中心的擊退（tb_m2、mb_m2 等），沒有位移；
+ * 若給它點地面，施放指令要站上那一格（射程 0）才放，走不到就一直卡著。
+ */
 function targetModeOf(skill: Skill): CastTargeting['mode'] {
-    if (skill.tag === 'MOBILITY') return 'UNIT_OR_GROUND';
     if (skill.range === 0) return 'SELF';
+    if (skill.tag === 'MOBILITY') return 'UNIT_OR_GROUND';
     return skill.type === 'AOE' ? 'UNIT_OR_GROUND' : 'UNIT';
 }
 
 /**
  * 主角第 slot 槽現在的選目標規則；那一槽沒有技能（或 slot 超出範圍）是 null。
- *  - 射程 0 的技能：SELF；範圍技（type AOE）與機動技（tag MOBILITY）：UNIT_OR_GROUND；其他：UNIT。
+ *  - 射程 0 的技能（含機動技）：SELF；其餘的範圍技（type AOE）與機動技（tag MOBILITY）：UNIT_OR_GROUND；其他：UNIT。
  *  - unitIds：活著、還在場上、陣營符合 teams 的單位（ENEMY 不含自己；ALLY、ANY 含自己），依 engine.agents 的順序。
  */
 export function queryCastTargeting(engine: GameEngine, hero: Agent, slot: number): CastTargeting | null {
