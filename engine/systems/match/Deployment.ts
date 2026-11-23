@@ -2,7 +2,8 @@
 // ║  Deployment — 開戰前的陣容與佈陣（契約 R2）               ║
 // ║  職責：排下一批陣容（陣營、職業、體型、外觀）、抽展示地圖  ║
 // ║        的大小與佈局、把陣容放上戰場。                      ║
-// ║  上游：MatchFlowSystem（展示模式每一局、手動的隨機戰場）。 ║
+// ║  上游：MatchFlowSystem（展示模式每一局、手動的隨機戰場、    ║
+// ║        PLAY 模式）。                                        ║
 // ║  [ARCH] 純函式，不存狀態；亂數由呼叫端傳入（展示回合用     ║
 // ║  這一局的序列，手動擲骰用全域佈陣流）。寫入引擎一律送      ║
 // ║  UI_COMMAND，不直接改引擎狀態。                            ║
@@ -26,6 +27,8 @@ export interface RosterSlot {
     role: Role;
     bodyType: BodyTypeId;
     look: FactionLook;
+    /** PLAY 模式的主角那一格（planPlayRoster 標的）；其他陣容沒有這個欄位 */
+    hero?: true;
 }
 
 /** 開局陣容輪流排的職業 */
@@ -57,6 +60,17 @@ export function planRoster(setup: BattleSetup, round: number, lookSalt: number):
     return plan;
 }
 
+/**
+ * PLAY 模式的陣容：照 planRoster 排，再把陣營 0 的第一格換成主角的職業並標成主角。
+ * 只換職業與標記，體型與外觀沿用那一格（雜湊照舊）。
+ */
+export function planPlayRoster(setup: BattleSetup, round: number, lookSalt: number, heroRole: Role): RosterSlot[] {
+    const plan = planRoster(setup, round, lookSalt);
+    const i = plan.findIndex((s) => s.side === 0);
+    if (i >= 0) plan[i] = { ...plan[i], role: heroRole, hero: true };
+    return plan;
+}
+
 /** 展示模式這一局的地圖大小與佈局（依序抽寬、高、佈局）。 */
 export function rollShowcaseMap(rand: () => number): { w: number; h: number; layout: HexLayout } {
     const w = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_W + rand() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
@@ -76,11 +90,13 @@ function shuffle<T>(array: T[], rand: () => number): void {
  * 把陣容放上目前的地圖（送 PLACE_AGENT）。
  * 兩個陣營：左右對分（地圖是以 (0,0) 為中心的大六角，q<0 偏左、q>0 偏右），先洗左邊再洗右邊。
  * 三個以上：洗一次全部的出生格，各陣營一個據點，輪流取離自己據點最近的空格。
+ * 回傳每個放上場的位置生成了哪個單位（出生格不夠時，沒放上去的位置不在裡面）。
  */
-export function deployRoster(engine: GameEngine, roster: readonly RosterSlot[], setup: BattleSetup, rand: () => number): void {
+export function deployRoster(engine: GameEngine, roster: readonly RosterSlot[], setup: BattleSetup, rand: () => number): ReadonlyMap<RosterSlot, string> {
     // 可出生格：不含障礙物與最外圈（與面板總池同一份判定）
     const validHexes: HexCoord[] = querySpawnableHexes(engine);
     const slotsOf = (side: number) => roster.filter((s) => s.side === side);
+    const placed = new Map<RosterSlot, string>();
     const place = (slot: RosterSlot, hex: HexCoord, side?: number) => {
         engine.bus.emit('UI_COMMAND', {
             type: 'PLACE_AGENT',
@@ -92,6 +108,8 @@ export function deployRoster(engine: GameEngine, roster: readonly RosterSlot[], 
             side,
             look: slot.look,
         });
+        const unit = engine.getAgentAt(hex.q, hex.r);
+        if (unit) placed.set(slot, unit.id);
     };
 
     if (setup.factions === 2) {
@@ -105,7 +123,7 @@ export function deployRoster(engine: GameEngine, roster: readonly RosterSlot[], 
             const slots = slotsOf(side);
             for (let i = 0; i < slots.length && i < hexes.length; i++) place(slots[i], hexes[i]);
         });
-        return;
+        return placed;
     }
 
     shuffle(validHexes, rand);
@@ -118,4 +136,5 @@ export function deployRoster(engine: GameEngine, roster: readonly RosterSlot[], 
             if (slot && hex) place(slot, hex, side);
         }
     }
+    return placed;
 }

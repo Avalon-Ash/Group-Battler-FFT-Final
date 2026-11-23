@@ -26,11 +26,10 @@
 
 import type { GameEngine } from '../../game';
 import type { BattleSetup, MatchPhase, PlayHero, Team, UICommand } from '../../../types';
-import { ContractPending } from '../../core/ContractPending';
-import { GAME_APP_PARAM, UI_SETTINGS } from '../../../constants';
+import { GAME_APP_PARAM, PLAY_PARAM, UI_SETTINGS } from '../../../constants';
 import { createRandomStream, setupRandom } from '../../math/rng';
 import { rollShowcaseSetup } from '../ui/editorQueries';
-import { planRoster, deployRoster, rollShowcaseMap, type RosterSlot } from './Deployment';
+import { planRoster, planPlayRoster, deployRoster, rollShowcaseMap, type RosterSlot } from './Deployment';
 
 export interface MatchFlowDeps {
     /** 下一批單位的圖集載好了嗎（表現層的事）。逾時（GAME_APP_PARAM.SPAWN_ATLAS_WAIT_MAX_MS）照樣生成 */
@@ -83,6 +82,8 @@ export class MatchFlowSystem {
     private showcase = false;
     /** [契約 P1] PLAY 模式的主角設定；null＝不在 PLAY 模式 */
     private playHero: PlayHero | null = null;
+    /** PLAY 模式場上主角的單位 id（佈陣時記下） */
+    private heroId: string | null = null;
     /** 上次用 SET_SHOWCASE_MODE 公布的值（音訊在聽）；null＝還沒公布過 */
     private announcedShowcase: boolean | null = null;
     private timed: TimedPhase | null = null;
@@ -135,8 +136,7 @@ export class MatchFlowSystem {
 
     /** [契約 P1] 場上主角的單位 id；不在 PLAY 模式或還沒生成是 null */
     public get playHeroId(): string | null {
-        if (this.playHero === null) return null;
-        throw new ContractPending('P1', 'MatchFlowSystem.playHeroId');
+        return this.playHero === null ? null : this.heroId;
     }
 
     /** 渲染用的轉場階段：退場、進場以外都是 IDLE（等素材時畫面已經是 IDLE） */
@@ -168,15 +168,18 @@ export class MatchFlowSystem {
      * 關掉＝回到手動（LOBBY）：停下、清盤、還原玩家自己的陣營設定，等玩家佈陣與開戰。
      */
     public setShowcase(enabled: boolean, firstRound: FirstRoundSetup = 'ROLL'): void {
+        const wasPlay = this.playHero !== null;
+        this.playHero = null;
+        this.heroId = null;
         if (enabled) {
-            // 只在「從手動切進展示」那一刻記下玩家設定（開機與重複呼叫不記，否則會把隨機值存進來）
-            if (!this.showcase) this.manualSetup = { ...this.engine.battleSetup };
+            // 只在「從手動切進展示」那一刻記下玩家設定（開機、重複呼叫、從 PLAY 回來都不記，否則會把隨機或 PLAY 的設定存進來）
+            if (!this.showcase && !wasPlay) this.manualSetup = { ...this.engine.battleSetup };
             this.showcase = true;
             this.beginRound(firstRound);
         } else {
             const wasShowcase = this.showcase;
             this.showcase = false;
-            if (wasShowcase) {
+            if (wasShowcase || wasPlay) {
                 this.resetTimers();
                 this.send({ type: 'STOP_GAME' });
                 this.send({ type: 'CLEAR_BOARD', keepScene: true });
@@ -221,18 +224,45 @@ export class MatchFlowSystem {
      * 佈陣用 Deployment，不另寫一份；寫入引擎一律送 UI_COMMAND。
      */
     public startPlay(hero: PlayHero): void {
-        void hero;
-        throw new ContractPending('P1', 'MatchFlowSystem.startPlay');
+        this.showcase = false;
+        this.playHero = hero;
+        this.beginPlayMatch();
+        this.announceShowcase();
+        this.publish();
     }
 
     /** 結算後「再來一場」：同一個主角設定、新戰場、新種子。PLAY 模式的結算不會自己轉場，等玩家按。 */
     public nextPlayMatch(): void {
-        throw new ContractPending('P1', 'MatchFlowSystem.nextPlayMatch');
+        if (this.playHero === null) return;
+        this.beginPlayMatch();
+        this.publish();
     }
 
     /** 回主畫面：離開 PLAY，回到展示模式（setShowcase(true)）。 */
     public exitPlay(): void {
-        throw new ContractPending('P1', 'MatchFlowSystem.exitPlay');
+        if (this.playHero === null) return;
+        this.setShowcase(true);
+    }
+
+    /** 開一場 PLAY：換一張戰場、PLAY 的陣營設定、佈陣（主角交給玩家）、開戰。不走轉場。 */
+    private beginPlayMatch(): void {
+        this.resetTimers();
+        this.rand = createRandomStream(this.deps.nextSeed());
+        this.dealMap();
+        this.send({ type: 'SET_BATTLE_SETUP', setup: { factions: PLAY_PARAM.FACTIONS, unitsPerFaction: PLAY_PARAM.UNITS_PER_SIDE } });
+        this.roster = [];
+        this.spawnAndStart();
+    }
+
+    /** 主角交給玩家、換上選的技能（開戰前送，開戰快照才帶得走）。undefined 的槽照一般生成，null 清空。 */
+    private equipHero(): void {
+        const hero = this.playHero;
+        const id = this.heroId;
+        if (hero === null || id === null) return;
+        this.send({ type: 'SET_CONTROLLER', agentId: id, controller: 'PLAYER' });
+        hero.skillIds?.forEach((skillId, slot) => {
+            if (skillId !== undefined) this.send({ type: 'SET_AGENT_SKILL', agentId: id, slot, skillId });
+        });
     }
 
     /** 每個畫面呼叫一次；realDt 是真實經過的秒數。一次最多前進一個階段。 */
@@ -315,6 +345,7 @@ export class MatchFlowSystem {
     /** 把陣容放上場並開戰；預載清單清空。 */
     private spawnAndStart(): void {
         this.deal(this.rand);
+        this.equipHero();
         this.roster = [];
         this.engine.bus.emit('MATCH_ROSTER', { roster: [] });
         this.resetTimers();
@@ -326,7 +357,9 @@ export class MatchFlowSystem {
     private plan(setup: BattleSetup): void {
         this.rosterRound++;
         this.plannedSetup = { ...setup };
-        this.roster = planRoster(this.plannedSetup, this.rosterRound, this.lookSalt);
+        this.roster = this.playHero
+            ? planPlayRoster(this.plannedSetup, this.rosterRound, this.lookSalt, this.playHero.role)
+            : planRoster(this.plannedSetup, this.rosterRound, this.lookSalt);
     }
 
     /** 依這張地圖的總池重新夾一次陣營設定；和排好的陣容不同就重排，然後放上場。 */
@@ -338,7 +371,9 @@ export class MatchFlowSystem {
             || this.plannedSetup.unitsPerFaction !== engine.battleSetup.unitsPerFaction) {
             this.plan(engine.battleSetup);
         }
-        deployRoster(engine, this.roster, this.plannedSetup, rand);
+        const placed = deployRoster(engine, this.roster, this.plannedSetup, rand);
+        const heroSlot = this.roster.find((s) => s.hero);
+        this.heroId = heroSlot ? placed.get(heroSlot) ?? null : null;
         this.dealtSetup = { ...this.plannedSetup };
     }
 

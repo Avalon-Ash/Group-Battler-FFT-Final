@@ -108,6 +108,9 @@ export const UI_PIN = {
 export const PLAY_PARAM = {
     /** 選目標時的時間倍率（乘在玩家選的倍率上）；手感由 P5 試玩後調 */
     AIM_SLOWMO_FACTOR: 0.3,
+    /** 一場 PLAY 幾個陣營、每邊幾人（主角算在藍方裡；實際人數仍會被地圖的出生格總池夾住） */
+    FACTIONS: 2,
+    UNITS_PER_SIDE: 5,
 } as const;
 
 /** 具名參數：保持原值與運算次序。 */

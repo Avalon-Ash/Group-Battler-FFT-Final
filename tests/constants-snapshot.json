@@ -2532,6 +2532,8 @@
     "ESCAPE_SAFE_DIST": 4
   },
   "PLAY_PARAM": {
-    "AIM_SLOWMO_FACTOR": 0.3
+    "AIM_SLOWMO_FACTOR": 0.3,
+    "FACTIONS": 2,
+    "UNITS_PER_SIDE": 5
   }
 }

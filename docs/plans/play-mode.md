@@ -66,7 +66,7 @@
 | 包 | 內容 | 依賴 | 規模 | 執行者 |
 | :-- | :-- | :-- | :-- | :-- |
 | P0 | 契約（完成 2026-11-23，Fable 終審後修訂）：`MatchFlowSystem.startPlay`／`nextPlayMatch`／`exitPlay`／`playHeroId`、`SessionView.isPlay`／`playHeroId`、`SET_AIM` 與 `engine.state.aim`、`effectiveTimeScale`、`queryCastTargeting`／`isCastTarget`、`resolveTap` 的瞄準與 PLAY 規則；紅色驗收 `tests/contracts/PLAY.contract.test.ts`（P1 五則、P2 四則、P5 六則＋一則前提自檢）；ADR 0025 | — | S | Opus |
-| P1 | 引擎：PLAY 流程分支（佈陣、開戰、結算停住、再來一場、回主畫面）；主角陣亡後照打完 | P0 | M | Sonnet 子代理（紅色驗收已寫好） |
+| P1 | 引擎（完成 2026-11-23，WORKLOG §2 CU；Sonnet 子代理回報不實，Opus 接手）：PLAY 流程分支（佈陣、開戰、結算停住、再來一場、回主畫面）；主角陣亡後照打完 | P0 | M | Opus |
 | P2 | 時間（完成 2026-11-23，WORKLOG §2 CU）：`SET_AIM`、開新局取消、`effectiveTimeScale` 接進 `planFixedSteps` 與 `renderer.update` | P0 | S | Opus |
 | P3 | 點擊容差：表現層用單位身體框找點到的單位、裝置別容差 | — | S | Sonnet 子代理 |
 | P5a | 選目標規則：`queryCastTargeting`、`isCastTarget`、`resolveTap` 的新規則，`ORDER_CAST` 驗證改用 `isCastTarget`；技能列的 selector（冷卻、魔力、能不能放）先定型別與驗收 | P0、P1 | S | Opus |
