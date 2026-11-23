@@ -20,8 +20,8 @@ import type { PartSpec } from '../../engine/renderers/vfxparts/PartSpec';
 
 export type StatusAnchor = 'GROUND' | 'BODY' | 'HEAD';
 
-/** [契約 R4] 零件的方向來源：TOWARD_SOURCE＝指向施加者（嘲諷者），MOVE＝移動方向（靜止時依 facing） */
-export type StatusOrient = 'TOWARD_SOURCE' | 'MOVE';
+/** [契約 R4] 零件的方向來源：MOVE＝移動方向（靜止時依 facing）。嘲諷不指向嘲諷者（使用者 11-23：像 MMO 一樣只標狀態，走過去打嘲諷者就是效果） */
+export type StatusOrient = 'MOVE';
 
 /** [契約 R4] 有方向的零件：toward＝方向來源；nativeAngle＝零件在 rotation 0 時指向的螢幕角度（弧度，0＝右、π/2＝下） */
 interface StatusPartOrient {
@@ -132,12 +132,12 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
             { spec: { kind: 'sigil', radius: 12, emblem: 'hornSkull', ramp: 'STATUS_DREAD' }, anchor: 'HEAD', lift: 0, shake: 1.6, alpha: 0.95, blend: 'source-over' },
         ],
     },
-    /** 嘲諷（紅）：頭上上下彈跳的倒三角（尖端指向嘲諷者），背後紅色放射光 */
+    /** 嘲諷（紅）：頭上上下彈跳的倒三角（尖端朝下），背後紅色放射光 */
     TAUNT: {
         priority: 65, category: 'HARD_CC',
         icon: [{ spec: { kind: 'sigil', radius: 6, emblem: 'invTriangle', ramp: 'STATUS_RED' } }],
         layers: [
-            { spec: { kind: 'sigil', radius: 12, emblem: 'invTriangle', ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, bob: { amp: 3, hz: 2 }, alpha: 0.95, blend: 'source-over', orient: { toward: 'TOWARD_SOURCE', nativeAngle: Math.PI / 2 } },
+            { spec: { kind: 'sigil', radius: 12, emblem: 'invTriangle', ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, bob: { amp: 3, hz: 2 }, alpha: 0.95, blend: 'source-over' },
             { spec: { kind: 'rays', radius: 24, count: 8, ramp: 'STATUS_RED' }, anchor: 'HEAD', lift: 0, spin: 0.7, alpha: 0.55, decor: true },
         ],
     },
