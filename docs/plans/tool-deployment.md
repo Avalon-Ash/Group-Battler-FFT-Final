@@ -295,4 +295,23 @@ P5 可以單獨否決。不做的話，`simFingerprint.ts` 會在 ADR 裡登記�
 13. batch-sim、ai-idle、mobility 的輸出有沒有被其他測試、文件或基準檔引用為固定數字。
 14. `public/replays/bench-magma-20.json` 被哪些 script 讀取，是否有流程會自動重跑 `record-bench`。
 
-**主代理初查（2026-11-24）**：8. `constants/ui.ts` 的 `TEAMS_SPLIT_GAP_Q` 是 1。10. 目前最大編號 0025，新 ADR 取 0026。§1 說的「本地 LCG 違反 AGENTS.md」屬實（AGENTS.md：Never write a local PRNG, LCG or integer hash）。其餘照 P0 查。
+**主代理初查（2026-11-24）**：8. `constants/ui.ts` 的 `TEAMS_SPLIT_GAP_Q` 是 1。10. 目前最大編號 0025，新 ADR 取 0026。§1 說的「本地 LCG 違反 AGENTS.md」屬實（AGENTS.md：Never write a local PRNG, LCG or integer hash）。
+
+**主代理 P0 查證（2026-11-24，explorer 子代理讀碼，主代理整理；行號為當時）**
+
+> **觸發 §2.3 的停下條件**：第 5、12 條——放置順序會影響戰鬥結果（每次 `PLACE_AGENT` 的 `addAgent` 都從全域 `random()` 抽技能，`agentManager.ts:121-133`）。所以 `mirrorSides` 讓紅方先放，就等於換了抽技能的順序，`--swapSides` 會混進第二個變因。要不要給 `deployRoster` 加「放置順序」的選填參數（動到 `Deployment.ts`），等使用者決定。
+
+1. `balance:fingerprint`＝`node tools/balance/sim-fingerprint.mjs`、`balance:sim`＝`batch-sim.mjs`、`balance:mobility`＝`mobility-probe.mjs`、`balance:idle`＝`ai-idle-sim.mjs`（`--scenario` 必填）；`record-bench` 沒有 npm script。
+2. `factionRoleIndex`（`editorQueries.ts:160-163`）和工具公式**不同**：TEAMS 陣營 1 不同（`u` 對 `(1+u)%5`），SQUADS 不同；ROYALE 相同。ai-idle 的 `rolesList[i]` 與 TEAMS 相同；`royaleRoles` 未核對。→ 指紋 TEAMS、SQUADS 會變（預期），ROYALE 可能不變。
+3. `bodyType`、`look` 只影響呈現與存檔，combat／movement／ai 沒有讀；體型由雜湊決定，不耗亂數。→ §7 風險 3 解除。
+4. `SET_BATTLE_SETUP` 不影響 `RANDOMIZE_MAP`（地圖生成不讀 battleSetup）；預設 2 陣營×5 人。→ §7 風險 4 解除。
+5. 單位 id 與 `engine.agents` 順序由放置順序決定；放置順序**會**影響結果（見上方方框）。tick 迭代順序本身的影響未定。
+6. `play()` 不重設種子、不寫 matchStart；`START_GAME` 會建開戰快照、設 matchSalt、`seedSimulation`，回放匯出需要 matchStart，所以 record-bench 必須用 `START_GAME`。→ §7「不統一開戰指令」維持。
+7. MatchFlowSystem 用自己的 `createRandomStream`（mulberry32，狀態獨立）傳給 `rollShowcaseMap` 與 `deployRoster`，不是全域 `random()`；全域序列只給地圖生成。→ 工具入口傳全域 `random()` 給 `deployRoster`，和遊戲本體的序列不同是預期的（工具不跑 MatchFlow）。
+9. 不等價：`querySpawnableHexes` 多一步 `dropSpawnPockets`，會刪掉被障礙圍住的小區塊。→ batch-sim／mobility-probe 改接後格子池會變（§3.1 已列「一定變」）。
+11. `tests/contracts/` 沒有引用 `Deployment.ts`；`simState.ts:13` 轉出 `buildBattle`，契約依賴它的簽名與「同種子兩次相同」，沒找到座標字面值斷言（未逐檔讀完）。
+12. 有：`addAgent` 抽技能（職業未指定時也抽職業）用全域 `random()`，在每次 `PLACE_AGENT` 時抽。
+13. 沒有測試引用這些工具的輸出數字；`fingerprint.baseline.json` 只被 `sim-fingerprint.mjs` 讀；固定數字只出現在文件（WORKLOG 等）。
+14. `public/replays/bench-magma-20.json` 由 `perf-frames.mjs`（`?replay=`）與 `ReplayIO.ts` 讀取；沒有流程自動重跑 record-bench。
+
+未核對：`queryMapKeys`、`queryHasObstacle` 內文、tick 迭代順序、ai-idle 的 `royaleRoles`、`startsNewMatch` 內文。

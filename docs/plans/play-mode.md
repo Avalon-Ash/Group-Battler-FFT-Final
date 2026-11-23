@@ -1,6 +1,7 @@
 # PLAY 模式開案書（2026-11-23，Opus 5.5 代 Fable 開案，Fable 終審後修訂）
 
 > **2026-11-23 結案**：P0～P7 全部完成（WORKLOG §2 CU、CW、CY）；剩下的實機手感回饋在 HANDOFF §3。本檔不刪：ADR 0025、DECISIONS 與受保護的 `tests/contracts/PLAY.contract.test.ts` 引用它。
+> **2026-11-24 註記**：P5 的選目標規則（下面「機動技點地面或單位」「射程 0＝SELF，範圍技與機動技＝UNIT_OR_GROUND」）已改：射程 0 的機動技＝SELF；機動技照出手時實際位移分三種（突進／瞬移＝可點地面、後撤＝SELF、不動自己的照一般規則）。以程式 `engine/systems/ui/castTargeting.ts` 與 DECISIONS 2026-11-24 為準（WORKLOG §2 CZ、DA）。本文其餘不改。
 > 範圍：HANDOFF L2（手動模式改成主動式遊戲 UI）＋開案書 `docs/plans/optimization-2026-11.md` 的 G3 第二片。G5 行為編輯器不在本檔。
 > Fable 本週額度用完，由 Opus 開案；Fable 經 API 終審一次（2026-11-23，報告在 commit 訊息），本檔已照它修訂。執行者照本檔拆包做，覺得不合理就回報，不自己改方向。做完一包：`docs/WORKLOG.md` 加一節、本檔該包標「完成」；全部做完把剩下的併回 HANDOFF 再刪本檔。
 > 每個數字附產生它的指令；沒附的是讀程式碼的推論，標「推論」。
