@@ -69,7 +69,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         engine 
     });
     
-    const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
+    const { pressedAgent, draggedObstacle, hoveredHexRef, refreshHover } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent,
         onSelect
@@ -79,6 +79,8 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         if (!rendererRef.current) return;
         
         const highlight = pressedAgent || selectedAgent || null;
+        // 滑鼠不動時游標格也跟著局面（瞄準中＝點下去會施放的位置，預覽＝點擊）
+        refreshHover();
         const currentHoverHex = hoveredHexRef.current;
         
         const realTime = performance.now() / 1000;
@@ -141,7 +143,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             else ctx.drawImage(sprite.image, px - sprite.anchorX, visualY - sprite.anchorY - liftOffset, sprite.width, sprite.height);
             ctx.restore();
         }
-    }, [engine, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera, tool, spawnMode, draftRole, draftBodyType, winner]);
+    }, [engine, pressedAgent, selectedAgent, hoveredHexRef, refreshHover, hoveredSkill, draggedObstacle, camera, tool, spawnMode, draftRole, draftBodyType, winner]);
 
     const handleResize = useCallback((w: number, h: number) => {
         // 戰鬥中尺寸變了（手機工具列收合、旋轉）交給導播重新取景，不瞬間跳回全圖

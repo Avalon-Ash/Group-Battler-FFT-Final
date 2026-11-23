@@ -46,6 +46,9 @@ interface GameInputProps {
     onSelect: (a: Agent | null) => void;
 }
 type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
+/** 指標事件裡取格子與單位要用的部分（PointerEvent 或最後一次記下的位置） */
+type PointerSample = Pick<PointerEvent, 'clientX' | 'clientY' | 'pointerType'>;
+
 export const useGameInput = (props: GameInputProps) => {
     const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent, onSelect } = props;
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
@@ -57,6 +60,8 @@ export const useGameInput = (props: GameInputProps) => {
     const pressedAgentRef = useRef<Agent | null>(null);
     const draggedObstacleRef = useRef<DraggedObstacle | null>(null);
     const hoveredHexRef = useRef<Hex | null>(null);
+    /** 最後一個滑鼠指標位置（觸控沒有懸停：放開、離開畫布就清掉）；瞄準中每幀用它重算游標格（refreshHover） */
+    const lastHoverPointerRef = useRef<PointerSample | null>(null);
     const activePointers = useRef<Set<number>>(new Set());
     const cachedRectRef = useRef<DOMRect | null>(null);
     const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent });
@@ -79,10 +84,24 @@ export const useGameInput = (props: GameInputProps) => {
     };
 
     /** 指標下的單位：身體框命中優先、退回格子（規則只在 pickAgentAt；hex 是同一個指標位置的格子） */
-    const getAgentFromEvent = (e: PointerEvent, hex: Hex | null): Agent | undefined => {
+    const getAgentFromEvent = (e: PointerSample, hex: Hex | null): Agent | undefined => {
         const renderer = rendererRef.current;
         const world = queryWorldAtScreenPoint(e.clientX, e.clientY, canvasRef.current, renderer?.camera, cachedRectRef.current ?? undefined);
         return pickAgentAt(engine, renderer?.unit, world, renderer?.camera.zoom ?? 1, e.pointerType, hex);
+    };
+
+    /** 游標格（hoveredHexRef）的唯一寫入處：規則在 tapIntent.hoverHexOf（瞄準中＝點下去會施放的位置） */
+    const resolveHover = (p: PointerSample) => {
+        const h = getHexFromEvent(p.clientX, p.clientY);
+        hoveredHexRef.current = hoverHexOf(engine, configRef.current.selectedAgent, h, () => getAgentFromEvent(p, h) ?? null);
+    };
+    const trackHover = (e: PointerEvent) => {
+        lastHoverPointerRef.current = e.pointerType === 'touch' ? null : { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType };
+        resolveHover(e);
+    };
+    /** 每幀呼叫（GameCanvas 畫之前）：滑鼠不動時，按 1～4 開始瞄準、單位走開、鏡頭移動，游標格也跟著現在的局面 */
+    const refreshHover = () => {
+        if (lastHoverPointerRef.current) resolveHover(lastHoverPointerRef.current);
     };
 
     const handlePointerDown = (e: PointerEvent) => {
@@ -119,8 +138,7 @@ export const useGameInput = (props: GameInputProps) => {
         if (!lastPointerPos.current || activePointers.current.size > 1) {
             // 尚未按過指標時也要更新懸停格（放置預覽、格子高亮）
             if (activePointers.current.size === 0) {
-                const hover = getHexFromEvent(e.clientX, e.clientY);
-                hoveredHexRef.current = hoverHexOf(engine, configRef.current.selectedAgent, hover, () => getAgentFromEvent(e, hover) ?? null);
+                trackHover(e);
             }
             return;
         }
@@ -128,7 +146,7 @@ export const useGameInput = (props: GameInputProps) => {
         const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
         const dx = sx - lastPointerPos.current.x, dy = sy - lastPointerPos.current.y;
         const h = getHexFromEvent(e.clientX, e.clientY);
-        hoveredHexRef.current = hoverHexOf(engine, configRef.current.selectedAgent, h, () => getAgentFromEvent(e, h) ?? null);
+        trackHover(e);
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
             const driftThreshold = e.pointerType === 'touch' ? GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX : GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;
@@ -188,6 +206,8 @@ export const useGameInput = (props: GameInputProps) => {
     };
     const handlePointerUp = (e: PointerEvent) => {
         activePointers.current.delete(e.pointerId);
+        // 觸控沒有懸停：手指離開就不留游標格（否則瞄準時會在上次點的地方畫範圍）
+        if (e.pointerType === 'touch') { hoveredHexRef.current = null; lastHoverPointerRef.current = null; }
         const cvs = canvasRef.current;
         if (!cvs) return;
         if (interactionMode.current === 'DOWN') {
@@ -274,7 +294,7 @@ export const useGameInput = (props: GameInputProps) => {
             }
         }
     };
-    const handlePointerLeave = () => { hoveredHexRef.current = null; };
+    const handlePointerLeave = () => { hoveredHexRef.current = null; lastHoverPointerRef.current = null; };
     useEffect(() => {
         const cvs = canvasRef.current;
         if (!cvs) return;
@@ -291,5 +311,5 @@ export const useGameInput = (props: GameInputProps) => {
             cvs.removeEventListener('pointercancel', handlePointerUp);
         };
     }, []);
-    return { hoveredHexRef, pressedAgent, draggedObstacle };
+    return { hoveredHexRef, refreshHover, pressedAgent, draggedObstacle };
 };
