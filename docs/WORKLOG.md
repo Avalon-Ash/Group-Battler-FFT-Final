@@ -943,3 +943,11 @@
 - 驗證：`npm test` 175 檔 1629 則、lint、knip、build（進入點 256.1／257.5 kB；PlaySetup、PlayResult、PlayHUD 各自延遲載入）、`audit:ui` 0 違規、`e2e:ui` 271 項全過與樣式快照 0 差異、runtime-smoke、`perf:guard`（保真 6 張）、`balance:fingerprint` 180/180。第一次完整 e2e 的 Inspector 組 5 項 EDIT_AGENT 失敗，單獨跑兩次、重跑完整都過（HANDOFF D 的時序偶發同類）。
 - 沒驗的：手感（放慢 0.3 倍、點擊容差 4／14 px、按鈕大小）只有截圖與探針，等使用者實機。
 - **回退**：各包一個 commit，`git revert`。
+
+### CZ. 2026-11-24 PLAY 射程 0 機動技修正、大逃殺加樣本、工具佈陣提案（主代理 Opus，使用者：照順序開跑）
+- **Pages 部署**：11-22、11-23 有 3 次在最後的 deploy 步驟失敗（lint、測試、build、上傳都過，GitHub 端回「No artifacts named github-pages」）；重跑最新一次成功，PLAY 已上線。
+- **射程 0 的機動技**（HANDOFF §3 那項「6 招射程 0 沒專門驗」）：`tb_m2`、`mb_m2`、`sb_m1`、`tr_m2`、`mr_m2`、`sr_m1` 都是自身周圍半徑 1 的擊退，沒有位移，卻因為 `castTargeting.targetModeOf` 先判斷 MOBILITY 而進了 UNIT_OR_GROUND。探針：點 3 格外的地面，主角走到差 1 格就停住挨打，15 秒內 12 種情況（6 招 × 點地面／不帶目標）都沒放出。改成先判斷射程 0（SELF，按一下就放）；敵人貼身時 13～19 tick 放出、敵人被推到 4 格。`tests/PlayerOrders.test.ts` 加一則（修前紅、修後綠）。SELF 技能身邊沒敵人時會一直等（G3 的既有設計），沒改。
+- 驗證：lint、`npm test` 175 檔 1630 則、build、`E2E_ONLY=play npm run e2e:ui` 全過。
+- **大逃殺加樣本**（只量沒改）：`ai-idle-sim --scenario=ROYALE --battles=1500`，種子 21、77 各一次（各約 140 秒）。職業勝率（每場 2 人，期望 20%）：坦克 13.5／15.5%、戰士 10.6／10.2%、遠程 24.2／27.3%、法師 27.0／25.3%、輔助 24.0／21.0%。單技能和同職業同槽的其他招比（奧義、主動技；`tools/ui-e2e/out/royale-z.mjs`，不進版控），兩個種子都同方向 |z|≥3 的：偏強 `tb_u3`（21.8／23.4% 對 7.4／8.1%）、`tb_a1`（24.5／23.4% 對 10.0%）、`tr_a4`、`tb_a5`、`wr_u5`、`wr_a5`、`wr_a3`、`rr_u2`；偏弱 `tb_u2`（1.0／4.3%）、`mb_u3`（1.5／4.2%）、`sr_u3`、`tr_a3`。CP 的 300 場名單裡 `tb_a1`、`tb_a5` 這次也偏強；`rr_u3` 只有種子 21 超標。
+- **工具佈陣開案書**：API 點數的 Fable 5.2 寫 `docs/plans/tool-deployment.md`（single 附 9 個檔）。第一次 high、上限 40000：思考用掉 36882，正文只寫到 §1 就截斷（$2.03）；第二次 medium、上限 48000、限制篇幅，end_turn（$1.36）。等使用者決定（HANDOFF L 第 4 項）。
+- **回退**：射程 0 的修正一個 commit，`git revert`。
