@@ -299,7 +299,7 @@ P5 可以單獨否決。不做的話，`simFingerprint.ts` 會在 ADR 裡登記�
 
 **主代理 P0 查證（2026-11-24，explorer 子代理讀碼，主代理整理；行號為當時）**
 
-> **觸發 §2.3 的停下條件**：第 5、12 條——放置順序會影響戰鬥結果（每次 `PLACE_AGENT` 的 `addAgent` 都從全域 `random()` 抽技能，`agentManager.ts:121-133`）。所以 `mirrorSides` 讓紅方先放，就等於換了抽技能的順序，`--swapSides` 會混進第二個變因。要不要給 `deployRoster` 加「放置順序」的選填參數（動到 `Deployment.ts`），等使用者決定。
+> **P0 開放項目（§2.3 的放置先後）**：第 5、12 條證實放置順序會改變每個單位抽到的職業與技能（`addAgent` 每次放置都依序從全域 `random()` 抽，主代理讀過 `agentManager.ts` 的 `addAgent`）。這代表同一個種子的單場結果會變——§3.1 本來就預期。至於 `mirrorSides` 讓紅方先放，會不會讓 `--swapSides` 的藍方勝率出現**系統性**偏差，現有證據不足（藍紅抽的是同一條序列；陣列順序、tick 迭代順序的影響未查）。先量再說：同一組種子、足夠場數，比較改前改後 `--swapSides` 的藍方勝率是否落在雜訊內；有系統性偏差才回到 §2.3，問使用者要不要動 `Deployment.ts`。
 
 1. `balance:fingerprint`＝`node tools/balance/sim-fingerprint.mjs`、`balance:sim`＝`batch-sim.mjs`、`balance:mobility`＝`mobility-probe.mjs`、`balance:idle`＝`ai-idle-sim.mjs`（`--scenario` 必填）；`record-bench` 沒有 npm script。
 2. `factionRoleIndex`（`editorQueries.ts:160-163`）和工具公式**不同**：TEAMS 陣營 1 不同（`u` 對 `(1+u)%5`），SQUADS 不同；ROYALE 相同。ai-idle 的 `rolesList[i]` 與 TEAMS 相同；`royaleRoles` 未核對。→ 指紋 TEAMS、SQUADS 會變（預期），ROYALE 可能不變。

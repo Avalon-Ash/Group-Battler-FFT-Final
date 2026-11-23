@@ -962,9 +962,9 @@
 - **回退**：`git revert` 重錄那個 commit 與功能 commit（順序：先重錄、後功能）。
 
 ### DB. 2026-11-24 夜間長鏈：游標格每幀重算、後撤實放、部署查證、兩份提案（主代理 Opus，使用者：你處理、可跑的長鏈就安排、有問題問顧問）
-- 顧問指出今晚上線功能的兩個缺口。① 游標格只在 pointermove 更新：滑鼠不動按 1～4 或單位走開時預覽停在舊位置。`useGameInput` 記最後一個滑鼠位置（觸控放開／離開畫布清掉），GameCanvas 每幀 `refreshHover`，仍走 `hoverHexOf`。探針 `tools/ui-e2e/out/aim-stale.mjs`（不暫停、滑鼠停在敵人身體上方不動、比對畫出的格子＝現在點下去的範圍）：修前 5/5 失敗（7 格只對上 2～3 格）、修後 5/5 通過。② 後撤類機動技 6 招實放：敵人在 2 格內 13 tick 放出、退 2 格；沒敵人時指令掛著約 4.7 秒後才放（只回報，沒改）。
+- 顧問指出今晚上線功能的兩個缺口。① 游標格只在 pointermove 更新：滑鼠不動按 1～4 或單位走開時預覽停在舊位置。`useGameInput` 記最後一個滑鼠位置（觸控放開／離開畫布清掉；觸控這條沒實測，Playwright 用的是滑鼠，未驗證），GameCanvas 每幀 `refreshHover`，仍走 `hoverHexOf`。探針 `tools/ui-e2e/out/aim-stale.mjs`（不暫停、滑鼠停在敵人身體上方不動、比對畫出的格子＝現在點下去的範圍）：修前 5/5 失敗（7 格只對上 2～3 格）、修後 5/5 通過。② 後撤類機動技 6 招實放：敵人在 2 格內 13 tick 放出、退 2 格；沒敵人時指令掛著約 4.7 秒後才放（只回報，沒改）。
 - `balance:fingerprint` 180/180（今晚引擎相關改動沒動到模擬）。
-- PLAY e2e 偶發「點敵人沒送出指令／手機畫面沒敵人」：HEAD 3 次 1 次、改後 3 次 2 次，同類，與改動無關（HANDOFF D）。
+- PLAY e2e 偶發「點敵人沒送出指令／手機畫面沒敵人」：HEAD 3 次 1 次、改後 3 次 2 次，同類，3 次的樣本分不出差異（HANDOFF D）。
 - 部署：重跑失敗的錯誤是「Multiple artifacts … count is 2」（actions/deploy-pages#338）；第一次就失敗的「No artifacts」原因未定（失敗與成功的間隔都是 0 秒）；11-22 起 push 7 次第一次失敗 6 次、dispatch 2/2 成功。workflow 拆 build／deploy 兩個 job，**只在本機 commit，沒 push**（commit 訊息裡的「7 次失敗 5 次」算錯，以這裡為準）。
 - 提案：`docs/plans/oncast-motion-decoupling.md`（只寫文件）。工具佈陣開案書補 P0 查證 12 條（explorer 子代理讀碼）：放置順序會影響抽技能 → 觸發 §2.3 停下條件，等使用者決定。
 - 其他：`play-mode.md` 加 2026-11-24 註記（P5 規則已改）；記憶加「先用現成管線資源」。

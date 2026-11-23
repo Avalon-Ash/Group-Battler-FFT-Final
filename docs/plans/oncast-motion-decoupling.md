@@ -8,8 +8,8 @@
 | 位置 | 判斷 | 用途 | 和 `castMotion` 的關係 |
 | :-- | :-- | :-- | :-- |
 | `engine/systems/ui/castTargeting.ts`（`targetModeOf`） | `castMotion(skill)` | PLAY 選目標方式 | 本身 |
-| `engine/systems/combat/SkillExecutor.ts:91` `mobilityDash` | `tag === 'MOBILITY'` 且 `onCast` 有 `DASH` | 突進類 AOE 以落點為中心 | **不同**：不含 `BLINK` |
-| `engine/systems/combat/SkillExecutor.ts:92` `retreated` | `onCast` 有 `RETREAT` | 後撤後的目標判定 | 等於 `castMotion === 'BACK'` |
+| `engine/systems/combat/SkillExecutor.ts:91` `mobilityDash` | `tag === 'MOBILITY'` 且 `onCast` 有 `DASH` | 突進類 AOE 以落點為中心（`:93`），主目標改用近戰格判定（`:145`） | **不同**：不含 `BLINK` |
+| `engine/systems/combat/SkillExecutor.ts:92` `retreated` | `onCast` 有 `RETREAT` | 後撤後主目標免射程檢查（`SkillExecutor.ts:145`：退開了仍打得到出手時鎖定的目標） | 等於 `castMotion === 'BACK'` |
 | `engine/systems/combat/SkillExecutor.ts:108` | `!skill.onCast?.length` | 有出手位移的不再前衝（lunge） | 目前等於 `castMotion === null` |
 | `engine/systems/combat/SkillStateMachine.ts:49` | `skill.onCast?.length` | 定身時不能放「會移動自己」的招（DECISIONS 2026-11-04） | 目前等於 `castMotion !== null` |
 | `engine/ai/BTRegistry.ts:110` `hasLanding` | 逐個動作規劃落點（要 `tiles`） | AI 判斷有沒有地方落 | 不是判斷式，**不收** |
