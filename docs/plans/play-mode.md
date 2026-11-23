@@ -72,7 +72,7 @@
 | P5a | 選目標規則（完成 2026-11-23，WORKLOG §2 CW）：`queryCastTargeting`、`isCastTarget`、`resolveTap` 的新規則，`ORDER_CAST` 驗證改用 `isCastTarget`。技能列的 selector（冷卻、魔力、能不能放）移到 P5 開工時先定型別與驗收。注意：20 招機動技有 6 招射程 0，點地面時引擎怎麼瞄格子（G2 終審記的 `castAim`）P5 要驗 | P0、P1 | S | Opus |
 | P7 | 主角自動反擊的姿態（完成 2026-11-23）：`Agent.stance`（`SET_STANCE`、開戰快照帶得走）、玩家圖堅守模式先試 `CounterAttack`；PLAY 主角設 COUNTER，手動模式維持 HOLD | P1 | S | Opus |
 | P4 | UI（完成 2026-11-23）：主畫面 PLAY 入口、選主角畫面（職業＋四槽，預設「隨機」，使用者說長鏈做完、不先看原型）、結算畫面（延遲載入） | P1 | M | Opus |
-| P5 | UI：戰鬥 HUD（技能列、瞄準高亮、停止、快捷鍵、觀戰狀態） | P2、P3、P5a | M | Opus 自己做（看圖反覆調） |
+| P5 | UI（完成 2026-11-23）：戰鬥 HUD（技能列、瞄準高亮、停止、快捷鍵、觀戰狀態）；施放指令成立時 UICommandSystem 取消瞄準 | P2、P3、P5a | M | Opus |
 | P6 | 收尾：e2e 走一遍 PLAY（桌機＋手機尺寸）、`audit:ui`、bundle 預算、HANDOFF 回寫 | 全部 | S | Opus |
 
 順序：P0 → （P1、P2、P3 並行；P3 只動輸入與表現層） → P5a、P7 → P4 → P5 → P6。P5 動到戰場疊層（瞄準高亮），屬渲染線，同時只開這一條。

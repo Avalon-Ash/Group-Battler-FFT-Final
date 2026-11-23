@@ -379,6 +379,11 @@ export const TACTICAL_DRAW = {
     PLAYER_ARROW_BOB_SPEED: 5,
     /** 玩家單位頭上箭頭描邊線寬（px） */
     PLAYER_ARROW_OUTLINE_WIDTH: 2,
+    /** PLAY 瞄準中，可選目標腳下的圈（PLAY P5）：半寬（px，畫時套 DESTINATION_SQUASH）、線寬（px）、不透明度的底與脈動幅度（比例）；脈動速度沿用 PLAYER_RING_PULSE_SPEED */
+    AIM_RING_RADIUS: 34,
+    AIM_RING_WIDTH: 3,
+    AIM_RING_ALPHA_BASE: 0.7,
+    AIM_RING_ALPHA_PULSE: 0.3,
     /** 既有目標連線離地高度（px） */
     TARGET_LIFT: 30,
     /** 目標連線實色起點（比例） */

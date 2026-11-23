@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { Role, Team } from '../types';
 import type { SessionView } from '../types';
-import { playLoadoutOptions } from '../engine/systems/ui/views/play';
+import { playLoadoutOptions, selectHeroBar } from '../engine/systems/ui/views/play';
+import { MatchFlowSystem } from '../engine/systems/match/MatchFlowSystem';
 import { playOutcome } from '../engine/systems/ui/views/session';
 import { SKILL_SLOT_TAGS } from '../data/ui/labels/l3';
 
@@ -35,5 +36,32 @@ describe('PLAY 的 UI 投影', () => {
         expect(playOutcome({ ...base, winner: null, winnerSide: null })).toBe('DRAW');
         expect(playOutcome({ ...base, phase: 'PLAYING' })).toBeNull();
         expect(playOutcome({ ...base, isPlay: false })).toBeNull();
+    });
+
+    it('selectHeroBar：PLAY 外是 null；內容沒變時同一個物件；反映瞄準；施放指令成立會取消瞄準', () => {
+        const e = new GameEngine({ audio: false });
+        let seed = 300;
+        const flow = new MatchFlowSystem(e, { isRosterReady: () => true, nextSeed: () => seed++ });
+        expect(selectHeroBar(e)).toBeNull();
+        flow.startPlay({ role: Role.RANGER });
+        const bar = selectHeroBar(e);
+        expect(bar).not.toBeNull();
+        if (!bar) return;
+        expect(bar.heroId).toBe(flow.playHeroId);
+        expect(bar.alive).toBe(true);
+        expect(bar.slots.length).toBeGreaterThan(0);
+        expect(selectHeroBar(e)).toBe(bar);
+        const basic = bar.slots.find((s) => s.tag === 'BASIC');
+        if (!basic) throw new Error('沒有普攻');
+        e.bus.emit('UI_COMMAND', { type: 'SET_AIM', aim: { agentId: bar.heroId, slot: basic.slot } });
+        expect(selectHeroBar(e)?.aimSlot).toBe(basic.slot);
+        const hero = e.agents.find((a) => a.id === bar.heroId);
+        const foe = e.agents.find((a) => hero && a.side !== hero.side);
+        if (!foe) throw new Error('沒有敵人');
+        e.bus.emit('UI_COMMAND', { type: 'ORDER_CAST', agentId: bar.heroId, slot: basic.slot, targetId: foe.id });
+        // 戰鬥中 GameCommand 排到下一個 tick 開頭
+        e.tick(1 / 60);
+        expect(e.state.aim).toBeNull();
+        expect(selectHeroBar(e)?.aimSlot).toBeNull();
     });
 });

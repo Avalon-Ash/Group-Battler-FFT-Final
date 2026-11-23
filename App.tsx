@@ -15,6 +15,7 @@ import { useCompactViewport } from './hooks/useCompactViewport';
 // PLAY 模式的畫面延遲載入：展示模式用不到，不進進入點（docs/plans/play-mode.md P4）
 const PlaySetup = lazy(() => import('./components/ui/play/PlaySetup').then((m) => ({ default: m.PlaySetup })));
 const PlayResult = lazy(() => import('./components/ui/play/PlayResult').then((m) => ({ default: m.PlayResult })));
+const PlayHUD = lazy(() => import('./components/ui/play/PlayHUD').then((m) => ({ default: m.PlayHUD })));
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
@@ -71,6 +72,9 @@ function App() {
             onCancel={() => setPlaySetupOpen(false)}
             onStart={(hero) => { setPlaySetupOpen(false); actions.startPlay(hero); }}
           />
+        )}
+        {state.isPlayMode && state.playOutcome === null && (
+          <PlayHUD onTogglePause={actions.togglePlay} />
         )}
         {state.playOutcome !== null && (
           <PlayResult

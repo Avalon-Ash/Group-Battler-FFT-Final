@@ -536,6 +536,8 @@ export class UICommandSystem {
                 } else {
                     issueOrder(agent, { type: 'CAST', slot: cmd.slot });
                 }
+                // 施放指令成立＝這次瞄準結束（ADR 0025：state.aim 只在這裡寫）
+                if (this.engine.state.aim?.agentId === agent.id) this.engine.state.aim = null;
                 break;
             }
 

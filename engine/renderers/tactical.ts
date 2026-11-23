@@ -16,6 +16,7 @@ import { RenderList } from "./RenderList";
 import { GridRenderStrategy } from "./grid/GridRenderStrategy";
 import { GridCache } from "./grid/GridCache";
 import { sameSide } from '../core/Allegiance';
+import { queryCastTargeting } from '../systems/ui/castTargeting';
 
 export interface RenderCamera {
     x: number;
@@ -62,6 +63,7 @@ export class TacticalRenderer {
     public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number, frames: UnitFrameStore) {
         ctx.save();
         this.drawPlayerRings(ctx, engine, globalTime, frames);
+        this.drawAimTargets(ctx, engine, globalTime, frames);
         const hFrame = highlight && highlight.hp > 0 ? frames.get(highlight) : undefined;
         if (highlight && hFrame) {
             // 單位的腳下高度一律來自 UnitFrame（含漂浮位移與移動過渡）；路徑格的高度維持以格為單位
@@ -135,6 +137,34 @@ export class TacticalRenderer {
             ctx.strokeStyle = TACTICAL_COLORS.PLAYER_MARK;
             ctx.lineWidth = TACTICAL_DRAW.PLAYER_RING_WIDTH;
             ctx.globalAlpha = TACTICAL_DRAW.PLAYER_RING_ALPHA_BASE + Math.sin(globalTime * TACTICAL_DRAW.PLAYER_RING_PULSE_SPEED) * TACTICAL_DRAW.PLAYER_RING_ALPHA_PULSE;
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    /**
+     * PLAY 瞄準中（engine.state.aim）：這一招點得下去的單位腳下畫一圈（敵方紅、友方綠）。
+     * 「能點誰」讀 queryCastTargeting（和 HUD、點擊同一個判斷）；位置讀 UnitFrame。沒有瞄準時什麼都不畫。
+     */
+    private drawAimTargets(ctx: CanvasRenderingContext2D, engine: GameEngine, globalTime: number, frames: UnitFrameStore): void {
+        const aim = engine.state.aim;
+        if (!aim) return;
+        const hero = engine.agents.find((a) => a.id === aim.agentId);
+        const targeting = hero ? queryCastTargeting(engine, hero, aim.slot) : null;
+        if (!hero || !targeting) return;
+        const alpha = TACTICAL_DRAW.AIM_RING_ALPHA_BASE + Math.sin(globalTime * TACTICAL_DRAW.PLAYER_RING_PULSE_SPEED) * TACTICAL_DRAW.AIM_RING_ALPHA_PULSE;
+        for (const id of targeting.unitIds) {
+            const unit = engine.agents.find((a) => a.id === id);
+            const f = unit ? frames.get(unit) : undefined;
+            if (!unit || !f || !f.visible) continue;
+            ctx.save();
+            ctx.translate(f.footX, f.floorY);
+            ctx.scale(1, TACTICAL_DRAW.DESTINATION_SQUASH);
+            ctx.beginPath();
+            ctx.arc(0, 0, TACTICAL_DRAW.AIM_RING_RADIUS, 0, Math.PI * 2);
+            ctx.strokeStyle = sameSide(unit, hero) ? TACTICAL_COLORS.TARGET_ALLY : TACTICAL_COLORS.TARGET_ENEMY;
+            ctx.lineWidth = TACTICAL_DRAW.AIM_RING_WIDTH;
+            ctx.globalAlpha = alpha;
             ctx.stroke();
             ctx.restore();
         }
