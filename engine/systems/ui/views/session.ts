@@ -15,6 +15,7 @@ export function selectSessionView(engine: GameEngine): SessionView {
     const result = flow ? flow.result : liveResult(engine);
     const setup = flow ? flow.matchSetup : matchSetupOf(engine, engine.battleSetup);
     const isShowcase = flow ? flow.isShowcase : false;
+    const isPlay = flow ? flow.isPlay : false;
     const winner = result ? result.winner : null;
     const winnerId = result ? result.winnerId : null;
     const winnerSide = result ? result.winnerSide : null;
@@ -25,6 +26,7 @@ export function selectSessionView(engine: GameEngine): SessionView {
         && prev.phase === phase
         && prev.isPlaying === engine.isRunning
         && prev.isShowcase === isShowcase
+        && prev.isPlay === isPlay
         && prev.winner === winner
         && prev.winnerId === winnerId
         && prev.winnerSide === winnerSide
@@ -34,17 +36,18 @@ export function selectSessionView(engine: GameEngine): SessionView {
         return prev;
     }
     // battleSetup 存自己的副本：引擎的設定物件會被原地覆寫（restoreMatch），直接拿來比永遠相等
-    const next: SessionView = { phase, isPlaying: engine.isRunning, isShowcase, winner, winnerId, winnerSide, unitCount, battleSetup: { ...setup } };
+    const next: SessionView = { phase, isPlaying: engine.isRunning, isShowcase, isPlay, winner, winnerId, winnerSide, unitCount, battleSetup: { ...setup } };
     sessionCache.set(engine, next);
     return next;
 }
 
 /**
  * [契約 U1] 目前的應用模式：決定哪些視窗可用（WindowDef.modes）、要不要收起操作列。
- * 展示模式優先；手動模式分出勝方＝結算畫面。PLAY、REPLAY、EDIT 之後由 G3、S3、G5 接上。
+ * 展示模式優先；PLAY 模式含它自己的結算（[契約 P1]）；手動模式分出勝方＝結算畫面。REPLAY、EDIT 之後由 S3、G5 接上。
  */
 export function appModeOf(view: SessionView): AppMode {
     if (view.isShowcase) return 'SHOWCASE';
+    if (view.isPlay) return 'PLAY';
     return view.winner !== null ? 'GAME_OVER' : 'MANUAL';
 }
 

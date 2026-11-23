@@ -58,7 +58,7 @@
 
 | 包 | 內容 | 依賴 | 規模 | 執行者 |
 | :-- | :-- | :-- | :-- | :-- |
-| P0 | 契約：`START_PLAY`、`SET_AIM_SLOWMO`、`SessionView.isPlay`、`state.time.aimFactor`、瞄準目標查詢的簽章；紅色驗收；ADR 0025（PLAY 模式與瞄準放慢的倍率擁有者） | — | S | Opus |
+| P0 | 契約（完成 2026-11-23）：`MatchFlowSystem.startPlay`／`nextPlayMatch`／`exitPlay`／`playHeroId`、`SET_AIM_SLOWMO`、`SessionView.isPlay`、`state.time.aimFactor`、`effectiveTimeScale`、`queryCastTargeting`；紅色驗收 `tests/contracts/PLAY.contract.test.ts`（P1 五則、P2 兩則、P5 三則）；ADR 0025 | — | S | Opus |
 | P1 | 引擎：PLAY 流程分支（選角 → 佈陣 → 開戰 → 結算 → 再來一場），`appModeOf` 回 `PLAY` | P0 | M | Sonnet 子代理（紅色驗收先寫好） |
 | P2 | 時間：`aimFactor` 接進固定步長；放慢的緩動 | P0 | S | Opus |
 | P3 | 點擊容差：單位身體框命中、裝置別容差 | — | S | Sonnet 子代理 |
@@ -67,6 +67,13 @@
 | P6 | 收尾：e2e 走一遍 PLAY（桌機＋手機尺寸）、`audit:ui`、bundle 預算、HANDOFF 回寫 | 全部 | S | Opus |
 
 順序：P0 → （P1、P2、P3 可並行；P3 不碰渲染以外的檔） → P4 → P5 → P6。P5 動到戰場疊層（瞄準高亮），屬渲染線，同時只開這一條。
+
+## 4.1 契約怎麼用（同 `optimization-2026-11.md`「契約」節）
+
+- 空殼丟 `ContractPending`；`tests/contracts/status.ts` 的 P1、P2、P5 現在是 `pending`。**開始做一包，第一步把該包改成 `done`**，驗收變紅，再補實作到全綠；做完不得再有地方丟 `ContractPending`。
+- 受保護：`tests/contracts/PLAY.contract.test.ts`（雜湊在 `MANIFEST.json`）。覺得驗收寫錯就回報，不自己改。
+- P1 的空殼在 `engine/systems/match/MatchFlowSystem.ts`（`isPlay` 已可用，`playHeroId` 在 PLAY 中才丟）；P2 在 `engine/core/FixedStep.ts` 的 `effectiveTimeScale` 與 `UICommandSystem` 的 `SET_AIM_SLOWMO`；P5 在 `engine/systems/ui/castTargeting.ts`（要用 `SkillQueries` 的 `skillTeams`，實作時改成匯出）。
+- P2 做完要把 `hooks/useGameLoop.ts` 的 `planFixedSteps` 改傳 `effectiveTimeScale(engine.state.time)`。
 
 ## 5. 驗收
 

@@ -28,6 +28,7 @@ export const VIEW_COMMAND_TYPES = [
     'SET_AUDIO_VOLUME',
     'SET_AUDIO_MUTED',
     'SET_AUDIO_ANNOUNCER',
+    'SET_AIM_SLOWMO',
 ] as const satisfies readonly ViewCommand['type'][];
 
 /**

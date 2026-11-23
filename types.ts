@@ -448,6 +448,8 @@ export type UICommand =
     | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | boolean | Team | undefined }
     | { type: 'RESET_GAME' }
     | { type: 'SET_TIME_SCALE'; timeScale: number }
+    /** [契約 P2] 選目標時放慢（ADR 0025）：畫面指令、不進紀錄；唯一寫入 state.time.aimFactor（active＝PLAY_PARAM.AIM_SLOWMO_FACTOR，否則 1） */
+    | { type: 'SET_AIM_SLOWMO'; active: boolean }
     | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId; /** 陣營（Allegiance）；省略時等於 team。大逃殺每人一個 */ side?: number; /** 陣營外觀（三個以上陣營的換色）；省略時等於 team 原色 */ look?: FactionLook }
     | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
     /** 玩家點選觀看的單位（單位檢查器）；導播關閉時擊殺播報只給它的陣營。null＝沒點 */
@@ -495,13 +497,15 @@ export type ViewCommand = Extract<UICommand, { type:
     | 'SET_VIEW_INSETS'
     | 'SET_AUDIO_VOLUME'
     | 'SET_AUDIO_MUTED'
-    | 'SET_AUDIO_ANNOUNCER';
+    | 'SET_AUDIO_ANNOUNCER'
+    | 'SET_AIM_SLOWMO';
 }>;
 export type GameCommand = Exclude<UICommand, ViewCommand>;
 
 export * from './types/UIViewModel';
 export * from './types/Match';
 export * from './types/Orders';
+export * from './types/Play';
 
 
 export interface SceneTheme {

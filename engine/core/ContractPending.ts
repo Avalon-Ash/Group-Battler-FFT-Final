@@ -8,8 +8,8 @@
 // ║  完成後刪除本檔。正式遊玩路徑不得呼叫還是空殼的函式。      ║
 // ╚══════════════════════════════════════════════════════════╝
 
-/** 契約包代號，對應 docs/plans/optimization-2026-11.md 的拆包表 */
-export type ContractId = 'S2' | 'S3' | 'G2' | 'G3' | 'G4' | 'R1' | 'R2' | 'R3' | 'U1';
+/** 契約包代號：S、G、R、U 開頭對應 docs/plans/optimization-2026-11.md，P 開頭對應 docs/plans/play-mode.md 的拆包表 */
+export type ContractId = 'S2' | 'S3' | 'G2' | 'G3' | 'G4' | 'R1' | 'R2' | 'R3' | 'U1' | 'P1' | 'P2' | 'P5';
 
 export class ContractPending extends Error {
     constructor(public readonly contract: ContractId, what: string) {

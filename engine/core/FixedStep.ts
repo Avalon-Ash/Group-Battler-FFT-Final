@@ -8,6 +8,17 @@
 // ║  變慢，不追趕），避免越追越慢的死亡螺旋。                    ║
 // ╚══════════════════════════════════════════════════════════╝
 
+import { ContractPending } from './ContractPending';
+
+/**
+ * [契約 P2] 這一幀實際用的倍率＝timeScale × aimFactor（ADR 0025）。遊戲迴圈把它傳給 planFixedSteps；
+ * 模擬一律固定步長，所以放慢只改每幀跑幾個 tick。
+ */
+export function effectiveTimeScale(time: { readonly timeScale: number; readonly aimFactor: number }): number {
+    void time;
+    throw new ContractPending('P2', 'effectiveTimeScale');
+}
+
 export interface FixedStepPlan {
     /** 這一幀要跑的 tick 數 */
     ticks: number;

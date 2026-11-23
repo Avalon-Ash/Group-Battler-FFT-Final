@@ -2530,5 +2530,8 @@
   },
   "MOBILITY_LANDING": {
     "ESCAPE_SAFE_DIST": 4
+  },
+  "PLAY_PARAM": {
+    "AIM_SLOWMO_FACTOR": 0.3
   }
 }

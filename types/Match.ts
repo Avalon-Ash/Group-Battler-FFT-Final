@@ -65,6 +65,8 @@ export interface SessionView {
     readonly phase: MatchPhase;
     readonly isPlaying: boolean;
     readonly isShowcase: boolean;
+    /** [契約 P1] PLAY 模式（一隻主角由玩家操控，docs/plans/play-mode.md） */
+    readonly isPlay: boolean;
     readonly winner: Team | null;
     readonly winnerId: string | null;
     readonly winnerSide: number | null;

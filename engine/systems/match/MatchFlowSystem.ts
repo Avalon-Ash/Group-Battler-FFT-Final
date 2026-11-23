@@ -25,7 +25,8 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { GameEngine } from '../../game';
-import type { BattleSetup, MatchPhase, Team, UICommand } from '../../../types';
+import type { BattleSetup, MatchPhase, PlayHero, Team, UICommand } from '../../../types';
+import { ContractPending } from '../../core/ContractPending';
 import { GAME_APP_PARAM, UI_SETTINGS } from '../../../constants';
 import { createRandomStream, setupRandom } from '../../math/rng';
 import { rollShowcaseSetup } from '../ui/editorQueries';
@@ -80,6 +81,8 @@ export function matchSetupOf(engine: GameEngine, fallback: BattleSetup): BattleS
 
 export class MatchFlowSystem {
     private showcase = false;
+    /** [契約 P1] PLAY 模式的主角設定；null＝不在 PLAY 模式 */
+    private playHero: PlayHero | null = null;
     /** 上次用 SET_SHOWCASE_MODE 公布的值（音訊在聽）；null＝還沒公布過 */
     private announcedShowcase: boolean | null = null;
     private timed: TimedPhase | null = null;
@@ -123,6 +126,17 @@ export class MatchFlowSystem {
 
     public get isShowcase(): boolean {
         return this.showcase;
+    }
+
+    /** [契約 P1] 在 PLAY 模式（選了主角、從 startPlay 進來，還沒 exitPlay） */
+    public get isPlay(): boolean {
+        return this.playHero !== null;
+    }
+
+    /** [契約 P1] 場上主角的單位 id；不在 PLAY 模式或還沒生成是 null */
+    public get playHeroId(): string | null {
+        if (this.playHero === null) return null;
+        throw new ContractPending('P1', 'MatchFlowSystem.playHeroId');
     }
 
     /** 渲染用的轉場階段：退場、進場以外都是 IDLE（等素材時畫面已經是 IDLE） */
@@ -197,6 +211,28 @@ export class MatchFlowSystem {
     public applyBattleSetup(): void {
         this.manualSetup = { ...this.engine.battleSetup };
         this.newBattlefield(this.showcase);
+    }
+
+    // ── PLAY 模式（[契約 P1]，docs/plans/play-mode.md、ADR 0025）──────────────
+
+    /**
+     * 進入 PLAY 模式並開第一場：離開展示（不轉場），換一張戰場，照展示模式的規則排兩個陣營的陣容，
+     * 主角放在陣營 0（藍方）、職業與技能照 hero、交給玩家（SET_CONTROLLER），其餘單位 AI；然後開戰（START_GAME 帶 nextSeed）。
+     * 佈陣用 Deployment，不另寫一份；寫入引擎一律送 UI_COMMAND。
+     */
+    public startPlay(hero: PlayHero): void {
+        void hero;
+        throw new ContractPending('P1', 'MatchFlowSystem.startPlay');
+    }
+
+    /** 結算後「再來一場」：同一個主角設定、新戰場、新種子。PLAY 模式的結算不會自己轉場，等玩家按。 */
+    public nextPlayMatch(): void {
+        throw new ContractPending('P1', 'MatchFlowSystem.nextPlayMatch');
+    }
+
+    /** 回主畫面：離開 PLAY，回到展示模式（setShowcase(true)）。 */
+    public exitPlay(): void {
+        throw new ContractPending('P1', 'MatchFlowSystem.exitPlay');
     }
 
     /** 每個畫面呼叫一次；realDt 是真實經過的秒數。一次最多前進一個階段。 */

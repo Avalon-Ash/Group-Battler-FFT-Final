@@ -104,6 +104,12 @@ export const UI_PIN = {
     },
 } as const;
 
+/** PLAY 模式（docs/plans/play-mode.md、ADR 0025） */
+export const PLAY_PARAM = {
+    /** 選目標時的時間倍率（乘在玩家選的倍率上）；手感由 P5 試玩後調 */
+    AIM_SLOWMO_FACTOR: 0.3,
+} as const;
+
 /** 具名參數：保持原值與運算次序。 */
 export const GAME_APP_PARAM = {
     /** 編輯器預設生命（HP） */

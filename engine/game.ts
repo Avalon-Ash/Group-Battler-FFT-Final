@@ -71,7 +71,8 @@ export class GameEngine implements SpatialProvider {
         spatialHazards: [] as SpatialHazard[],
         victory: { victoryTimer: 0, winningTeam: null as Team | null, winnerId: null as string | null, isFinishing: false },
         /** tick：已跑完的 tick 數（唯一寫入者 TimeSystem.tick；restart／clear 歸零），指令紀錄用它定位 */
-        time: { battleTime: 0, tick: 0, timeScale: 1.0, targetTimeScale: 1.0 },
+        /** aimFactor：選目標時的放慢倍率（[契約 P2]，唯一寫入者 UICommandSystem 的 SET_AIM_SLOWMO，ADR 0025）；每幀跑幾個 tick 看 effectiveTimeScale，不影響模擬結果 */
+        time: { battleTime: 0, tick: 0, timeScale: 1.0, targetTimeScale: 1.0, aimFactor: 1.0 },
         isLastStand: false,
         finalHex: null as Hex | null
     };
