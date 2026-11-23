@@ -934,3 +934,12 @@
 - 量測（`batch-sim` 種子 21、77 各兩種站位 1500 場，改前為 §2 CV 的 base，`tools/ui-e2e/out/g1r3-compare.mjs`）：`sb_b4` 勝率差 −7.7／−8.9％ → −3.8／−6.6％；藍方 51.0／52.6％ → 51.8／53.2％（兩種子平均 52.5％，超出目標帶 50±1.5％ 約 1 點；單一種子的信賴區間約 ±1.8％）；平均時長 19.5／19.8 → 19.6／19.9 秒。改後兩個種子都超標的只剩 `rr_u1`（已接受偏弱）與 `rr_b1` +6.0／+5.0％。
 - 指紋重錄（改前 36 場不同），重錄後連跑兩次 PASS；lint、`npm test` 1624 則、knip、build 通過。
 - **回退**：`git revert` 這個 commit（數值、測試、指紋一起）。
+
+### CY. 2026-11-23 PLAY 模式長鏈：P7 自動反擊、P4 入口與選主角與結算、P5 戰鬥 HUD、P6 e2e（主代理 Opus，使用者：排長鏈做完）
+- P7：`Agent.stance`（HOLD／COUNTER，唯一寫入者 `SET_STANCE`，開戰快照可省略欄位）；玩家圖堅守模式先試 `CounterAttack`（最後打自己的敵人 `lastHitSourceId` 在 `PLAY_PARAM.COUNTER_LEASH_HEX` 8 格內就普攻追打）。PLAY 主角設 COUNTER，手動模式維持 HOLD（契約 G3 不變）。驗收先用種子 72 沒抓到「追」：攻擊者貼身、原地就還手，探針看清後改用攻擊者在 3 格外的種子 73；堅守那組改看「自己有沒有起步」（擊退不算）。
+- P4：展示標題卡多 PLAY 鈕 → 選主角（職業＋四槽 Combobox，預設隨機）→ 開戰；PLAY 中收起播放列與編輯工具列；結算 PlayResult（VICTORY／DEFEAT／DRAW）。「職業＋隊伍能帶哪些技能」收成 `SkillQueries.roleSkills`，AgentManager 改用它（指紋不變）。勝負判斷放 `session.ts`：放 `views/play.ts` 會把技能標籤表拉進進入點（量到 +1.1 kB）。
+- P5：`PlayHUD`（血魔、四技能鈕含冷卻與不能放的原因、1～4、S、空白鍵、Esc／右鍵取消、主角倒下後觀戰 ×1／×2／×4）；`selectHeroBar` 是唯一資料來源（內容沒變回同一個物件）；戰術層 `drawAimTargets` 畫可選目標圈（RenderSpec 加一列）；`ORDER_CAST` 成立時 `UICommandSystem` 取消瞄準。手機 390 寬第一版 HUD 超出畫面，改成窄螢幕血魔條換一列、技能鈕縮小。
+- P6：`e2e:ui` 加 PLAY 套件（桌機、手機各一輪，`E2E_ONLY=play` 可單跑）。手機那輪兩個時序問題修在驗收的等待方式（提示列等它出現；射程內施放指令會立刻放完，改看指令紀錄）。
+- 驗證：`npm test` 175 檔 1629 則、lint、knip、build（進入點 256.1／257.5 kB；PlaySetup、PlayResult、PlayHUD 各自延遲載入）、`audit:ui` 0 違規、`e2e:ui` 271 項全過與樣式快照 0 差異、runtime-smoke、`perf:guard`（保真 6 張）、`balance:fingerprint` 180/180。第一次完整 e2e 的 Inspector 組 5 項 EDIT_AGENT 失敗，單獨跑兩次、重跑完整都過（HANDOFF D 的時序偶發同類）。
+- 沒驗的：手感（放慢 0.3 倍、點擊容差 4／14 px、按鈕大小）只有截圖與探針，等使用者實機。
+- **回退**：各包一個 commit，`git revert`。

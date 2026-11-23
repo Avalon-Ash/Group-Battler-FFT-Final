@@ -1,5 +1,6 @@
 # PLAY 模式開案書（2026-11-23，Opus 5.5 代 Fable 開案，Fable 終審後修訂）
 
+> **2026-11-23 結案**：P0～P7 全部完成（WORKLOG §2 CU、CW、CY）；剩下的實機手感回饋在 HANDOFF §3。本檔不刪：ADR 0025、DECISIONS 與受保護的 `tests/contracts/PLAY.contract.test.ts` 引用它。
 > 範圍：HANDOFF L2（手動模式改成主動式遊戲 UI）＋開案書 `docs/plans/optimization-2026-11.md` 的 G3 第二片。G5 行為編輯器不在本檔。
 > Fable 本週額度用完，由 Opus 開案；Fable 經 API 終審一次（2026-11-23，報告在 commit 訊息），本檔已照它修訂。執行者照本檔拆包做，覺得不合理就回報，不自己改方向。做完一包：`docs/WORKLOG.md` 加一節、本檔該包標「完成」；全部做完把剩下的併回 HANDOFF 再刪本檔。
 > 每個數字附產生它的指令；沒附的是讀程式碼的推論，標「推論」。
@@ -73,7 +74,7 @@
 | P7 | 主角自動反擊的姿態（完成 2026-11-23）：`Agent.stance`（`SET_STANCE`、開戰快照帶得走）、玩家圖堅守模式先試 `CounterAttack`；PLAY 主角設 COUNTER，手動模式維持 HOLD | P1 | S | Opus |
 | P4 | UI（完成 2026-11-23）：主畫面 PLAY 入口、選主角畫面（職業＋四槽，預設「隨機」，使用者說長鏈做完、不先看原型）、結算畫面（延遲載入） | P1 | M | Opus |
 | P5 | UI（完成 2026-11-23）：戰鬥 HUD（技能列、瞄準高亮、停止、快捷鍵、觀戰狀態）；施放指令成立時 UICommandSystem 取消瞄準 | P2、P3、P5a | M | Opus |
-| P6 | 收尾：e2e 走一遍 PLAY（桌機＋手機尺寸）、`audit:ui`、bundle 預算、HANDOFF 回寫 | 全部 | S | Opus |
+| P6 | 收尾（完成 2026-11-23，WORKLOG §2 CY）：e2e 走一遍 PLAY（桌機＋手機尺寸）、`audit:ui`、bundle 預算、HANDOFF 回寫 | 全部 | S | Opus |
 
 順序：P0 → （P1、P2、P3 並行；P3 只動輸入與表現層） → P5a、P7 → P4 → P5 → P6。P5 動到戰場疊層（瞄準高亮），屬渲染線，同時只開這一條。
 
