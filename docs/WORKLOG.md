@@ -928,3 +928,9 @@
 - P3（Sonnet 子代理，主代理審 diff 後 cherry-pick）：`engine/renderers/frame/UnitPick.ts` 是「點到哪個單位」的唯一判斷（身體框＝腳底到血條錨點、半寬＝框高×0.35、容差滑鼠 4／觸控 14 螢幕像素、重疊選排序鍵最前面）；`hooks/pickAgentAt.ts` 是輸入層唯一入口，沒點到才退回格子。RenderSpec 加一列。容差是估的，等實機調。
 - 整合分支 `feat/play-integ` 驗證：`npm test` 173 檔 1624 則、lint、knip、build（進入點 255.2／257.5 kB）、`balance:fingerprint` 180/180、runtime-smoke、`perf:guard`（保真 6 張）、`audit:ui -- all` 0 違規、`e2e:ui` 253 項全過、樣式快照 0 差異（第一次跑在 db 視窗出現 React「Invalid hook call」，當時多個 Vite 行程同時在跑，重跑全過，推論是相依套件重新最佳化的偶發）。
 - **回退**：各包一個 commit，`git revert`。
+
+### CX. 2026-11-23 G1 第三輪：sb_b4 驅散方向修正（主代理 Opus，使用者選 1）
+- `sb_b4`「淨化之光」是傷害技，原本驅散**減益**，打在敵人身上沒有附加效果；改成驅散敵人的**增益**（`DISPEL` polarity `BUFF`），`tests/SkillMechanics.test.ts` 同步。
+- 量測（`batch-sim` 種子 21、77 各兩種站位 1500 場，改前為 §2 CV 的 base，`tools/ui-e2e/out/g1r3-compare.mjs`）：`sb_b4` 勝率差 −7.7／−8.9％ → −3.8／−6.6％；藍方 51.0／52.6％ → 51.8／53.2％（兩種子平均 52.5％，超出目標帶 50±1.5％ 約 1 點；單一種子的信賴區間約 ±1.8％）；平均時長 19.5／19.8 → 19.6／19.9 秒。改後兩個種子都超標的只剩 `rr_u1`（已接受偏弱）與 `rr_b1` +6.0／+5.0％。
+- 指紋重錄（改前 36 場不同），重錄後連跑兩次 PASS；lint、`npm test` 1624 則、knip、build 通過。
+- **回退**：`git revert` 這個 commit（數值、測試、指紋一起）。
