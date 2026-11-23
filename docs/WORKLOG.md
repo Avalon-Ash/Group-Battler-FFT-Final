@@ -913,3 +913,18 @@
 - P2：`SET_AIM` 只收玩家單位、有技能的槽；`effectiveTimeScale` 給固定步長與 `renderer.update`。實跑探針（`tools/ui-e2e/out/aim-slowmo-probe.mjs`）每秒 tick 60.7 → 17.9（0.295 倍）→ 60.4。lint、`npm test` 1618 則、knip、build（進入點 254.4／257.5 kB）、smoke、指紋 180/180、`perf:guard` 全過。
 - 既有耦合（回報、沒處理）：`targetTimeScale` 有三個寫入者（`UICommandSystem`、`VictorySystem`、`engine/game.ts`）。
 - **回退**：P2 與契約各一個 commit，`git revert`。
+
+### CV. 2026-11-23 G1 第三輪：tr_b4、sr_a4 拆解（主代理 Opus，只量沒改）
+- 量法：獨立 clone 用 `tools/ui-e2e/out/g1r3-driver.mjs` 每個變體改一處技能資料，`batch-sim` 種子 21、77 各兩種站位 1500 場（共 28 段，約 60 分鐘）。同一種子裡沒動到的招，勝率差在變體間浮動約 ±1 點，這是雜訊量級。
+- 現況（危害區 AI 兩階段之後，§2 CR、CS）：藍方 51.0％／52.6％；`tr_b4` +4.7／+8.1％、`sr_a4` +4.1／+6.8％，種子 21 都已回到 ±5％ 內。
+- `tr_b4`：拿掉暈眩 −2.9／−3.0 點，威力 88→72 只 −1.0／−0.7 點。強在暈眩（打斷施法），不在傷害。
+- `sr_a4`：拿掉重力區 −6.9／−9.3 點（變成 −2.8／−2.5％）；拿掉易傷 −2.4／−0.4；拿掉燃魔 −1.5／−1.8；威力減半 −0.8／−1.6。強在重力區。
+- 兩個種子同方向都超出 ±5％ 的現在是：`sb_b4` −7.7／−8.9％、`sb_b1` +6.0／+5.0、`rb_u4` +5.9／+5.1、`rr_b1` +5.3／+5.8、`rb_u2` +5.2／+5.3（`rr_u1` 已接受偏弱）。`sb_b4`「淨化之光」是傷害技卻驅散**減益**，打在敵人身上等於沒有附加效果（讀資料，推論）。
+- 沒改任何數值，等使用者決定（HANDOFF J）。
+
+### CW. 2026-11-23 PLAY P1 對局流程、P3 點擊容差、P5a 選目標規則（主代理 Opus＋Sonnet 子代理）
+- P1（Opus）：Sonnet 子代理回報「完成、全綠」，但它的 commit 只改了一行檔頭、契約狀態仍是 pending；主代理比對 diff 發現後自己實作。`planPlayRoster`、`deployRoster` 回傳生成的單位 id、`beginPlayMatch`／`equipHero`；從 PLAY 回展示不把 PLAY 的陣營設定記成玩家的。`tests/PlayFlow.test.ts`：主角倒下對局照打、導播改跟別人、照常結算。
+- P5a（Opus）：`queryCastTargeting`／`isCastTarget`（機動技＝可點地面、射程 0＝自身、範圍技＝可點地面、其他＝點單位）；`resolveTap` 的瞄準與 PLAY 點擊規則；`ORDER_CAST` 驗證改用 `isCastTarget`。PLAY 契約三包全部 done，程式裡沒有 `ContractPending` 空殼了。
+- P3（Sonnet 子代理，主代理審 diff 後 cherry-pick）：`engine/renderers/frame/UnitPick.ts` 是「點到哪個單位」的唯一判斷（身體框＝腳底到血條錨點、半寬＝框高×0.35、容差滑鼠 4／觸控 14 螢幕像素、重疊選排序鍵最前面）；`hooks/pickAgentAt.ts` 是輸入層唯一入口，沒點到才退回格子。RenderSpec 加一列。容差是估的，等實機調。
+- 整合分支 `feat/play-integ` 驗證：`npm test` 173 檔 1624 則、lint、knip、build（進入點 255.2／257.5 kB）、`balance:fingerprint` 180/180、runtime-smoke、`perf:guard`（保真 6 張）、`audit:ui -- all` 0 違規、`e2e:ui` 253 項全過、樣式快照 0 差異（第一次跑在 db 視窗出現 React「Invalid hook call」，當時多個 Vite 行程同時在跑，重跑全過，推論是相依套件重新最佳化的偶發）。
+- **回退**：各包一個 commit，`git revert`。
