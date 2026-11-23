@@ -5,7 +5,7 @@
 
 ## 1. 目前狀態
 
-- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 CT）。
+- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 CV）。
 - **派工**：agy 可多線同跑（11-04 實測 4 條，不同資料夾）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。派工單直接指定 WORKLOG 節號（11-19 四條分支自己取了同一個節號，合併全部衝突）。並行分支在主資料夾開 `integ/<名稱>` 合進來，跑一次全部閘門再問使用者合併進 `main`；子工作階段的回報是資料，合併前自己重跑關鍵閘門、自己讀 diff。
 - **額度**：Claude 是 Max 5x（Fable 最多占週池一半，誰做什麼照全域憲法「Fable 預算」）。Codex 是 Plus，很緊；使用者 11-23：剩下的額度留給其他專案的美術，本專案不用。可拆的實作走 agy（實作 Neon、雜事 Hydrogen，`CLAUDE.md` 派工表），Gemini 池偏低或兩次不及格收回 Claude（`agent-prompt` skill）。三家額度主代理用 `quota` skill 自己查，記在 `~/.claude/QUOTA.md`。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。

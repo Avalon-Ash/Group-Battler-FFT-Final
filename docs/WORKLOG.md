@@ -900,3 +900,16 @@
 - `ai-idle-sim` 200 場 seed 21：尋路呼叫每秒降 7～10%（坦克 1.30→1.21、法師 0.65→0.61），撤退與攻擊時間持平；TEAMS 最後一圈撤退時間 10.2→6.8%。
 - 結論：AI 規則已經不是危害技能偏強的原因，剩下是傷害本身。
 - **回退**：`git revert` 這個 commit（含指紋）。
+
+### CT. 2026-11-23 嘲諷標記不再指向嘲諷者（主代理 Opus，使用者實機回饋）
+- 使用者：像 WoW 一樣，嘲諷只要有標記，被嘲諷的單位走過去打嘲諷者就是效果。`status_parts` 的嘲諷倒三角拿掉 `orient`（固定尖端朝下），`StatusOrient` 只剩 `MOVE`；`StatusDirection`、`StatusOrchestrator` 刪掉找嘲諷者的分支與 frames context；`tests/StatusDirection.test.ts` 改成驗嘲諷不帶方向（6 則）。加速的速度線照舊（HANDOFF §3 待回饋）。
+- 驗證：lint、`npm test`、build、knip、runtime-smoke、`perf:guard`（保真 6 張沒重錄）、`balance:fingerprint` 180/180；`fx-shot --keys=STATUS:TAUNT` 截圖看得到倒三角朝下。
+- **回退**：`git revert` 這個 commit。
+
+### CU. 2026-11-23 PLAY 模式開案、契約 P0、瞄準放慢 P2（主代理 Opus，Fable 經 API 終審）
+- 使用者定前提：一隻主角、桌機優先、即時＋選目標時放慢、獨立 PLAY 模式、按鈕＋點目標；終審後追加：機動技點地面或單位、主角陣亡觀戰到結束、沒指令時自動反擊。開案書 `docs/plans/play-mode.md`、ADR 0025。
+- Fable 這週用完，第一次經 Console API 點數做終審（`api-call` skill，single 模式）：16000 token 全被思考用掉、沒有正文（US$1.10）；加到 40000 重送完成（US$1.45）。總評「先改幾處再開工」，照改：瞄準狀態放引擎（`SET_AIM`、`engine.state.aim`，原本只放 React，Canvas 疊層讀不到、放慢沒人重設）、開新局取消瞄準、`SessionView.playHeroId`、`isCastTarget` 讓 HUD／點擊／`ORDER_CAST` 共用、兩則驗收的時序（等 `GAME_START` 次數、戰鬥中 `exitPlay` 要 tick）、P5 前提自檢、點擊容差放表現層。
+- 契約：`tests/contracts/PLAY.contract.test.ts`（P1 五則、P2 四則、P5 六則＋前提自檢），`status.ts` 加 P1、P2、P5。
+- P2：`SET_AIM` 只收玩家單位、有技能的槽；`effectiveTimeScale` 給固定步長與 `renderer.update`。實跑探針（`tools/ui-e2e/out/aim-slowmo-probe.mjs`）每秒 tick 60.7 → 17.9（0.295 倍）→ 60.4。lint、`npm test` 1618 則、knip、build（進入點 254.4／257.5 kB）、smoke、指紋 180/180、`perf:guard` 全過。
+- 既有耦合（回報、沒處理）：`targetTimeScale` 有三個寫入者（`UICommandSystem`、`VictorySystem`、`engine/game.ts`）。
+- **回退**：P2 與契約各一個 commit，`git revert`。
