@@ -93,7 +93,7 @@ export function hasIntentIn(skill: Skill, intents: ReadonlySet<SkillIntent>): bo
 }
 
 /** 這招對誰有效。沒寫就看威力：傷害打敵人、治療打友軍、威力 0 不限 */
-function skillTeams(skill: Skill): SkillTeams {
+export function skillTeams(skill: Skill): SkillTeams {
     if (skill.teams) return skill.teams;
     if (skill.power > 0) return 'ENEMY';
     return skill.power < 0 ? 'ALLY' : 'ANY';

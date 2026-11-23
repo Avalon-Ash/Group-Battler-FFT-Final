@@ -10,6 +10,7 @@ import { sanitizeInsets } from '../../math/insets';
 import { saveAgentState } from '../../core/AgentLifecycle';
 import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 import { querySpawnableHexes } from './editorQueries';
+import { isCastTarget } from './castTargeting';
 import { captureMatch, restoreMatch } from '../../core/MatchSnapshot';
 import { issueOrder, clearOrder } from '../../core/Orders';
 import { sameSide } from '../../core/Allegiance';
@@ -519,7 +520,8 @@ export class UICommandSystem {
                 if (!agent || !Number.isInteger(cmd.slot) || cmd.slot < 0 || cmd.slot >= agent.skillIds.length || agent.skillIds[cmd.slot] === null) break;
                 if (cmd.targetId !== undefined) {
                     const target = this.engine.agents.find((a) => a.id === cmd.targetId);
-                    if (!target || target.hp <= 0) break;
+                    // 「這招能點誰」和 HUD、點擊同一個判斷（castTargeting，ADR 0025）
+                    if (!target || !isCastTarget(this.engine, agent, cmd.slot, target)) break;
                     issueOrder(agent, { type: 'CAST', slot: cmd.slot, targetId: target.id });
                 } else if (cmd.q !== undefined || cmd.r !== undefined) {
                     if (cmd.q === undefined || cmd.r === undefined || !this.engine.map.isValid(cmd.q, cmd.r)) break;

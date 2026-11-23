@@ -11,8 +11,22 @@
 
 import type { GameEngine } from '../../game';
 import type { Agent } from '../../core/Agent';
-import type { CastTargeting } from '../../../types';
-import { ContractPending } from '../../core/ContractPending';
+import type { CastTargeting, Skill } from '../../../types';
+import { skillTeams, isSkillTarget } from '../../core/SkillQueries';
+
+/** 主角第 slot 槽的技能；槽位不合法或空著是 null */
+function slotSkill(engine: GameEngine, hero: Agent, slot: number): Skill | null {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= hero.skillIds.length) return null;
+    const id = hero.skillIds[slot];
+    return id ? engine.skillDB.find((s) => s.id === id) ?? null : null;
+}
+
+/** 選目標的方式：機動技一律可點地面（往那裡位移）；射程 0 對自己；範圍技可點地面；其他點單位 */
+function targetModeOf(skill: Skill): CastTargeting['mode'] {
+    if (skill.tag === 'MOBILITY') return 'UNIT_OR_GROUND';
+    if (skill.range === 0) return 'SELF';
+    return skill.type === 'AOE' ? 'UNIT_OR_GROUND' : 'UNIT';
+}
 
 /**
  * 主角第 slot 槽現在的選目標規則；那一槽沒有技能（或 slot 超出範圍）是 null。
@@ -20,8 +34,15 @@ import { ContractPending } from '../../core/ContractPending';
  *  - unitIds：活著、還在場上、陣營符合 teams 的單位（ENEMY 不含自己；ALLY、ANY 含自己），依 engine.agents 的順序。
  */
 export function queryCastTargeting(engine: GameEngine, hero: Agent, slot: number): CastTargeting | null {
-    void engine; void hero; void slot;
-    throw new ContractPending('P5', 'queryCastTargeting');
+    const skill = slotSkill(engine, hero, slot);
+    if (!skill) return null;
+    return {
+        slot,
+        mode: targetModeOf(skill),
+        teams: skillTeams(skill),
+        range: skill.range,
+        unitIds: engine.agents.filter((a) => isCastTarget(engine, hero, slot, a)).map((a) => a.id),
+    };
 }
 
 /**
@@ -29,6 +50,7 @@ export function queryCastTargeting(engine: GameEngine, hero: Agent, slot: number
  * queryCastTargeting 的 unitIds 就是 engine.agents 裡這個判斷為真的單位；ORDER_CAST 帶 targetId 時也用它驗證。
  */
 export function isCastTarget(engine: GameEngine, hero: Agent, slot: number, unit: Agent): boolean {
-    void engine; void hero; void slot; void unit;
-    throw new ContractPending('P5', 'isCastTarget');
+    const skill = slotSkill(engine, hero, slot);
+    if (!skill) return false;
+    return unit.hp > 0 && !unit.fullyDead && !unit.outOfBounds && engine.agents.includes(unit) && isSkillTarget(skill, hero, unit);
 }

@@ -10,7 +10,7 @@ import type { GameEngine } from '../../game';
 import type { Agent } from '../../core/Agent';
 import type { Hex, UICommand } from '../../../types';
 import { sameSide } from '../../core/Allegiance';
-import { ContractPending } from '../../core/ContractPending';
+import { queryCastTargeting, isCastTarget } from './castTargeting';
 
 export type TapIntent =
     /** 選取這個單位；null＝取消選取 */
@@ -41,13 +41,29 @@ function canTakeOrders(engine: GameEngine, unit: Agent | null): unit is Agent {
  * PLAY 模式不瞄準時：點隊友不改選取（主角一直是選取中的單位），其餘照上面的規則。
  */
 export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex | null, tapped: Agent | null): TapIntent {
-    if (engine.state.aim !== null || engine.matchFlow?.isPlay) throw new ContractPending('P5', 'resolveTap：瞄準與 PLAY 模式的點擊規則');
     if (!canTakeOrders(engine, selected)) return { kind: 'SELECT', agent: tapped };
+
+    const aim = engine.state.aim;
+    if (aim !== null && aim.agentId === selected.id) {
+        const targeting = queryCastTargeting(engine, selected, aim.slot);
+        if (!targeting) return { kind: 'NONE' };
+        if (tapped) {
+            return isCastTarget(engine, selected, aim.slot, tapped)
+                ? { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: selected.id, slot: aim.slot, targetId: tapped.id } }
+                : { kind: 'NONE' };
+        }
+        if (targeting.mode === 'UNIT_OR_GROUND' && hex && engine.map.isValid(hex.q, hex.r) && !engine.hasObstacle(hex.q, hex.r)) {
+            return { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: selected.id, slot: aim.slot, q: hex.q, r: hex.r } };
+        }
+        return { kind: 'NONE' };
+    }
 
     if (tapped) {
         if (tapped !== selected && tapped.hp > 0 && !sameSide(tapped, selected)) {
             return { kind: 'ORDER', command: { type: 'ORDER_ATTACK', agentId: selected.id, targetId: tapped.id } };
         }
+        // PLAY 模式：主角一直是選取中的單位，點隊友不換選取
+        if (engine.matchFlow?.isPlay) return { kind: 'NONE' };
         return { kind: 'SELECT', agent: tapped };
     }
     if (hex && engine.map.isValid(hex.q, hex.r) && !engine.hasObstacle(hex.q, hex.r)) {
