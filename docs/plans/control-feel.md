@@ -104,9 +104,21 @@ HUD 的技能鈕（`PlayHUD.pressSlot`）不看冷卻與魔力，按了就進瞄
 
 驗收（先寫紅）：C1、C2、C4 各一則 `tests/PlayerOrders` 情境（固定種子，量 tick 數）；指紋 180／180 不變；`E2E_ONLY=play` 全過；本機實跑（`render-verify`）。C1 碰前搖狀態機（`SkillStateMachine` 的 `INTERRUPT` 邊，普攻已有「打斷回到就緒」），要先讀 ADR 0012。
 
-## 6. 要使用者決定
+## 6. 使用者的決定（11-25 問答，規則寫在 ADR 0026）
 
-- **Q1 冷卻中、魔力不足按技能**：(a) 不收指令，按鈕變暗並提示（MOBA 做法，推薦）；(b) 收下排隊，等待期間照姿態普攻（不會乾站，但等多久不可預期）。
-- **Q2 奧義前搖（1.5～2 秒）能不能被玩家取消**：能取消比較貼手，但會讓「詠唱預警」被當成假動作。
-- **Q3 拖鏡頭的方式**：PLAY 的鏡頭本來會跟著主角。(a) 左鍵只下令，拖鏡頭改右鍵或中鍵（推薦）；(b) 維持左鍵拖，但門檻加大。觸控另外看。
-- **Q4 這幾包誰做**：C1 碰前搖狀態機、C2 碰移動系統，都是跨系統規則，主代理自己做比外派穩；C5、C6 是輸入層，可拆。
+- **Q1 冷卻中、魔力不足**：不收指令，按鈕變暗並提示。
+- **Q2 前搖取消**：全部可取消，奧義也可以；奧義改成詠唱中逐步扣魔（消耗 × 經過時間 ÷ 詠唱時間，完成時剛好扣完），所有單位適用（含 AI），自己取消或被控制打斷都不退；開始詠唱仍要有整招的魔力。
+- **Q3 桌機滑鼠**：左鍵按下就下令，右鍵或中鍵拖鏡頭。
+- **手機**：RTS 手感，單指放開就下令（滑動不再變拖鏡頭），兩指拖曳與捏合是鏡頭，第二根手指落下取消還沒送出的指令（參考 [Construct RTS devlog：input and gestures](https://www.construct.net/en/blogs/ashleys-blog-2/rts-devlog-input-gestures-1602)、[Total War 手機版觸控說明](https://r2enc.totalwar.com/en/manual/single-player/0005_enc_page_help_keyboard_shortcuts)）；技能鈕加「拖到目標放開施放」，和點鈕再點目標並存（參考 Wild Rift 的技能拖曳瞄準，[ginx.tv 設定說明](https://www.ginx.tv/en/wild-rift-best-controller-and-ui-settings)）。
+- **Quick Cast**：做成設定，預設關。
+
+## 7. 拆包（主代理 11-25；額度：Claude 週池剩 18%、Fable 11/29 才恢復，實作照憲法派 agy Neon，主代理寫紅色驗收與派工單、審查）
+
+| 包 | 內容 | 主要檔案 | 執行 | 順序 |
+| :-- | :-- | :-- | :-- | :-- |
+| K1 | C1 前搖取消（玩家）、C2 立即換路（玩家）、C3 冷卻／魔力拒收＋HUD 變暗提示、C4 自身技直接放 | `engine/core/Orders.ts`、`UICommandSystem`、`BTRegistry`、`MovementSystem`、`views/play.ts`、`PlayHUD` | agy Neon high | 引擎線第 1 包 |
+| K2 | 奧義詠唱逐步扣魔（全部單位），指紋基準重錄、`balance:sim` 兩種子 | `SkillStateMachine`、`CastingEngine` | agy Neon high；重錄由主代理取證 | 引擎線第 2 包（K1 合併後） |
+| K3 | 桌機：左鍵按下下令、右／中鍵拖鏡頭；Quick Cast 設定（預設關） | `hooks/useGameInput.ts`、設定 | agy Neon medium | 輸入線第 1 包（可和 K1 並行） |
+| K4 | 觸控：單指放開下令、兩指鏡頭、第二指取消；技能鈕拖曳瞄準 | `hooks/useGameInput.ts`、`PlayHUD` | agy Neon high | 輸入線第 2 包（K1、K3 合併後） |
+
+驗收（主代理先寫紅）：K1 在 `tests/PlayerOrders.test.ts` 加固定種子情境，量 tick 數（前搖中下移動 ≤ 2 tick 開始換路、走路中改向 ≤ 2 tick、冷卻／魔力不足的 `ORDER_CAST` 不寫入 `order`、自身技身邊沒敵人也在 2 tick 內開始前搖），場上沒有玩家單位時指紋 180／180 不變；K2 情境測試量扣魔曲線與取消後的魔力；K3、K4 用 `E2E_ONLY=play` 加滑鼠與觸控情境。每包本機實跑（`render-verify`）。
