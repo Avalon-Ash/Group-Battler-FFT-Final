@@ -36,7 +36,11 @@
       "command(npx vitest run tests/StatusDirection.test.ts)",
       "command(npx vitest run tests/StatusParts.test.ts)",
       "command(npx vitest run tests/VFXParts.test.ts)",
-      "command(node tools/vfx/fx-shot.mjs --keys=STATUS:TAUNT,STATUS:HASTE --out=tools/ui-e2e/out/r4)"
+      "command(node tools/vfx/fx-shot.mjs --keys=STATUS:TAUNT,STATUS:HASTE --out=tools/ui-e2e/out/r4)",
+      "command(npx vitest run tests/PlayerOrderInterrupt.test.ts)",
+      "command(npx vitest run tests/PlayerOrders.test.ts)",
+      "command(npx vitest run tests/contracts/G3.contract.test.ts)",
+      "command(npx vitest run tests/TapIntent.test.ts)"
     ]
   }
 }
