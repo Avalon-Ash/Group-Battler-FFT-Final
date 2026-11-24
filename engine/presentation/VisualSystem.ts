@@ -113,7 +113,8 @@ export class VisualSystem {
                 }
             }
             
-            if (event.type === 'CAST_BREAK' && event.sourceId) {
+            // 被打斷與玩家自己取消（CAST_CANCEL，ADR 0026）都要清掉這次的詠唱序列
+            if ((event.type === 'CAST_BREAK' || event.type === 'CAST_CANCEL') && event.sourceId) {
                 sequences.cancel(event.sourceId, vfx);
                 // Also let Mapper handle the particles
             }

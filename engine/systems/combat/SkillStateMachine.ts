@@ -2,7 +2,7 @@
 // ║  SkillStateMachine — 技能槽的狀態機                      ║
 // ║  職責：回答「這招現在能不能放、為什麼不能」（activationBlock）║
 // ║        並且是施法狀態欄位的唯一寫入處（前搖開始、結束、   ║
-// ║        扣魔進冷卻、被打斷的懲罰）。                       ║
+// ║        主動取消、扣魔進冷卻、被打斷的懲罰）。             ║
 // ║  [ARCH] 狀態機管「這招做到哪」；AI_MODE_GRAPH 管「單位想  ║
 // ║  做什麼」。AI 只問 activationBlock 和呼叫施放，不直接判斷  ║
 // ║  冷卻、魔力或控制。階段由 castingSkillIdx 與 curCDs 推導，║
@@ -19,15 +19,16 @@ import { CAST_LOCKOUT, CAST_RULES, COMBAT_PARAM } from "../../../constants";
 
 export type SkillPhase = 'READY' | 'WINDUP' | 'COOLDOWN';
 
-export type SkillTrigger = 'ACTIVATE' | 'RESOLVE' | 'INTERRUPT' | 'CD_DONE';
+export type SkillTrigger = 'ACTIVATE' | 'RESOLVE' | 'INTERRUPT' | 'CANCEL' | 'CD_DONE';
 
-/** 合法的轉移。冷卻剩極短時（容差內）可以直接開始下一次前搖；被打斷的普攻沒有冷卻懲罰，回到就緒 */
+/** 合法的轉移。冷卻剩極短時（容差內）可以直接開始下一次前搖；被打斷的普攻或玩家主動取消沒有冷卻懲罰，回到就緒 */
 export const SKILL_PHASE_EDGES: readonly { from: SkillPhase; to: SkillPhase; on: SkillTrigger }[] = [
     { from: 'READY', to: 'WINDUP', on: 'ACTIVATE' },
     { from: 'COOLDOWN', to: 'WINDUP', on: 'ACTIVATE' },
     { from: 'WINDUP', to: 'COOLDOWN', on: 'RESOLVE' },
     { from: 'WINDUP', to: 'COOLDOWN', on: 'INTERRUPT' },
     { from: 'WINDUP', to: 'READY', on: 'INTERRUPT' },
+    { from: 'WINDUP', to: 'READY', on: 'CANCEL' },
     { from: 'COOLDOWN', to: 'READY', on: 'CD_DONE' },
 ];
 
@@ -38,6 +39,27 @@ export function skillPhase(a: Agent, idx: number): SkillPhase {
 
 export type ActivationBlock = 'NO_SKILL' | 'DEAD' | 'CONTROLLED' | 'SILENCED' | 'ROOTED' | 'BUSY' | 'RECOVERY' | 'COOLDOWN' | 'MANA';
 
+/** 冷卻或魔力不足的單一判斷（activationBlock 與 playerCastRefusal 共用，不另寫一份）。 */
+function resourceBlock(a: Agent, idx: number): 'COOLDOWN' | 'MANA' | null {
+    const skill = a.skills[idx];
+    if (!skill) return null;
+    if (a.castingSkillIdx !== idx) {
+        const tolerance = skill.tag === 'BASIC' ? COMBAT_PARAM.BASIC_CD_TOLERANCE : COMBAT_PARAM.SKILL_CD_TOLERANCE;
+        if ((a.curCDs[idx] || 0) > tolerance) return 'COOLDOWN';
+    }
+    if (a.mp < skill.cost) return 'MANA';
+    return null;
+}
+
+/**
+ * 玩家施放指令要不要拒收、HUD 技能鈕要不要變暗（ADR 0026；UICommandSystem 與 HUD 檢視共用）：
+ * 冷卻中、魔力不足拒收；普攻的冷卻只是攻擊間隔（和 MOBA 一樣不拒收攻擊指令），不算。
+ */
+export function playerCastRefusal(a: Agent, idx: number): 'COOLDOWN' | 'MANA' | null {
+    const res = resourceBlock(a, idx);
+    return res === 'COOLDOWN' && a.skills[idx]?.tag === 'BASIC' ? null : res;
+}
+
 /** 這招不能放的原因；null＝可以。已在前搖的那一招視為可以繼續 */
 export function activationBlock(a: Agent, idx: number): ActivationBlock | null {
     const skill = a.skills[idx];
@@ -47,13 +69,10 @@ export function activationBlock(a: Agent, idx: number): ActivationBlock | null {
     if (skill.tag !== 'BASIC' && isActionBlocked(a, 'SKILL')) return 'SILENCED';
     // 突進、瞬移、後撤都是自己移動，被定身時不能放
     if (skill.onCast?.length && isActionBlocked(a, 'MOVE')) return 'ROOTED';
+    const res = resourceBlock(a, idx);
+    if (res) return res;
     if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return 'BUSY';
     if (a._castCompleteCooldown > 0 || a._interruptCooldown > 0) return 'RECOVERY';
-    if (a.castingSkillIdx !== idx) {
-        const tolerance = skill.tag === 'BASIC' ? COMBAT_PARAM.BASIC_CD_TOLERANCE : COMBAT_PARAM.SKILL_CD_TOLERANCE;
-        if ((a.curCDs[idx] || 0) > tolerance) return 'COOLDOWN';
-    }
-    if (a.mp < skill.cost) return 'MANA';
     return null;
 }
 
@@ -100,6 +119,14 @@ export function endWindup(a: Agent, completed: boolean): void {
     a.castingAnimationTimer = 0;
     if (completed) a._castCompleteCooldown = CAST_RULES.COMPLETE_COOLDOWN;
     a.castTarget = null;
+}
+
+/** 玩家主動取消前搖（ADR 0026，WINDUP → READY on CANCEL）：不進冷卻、不設中斷鎖定、不扣魔、不寫被打斷紀錄。 */
+export function cancelWindup(a: Agent): boolean {
+    if (a.castingSkillIdx === -1) return false;
+    endWindup(a, false);
+    a.currentTelegraph = null;
+    return true;
 }
 
 /**

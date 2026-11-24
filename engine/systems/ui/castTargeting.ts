@@ -12,7 +12,7 @@
 import type { GameEngine } from '../../game';
 import type { Agent } from '../../core/Agent';
 import type { CastTargeting, Skill } from '../../../types';
-import { skillTeams, isSkillTarget, castMotion } from '../../core/SkillQueries';
+import { skillTeams, isSkillTarget, targetModeOf } from '../../core/SkillQueries';
 
 /** 主角第 slot 槽的技能；槽位不合法或空著是 null */
 function slotSkill(engine: GameEngine, hero: Agent, slot: number): Skill | null {
@@ -22,25 +22,8 @@ function slotSkill(engine: GameEngine, hero: Agent, slot: number): Skill | null 
 }
 
 /**
- * 選目標的方式：射程 0 對自己（按一下就放）；範圍技可點地面；其他點單位。
- * 機動技依出手時實際怎麼動（castMotion，使用者 2026-11-24 選）：往目標去（突進、瞬移）＝可點地面；
- * 後撤＝按一下就放（退的方向由引擎依威脅決定，和點哪裡無關）；不動自己的（鉤拉、擊退）照一般規則，
- * 單體只能點單位（點地面等於對空地放）。
- * 射程 0 要先判斷：施放指令要站上那一格才放，給射程 0 的招點地面會走不到而一直卡著。
- */
-function targetModeOf(skill: Skill): CastTargeting['mode'] {
-    if (skill.range === 0) return 'SELF';
-    if (skill.tag === 'MOBILITY') {
-        const motion = castMotion(skill);
-        if (motion === 'BACK') return 'SELF';
-        if (motion === 'TOWARD') return 'UNIT_OR_GROUND';
-    }
-    return skill.type === 'AOE' ? 'UNIT_OR_GROUND' : 'UNIT';
-}
-
-/**
  * 主角第 slot 槽現在的選目標規則；那一槽沒有技能（或 slot 超出範圍）是 null。
- *  - 射程 0 的技能與後撤類機動技：SELF；範圍技（type AOE）與往目標位移的機動技：UNIT_OR_GROUND；其他：UNIT。
+ *  - 選目標方式一律讀 SkillQueries.targetModeOf（與 BTRegistry.OrderCast 同一定義）。
  *  - unitIds：活著、還在場上、陣營符合 teams 的單位（ENEMY 不含自己；ALLY、ANY 含自己），依 engine.agents 的順序。
  */
 export function queryCastTargeting(engine: GameEngine, hero: Agent, slot: number): CastTargeting | null {

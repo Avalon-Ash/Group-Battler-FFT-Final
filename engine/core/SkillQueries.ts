@@ -7,7 +7,7 @@
 // ║  不看動作細節。                                           ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { HitAction, Role, Skill, SkillIntent, SkillStatus, SkillTeams, Team } from '../../types';
+import type { CastTargeting, HitAction, Role, Skill, SkillIntent, SkillStatus, SkillTeams, Team } from '../../types';
 import { sameSide } from './Allegiance';
 
 type HitActionKind = HitAction['action'];
@@ -93,8 +93,8 @@ export function hasIntentIn(skill: Skill, intents: ReadonlySet<SkillIntent>): bo
 }
 
 /** 出手時施法者自己怎麼位移（讀 onCast）：TOWARD＝往目標去（DASH 突進、BLINK 瞬移到目標身邊）、BACK＝往遠離目標的方向後撤（RETREAT）、null＝不動 */
-export type CastMotion = 'TOWARD' | 'BACK';
-export function castMotion(skill: Pick<Skill, 'onCast'>): CastMotion | null {
+type CastMotion = 'TOWARD' | 'BACK';
+function castMotion(skill: Pick<Skill, 'onCast'>): CastMotion | null {
     for (const a of skill.onCast ?? []) {
         if (a.action === 'DASH' || a.action === 'BLINK') return 'TOWARD';
         if (a.action === 'RETREAT') return 'BACK';
@@ -118,4 +118,20 @@ export function skillTeams(skill: Skill): SkillTeams {
 export function isSkillTarget(skill: Skill, source: Parameters<typeof sameSide>[1], unit: Parameters<typeof sameSide>[0]): boolean {
     const teams = skillTeams(skill);
     return teams === 'ANY' || (teams === 'ENEMY') === !sameSide(unit, source);
+}
+
+/**
+ * 選目標的方式（單一定義：castTargeting 與 BTRegistry 的 OrderCast 共用，ADR 0025／0026）：
+ * - 射程 0：SELF（按一下就放；射程 0 要先判斷，避免給射程 0 的招點地面走不到而卡住）。
+ * - 機動技依出手位移（castMotion）：後撤（BACK）＝SELF；突進／瞬移（TOWARD）＝UNIT_OR_GROUND；其餘照一般規則。
+ * - 一般技能：範圍技（AOE）＝UNIT_OR_GROUND；單體＝UNIT。
+ */
+export function targetModeOf(skill: Skill): CastTargeting['mode'] {
+    if (skill.range === 0) return 'SELF';
+    if (skill.tag === 'MOBILITY') {
+        const motion = castMotion(skill);
+        if (motion === 'BACK') return 'SELF';
+        if (motion === 'TOWARD') return 'UNIT_OR_GROUND';
+    }
+    return skill.type === 'AOE' ? 'UNIT_OR_GROUND' : 'UNIT';
 }

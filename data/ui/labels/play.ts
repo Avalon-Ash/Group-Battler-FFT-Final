@@ -21,6 +21,9 @@ export const PLAY_TEXT = {
     /** 瞄準提示：桌機多一段按鍵說明，觸控只說要點什麼 */
     AIM_HINT_TOUCH: '點選目標',
     AIM_HINT_KEYS: 'Esc／右鍵取消',
+    /** 技能因冷卻或魔力不足無法施放的原因提示（ADR 0026） */
+    CAST_BLOCK_COOLDOWN: '冷卻中',
+    CAST_BLOCK_MANA: '魔力不足',
 } as const;
 
 export const PLAY_OUTCOME_TITLE = { WIN: 'VICTORY', LOSE: 'DEFEAT', DRAW: 'DRAW' } as const;

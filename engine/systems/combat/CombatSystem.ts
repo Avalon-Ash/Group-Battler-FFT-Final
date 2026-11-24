@@ -1,5 +1,8 @@
 import { COMBAT_PARAM, CAST_RULES } from '../../../constants';
-import { activationBlock, beginWindup, castAim, commitSkill, extendInterruptLockout } from "./SkillStateMachine";
+import { activationBlock, beginWindup, cancelWindup, castAim, commitSkill, extendInterruptLockout } from "./SkillStateMachine";
+
+/** 這招開始前搖時會不會發 CAST_START（詠唱字、詠唱序列、預警格）；取消時同一個判斷決定要不要發 CAST_CANCEL */
+const announcesCast = (skill: Skill): boolean => skill.cast > 0 && skill.tag !== 'BASIC';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CombatSystem — 戰鬥系統 Orchestrator                   ║
 // ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
@@ -59,7 +62,7 @@ export class CombatSystem {
             const targetId = aim ? aim.id : (a.targetHex ? `ground-${a.targetHex.q},${a.targetHex.r}` : undefined);
 
             // sourceId 必須傳遞，供 HUD 綁定文字
-            if (skill.cast > 0 && skill.tag !== 'BASIC') {
+            if (announcesCast(skill)) {
                 // [FIX] Caching impact area for performance optimization in telegraph rendering
                 const targetHex = a.targetHex || (aim ? {q: aim.q, r: aim.r} : {q: a.q, r: a.r});
                 a.currentTelegraph = engine.movement.targeting.getImpactArea(a, targetHex, skill, engine);
@@ -76,6 +79,18 @@ export class CombatSystem {
             }
         }
         return NodeState.RUNNING;
+    }
+
+    /**
+     * 玩家自己取消前搖（ADR 0026）：走狀態機的 CANCEL 邊（不進冷卻、不設鎖定、不扣魔）；
+     * 有發過 CAST_START 的招再發 CAST_CANCEL，讓詠唱字與詠唱序列收掉（不演「被打斷」）。
+     */
+    public cancelCast(a: Agent, engine: GameEngine): void {
+        const skill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
+        if (!cancelWindup(a)) return;
+        if (skill && announcesCast(skill)) {
+            engine.events.push({ type: 'CAST_CANCEL', pos: unitEventPos(a, engine), skill, sourceId: a.id });
+        }
     }
 
     /** `lockout`：中斷後禁止重新詠唱的秒數（_interruptCooldown 只在施法域寫入）。 */

@@ -154,6 +154,17 @@ describe('ADR 0026 K1：玩家指令打斷規則', () => {
         expect(hero.order).toBeNull();
     });
 
+    it('普攻的冷卻只是攻擊間隔：冷卻中按普攻照樣收下（MOBA 不拒收攻擊指令）', () => {
+        const { e, hero } = setup();
+        emit(e, { type: 'START_GAME', seed: 1 });
+        runTicks(e, 1);
+        const foe = nearestFoe(e, hero);
+        hero.curCDs[SKILL_SLOTS.BASIC] = 1;
+        emit(e, { type: 'ORDER_CAST', agentId: hero.id, slot: SKILL_SLOTS.BASIC, targetId: foe.id });
+        runTicks(e, 1);
+        expect(hero.order).toEqual({ type: 'CAST', slot: SKILL_SLOTS.BASIC, targetId: foe.id });
+    });
+
     it('射程 0 的技能：身邊沒有敵人，玩家下令也在 2 tick 內開始前搖', () => {
         const { e, hero } = setup();
         const zeroRange = e.skillDB.filter((s) => s.range === 0 && s.tag !== 'ULT' && s.cost === 0);

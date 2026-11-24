@@ -54,6 +54,9 @@ export class EventHUDMapper {
                     hud.completeCastText(event.sourceId); // 成功釋放演出
                 }
                 break;
+            case 'CAST_CANCEL':
+                if (event.sourceId) hud.removeCastText(event.sourceId);
+                break;
             case 'CAST_BREAK':
                 // 核心：觸發文字崩解，瞬間移除詠唱條
                 if (event.sourceId) {

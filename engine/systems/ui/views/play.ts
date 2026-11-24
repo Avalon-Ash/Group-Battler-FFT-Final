@@ -11,7 +11,7 @@
 
 import type { CastTargeting, Role, Skill } from '../../../../types';
 import type { GameEngine } from '../../../game';
-import { activationBlock, type ActivationBlock } from '../../combat/SkillStateMachine';
+import { activationBlock, playerCastRefusal, type ActivationBlock } from '../../combat/SkillStateMachine';
 import { queryCastTargeting } from '../castTargeting';
 import { roleSkills } from '../../../core/SkillQueries';
 import { PLAY_HERO_TEAM } from '../../match/Deployment';
@@ -47,6 +47,8 @@ export interface HeroSkillSlotView {
     readonly teams: CastTargeting['teams'];
     /** 現在放不放得出來；不能放時的原因（SkillStateMachine.activationBlock，和 AI 同一個判斷） */
     readonly block: ActivationBlock | null;
+    /** 按了會被拒收的原因（SkillStateMachine.playerCastRefusal，和 ORDER_CAST 驗證同一個判斷，ADR 0026）；技能鈕依它變暗與提示 */
+    readonly refusal: 'COOLDOWN' | 'MANA' | null;
     /** 冷卻剩幾成（0＝好了、1＝剛放） */
     readonly cooldownFrac: number;
     /** 技能圖示（SkillIcon 讀這兩個；HUD 技能鈕只放圖示，名稱放提示） */
@@ -83,8 +85,9 @@ export function selectHeroBar(engine: GameEngine): HeroBarView | null {
         if (!skill || !targeting) return;
         // 開戰前 skills 還是空的：activationBlock 讀 skills，開戰後才有意義
         const block = engine.battleStarted ? activationBlock(hero, slot) : null;
+        const refusal = engine.battleStarted ? playerCastRefusal(hero, slot) : null;
         const cooldownFrac = skill.cd > 0 ? quantize(Math.min(1, Math.max(0, (hero.curCDs[slot] || 0) / skill.cd))) : 0;
-        slots.push({ slot, skillId: skill.id, name: skill.name, tag: skill.tag, mode: targeting.mode, teams: targeting.teams, block, cooldownFrac, visual: skill.visual, color: skill.color });
+        slots.push({ slot, skillId: skill.id, name: skill.name, tag: skill.tag, mode: targeting.mode, teams: targeting.teams, block, refusal, cooldownFrac, visual: skill.visual, color: skill.color });
     });
     const aim = engine.state.aim;
     const view: HeroBarView = {

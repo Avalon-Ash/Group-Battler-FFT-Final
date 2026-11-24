@@ -80,7 +80,7 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         kind: 'single',
         owners: ['engine/systems/movement/MovementSystem.ts'],
         lifecycle: ['engine/core/AgentLifecycle.ts'],
-        note: '尋路節流；路徑失效不受限。',
+        note: '尋路節流；路徑失效與玩家新指令（allowImmediateRepath）不受限。',
     },
     moveSpeedMult: {
         group: 'locomotion',

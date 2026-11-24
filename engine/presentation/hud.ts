@@ -157,6 +157,12 @@ export class HUDSystem {
         }
     }
 
+    /** 玩家自己取消詠唱（CAST_CANCEL，ADR 0026）：詠唱字直接收掉，不做崩解或升華演出 */
+    public removeCastText(ownerId: string) {
+        const text = this.damageNumbers.find(t => t.type === 'SHOUT' && t.ownerId === ownerId && !t.isShattered);
+        if (text) text.life = 0;
+    }
+
     /**
      * 強制中斷文字：給予極高的向上速度與旋轉，並縮短壽命
      * 創造出 "文字被打飛/震碎" 的視覺效果

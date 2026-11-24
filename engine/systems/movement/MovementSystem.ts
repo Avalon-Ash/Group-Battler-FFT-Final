@@ -67,6 +67,11 @@ export class MovementSystem {
         return HexUtils.dist(goal, targetHex) <= this.targeting.getEffectiveRange(goal, targetHex.q, targetHex.r, range, spatial);
     }
 
+    /** 解除尋路節流（ADR 0026：玩家新指令立即換路，不受 REPATH_MIN_S 限制；nextRepathAt 唯一寫入者）。 */
+    public allowImmediateRepath(a: Agent): void {
+        a.nextRepathAt = 0;
+    }
+
     /** 脫困：朝鄰格走一步，不檢查爬升（只有 UNSTICK 用；一般移動一律走尋路）。 */
     public forceStep(a: Agent, cell: Hex): void {
         a.path = [cell];

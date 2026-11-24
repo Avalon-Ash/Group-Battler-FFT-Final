@@ -1,6 +1,6 @@
 import { GameEngine } from '../../game';
 import { UICommand, Role, Team } from '../../../types';
-import type { GameCommand } from '../../../types';
+import type { Agent, GameCommand, Order } from '../../../types';
 import { isDeferredWhileRunning, isSimNeutral, isViewCommand } from '../../core/CommandQueue';
 import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
@@ -12,9 +12,10 @@ import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEd
 import { querySpawnableHexes } from './editorQueries';
 import { isCastTarget } from './castTargeting';
 import { captureMatch, restoreMatch } from '../../core/MatchSnapshot';
-import { issueOrder, clearOrder } from '../../core/Orders';
+import { issueOrder, clearOrder, orderInterrupts } from '../../core/Orders';
 import { sameSide } from '../../core/Allegiance';
 import { stopMovement } from '../movement/MotionCommands';
+import { playerCastRefusal } from '../combat/SkillStateMachine';
 import { UINT32_RANGE } from '../../math/rng';
 
 type NumericRange = { readonly min: number; readonly max: number };
@@ -97,6 +98,22 @@ export class UICommandSystem {
     private playerUnit(agentId: string) {
         const agent = this.engine.agents.find((a) => a.id === agentId);
         return agent && agent.hp > 0 && agent.controller === 'PLAYER' ? agent : null;
+    }
+
+    /** 套用已驗證的玩家指令（null＝ORDER_STOP）：依 Orders.orderInterrupts 統一處理打斷與立即換路（ADR 0026）。 */
+    private applyPlayerOrder(agent: Agent, order: Order | null): void {
+        const effect = orderInterrupts(agent, order);
+        if (effect.cancelWindup) this.engine.combat.cancelCast(agent, this.engine);
+        if (effect.stopMove && agent.isMoving) stopMovement(agent);
+        if (effect.repath) this.engine.movement.allowImmediateRepath(agent);
+        if (order === null) {
+            clearOrder(agent);
+            // 停下時保留一個決策間隔再交回 HOLD，避免 ORDER_STOP 取消前搖當 tick 又被堅守立刻起手普攻
+            agent.aiUpdateTimer = agent.aiUpdateInterval;
+            agent.forceAiUpdate = false;
+        } else {
+            issueOrder(agent, order);
+        }
     }
 
     private apply(cmd: UICommand): void {
@@ -510,7 +527,7 @@ export class UICommandSystem {
                 if (!agent || !Number.isInteger(cmd.q) || !Number.isInteger(cmd.r)) break;
                 // 目的地要是地圖上的格子，而且不是障礙物（上面站了人也收：指令留著，走得過去時才走）
                 if (!this.engine.map.isValid(cmd.q, cmd.r) || this.engine.hasObstacle(cmd.q, cmd.r)) break;
-                issueOrder(agent, { type: 'MOVE', q: cmd.q, r: cmd.r });
+                this.applyPlayerOrder(agent, { type: 'MOVE', q: cmd.q, r: cmd.r });
                 break;
             }
 
@@ -518,24 +535,28 @@ export class UICommandSystem {
                 const agent = this.playerUnit(cmd.agentId);
                 const target = this.engine.agents.find((a) => a.id === cmd.targetId);
                 if (!agent || !target || target.hp <= 0 || sameSide(target, agent)) break;
-                issueOrder(agent, { type: 'ATTACK', targetId: target.id });
+                this.applyPlayerOrder(agent, { type: 'ATTACK', targetId: target.id });
                 break;
             }
 
             case 'ORDER_CAST': {
                 const agent = this.playerUnit(cmd.agentId);
                 if (!agent || !Number.isInteger(cmd.slot) || cmd.slot < 0 || cmd.slot >= agent.skillIds.length || agent.skillIds[cmd.slot] === null) break;
+                // ADR 0026：冷卻中或魔力不足在驗證時拒收（與 HUD 共用 playerCastRefusal），不寫入指令、不打斷前搖
+                if (this.engine.battleStarted && playerCastRefusal(agent, cmd.slot) !== null) break;
+                let order: Order;
                 if (cmd.targetId !== undefined) {
                     const target = this.engine.agents.find((a) => a.id === cmd.targetId);
                     // 「這招能點誰」和 HUD、點擊同一個判斷（castTargeting，ADR 0025）
                     if (!target || !isCastTarget(this.engine, agent, cmd.slot, target)) break;
-                    issueOrder(agent, { type: 'CAST', slot: cmd.slot, targetId: target.id });
+                    order = { type: 'CAST', slot: cmd.slot, targetId: target.id };
                 } else if (cmd.q !== undefined || cmd.r !== undefined) {
                     if (cmd.q === undefined || cmd.r === undefined || !this.engine.map.isValid(cmd.q, cmd.r)) break;
-                    issueOrder(agent, { type: 'CAST', slot: cmd.slot, q: cmd.q, r: cmd.r });
+                    order = { type: 'CAST', slot: cmd.slot, q: cmd.q, r: cmd.r };
                 } else {
-                    issueOrder(agent, { type: 'CAST', slot: cmd.slot });
+                    order = { type: 'CAST', slot: cmd.slot };
                 }
+                this.applyPlayerOrder(agent, order);
                 // 施放指令成立＝這次瞄準結束（ADR 0025：state.aim 只在這裡寫）
                 if (this.engine.state.aim?.agentId === agent.id) this.engine.state.aim = null;
                 break;
@@ -544,9 +565,7 @@ export class UICommandSystem {
             case 'ORDER_STOP': {
                 const agent = this.playerUnit(cmd.agentId);
                 if (!agent) break;
-                clearOrder(agent);
-                if (agent.isMoving && agent.castingSkillIdx === -1) stopMovement(agent);
-                agent.forceAiUpdate = true;
+                this.applyPlayerOrder(agent, null);
                 break;
             }
 

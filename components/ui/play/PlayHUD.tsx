@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
 import { SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
 import { PLAY_TEXT, skillShortLabel } from '../../../data/ui/labels/play';
@@ -34,6 +34,14 @@ const TEAM_MARK_COLOR: Readonly<Record<HeroSkillSlotView['teams'], string>> = {
 /** 觸控裝置：瞄準提示不提鍵盤 */
 const isCoarsePointer = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
 
+/** 技能因冷卻或魔力不足無法施放時，提示條顯示的毫秒數（ADR 0026） */
+const CAST_BLOCK_HINT_MS = 1500;
+type CastBlockReason = 'COOLDOWN' | 'MANA';
+const CAST_BLOCK_LABEL: Readonly<Record<CastBlockReason, string>> = {
+    COOLDOWN: PLAY_TEXT.CAST_BLOCK_COOLDOWN,
+    MANA: PLAY_TEXT.CAST_BLOCK_MANA,
+};
+
 const slotTitle = (s: HeroSkillSlotView): string => `${SKILL_TAG_LABEL[s.tag]}：${s.name}（${SLOT_KEYS[s.slot]}）`;
 
 export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
@@ -42,16 +50,44 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
     const isCompact = useCompactViewport();
     const barRef = useRef<HeroBarView | null>(bar);
     barRef.current = bar;
+    const [castBlock, setCastBlock] = useState<{ readonly name: string; readonly reason: CastBlockReason } | null>(null);
+    const blockTimerRef = useRef<number | null>(null);
 
-    const pressSlot = (slot: HeroSkillSlotView) => {
+    const clearCastBlock = useCallback(() => {
+        if (blockTimerRef.current !== null) {
+            window.clearTimeout(blockTimerRef.current);
+            blockTimerRef.current = null;
+        }
+        setCastBlock(null);
+    }, []);
+
+    const showCastBlock = useCallback((name: string, reason: CastBlockReason) => {
+        if (blockTimerRef.current !== null) window.clearTimeout(blockTimerRef.current);
+        setCastBlock({ name, reason });
+        blockTimerRef.current = window.setTimeout(() => {
+            blockTimerRef.current = null;
+            setCastBlock(null);
+        }, CAST_BLOCK_HINT_MS);
+    }, []);
+
+    useEffect(() => () => {
+        if (blockTimerRef.current !== null) window.clearTimeout(blockTimerRef.current);
+    }, []);
+
+    const pressSlot = useCallback((slot: HeroSkillSlotView) => {
         const b = barRef.current;
         if (!b || !b.alive) return;
+        if (slot.refusal !== null) {
+            showCastBlock(slot.name, slot.refusal);
+            return;
+        }
+        clearCastBlock();
         if (slot.mode === 'SELF') {
             send({ type: 'ORDER_CAST', agentId: b.heroId, slot: slot.slot });
             return;
         }
         send({ type: 'SET_AIM', aim: b.aimSlot === slot.slot ? null : { agentId: b.heroId, slot: slot.slot } });
-    };
+    }, [send, showCastBlock, clearCastBlock]);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -82,29 +118,38 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
             window.removeEventListener('keydown', onKey);
             window.removeEventListener('contextmenu', onContext);
         };
-    }, [send, onTogglePause]);
+    }, [send, onTogglePause, pressSlot]);
 
     if (!bar) return null;
     const aimed = bar.aimSlot !== null ? bar.slots.find((s) => s.slot === bar.aimSlot) ?? null : null;
+    const shownBlock = bar.alive ? castBlock : null;
     const shell = isCompact ? 'shell shell-inactive' : 'shell shell-hud mat-blur';
 
     return (
         <>
-            {aimed && (
-                <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-4" style={{ zIndex: UI_Z.HUD }}>
-                    <div data-testid="play-aim-hint" className={cn('pointer-events-auto rounded-ui-pill flex items-center gap-2 py-1 pl-3 pr-1 text-ui-label text-fg-secondary', shell)}>
-                        <span className="text-fg-primary">{aimed.name}</span>
-                        <span>{isCoarsePointer() ? PLAY_TEXT.AIM_HINT_TOUCH : `${PLAY_TEXT.AIM_HINT_TOUCH} · ${PLAY_TEXT.AIM_HINT_KEYS}`}</span>
-                        <IconButton
-                            data-testid="play-aim-cancel"
-                            label={PLAY_TEXT.AIM_CANCEL}
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => send({ type: 'SET_AIM', aim: null })}
-                        >
-                            <Icons.Close className="h-4 w-4" />
-                        </IconButton>
-                    </div>
+            {(aimed || shownBlock) && (
+                <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-2 p-4" style={{ zIndex: UI_Z.HUD }}>
+                    {aimed && (
+                        <div data-testid="play-aim-hint" className={cn('pointer-events-auto rounded-ui-pill flex items-center gap-2 py-1 pl-3 pr-1 text-ui-label text-fg-secondary', shell)}>
+                            <span className="text-fg-primary">{aimed.name}</span>
+                            <span>{isCoarsePointer() ? PLAY_TEXT.AIM_HINT_TOUCH : `${PLAY_TEXT.AIM_HINT_TOUCH} · ${PLAY_TEXT.AIM_HINT_KEYS}`}</span>
+                            <IconButton
+                                data-testid="play-aim-cancel"
+                                label={PLAY_TEXT.AIM_CANCEL}
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => send({ type: 'SET_AIM', aim: null })}
+                            >
+                                <Icons.Close className="h-4 w-4" />
+                            </IconButton>
+                        </div>
+                    )}
+                    {shownBlock && (
+                        <div data-testid="play-cast-block" role="status" className={cn('rounded-ui-pill flex items-center gap-2 px-3 py-1 text-ui-label text-fg-secondary', shell)}>
+                            <span className="text-fg-primary">{shownBlock.name}</span>
+                            <span>{CAST_BLOCK_LABEL[shownBlock.reason]}</span>
+                        </div>
+                    )}
                 </div>
             )}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-2" style={{ zIndex: UI_Z.HUD }}>
@@ -121,7 +166,7 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
                     {bar.alive ? (
                         <div className="play-hud-slots">
                             {bar.slots.map((s) => {
-                                const unavailable = s.block !== null && s.block !== 'COOLDOWN' && s.block !== 'BUSY';
+                                const unavailable = s.refusal !== null || (s.block !== null && s.block !== 'COOLDOWN' && s.block !== 'BUSY' && s.block !== 'RECOVERY');
                                 return (
                                     <IconButton
                                         key={s.slot}

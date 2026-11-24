@@ -11,7 +11,7 @@ import { stopMovement } from "../systems/movement/MotionCommands";
 import { isActionBlocked, isIncapacitated } from "../core/Effects";
 import { planDashLanding, planRetreatLanding } from "../systems/combat/LandingPlanner";
 import { activationBlock, aimCastAt, castAim } from "../systems/combat/SkillStateMachine";
-import { hasIntentIn } from "../core/SkillQueries";
+import { hasIntentIn, targetModeOf } from "../core/SkillQueries";
 import { clearOrder } from "../core/Orders";
 import type { SkillIntent } from "../../types";
 import { isHostileSkill } from "./TargetingSystem";
@@ -428,7 +428,10 @@ function strikeOrChase(a: Agent, engine: GameEngine, target: Agent, basicIdx: nu
     lockTarget(a, target, engine);
     aimCastAt(a, null);
     a.targetHex = null;
-    if (castIfAble(a, engine, basicIdx) === NodeState.RUNNING) return NodeState.RUNNING;
+    if (castIfAble(a, engine, basicIdx) === NodeState.RUNNING) {
+        if (a.isMoving) stopMovement(a);
+        return NodeState.RUNNING;
+    }
     BTActions["ChaseTarget"](a, engine, { slot: basicIdx });
     return NodeState.RUNNING;
 }
@@ -567,12 +570,19 @@ export const BTActions: Record<BTActionKey, BTActionFn> = {
         } else if (order.q !== undefined && order.r !== undefined) {
             aimCastAt(a, null);
             a.targetHex = { q: order.q, r: order.r };
+        } else if (targetModeOf(skill) === 'SELF') {
+            // ADR 0026：選目標方式為 SELF 的招（射程 0、後撤類機動技）玩家下令就直接放，不經 FindOptimalTarget
+            aimCastAt(a, null);
+            a.targetHex = { q: a.q, r: a.r };
         } else if (!BTConditions["FindOptimalTarget"](a, engine, { slot })) {
             // 這招現在沒有值得放的對象（例如身邊沒有敵人的範圍技）：等
             return standBy(a);
         }
 
-        if (castIfAble(a, engine, slot) === NodeState.RUNNING) return NodeState.RUNNING;
+        if (castIfAble(a, engine, slot) === NodeState.RUNNING) {
+            if (a.isMoving) stopMovement(a);
+            return NodeState.RUNNING;
+        }
         // 還不能放（冷卻、魔力）或不在射程內：先靠近到射程內，就位後原地等
         if (BTActions["MoveToOptimal"](a, engine, { slot }) === NodeState.RUNNING) return NodeState.RUNNING;
         return standBy(a);
