@@ -8,14 +8,13 @@ import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
 import { queryCastTargeting } from '../engine/systems/ui/castTargeting';
 import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
 import { AI_MODE_GRAPH, PLAYER_MODE_GRAPH, type BTDef } from '../data/ai_profiles';
-import { SKILL_SLOTS } from '../constants';
 import { CCManager } from '../engine/systems/combat/CCManager';
 import type { Skill } from '../types';
 import { buildBattle, runTicks, emit, stateOf } from './contracts/simState';
 
 /**
  * 玩家操控（契約 G3）在契約驗收以外的行為：開戰前下的指令能回放、指令可以 undo、
- * 施放指令在冷卻中不會被丟掉、目標沒了才清掉、換控制者會換圖。
+ * 目標沒了才清掉（冷卻中與魔力不足改為拒收，見 PlayerOrderInterrupt.test.ts／ADR 0026）、換控制者會換圖。
  */
 const setup = (seed = 41) => {
     const e = buildBattle('TEAMS', seed);
@@ -82,18 +81,6 @@ describe('玩家操控（契約 G3 以外的行為）', () => {
         expect(e.commands.battleLog.map((r) => r.cmd.type)).not.toContain('ORDER_MOVE');
         expect(e.isRunning).toBe(true);
     }, 60000);
-
-    it('冷卻中下的施放指令不會被丟掉，等得到', () => {
-        const { e, hero } = setup();
-        emit(e, { type: 'START_GAME', seed: 1 });
-        runTicks(e, 5);
-        const slot = SKILL_SLOTS.BASIC;
-        const foe = nearestFoe(e, hero);
-        hero.curCDs[slot] = 2;
-        emit(e, { type: 'ORDER_CAST', agentId: hero.id, slot, targetId: foe.id });
-        runTicks(e, 60);
-        expect(hero.order).toEqual({ type: 'CAST', slot, targetId: foe.id });
-    });
 
     it('攻擊指令的目標陣亡就清掉指令，回到堅守', () => {
         const { e, hero } = setup();
