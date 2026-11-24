@@ -980,5 +980,6 @@
 - 主角輪廓光（`engine/renderers/units/UnitOutlinePass.ts`）：精靈／變羊本體畫出來那一刻記下剪影切片與畫布變換，tactical overlay 之後、血條之前在最上層補金色描邊（實線 2 px＋光暈 4 px，CSS px，`UNIT_OUTLINE`）；剪影圖集和受擊閃白共用一次查詢，不用 shadowBlur。站在障礙物、別的單位後面也看得到輪廓。RenderSpec「玩家單位標示」同步。
 - 進入點預算：main 256.7 kB，改完 257.57 kB 超標；拆出 showcase 文字表、精簡輪廓程式（外框改用中心＋半寬、拿掉 beginFrame、flush 併進 tactical-overlay 計數範圍）後 257.5 kB 剛好過，**幾乎沒有餘裕**。
 - 驗證：lint、`npm test` 175 檔 1634 則、build（預算過）、`audit:ui` 0 違規、`E2E_ONLY=play` 三個版面全過、runtime-smoke（battleTime 0.52→4.57）、`perf:guard`（保真 6 張過；第一次 VOID／FOREST 超標是剛 build 完的負載，重跑全部 16.7 ms 過）、完整 `e2e:ui` 310 項全過（含樣式快照）、knip。截圖探針 `tools/ui-e2e/out/play-iphone-probe.mjs`、`home-probe.mjs`、`outline-shots.mjs`（不進版控）。
+- 收尾複查（顧問）：屍體也走 `SpriteUnitRenderer.draw`（`UnitDeathPainter`），拿掉 `hp > 0` 會讓倒下的主角留金邊，加回 `outlineKindOf`；為了預算再省兩處（外框只留光暈寬、`resetTransform`），進入點 257.5 kB 過。外框改寫後在 HEAD 重拍輪廓（桌機 DPR 2、手機，含變羊）對得上；`npm test` 1634、runtime-smoke、knip 重跑過。
 - 沒驗的：iPhone 實機（Safari 的合成行為、手感、輪廓粗細）。好幾招共用同一個 `visual`，圖示會一模一樣（例：遠程三招都是箭），只靠快捷鍵與色帶分。
 - **回退**：一個 commit，`git revert`。

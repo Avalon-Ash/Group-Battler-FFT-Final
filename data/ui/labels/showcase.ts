@@ -9,4 +9,4 @@ export const SHOWCASE_ENTRY: Readonly<Record<ShowcaseEntryMode, { readonly label
 };
 
 /** 交換鈕的說明（aria-label／title）：說的是按下去會換成哪一個 */
-export const showcaseSwapLabel = (next: ShowcaseEntryMode): string => `切換入口：${SHOWCASE_ENTRY[next].label}`;
+export const showcaseSwapLabel = (next: ShowcaseEntryMode): string => `切換：${SHOWCASE_ENTRY[next].label}`;

@@ -19,9 +19,9 @@ import { createCanvas } from '../../graphics/CanvasUtils';
 
 type UnitOutlineKind = keyof typeof UNIT_OUTLINE;
 
-/** 這個單位要不要描邊、描哪一種（唯一判斷點）。倒下的單位本體不畫（UnitBodyPainter），不會走到這裡 */
+/** 這個單位要不要描邊、描哪一種（唯一判斷點）。屍體也走 SpriteUnitRenderer（UnitDeathPainter），倒下就不描 */
 function outlineKindOf(agent: Agent): UnitOutlineKind | null {
-    return agent.controller === 'PLAYER' ? 'HERO' : null;
+    return agent.controller === 'PLAYER' && agent.hp > 0 ? 'HERO' : null;
 }
 
 interface OutlineCapture {
@@ -81,7 +81,8 @@ class UnitOutlinePassImpl {
         const style = UNIT_OUTLINE[c.kind];
         const width = style.WIDTH_PX * dpr;
         const glow = style.GLOW_WIDTH_PX * dpr;
-        const pad = Math.ceil(Math.max(width, glow)) + 1;
+        // 光暈比實線寬（UNIT_OUTLINE 的定義），外框留光暈寬度＋1 px
+        const pad = Math.ceil(glow) + 1;
 
         // 切片經變換後的裝置像素外框：中心＋旋轉縮放後的半寬半高
         const { m } = c;
@@ -98,7 +99,7 @@ class UnitOutlinePassImpl {
         // 1. 遮罩：剪影切片照本體的變換畫上去，再整片換成輪廓色
         mask.ctx.setTransform(m.a, m.b, m.c, m.d, m.e - ox, m.f - oy);
         mask.ctx.drawImage(c.image, c.sx, c.sy, c.sw, c.sh, c.dx, c.dy, c.dw, c.dh);
-        mask.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        mask.ctx.resetTransform();
         mask.ctx.globalCompositeOperation = 'source-in';
         mask.ctx.fillStyle = style.COLOR;
         mask.ctx.fillRect(0, 0, w, h);
@@ -115,7 +116,7 @@ class UnitOutlinePassImpl {
 
         // 3. 貼回主畫布（裝置像素座標）
         ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.resetTransform();
         ctx.globalAlpha = c.alpha;
         ctx.drawImage(ring.canvas, 0, 0, w, h, ox, oy, w, h);
         ctx.restore();
