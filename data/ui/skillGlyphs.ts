@@ -1,0 +1,189 @@
+/**
+ * 技能圖示（使用者 2026-11-24：每招一個圖示；風格 A「白線色底」由主代理選定，WORKLOG §2 DE）。
+ * 每招對應一個 lucide 線條圖的名稱（node_modules/lucide-react/dist/esm/icons/<名稱>.mjs，ISC 授權）。
+ * 線條資料不打進程式包：`npm run gen:skill-glyphs` 把這張表用到的圖抽成 public/assets/ui/skill_glyphs.json，
+ * 執行時才載入（hooks/adapters/skillGlyphs.ts）。改這張表要重跑產生器，tests/SkillGlyphs.test.ts 會檢查同步。
+ * 同一個職業 34 招的圖不重複（兩陣營一起算），測試擋住。沒有對應的技能（編輯器新增的）沿用舊的程序圖示。
+ */
+export const SKILL_GLYPH: Readonly<Record<string, string>> = {
+    // ── TANK（藍）
+    tb_b1: 'hammer',              // 鎮壓打擊
+    tb_b2: 'zap',                 // 聖雷杖擊
+    tb_b3: 'stamp',               // 聖印衝擊
+    tb_b4: 'volume-x',            // 沉默盾擊
+    tb_b5: 'mountain',            // 震地猛擊
+    tb_a1: 'hexagon',             // 六稜壁障
+    tb_a2: 'gavel',               // 制裁震擊
+    tb_a3: 'lock',                // 磐石禁錮
+    tb_a4: 'sun',                 // 聖光震懾
+    tb_a5: 'triangle',            // 稜鏡反射
+    tb_u1: 'shield-plus',         // 聖光結界
+    tb_u2: 'crown',               // 王者之風
+    tb_u3: 'shield-check',        // 絕對防禦
+    tb_u4: 'arrow-down-to-line',  // 泰坦降臨
+    tb_u5: 'brick-wall',          // 鋼鐵長城
+    tb_m1: 'link',                // 聖鎖牽引
+    tb_m2: 'shield-half',         // 聖盾猛推
+    // ── TANK（紅）
+    tr_b1: 'bone',                // 碎骨重擊
+    tr_b2: 'link-2',              // 血鏈抽擊
+    tr_b3: 'shield-alert',        // 尖刺防禦
+    tr_b4: 'face-angry',          // 野蠻頭槌
+    tr_b5: 'paw-print',           // 兇殘撕咬
+    tr_a1: 'cloud-fog',           // 腐蝕血霧
+    tr_a2: 'megaphone',           // 血腥挑釁
+    tr_a3: 'footprints',          // 戰爭踐踏
+    tr_a4: 'shield',              // 鮮血護盾
+    tr_a5: 'ghost',               // 靈魂吞噬
+    tr_u1: 'axe',                 // 處決斷頭台
+    tr_u2: 'biohazard',           // 亡靈瘟疫
+    tr_u3: 'skull',               // 不朽屍王
+    tr_u4: 'moon-star',           // 永恆夢魘
+    tr_u5: 'fence',               // 鮮血之牆
+    tr_m1: 'anchor',              // 奪命血鉤
+    tr_m2: 'expand',              // 蠻力震退
+    // ── WARRIOR（藍）
+    wb_b1: 'sword',               // 輝光劍刃
+    wb_b2: 'locate-fixed',        // 弱點刺擊
+    wb_b3: 'moon',                // 弧光斬
+    wb_b4: 'hammer',              // 劍柄重擊
+    wb_b5: 'shield-ban',          // 絕對招架
+    wb_a1: 'refresh-cw',          // 旋光劍舞
+    wb_a2: 'stamp',               // 聖印裂甲
+    wb_a3: 'message-circle-off',  // 聖言禁語
+    wb_a4: 'shield-off',          // 破甲聖劍
+    wb_a5: 'scissors',            // 斷罪重斬
+    wb_u1: 'cloud-lightning',     // 雷霆之怒
+    wb_u2: 'sunrise',             // 破曉聖擊
+    wb_u3: 'trophy',              // 誓約勝利
+    wb_u4: 'tornado',             // 劍刃風暴
+    wb_u5: 'zap',                 // 光速斬擊
+    wb_m1: 'rocket',              // 疾光突襲
+    wb_m2: 'magnet',              // 裁決飛爪
+    // ── WARRIOR（紅）
+    wr_b1: 'slash',               // 裂傷斬擊
+    wr_b2: 'axe',                 // 飛斧投擲
+    wr_b3: 'move-horizontal',     // 橫掃千軍
+    wr_b4: 'hand-fist',           // 重拳猛擊
+    wr_b5: 'swords',              // 狂怒連斬
+    wr_a1: 'rotate-cw',           // 旋風斬
+    wr_a2: 'bone',                // 斷筋打擊
+    wr_a3: 'megaphone',           // 鮮血怒吼
+    wr_a4: 'skull',               // 殘忍處決
+    wr_a5: 'droplet',             // 嗜血狂熱
+    wr_u1: 'sunset',              // 諸神黃昏
+    wr_u2: 'wind',                // 血腥旋風
+    wr_u3: 'flame',               // 惡魔降臨
+    wr_u4: 'asterisk',            // 千刃魔相
+    wr_u5: 'bomb',                // 毀滅重擊
+    wr_m1: 'chevrons-up',         // 毀滅跳斬
+    wr_m2: 'anchor',              // 奪魂戰鉤
+    // ── RANGER（藍）
+    rb_b1: 'crosshair',           // 精準射擊
+    rb_b2: 'snowflake',           // 寒冰箭
+    rb_b3: 'eye',                 // 獅眼印記
+    rb_b4: 'audio-waveform',      // 震盪箭
+    rb_b5: 'circle-dashed',       // 虛無射擊
+    rb_a1: 'globe',               // 霜寒法球
+    rb_a2: 'shield-off',          // 穿雲貫甲
+    rb_a3: 'zap',                 // 電光矢
+    rb_a4: 'square-dashed',       // 冰霜陷阱
+    rb_a5: 'arrow-down-wide-narrow', // 矢雨壓制
+    rb_u1: 'mountain-snow',       // 極地冰河
+    rb_u2: 'star',                // 星辰墜落
+    rb_u3: 'sun',                 // 穿日神矢
+    rb_u4: 'hexagon',             // 六芒封鎖
+    rb_u5: 'cloud-rain',          // 疾風百矢
+    rb_m1: 'chevrons-left',       // 疾影後躍
+    rb_m2: 'expand',              // 斥力爆射
+    // ── RANGER（紅）
+    rr_b1: 'castle',              // 破城重弩
+    rr_b2: 'fast-forward',        // 急速連射
+    rr_b3: 'flask-conical',       // 劇毒矢
+    rr_b4: 'flame',               // 燃燒箭
+    rr_b5: 'lock-keyhole',        // 狩獵陷阱
+    rr_a1: 'bomb',                // 燃燒爆彈
+    rr_a2: 'shield-x',            // 碎甲重矢
+    rr_a3: 'grid-3x3',            // 荊棘獵網
+    rr_a4: 'cloud-fog',           // 毒煙暗箭
+    rr_a5: 'scan',                // 遠程狙殺
+    rr_u1: 'heart-crack',         // 灰燼穿心
+    rr_u2: 'flame-kindling',      // 焦土衝擊
+    rr_u3: 'cloud-hail',          // 煉獄火雨
+    rr_u4: 'target',              // 血腥獵殺
+    rr_u5: 'gavel',               // 末日審判
+    rr_m1: 'undo-2',              // 獵網後躍
+    rr_m2: 'split',               // 爆裂散射
+    // ── MAGE（藍）
+    mb_b1: 'radar',               // 追跡魔彈
+    mb_b2: 'zap',                 // 閃電束
+    mb_b3: 'snowflake',           // 霜噬術
+    mb_b4: 'orbit',               // 奧術彈射
+    mb_b5: 'battery-charging',    // 魔力虹吸
+    mb_a1: 'bomb',                // 奧術爆破
+    mb_a2: 'lock',                // 冰封禁錮
+    mb_a3: 'arrow-left-right',    // 易位術
+    mb_a4: 'gem',                 // 晶體折射
+    mb_a5: 'brain',               // 心靈恐懼
+    mb_u1: 'tornado',             // 奧術漩渦
+    mb_u2: 'thermometer-snowflake', // 絕對零度
+    mb_u3: 'hourglass',           // 時間停止
+    mb_u4: 'waves-horizontal',    // 奧術洪流
+    mb_u5: 'sun',                 // 聚輝光柱
+    mb_m1: 'sparkle',             // 奧術閃現
+    mb_m2: 'circle-dot',          // 斥力新星
+    // ── MAGE（紅）
+    mr_b1: 'atom',                // 混沌之球
+    mr_b2: 'droplets',            // 生命虹吸
+    mr_b3: 'flame',               // 燃燒餘燼
+    mr_b4: 'trending-down',       // 虛弱詛咒
+    mr_b5: 'moon',                // 暗影箭
+    mr_a1: 'ghost',               // 靈魂腐化
+    mr_a2: 'face-angry',          // 暗影之怒
+    mr_a3: 'rabbit',              // 邪能變形
+    mr_a4: 'shield-off',          // 裂甲詛咒
+    mr_a5: 'git-fork',            // 鮮血分流
+    mr_u1: 'mountain',            // 毀滅隕石
+    mr_u2: 'skull',               // 死亡宣告
+    mr_u3: 'timer-off',           // 時間凝結
+    mr_u4: 'cloud-drizzle',       // 末世毒雨
+    mr_u5: 'sparkles',            // 靈魂爆燃
+    mr_m1: 'eye-off',             // 暗影遁形
+    mr_m2: 'radiation',           // 混沌衝擊
+    // ── SUPPORT（藍）
+    sb_b1: 'gavel',               // 神聖懲戒
+    sb_b2: 'droplets',            // 靈泉湧流
+    sb_b3: 'shield',              // 聖盾投影
+    sb_b4: 'sun',                 // 淨化之光
+    sb_b5: 'eye',                 // 預言術
+    sb_a1: 'heart-plus',          // 神聖癒合
+    sb_a2: 'shield-check',        // 聖輝屏障
+    sb_a3: 'feather',             // 天使祝福
+    sb_a4: 'stamp',               // 不滅聖印
+    sb_a5: 'wind',                // 疾風祝禱
+    sb_u1: 'hand',                // 神聖干涉
+    sb_u2: 'sunrise',             // 復活之光
+    sb_u3: 'eighth-notes',        // 英勇讚美
+    sb_u4: 'flame',               // 神之怒火
+    sb_u5: 'cloud-rain',          // 寧靜之雨
+    sb_m1: 'shield-half',         // 聖風障壁
+    sb_m2: 'undo-2',              // 羽翼後撤
+    // ── SUPPORT（紅）
+    sr_b1: 'droplet',             // 血之祭儀
+    sr_b2: 'trending-down',       // 靈魂虛弱
+    sr_b3: 'wand',                // 痛苦妖術
+    sr_b4: 'heart',               // 鮮血治癒
+    sr_b5: 'flask-conical',       // 巫毒射擊
+    sr_a1: 'arrow-left-right',    // 生命轉移
+    sr_a2: 'shield-alert',        // 邪能護盾
+    sr_a3: 'landmark',            // 治療圖騰
+    sr_a4: 'hourglass',           // 衰朽詛咒
+    sr_a5: 'moon',                // 黑暗犧牲
+    sr_u1: 'link',                // 靈魂連結
+    sr_u2: 'scroll',              // 鮮血契約
+    sr_u3: 'ghost',               // 靈魂放逐
+    sr_u4: 'moon-star',           // 猩紅血月
+    sr_u5: 'skull',               // 惡靈附身
+    sr_m1: 'audio-waveform',      // 怨靈震波
+    sr_m2: 'cloud-fog',           // 血霧後撤
+};

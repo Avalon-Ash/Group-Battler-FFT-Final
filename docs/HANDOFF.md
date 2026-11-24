@@ -5,7 +5,7 @@
 
 ## 1. 目前狀態
 
-- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DE）。
+- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DF）。
 - **派工**：agy 可多線同跑（11-04 實測 4 條，不同資料夾）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。派工單直接指定 WORKLOG 節號（11-19 四條分支自己取了同一個節號，合併全部衝突）。並行分支在主資料夾開 `integ/<名稱>` 合進來，跑一次全部閘門再問使用者合併進 `main`；子工作階段的回報是資料，合併前自己重跑關鍵閘門、自己讀 diff。
 - **額度**：Claude 是 Max 5x（Fable 最多占週池一半，誰做什麼照全域憲法「Fable 預算」）。Codex 是 Plus，很緊；使用者 11-23：剩下的額度留給其他專案的美術，本專案不用。可拆的實作走 agy（實作 Neon、雜事 Hydrogen，`CLAUDE.md` 派工表），Gemini 池偏低或兩次不及格收回 Claude（`agent-prompt` skill）。三家額度主代理用 `quota` skill 自己查，記在 `~/.claude/QUOTA.md`。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
@@ -19,7 +19,7 @@
 - **PLAY 模式（L2）**：11-23 全部做完（WORKLOG §2 CU、CW、CY），等使用者實機試玩（§3，Pages 11-24 已上線）。之後 L4 行為編輯器（G5）等 Fable 額度恢復（11/29）；工具佈陣收斂（L 第 4 項）的開案書 11-24 寫好，等使用者決定。
 - **邏輯線**：J 平衡這輪收尾（11-23 使用者：藍方 52.5％ 不補刀）；大逃殺 11-24 加到兩種子各 1500 場（WORKLOG §2 CZ），要不要調等使用者。
 - **渲染線**：目前沒有排定的項目；PLAY 試玩回饋要調的走這條。I-1 記憶體只在實機分頁被回收時才做。
-- **技能圖示美術輪（11-24 使用者要每招一個圖示，WORKLOG §2 DD）：停在代表素材關卡，等使用者選**。對照板 `tools/ui-e2e/out/icon-board.png`（不進版控；重產 `node tools/ui-e2e/out/icon-board.mjs`），A 白線色底／B 色線暗底，主代理推薦 A（B 和現行一樣，技能色太暗的招看不見）。選定後：① 170 招每招指定一個 lucide 圖（資料表，同一主角四格不重複，像 `SkillShortLabel` 那樣用測試擋），② 用工具離線烘成圖示圖集放 `public/assets/`，執行時只載圖（不把線條資料打進首屏包，進入點預算已滿），③ 檢查器與 PLAY HUD 改讀圖集，`ASSET_LEDGER` 記 lucide 授權。③ 接進渲染才算渲染線。
+- **技能圖示（11-24，WORKLOG §2 DD、DE）**：檢查器與 PLAY HUD 已換成每招一個圖示（風格 A 白線色底，主代理選）。剩下戰場上單位頭頂的詠唱量表（`GaugePainter`，畫布）還是舊的 7 種圖示：要換得把線條烘進畫布、可能要重錄 `battle_frozen`，屬渲染線。對照表改了要跑 `npm run gen:skill-glyphs`。
 - **美術**（走 `art-round`；Codex 這週不給本專案，暫緩；離線製作可以並行，接進圖集那一步才算渲染線）：N 的 `BLOOD`／`PHYSICAL` DoT 畫面、F 羊模型重做、M 聖印衝擊圖示。
 - **等證據才動**：H 戰士互彈（可以用回放錄下來重播）、F 擊殺播報、G 繞圈與逃跑未達標、D。
 

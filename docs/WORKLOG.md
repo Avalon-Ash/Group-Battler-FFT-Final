@@ -991,3 +991,11 @@
 - 驗證：lint、`npm test` 176 檔 1638 則、build（預算過）、`audit:ui` 0、knip、`E2E_ONLY=play` 三個版面過（直向「畫面裡沒有敵人」一次，是 HANDOFF D 的已知偶發，單獨重跑過）。手機截圖看過縮寫（直、橫）。
 - **技能圖示美術輪（art-round，停在代表素材關卡）**：現行圖示依 `visual` 只有 7 種，而且好幾招的技能色接近黑（`mb_u1` 奧術漩渦、`wr_u5` 毀滅重擊），現在的圖示在原尺寸幾乎看不見。沒有生圖工具、Codex 這週不給本專案，代表素材用本機已有的 lucide 線條圖（ISC，`node_modules/lucide-react`，約 2170 個）。對照板 `tools/ui-e2e/out/icon-board.png`（產生：`node tools/ui-e2e/out/icon-board.mjs`，不進版控）：遠程（藍）、法師（藍）、戰士（紅）各四顆，三列＝現行／A 白線色底（底＝技能色壓暗、白線）／B 色線暗底＋光暈，原尺寸貼岩漿戰場、放大 3 倍、灰階。主代理先看：B 和現行一樣，技能色太暗的兩招看不見；A 每種顏色都清楚、灰階也分得出。等使用者選。
 - **回退**：一個 commit，`git revert`。
+
+### DE. 2026-11-24 技能圖示美術輪：每招一個圖示（主代理 Opus，使用者：妳決定就好）
+- 選風格 A「白線色底」（art-round §3 第 4 點，使用者交給主代理）：對照板 `tools/ui-e2e/out/icon-board.png` 上，B 和現行一樣，技能色接近黑的招（`mb_u1` 奧術漩渦、`wr_u5` 毀滅重擊）在原尺寸看不見；A 線條固定白色，每種技能色都清楚，灰階也分得出。沒派 agy：對照表是一張資料表，一個上下文就做得完，用測試驗收。
+- 對照表 `data/ui/skillGlyphs.ts`：170 招各指定一個 lucide 線條圖（共 114 種），同一職業 34 招不重複（兩陣營一起算）。`tests/SkillGlyphs.test.ts`：每招都有、只有這些招、圖在已安裝的 lucide 裡而且是正式名稱（`angry`、`music`、`waves` 是轉發別名，改成 `face-angry`、`eighth-notes`、`waves-horizontal`）、同職業不重複、JSON 和表與 lucide 原始資料一致。先紅（JSON 還沒產生）後綠。
+- 不把線條打進程式包：lucide 會被分到預載的 `vendor-ui`，初始載入預算只剩約 2.6 kB。改成 `npm run gen:skill-glyphs`（`tools/assets/gen-skill-glyphs.mjs`）把用到的圖抽成 `public/assets/ui/skill_glyphs.json`（26 kB），`hooks/adapters/skillGlyphs.ts` 第一次要用時才下載。`SkillIcon` 有對照就畫徽章（`.skill-glyph`：底＝技能色壓暗到 55%、外框＝技能色、白線），還沒載完或沒有對照（編輯器新增的技能）用舊的程序圖示。檢查器與 PLAY HUD 同一個元件。進入點與初始載入預算都過。
+- 沒換的：戰場上單位頭頂的詠唱量表（`GaugePainter`，畫布）仍是舊圖示；換它是渲染線，`battle_frozen` 保真基準可能要重錄，留在 HANDOFF。
+- 驗證：lint、`npm test` 177 檔 1642 則、build（兩個預算都過，JSON 有複製到 dist）、`audit:ui` 0、knip、完整 `e2e:ui` 313 項全過（含樣式快照）、手機直橫截圖看過（四顆圖示都不一樣，暗色技能也看得到）。ASSET_LEDGER §6b 記 lucide（ISC）。
+- **回退**：一個 commit，`git revert`；只想退回舊圖示，刪 `public/assets/ui/skill_glyphs.json` 也會自動退回。

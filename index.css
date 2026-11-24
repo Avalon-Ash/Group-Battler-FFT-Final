@@ -753,6 +753,11 @@
   }
 }
 
+/* 技能圖示「白線色底」（components/inspector/parts/SkillIcon.tsx、data/ui/skillGlyphs.ts）：底＝技能色壓暗到 55%、外框＝技能色、白色線條（lucide 原始線寬 2，小尺寸加粗到 2.25）。
+   技能色太暗（接近黑）時線條仍是白的，看得到；--skill-color 由元件帶入 */
+.skill-glyph { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; background: color-mix(in srgb, var(--skill-color) 55%, rgb(var(--token-surface-dark))); border: 1px solid var(--skill-color); }
+.skill-glyph-svg { width: 64%; height: 64%; fill: none; stroke: rgb(var(--token-fg-primary)); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+
 /* PLAY 戰鬥 HUD（components/ui/play/PlayHUD.tsx）：一列＝血魔條、四個技能鈕（只放圖示）、暫停與停下。尺寸都讀 --ui-play-* */
 .play-hud {
   display: grid;

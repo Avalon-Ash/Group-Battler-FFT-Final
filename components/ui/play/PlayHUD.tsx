@@ -133,7 +133,7 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
                                         onClick={() => pressSlot(s)}
                                         className={cn('play-slot', unavailable && 'opacity-50')}
                                     >
-                                        <SkillIcon skill={s} className="play-slot-icon" data-testid={`play-skill-icon-${s.slot}`} />
+                                        <SkillIcon skill={{ id: s.skillId, name: s.name, visual: s.visual, color: s.color }} className="play-slot-icon" data-testid={`play-skill-icon-${s.slot}`} />
                                         <span data-testid={`play-skill-label-${s.slot}`} className="play-slot-label text-ui-num">{skillShortLabel({ id: s.skillId, name: s.name })}</span>
                                         {s.cooldownFrac > 0 && (
                                             <span aria-hidden className="play-slot-cooldown" style={{ height: `${s.cooldownFrac * 100}%` }} />
