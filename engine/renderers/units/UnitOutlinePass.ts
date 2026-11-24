@@ -19,8 +19,11 @@ import { createCanvas } from '../../graphics/CanvasUtils';
 
 type UnitOutlineKind = keyof typeof UNIT_OUTLINE;
 
-/** 這個單位要不要描邊、描哪一種（唯一判斷點）。屍體也走 SpriteUnitRenderer（UnitDeathPainter），倒下就不描 */
-function outlineKindOf(agent: Agent): UnitOutlineKind | null {
+/**
+ * 這個單位要不要標示、標哪一種（唯一判斷點；輪廓與腳下地塊光 GridRenderStrategy 都讀它）。
+ * 屍體也走 SpriteUnitRenderer（UnitDeathPainter），倒下就不標。
+ */
+export function outlineKindOf(agent: Agent): UnitOutlineKind | null {
     return agent.controller === 'PLAYER' && agent.hp > 0 ? 'HERO' : null;
 }
 
@@ -117,7 +120,7 @@ class UnitOutlinePassImpl {
         // 3. 貼回主畫布（裝置像素座標）
         ctx.save();
         ctx.resetTransform();
-        ctx.globalAlpha = c.alpha;
+        ctx.globalAlpha = c.alpha * style.ALPHA;
         ctx.drawImage(ring.canvas, 0, 0, w, h, ox, oy, w, h);
         ctx.restore();
     }

@@ -93,6 +93,9 @@ export class RenderOp {
         this.oStatus = undefined;
         this.oHazard = undefined;
         this.oDanger = undefined;
+        // 地塊光（主角腳下那格）：池子裡的 op 會被拿去畫別的格，不重設就整片亮（WORKLOG §2 DG）
+        this.oLightCol = null;
+        this.oLightInt = 0;
         this.uSelected = false;
         this.uSilhouette = false;
         this.isGround = false;

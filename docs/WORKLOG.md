@@ -1005,3 +1005,12 @@
 - 門檻不能放寬（CLAUDE.md），所以找首屏用不到的東西搬出進入點：用 source map 看進入點組成，引擎本來就要在首屏跑（展示模式），UI 裡 `MapEditorToolbar`（原始碼 10 kB）只在手動模式（HUD 開著）出現，改成 `React.lazy`（和 PLAY 畫面、工具視窗同一種做法）。進入點 257.5 → 256.6 kB，初始載入 380.6 → 379.8 kB，留出約 0.9 kB 餘裕。
 - 驗證：lint、`npm test` 177 檔 1642 則、build（兩個預算過）、knip、完整 `e2e:ui`：第一次第一頁就逾時（開發伺服器冷啟動），重跑 312 項過、1 項失敗＝PLAY iPhone 直向「畫面裡沒有敵人可瞄準」（HANDOFF D 的偶發），單獨重跑直向又失敗一次。這次在同一個版面連兩次，比之前頻繁，記進 HANDOFF。
 - **回退**：一個 commit，`git revert`。
+
+### DG. 2026-11-24 PLAY 主角標示：輪廓 50%、腳下橢圓換成地塊光（主代理 Opus，使用者：輪廓太強改 50%、有輪廓就不要橢圓、腳下用網格的特效發亮）
+- 輪廓：`UNIT_OUTLINE.HERO.ALPHA` 0.5，貼回時乘上去。腳下橢圓（`TacticalRenderer.drawPlayerRings`）與 `TACTICAL_DRAW.PLAYER_RING_*` 六個常數刪掉；瞄準圈原本借用光圈的脈動速度，改成自己的 `AIM_RING_PULSE_SPEED`。
+- 腳下那格：沿用現成的地塊光（`GridOverlays` 的 LIGHT 層，screen 疊色），`GridRenderStrategy` 在 agents 迴圈記下主角所在格（`agent.q／r`），寫進那格 TERRAIN op 的 `oLightCol／oLightInt`。誰要標示只在 `UnitOutlinePass.outlineKindOf` 判斷（改成 export，輪廓與地塊光共用）。強度 `TILE_LIGHT` 1.25 × `GAIN` 0.4 = 0.5，已經頂到共用的 `GRID_OVERLAY.LIGHT.MAX_ALPHA`，沒動。
+- **修到的舊 bug**：`RenderOp.clear()` 沒重設 `oLightCol／oLightInt`（以前沒人寫入所以沒發現），池子重用後上百格都亮。補重設，`tests/RenderOpClear.test.ts` 擋（修前紅、修後綠）；探針量到修後一幀只剩主角那一格。
+- 看圖（`tools/ui-e2e/out/marker-biomes.mjs`，五種地形各一張主角特寫，桌機 DPR 2、RTX 4070）：岩漿、森林、冰原、虛空清楚，沙漠最淡（金色疊橘黃）。虛空那張亮格在主角旁邊：不暫停連拍（`marker-burst.mjs`，主角走路中每 250 ms 一筆）量到邏輯格和腳位換算的格最多差 1 格，只在走進下一格那一刻切換，是「站的那一格」的正常行為，沒改。地塊光優先序最低（`GroundPriority`：預警、施法範圍、危害、狀態地色、縮圈都會蓋過），主角被變羊、站上紅格時腳下不亮，只剩輪廓與箭頭；列進 HANDOFF §3 給使用者實機看，沒動優先序。
+- RenderSpec「玩家單位標示」、`constants/terrain.ts`（`PLAYER_MARK` 註解）、DECISIONS「UI」同步。
+- 驗證：lint、`npm test` 178 檔 1643 則、build（進入點 256.7／257.5 kB）、runtime-smoke（battleTime 0.52→4.57）、`perf:guard`（保真 6 張過，`battle_frozen` 0 差異）、`E2E_ONLY=play` 三個版面全過。沒驗的：iPhone 實機。
+- **回退**：一個 commit，`git revert`。

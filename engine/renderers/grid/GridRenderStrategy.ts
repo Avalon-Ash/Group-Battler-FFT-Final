@@ -12,7 +12,7 @@ import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
-import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, ZONE_RENDER, GRID_TRANSITION_PARAM } from "../../../constants";
+import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, ZONE_RENDER, GRID_TRANSITION_PARAM, UNIT_OUTLINE } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 
@@ -20,10 +20,13 @@ import { groundPriority, GroundFlag as F, isCasterCenteredTelegraph } from './Gr
 import { HAZARD_VISUALS } from '../../../data/vfx/hazard_visuals';
 import { STATUS_VISUALS } from '../../../data/vfx/status_visuals';
 import { aimedCast } from '../../systems/ui/castTargeting';
+import { outlineKindOf } from '../units/UnitOutlinePass';
 
 export class GridRenderStrategy {
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
+    /** 要亮腳下那格的單位（PLAY 主角，outlineKindOf）：格 key → 標示種類 */
+    private _markerTiles = new Map<string, keyof typeof UNIT_OUTLINE>();
 
     public submit(
         cache: GridCache,
@@ -47,6 +50,7 @@ export class GridRenderStrategy {
 
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
+        this._markerTiles.clear();
         groundPriority.begin(cache.tileList);
 
         for (const a of engine.agents) {
@@ -54,6 +58,8 @@ export class GridRenderStrategy {
                 const key = `${a.q},${a.r}`;
                 this._unitPresence.add(key);
                 if (a.view.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.view.visualStatus);
+                const marker = outlineKindOf(a);
+                if (marker) this._markerTiles.set(key, marker);
 
                 // Check for casting AOE to highlight
                 if (a.castingSkillIdx !== -1 && a.currentTelegraph) {
@@ -125,6 +131,9 @@ export class GridRenderStrategy {
             op.y = visualBaseY; // Sorting based on footprint
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = this._unitVisualStatus.get(key);
+            // 主角腳下那格的地塊光（UNIT_OUTLINE.TILE_LIGHT；GridOverlays 的 LIGHT 層，優先序最低）
+            const marker = this._markerTiles.get(key);
+            if (marker) { op.oLightCol = UNIT_OUTLINE[marker].COLOR; op.oLightInt = UNIT_OUTLINE[marker].TILE_LIGHT; }
             op.oDanger = engine.zones.getZoneAt(q, r); 
             
             // Mix player hover range and AI casting AOE

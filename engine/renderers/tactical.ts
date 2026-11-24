@@ -62,7 +62,6 @@ export class TacticalRenderer {
 
     public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number, frames: UnitFrameStore, hoveredHex: Hex | null = null) {
         ctx.save();
-        this.drawPlayerRings(ctx, engine, globalTime, frames);
         this.drawAimTargets(ctx, engine, globalTime, frames, hoveredHex);
         const hFrame = highlight && highlight.hp > 0 ? frames.get(highlight) : undefined;
         if (highlight && hFrame) {
@@ -118,31 +117,6 @@ export class TacticalRenderer {
     }
 
     /**
-     * 玩家操控的單位（契約 G3）腳下的光圈：一圈脈動的金線加淡淡的底色，不必選取也看得出控的是哪一隻。
-     * 畫在血條之下（drawOverlay）。位置來自 UnitFrame（和身體同一份腳點與高度，含畫面插值）。沒有玩家單位時什麼都不畫。
-     */
-    private drawPlayerRings(ctx: CanvasRenderingContext2D, engine: GameEngine, globalTime: number, frames: UnitFrameStore): void {
-        for (const a of engine.agents) {
-            if (a.controller !== 'PLAYER' || a.hp <= 0) continue;
-            const f = frames.get(a);
-            if (!f || !f.visible) continue;
-            ctx.save();
-            ctx.translate(f.footX, f.floorY);
-            ctx.scale(1, TACTICAL_DRAW.DESTINATION_SQUASH);
-            ctx.beginPath();
-            ctx.arc(0, 0, TACTICAL_DRAW.PLAYER_RING_RADIUS, 0, Math.PI * 2);
-            ctx.fillStyle = TACTICAL_COLORS.PLAYER_MARK;
-            ctx.globalAlpha = TACTICAL_DRAW.PLAYER_RING_FILL_ALPHA;
-            ctx.fill();
-            ctx.strokeStyle = TACTICAL_COLORS.PLAYER_MARK;
-            ctx.lineWidth = TACTICAL_DRAW.PLAYER_RING_WIDTH;
-            ctx.globalAlpha = TACTICAL_DRAW.PLAYER_RING_ALPHA_BASE + Math.sin(globalTime * TACTICAL_DRAW.PLAYER_RING_PULSE_SPEED) * TACTICAL_DRAW.PLAYER_RING_ALPHA_PULSE;
-            ctx.stroke();
-            ctx.restore();
-        }
-    }
-
-    /**
      * PLAY 瞄準中（engine.state.aim）：這一招點得下去的單位腳下畫一圈（敵方紅、友方綠）；
      * 游標格（tapIntent.hoverHexOf：點下去會施放的位置）上的那一個畫粗、不脈動，表示點下去打它。
      * 「能點誰」讀 aimedCast／queryCastTargeting（和 HUD、點擊同一個判斷）；位置讀 UnitFrame。沒有瞄準時什麼都不畫。
@@ -152,7 +126,7 @@ export class TacticalRenderer {
         if (!aimed) return;
         const { hero, targeting } = aimed;
         const focus = hoveredHex ? engine.getAgentAt(hoveredHex.q, hoveredHex.r) : undefined;
-        const alpha = TACTICAL_DRAW.AIM_RING_ALPHA_BASE + Math.sin(globalTime * TACTICAL_DRAW.PLAYER_RING_PULSE_SPEED) * TACTICAL_DRAW.AIM_RING_ALPHA_PULSE;
+        const alpha = TACTICAL_DRAW.AIM_RING_ALPHA_BASE + Math.sin(globalTime * TACTICAL_DRAW.AIM_RING_PULSE_SPEED) * TACTICAL_DRAW.AIM_RING_ALPHA_PULSE;
         for (const id of targeting.unitIds) {
             const unit = engine.agents.find((a) => a.id === id);
             const f = unit ? frames.get(unit) : undefined;

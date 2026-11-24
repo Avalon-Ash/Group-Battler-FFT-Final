@@ -346,14 +346,15 @@ export const UI_ICON_BAKE = {
 } as const;
 
 /**
- * 單位輪廓光（UnitOutlinePass，RenderSpec §4「玩家單位標示」）：哪種單位描什麼顏色、多粗。
+ * 單位標示（RenderSpec §4「玩家單位標示」）：輪廓光（UnitOutlinePass）＋腳下那一格的地塊光（GridRenderStrategy → GridOverlays 的 LIGHT）。
  * 輪廓畫在世界層之後、血條之前，人擠在一起或站在障礙物後面也看得到。粗細是螢幕 CSS px，不隨鏡頭縮放變；
- * 內圈實線 WIDTH_PX，外圈淡光暈 GLOW_WIDTH_PX（要比 WIDTH_PX 寬才看得到），光暈不透明度 GLOW_ALPHA。
+ * 內圈實線 WIDTH_PX，外圈淡光暈 GLOW_WIDTH_PX（要比 WIDTH_PX 寬才看得到），光暈不透明度 GLOW_ALPHA，整圈再乘 ALPHA。
+ * TILE_LIGHT＝地塊光強度：格子頂面 screen 疊色，不透明度＝min(GRID_OVERLAY.LIGHT.MAX_ALPHA, 強度×GAIN)；優先序最低，同格有預警、危害、區域時讓開。
  * 誰拿哪一種只在 UnitOutlinePass.outlineKindOf 判斷。
  */
 export const UNIT_OUTLINE = {
-    /** PLAY 主角（controller === PLAYER）：和腳下光圈、頭上箭頭同一個金色（TACTICAL_COLORS.PLAYER_MARK） */
-    HERO: { COLOR: TACTICAL_COLORS.PLAYER_MARK, WIDTH_PX: 2, GLOW_WIDTH_PX: 4, GLOW_ALPHA: 0.45 },
+    /** PLAY 主角（controller === PLAYER）：和頭上箭頭同一個金色（TACTICAL_COLORS.PLAYER_MARK）。使用者 11-24：輪廓 50% 透明、腳下改地塊光（不畫橢圓） */
+    HERO: { COLOR: TACTICAL_COLORS.PLAYER_MARK, WIDTH_PX: 2, GLOW_WIDTH_PX: 4, GLOW_ALPHA: 0.45, ALPHA: 0.5, TILE_LIGHT: 1.25 },
 } as const;
 /** 輪廓往外擴的取樣方向數（均勻分布在圓上）：越多越圓，每多一個方向每幀多一次 drawImage */
 export const UNIT_OUTLINE_SAMPLES = 8;
@@ -373,16 +374,6 @@ export const TACTICAL_DRAW = {
     DESTINATION_FILL_ALPHA: 0.3,
     /** 目的地輪廓不透明度（比例） */
     DESTINATION_LINE_ALPHA: 0.8,
-    /** 玩家單位腳下光圈半徑（px，畫的時候再套 DESTINATION_SQUASH 壓扁） */
-    PLAYER_RING_RADIUS: 40,
-    /** 玩家單位腳下光圈線寬（px） */
-    PLAYER_RING_WIDTH: 4,
-    /** 玩家單位腳下光圈的底色不透明度（比例）：圈內淡淡填滿，在花的地形上也看得出一塊 */
-    PLAYER_RING_FILL_ALPHA: 0.22,
-    /** 玩家單位腳下光圈不透明度的底與脈動幅度（比例）、脈動速度（弧度／秒） */
-    PLAYER_RING_ALPHA_BASE: 0.75,
-    PLAYER_RING_ALPHA_PULSE: 0.25,
-    PLAYER_RING_PULSE_SPEED: 4,
     /** 玩家單位頭上箭頭：在血條錨點上方多高（px）、開戰前（場上只有核心、還沒有身體）離地多高（px）、半寬與高（px）、上下浮動幅度（px）與速度（弧度／秒） */
     PLAYER_ARROW_LIFT: 30,
     PLAYER_ARROW_CORE_LIFT: 78,
@@ -392,11 +383,12 @@ export const TACTICAL_DRAW = {
     PLAYER_ARROW_BOB_SPEED: 5,
     /** 玩家單位頭上箭頭描邊線寬（px） */
     PLAYER_ARROW_OUTLINE_WIDTH: 2,
-    /** PLAY 瞄準中，可選目標腳下的圈（PLAY P5）：半寬（px，畫時套 DESTINATION_SQUASH）、線寬（px）、不透明度的底與脈動幅度（比例）；脈動速度沿用 PLAYER_RING_PULSE_SPEED */
+    /** PLAY 瞄準中，可選目標腳下的圈（PLAY P5）：半寬（px，畫時套 DESTINATION_SQUASH）、線寬（px）、不透明度的底與脈動幅度（比例）、脈動速度（弧度／秒） */
     AIM_RING_RADIUS: 34,
     AIM_RING_WIDTH: 3,
     AIM_RING_ALPHA_BASE: 0.7,
     AIM_RING_ALPHA_PULSE: 0.3,
+    AIM_RING_PULSE_SPEED: 4,
     /** 游標下、點下去會打到的那一個目標圈線寬（px；比 AIM_RING_WIDTH 粗，不脈動） */
     AIM_RING_FOCUS_WIDTH: 6,
     /** 既有目標連線離地高度（px） */
