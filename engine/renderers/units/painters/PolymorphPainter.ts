@@ -11,7 +11,8 @@
 // ║  端畫原本的單位。                                            ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { Agent } from "../../../core/Agent";
+import type { Agent } from "../../../core/Agent";
+import { UnitOutlinePass } from '../UnitOutlinePass';
 import { UNIT_SCALE, UNIT_SPRITE } from "../../../../constants";
 import { SHEEP_BODY } from "../../../../data/units/appearance/ccBody";
 import { selectSpriteDirection } from "../../../../data/units/appearance/selectSpriteFrame";
@@ -49,6 +50,7 @@ export const PolymorphPainter = {
                 f, 1, poisonRect, dx, entry.colorByTeam[0]))) {
                 ctx.drawImage(entry.colorByTeam[0], f.x, f.y, f.w, f.h, dx, dy, dw, dh);
             }
+            UnitOutlinePass.capture(ctx, agent, entry.silhouette, f.x, f.y, f.w, f.h, dx, dy, dw, dh);
             if (agent.view.hitFlashTimer > 0) {
                 ctx.globalAlpha *= Math.min(1, agent.view.hitFlashTimer / UNIT_SPRITE.hitFlashDuration);
                 ctx.drawImage(entry.silhouette, f.x, f.y, f.w, f.h, dx, dy, dw, dh);

@@ -115,6 +115,11 @@ export const UI_SCALE_TOKENS = {
     },
     status: { row: '48px', rowMobile: '56px', icon: '24px', iconMobile: '32px', time: '56px', timeFont: '14px', inset: '8px', sheetBottom: '136px', progress: '2px', action: '44px' },
     scrollbar: '8px',
+    /**
+     * PLAY 戰鬥 HUD：技能鈕邊長（觸控版改讀 slotTouch，index.css 的 coarse 媒體查詢；不小於 44 的觸控下限）、
+     * 血魔條欄寬、鈕與鈕的間距、外框內距。手機橫向 HUD 高＝slotTouch＋2×pad，要留在可視高度的 22% 內（e2e PLAY_HUD_MAX_HEIGHT_SHARE）。
+     */
+    play: { slot: '56px', slotTouch: '48px', meter: '112px', gap: '8px', pad: '8px' },
 } as const;
 
 export const UI_TOKENS = {

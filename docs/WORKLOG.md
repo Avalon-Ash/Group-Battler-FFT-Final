@@ -969,3 +969,16 @@
 - 提案：`docs/plans/oncast-motion-decoupling.md`（只寫文件）。工具佈陣開案書補 P0 查證 12 條（explorer 子代理讀碼）：放置順序會影響抽技能 → 觸發 §2.3 停下條件，等使用者決定。
 - 其他：`play-mode.md` 加 2026-11-24 註記（P5 規則已改）；記憶加「先用現成管線資源」。
 - **回退**：游標格修正一個 commit；workflow 一個 commit（未 push）；文件 `git revert`。
+
+### DC. 2026-11-24 PLAY 介面手機版清查、主畫面入口交換鈕、主角輪廓光（主代理 Opus，使用者：排長鏈做完、入口改成小交換符號）
+- 清查（iPhone 14 Pro Safari 可視區 393×659、852×361，觸控）：直向選主角職業列右溢 19 px；橫向選主角面板 418 px 高、開戰鈕在畫面外；直向技能名被截成一個字、HUD 150 px；橫向 HUD 佔高度 34%；主畫面標題卡橫向頂出上緣 36 px。原因：技能鈕用 `className={cn(...)}` 覆寫 Button 的高度、對齊（UI 定義禁止，`ui-audit-static` 只認兩種 className 寫法所以沒抓到）；HUD 用 Tailwind `sm:`（640）、其他畫面用 `useCompactViewport`（900）兩套斷點；只看寬度不看高度；手機底部面板用了真模糊。舊 e2e 的手機輪是 390×844、沒觸控、只查左右。
+- 驗收先改紅：`ui-audit-static` 補認 `cn(...)` 與 `sm:` 前綴（修前抓到 PlayHUD 1 處）；PLAY e2e 改成桌機＋iPhone 直／橫（觸控），檢查四邊出界、文字截斷、HUD 高度 ≤ 22%、技能圖示、觸控取消瞄準、結算畫面版面；`E2E_PLAY_VIEWS` 可只跑某個版面。
+- PLAY HUD：單列；技能鈕只放技能圖示（沿用檢查器的 `SkillIcon`，投影加 `visual`、`color`）＋快捷鍵數字＋對象色帶，名稱在 title 與瞄準提示；尺寸讀新 token `--ui-play-*`（觸控 48 px），排法在 `index.css` 的 `.play-hud`；手機純色外殼。觀戰倍率改 Segmented；PlayHUD 列進 `CONTROL_BAR_FILES`。瞄準提示移到上方中間，顯示技能名，觸控只寫「點選目標」，多一顆取消鈕。結果：直向 338×94、橫向 458×66（佔 18%）。
+- 選主角：窄畫面與手機橫向職業只放文字；手機橫向改兩欄（面板 242 px 高）。文字表移到 `data/ui/labels/play.ts`（PLAY，延遲載入）與 `showcase.ts`（主畫面入口，首屏）。
+- 主畫面入口：兩顆大鈕改成一顆入口鈕＋交換鈕（lucide `ArrowLeftRight`），在 START SIMULATION／PLAY 之間切換，預設模擬（9 支工具腳本都點 START SIMULATION）。手機橫向標題卡和入口並排貼底。換入口時不重掛按鈕：重掛會重播上浮動畫，Playwright 點擊時把 `overflow:hidden` 的根捲動 16 px（e2e 抓到）。
+- PLAY 中不畫導播攝影機框（DIRECTOR_CAM_FEED、TRK_ID）。
+- 主角輪廓光（`engine/renderers/units/UnitOutlinePass.ts`）：精靈／變羊本體畫出來那一刻記下剪影切片與畫布變換，tactical overlay 之後、血條之前在最上層補金色描邊（實線 2 px＋光暈 4 px，CSS px，`UNIT_OUTLINE`）；剪影圖集和受擊閃白共用一次查詢，不用 shadowBlur。站在障礙物、別的單位後面也看得到輪廓。RenderSpec「玩家單位標示」同步。
+- 進入點預算：main 256.7 kB，改完 257.57 kB 超標；拆出 showcase 文字表、精簡輪廓程式（外框改用中心＋半寬、拿掉 beginFrame、flush 併進 tactical-overlay 計數範圍）後 257.5 kB 剛好過，**幾乎沒有餘裕**。
+- 驗證：lint、`npm test` 175 檔 1634 則、build（預算過）、`audit:ui` 0 違規、`E2E_ONLY=play` 三個版面全過、runtime-smoke（battleTime 0.52→4.57）、`perf:guard`（保真 6 張過；第一次 VOID／FOREST 超標是剛 build 完的負載，重跑全部 16.7 ms 過）、完整 `e2e:ui` 310 項全過（含樣式快照）、knip。截圖探針 `tools/ui-e2e/out/play-iphone-probe.mjs`、`home-probe.mjs`、`outline-shots.mjs`（不進版控）。
+- 沒驗的：iPhone 實機（Safari 的合成行為、手感、輪廓粗細）。好幾招共用同一個 `visual`，圖示會一模一樣（例：遠程三招都是箭），只靠快捷鍵與色帶分。
+- **回退**：一個 commit，`git revert`。

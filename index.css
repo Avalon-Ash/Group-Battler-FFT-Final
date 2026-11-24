@@ -462,6 +462,38 @@
   border-bottom: 6px solid transparent;
   border-left: 9px solid rgb(var(--hero-tint))
 }
+/* 主畫面入口：一顆入口鈕＋旁邊的交換鈕（模擬／PLAY 之間切換），和入口鈕同高同材質 */
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0
+}
+.hero-swap {
+  pointer-events: auto;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgb(var(--hero-tint) / .65);
+  border-radius: 10px;
+  color: rgb(var(--hero-tint));
+  background: rgba(10,24,38,.88);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22),0 8px 24px rgba(0,0,0,.35);
+  animation: hero-arrive 360ms 180ms cubic-bezier(.2,.8,.2,1) backwards;
+  transition: background-color 140ms,border-color 140ms,transform 140ms
+}
+.hero-swap:hover:not(:disabled) {
+  background-color: rgb(var(--hero-tint) / .2);
+  border-color: rgb(var(--hero-tint));
+  transform: translateY(-2px)
+}
+.hero-swap:active:not(:disabled) {
+  transform: translateY(1px);
+  background-color: rgb(var(--hero-tint) / .3)
+}
+.hero-swap:focus-visible {
+  outline: 2px solid rgb(var(--token-fg-primary));
+  outline-offset: 4px
+}
 .hero-cta:hover:not(:disabled) {
   background-color: rgb(var(--hero-tint) / .2);
   border-color: rgb(var(--hero-tint));
@@ -545,6 +577,18 @@
   .hero-sub {
     letter-spacing: 2px;
     margin-top: 12px
+  }
+  .hero-actions {
+    width: 100%;
+    max-width: 342px
+  }
+  .hero-swap {
+    width: 60px;
+    height: 60px
+  }
+  .hero-actions .hero-cta {
+    flex: 1;
+    min-width: 0
   }
   .hero-cta {
     width: 100%;
@@ -648,6 +692,116 @@
     gap: 28px;
     text-align: center;
   }
+}
+
+/* 手機橫向（高度不到 500）：標題卡和入口並排貼底，不然標題會頂出畫面上緣 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero-card,.hero-card[data-layout] {
+    left: 24px;
+    right: 24px;
+    top: auto;
+    bottom: max(16px,env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    transform: none;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    text-align: left
+  }
+  .hero-title {
+    font-size: 36px;
+    letter-spacing: -1.2px;
+    line-height: 1.12
+  }
+  .hero-wordmark {
+    padding: 0 10px;
+    margin: 0 -10px
+  }
+  .hero-wordmark:before,.hero-wordmark:after {
+    width: 6px;
+    height: 14px;
+    top: 15px
+  }
+  .hero-wordmark:after {
+    top: auto;
+    bottom: 10px
+  }
+  .hero-block:before {
+    inset: -32px -40px
+  }
+  .hero-rule {
+    margin-top: 8px
+  }
+  .hero-sub {
+    margin-top: 8px
+  }
+  .hero-actions {
+    width: auto;
+    max-width: none
+  }
+  .hero-cta,.hero-actions .hero-cta {
+    flex: none;
+    width: 240px;
+    height: 48px;
+    gap: 16px
+  }
+  .hero-swap {
+    width: 48px;
+    height: 48px
+  }
+}
+
+/* PLAY 戰鬥 HUD（components/ui/play/PlayHUD.tsx）：一列＝血魔條、四個技能鈕（只放圖示）、暫停與停下。尺寸都讀 --ui-play-* */
+.play-hud {
+  display: grid;
+  grid-template-columns: var(--ui-play-meter) auto auto;
+  grid-template-areas: "meters slots sys";
+  align-items: center;
+  gap: var(--ui-play-gap);
+  padding: var(--ui-play-pad);
+  max-width: 100%
+}
+.play-hud-meters { grid-area: meters; display: flex; flex-direction: column; gap: var(--ui-play-gap); }
+.play-hud-slots { grid-area: slots; display: flex; gap: var(--ui-play-gap); }
+.play-hud-sys { grid-area: sys; display: flex; flex-direction: column; gap: var(--ui-play-gap); }
+.play-slot { position: relative; overflow: hidden; width: var(--ui-play-slot); height: var(--ui-play-slot); }
+.play-slot-icon { width: calc(100% - 2 * var(--ui-play-pad)); height: calc(100% - 2 * var(--ui-play-pad)); margin: auto; }
+.play-slot-cooldown { position: absolute; inset-inline: 0; bottom: 0; background: rgb(var(--token-surface-base) / .6); }
+.play-slot-mark { position: absolute; inset-inline: 0; top: 0; height: 3px; }
+.play-slot-key { position: absolute; left: 4px; top: 4px; line-height: 1; color: rgb(var(--token-fg-primary)); text-shadow: 0 1px 2px rgb(var(--token-surface-base)); }
+@media (pointer: coarse) {
+  :root { --ui-play-slot: var(--ui-play-slot-touch); }
+  /* 觸控鈕 44 px：直排會比技能鈕高，改橫排 */
+  .play-hud-sys { flex-direction: row; }
+}
+/* 手機直向：血魔條放到上面一整列，下面一列放鈕 */
+@media (max-width: 480px) {
+  .play-hud {
+    grid-template-columns: auto auto;
+    grid-template-areas: "meters meters" "slots sys";
+  }
+}
+
+/* PLAY 選主角（components/ui/play/PlaySetup.tsx）：窄畫面職業只放文字；手機橫向改兩欄，開戰鈕不必捲動 */
+@media (max-width: 480px) {
+  .play-role-icon { display: none; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .play-setup-panel {
+    display: grid;
+    max-width: 760px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "head slots" "roles slots" "actions slots";
+    align-items: center;
+    column-gap: 24px
+  }
+  .play-setup-head { grid-area: head; }
+  .play-setup-roles { grid-area: roles; }
+  .play-setup-slots { grid-area: slots; }
+  .play-setup-actions { grid-area: actions; }
+  .play-role-icon { display: none; }
 }
 
 /* 結算畫面的底：戰鬥已結束，全螢幕模糊不影響操作 */

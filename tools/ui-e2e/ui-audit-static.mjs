@@ -62,7 +62,7 @@ const files = target === 'all'
 
 let violations = 0;
 // 操作列只放圖示按鈕（文字會撐寬面板）；要文字的放選單或視窗
-const CONTROL_BAR_FILES = new Set(['components/ui/PlaybackHUD.tsx', 'components/ui/MapEditorToolbar.tsx']);
+const CONTROL_BAR_FILES = new Set(['components/ui/PlaybackHUD.tsx', 'components/ui/MapEditorToolbar.tsx', 'components/ui/play/PlayHUD.tsx']);
 const CONTROL_BAR_TEXT_BUTTON = { id: 'control-bar-text-button', re: /<Button\b/ };
 const perRule = {};
 for (const file of files) {
@@ -75,9 +75,11 @@ for (const file of files) {
     // 按鈕內建的對齊、高度、字級不能用 className 覆寫：cn 不解衝突，誰贏看 CSS 順序。改用 Button 的變體
     if (!inPrimitives) {
         const text = lines.join('\n');
-        for (const m of text.matchAll(/<(?:Button|IconButton)\b[\s\S]*?className=(?:"([^"]*)"|\{`([^`]*)`\})/g)) {
+        // className 三種寫法都要看："..."、{`...`}、{cn('...', ...)}（cn 裡只取字串字面值）；sm: 這類前綴一樣算覆寫
+        for (const m of text.matchAll(/<(?:Button|IconButton)\b[\s\S]*?className=(?:"([^"]*)"|\{`([^`]*)`\}|\{cn\(([\s\S]*?)\)\})/g)) {
             if (m[0].includes('/>') || m[0].slice(1).includes('<')) continue;
-            const hit = (m[1] ?? m[2]).split(/\s+/).filter((t) => /^(?:justify-|items-|h-|text-ui-)/.test(t));
+            const classes = m[3] !== undefined ? [...m[3].matchAll(/'([^']*)'|"([^"]*)"/g)].map((q) => q[1] ?? q[2]).join(' ') : (m[1] ?? m[2]);
+            const hit = classes.split(/\s+/).filter((t) => /^(?:justify-|items-|h-|text-ui-)/.test(t.replace(/^(?:[a-z0-9-]+:)+/, '')));
             if (hit.length === 0) continue;
             violations++;
             perRule['button-override'] = (perRule['button-override'] ?? 0) + 1;

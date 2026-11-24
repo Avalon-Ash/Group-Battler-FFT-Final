@@ -6,7 +6,9 @@ import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { useWindowStore } from '../../../hooks/useWindowStore';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
-import { Button } from '../primitives';
+import { Button, IconButton } from '../primitives';
+import { Icons } from '../icons';
+import { SHOWCASE_ENTRY, showcaseSwapLabel, type ShowcaseEntryMode } from '../../../data/ui/labels/showcase';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
@@ -35,6 +37,11 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, onPla
     // Settings open as a bottom sheet at compact widths; the title card would sit behind it.
     const isCompactViewport = useCompactViewport();
     
+    // 入口只放一顆鈕，交換鈕在「模擬／PLAY」之間切換（預設模擬：工具腳本都點 START SIMULATION）
+    const [entryMode, setEntryMode] = useState<ShowcaseEntryMode>('SIMULATION');
+    const entry = SHOWCASE_ENTRY[onPlay ? entryMode : 'SIMULATION'];
+    const onEntry = onPlay && entryMode === 'PLAY' ? onPlay : onEnter;
+
     const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight });
 
     useEffect(() => {
@@ -75,16 +82,21 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, onPla
                     </div>
                     <div className="hero-sub">SSOT CORE ONLINE</div>
                 </header>
-                {onPlay && (
-                    <Button data-testid="showcase-play-btn" variant="primary" onClick={onPlay}
-                        title="PLAY" className="hero-cta mat-blur">
-                        PLAY
+                <div className="hero-actions">
+                    <Button data-testid={entry.testId} onClick={onEntry} title={entry.label} className="hero-cta mat-blur">
+                        {entry.label}
                     </Button>
-                )}
-                <Button data-testid="showcase-enter-btn" onClick={onEnter}
-                    title="START SIMULATION" className="hero-cta mat-blur">
-                    START SIMULATION
-                </Button>
+                    {onPlay && (
+                        <IconButton
+                            data-testid="showcase-mode-swap"
+                            label={showcaseSwapLabel(SHOWCASE_ENTRY[entryMode].next)}
+                            onClick={() => setEntryMode(SHOWCASE_ENTRY[entryMode].next)}
+                            className="hero-swap mat-blur"
+                        >
+                            <Icons.Swap className="h-4 w-4" />
+                        </IconButton>
+                    )}
+                </div>
             </div>
         </>
     );

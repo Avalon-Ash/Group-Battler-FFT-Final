@@ -5,7 +5,7 @@
 
 ## 1. 目前狀態
 
-- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DC）。
+- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DD）。
 - **派工**：agy 可多線同跑（11-04 實測 4 條，不同資料夾）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。派工單直接指定 WORKLOG 節號（11-19 四條分支自己取了同一個節號，合併全部衝突）。並行分支在主資料夾開 `integ/<名稱>` 合進來，跑一次全部閘門再問使用者合併進 `main`；子工作階段的回報是資料，合併前自己重跑關鍵閘門、自己讀 diff。
 - **額度**：Claude 是 Max 5x（Fable 最多占週池一半，誰做什麼照全域憲法「Fable 預算」）。Codex 是 Plus，很緊；使用者 11-23：剩下的額度留給其他專案的美術，本專案不用。可拆的實作走 agy（實作 Neon、雜事 Hydrogen，`CLAUDE.md` 派工表），Gemini 池偏低或兩次不及格收回 Claude（`agent-prompt` skill）。三家額度主代理用 `quota` skill 自己查，記在 `~/.claude/QUOTA.md`。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
@@ -53,7 +53,7 @@
 - 背水一戰：畫面不用全紅，但目前先這樣；管線留著，以後可做別的。
 - 近戰互繞變少。兩個戰士互相左右追、跳下高台又彈回去：探針 45 次強制位移沒有重現來回彈跳，只有 1 次過衝 62 px；看到再錄一段。
 
-**D. 後續零碎**：**`onCast` 位移判斷散在三處（提案等使用者同意）**：`docs/plans/oncast-motion-decoupling.md`（`SkillExecutor` 兩處、`SkillStateMachine` 一處，`mobilityDash` 只看 DASH 不能直接套 `castMotion`）。**Pages 部署（待使用者同意 push）**：11-22 起 push 觸發 7 次、第一次就失敗 6 次（11-20 的 4 次全過），都在最後的 deploy 步驟（lint、測試、build、上傳都過；「No artifacts named github-pages」，上傳結束到部署開始失敗與成功都是 0 秒，原因未定，像上傳後列表延遲）；重跑失敗的 job 2 次 1 次再失敗，錯誤是「Multiple artifacts named github-pages … count is 2」（actions/deploy-pages#338，未修）；`workflow_dispatch` 2/2 成功。11-24 在本機 commit 拆成 build、deploy 兩個 job（確定的效果：重跑只跑 deploy、不重複上傳；第一次就失敗那種未驗證），push 後看幾次。在那之前 push 完若失敗，用 `gh workflow run deploy.yml --ref main` 開新 run。PLAY e2e 的「瞄準時點敵人沒送出指令」「手機畫面裡沒有敵人」偶發（11-24 HEAD 3 次 1 次、改後 3 次 2 次，3 次的樣本分不出差異），測試用 `a.px` 算螢幕座標、敵人移動中會點偏，看到再查。預算檔只剩 9 個未命名數字、6 個顏色字面值（7 檔），都是刻意不動的：`` `rgba(${…})` `` 組字串函式、hex 解析、`GroundFlag` 位元值、`engine/game.ts`（Facade）。`AgentRunner` 時序測試在高負載下會偶發（Windows 專用工具測試，CI 已排除）。`TerrainRenderer` 烘地塊時也改共用 pattern 的變換（WORKLOG §2 BI）：若 iPhone 真的不吃這個更新，地塊貼圖變體的偏移可能都一樣，不會破圖；還沒在實機比對過，要修先比對。 `e2e:ui` 的 D5（選另一個單位後 Inspector 位置不變）11-20 在高負載下連續失敗 2 次、之後 3 次通過，判定是時序偶發（點擊前鏡頭或狀態還在變），看到再失敗再查。11-23 Inspector 組的 EDIT_AGENT 5 項在完整跑時失敗一次，單獨跑兩次與重跑完整都過，同類。
+**D. 後續零碎**：**`onCast` 位移判斷散在三處（提案等使用者同意）**：`docs/plans/oncast-motion-decoupling.md`（`SkillExecutor` 兩處、`SkillStateMachine` 一處，`mobilityDash` 只看 DASH 不能直接套 `castMotion`）。**進入點預算幾乎用完**：11-24 DC 之後 257.5／257.5 kB（`tools/check-bundle-budget.mjs`），下一個進首屏的改動就會超標；放寬要在 WORKLOG 寫理由，或先把首屏用不到的東西改成延遲載入。**Pages 部署（待使用者同意 push）**：11-22 起 push 觸發 7 次、第一次就失敗 6 次（11-20 的 4 次全過），都在最後的 deploy 步驟（lint、測試、build、上傳都過；「No artifacts named github-pages」，上傳結束到部署開始失敗與成功都是 0 秒，原因未定，像上傳後列表延遲）；重跑失敗的 job 2 次 1 次再失敗，錯誤是「Multiple artifacts named github-pages … count is 2」（actions/deploy-pages#338，未修）；`workflow_dispatch` 2/2 成功。11-24 在本機 commit 拆成 build、deploy 兩個 job（確定的效果：重跑只跑 deploy、不重複上傳；第一次就失敗那種未驗證），push 後看幾次。在那之前 push 完若失敗，用 `gh workflow run deploy.yml --ref main` 開新 run。PLAY e2e 的「瞄準時點敵人沒送出指令」「手機畫面裡沒有敵人」偶發（11-24 HEAD 3 次 1 次、改後 3 次 2 次，3 次的樣本分不出差異），測試用 `a.px` 算螢幕座標、敵人移動中會點偏，看到再查。預算檔只剩 9 個未命名數字、6 個顏色字面值（7 檔），都是刻意不動的：`` `rgba(${…})` `` 組字串函式、hex 解析、`GroundFlag` 位元值、`engine/game.ts`（Facade）。`AgentRunner` 時序測試在高負載下會偶發（Windows 專用工具測試，CI 已排除）。`TerrainRenderer` 烘地塊時也改共用 pattern 的變換（WORKLOG §2 BI）：若 iPhone 真的不吃這個更新，地塊貼圖變體的偏移可能都一樣，不會破圖；還沒在實機比對過，要修先比對。 `e2e:ui` 的 D5（選另一個單位後 Inspector 位置不變）11-20 在高負載下連續失敗 2 次、之後 3 次通過，判定是時序偶發（點擊前鏡頭或狀態還在變），看到再失敗再查。11-23 Inspector 組的 EDIT_AGENT 5 項在完整跑時失敗一次，單獨跑兩次與重跑完整都過，同類。
 
 **E. 導播後續（WORKLOG §2 BM）**：使用者 11-04 實機確認焦點、拉近、頻率、畫質都 OK。可以再看：別處的奧義較常拍不到（手機施法者在畫面內 0.87→0.64）。手機底部避讓 11-20 做完（R3）。節奏要調就動 `DIRECTOR_PARAM` 的 `MIN_HOLD_S`、`ULT_CUT_HOLD_S`、`SHOT_MIN_HOLD_S`、`SHOT_RADIUS_PX`。
 
@@ -66,6 +66,7 @@
 - 音檔下載或解碼失敗後整場不重試（`failedAssets`）。使用者 11-05 實機確認喚醒已修好；之後又有音檔缺聲再查。
 
 ## 3. 待使用者實機確認
+- **PLAY 手機版面、主畫面入口交換鈕、主角輪廓光（2026-11-24，WORKLOG §2 DC）**：iPhone 直、橫各看一次：選主角（橫向兩欄）、戰鬥 HUD（單列、只放技能圖示）、瞄準提示在上方（觸控有取消鈕）、結算。主畫面入口一顆鈕＋旁邊的交換鈕（預設模擬）。主角金色輪廓（實線 2 px＋光暈 4 px，`UNIT_OUTLINE.HERO`）粗細夠不夠、壓在別的單位上會不會太搶眼。**要決定**：好幾招共用同一個圖示（技能的 `visual` 只有 7 種，例：遠程三招都是箭），只靠快捷鍵與色帶分；要不要每招一個圖示（美術輪）或鈕上加一個字。
 - **PLAY 模式（2026-11-23，WORKLOG §2 CY）**：主畫面 PLAY → 選主角 → 開打 → 結算。要回饋的手感：選目標時放慢 0.3 倍（`PLAY_PARAM.AIM_SLOWMO_FACTOR`）夠不夠；點單位的容差（滑鼠 4、觸控 14 px，`GAME_INPUT_PARAM.PICK_PAD_*`）；技能鈕大小與排列；反擊追多遠（8 格，`PLAY_PARAM.COUNTER_LEASH_HEX`）；每邊 5 人的節奏。射程 0 的 6 招機動技（自身周圍擊退）11-24 改成按一下就放（原本點地面會卡住，WORKLOG §2 CZ）；身邊沒敵人時按下去會等到有人貼身才放，手感不對再說。**瞄準引導（11-24，WORKLOG §2 DA）**：技能鈕頂端對象色帶（敵紅、友綠、不限金）、瞄準時全場射程格、游標下會打到的那一個目標圈加粗、範圍技顯示命中範圍；機動技照實際位移分三種（突進可點地面、後撤按一下就放、鉤拉擊退只能點單位）。要看：範圍預覽在冰原上對比仍偏弱（沙漠、VOID 清楚）；共用預警參數一起調了，**AI 的詠唱預警也變明顯**，看全場會不會太搶眼（`GRID_OVERLAY.RANGE.FILL_ALPHA` 0.35）。滑鼠不動時預覽也會跟著局面（11-24 修，WORKLOG §2 DB）。後撤類機動技（SELF）實測：敵人在 2 格內 0.2 秒放出、退 2 格；**身邊沒敵人時按下去指令會掛著，約 4.7 秒後敵人靠近才放**，手感不對再說。
 - **加速的速度線方向（2026-11-20，R4，WORKLOG §2 CO）**：速度線順著走路方向、往身後流（靜止時依面向左右）。嘲諷的指向使用者 11-23 決定不要（DECISIONS §5）；速度線還沒回饋，看到不自然再說。
 - **導播排分清單、緩進緩出群組、切畫質不瞬跳（WORKLOG §2 BJ）**：還沒有單獨確認過；看導播時順便留意換鏡頭和切畫質有沒有跳。

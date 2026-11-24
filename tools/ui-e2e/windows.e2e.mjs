@@ -1705,10 +1705,46 @@ const runAudioSettingsSuite = async () => {
 };
 
 /** PLAY 模式（docs/plans/play-mode.md P4～P6）：主畫面 PLAY → 選主角 → HUD → 瞄準點敵人 → 施放指令 → 停下 → 暫停 → 結算 → 再來一場 → 回主畫面。桌機與手機各一次。 */
+/** iPhone 14 Pro 在 Safari 分頁裡實際看得到的範圍（扣掉網址列與工具列）；觸控、DPR 2 */
+const PLAY_PHONE = { deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+const PLAY_VIEWS = [
+    ['desktop', { viewport: { width: 1280, height: 800 } }],
+    ['iphone-portrait', { viewport: { width: 393, height: 659 }, ...PLAY_PHONE }],
+    ['iphone-landscape', { viewport: { width: 852, height: 361 }, ...PLAY_PHONE }],
+];
+/** 戰鬥 HUD 最多佔可視高度的比例（手機橫向 361 px → 79 px） */
+const PLAY_HUD_MAX_HEIGHT_SHARE = 0.22;
+
+/**
+ * PLAY 畫面的版面檢查：所有 play-* 元素（含按鈕、選單）四邊都在可視區內、沒有橫向捲動、文字沒有被截斷（scrollWidth > clientWidth）。
+ * 回傳違規清單，空陣列才算過。
+ */
+const playLayoutIssues = (page, root) => page.evaluate((rootSel) => {
+    const vw = innerWidth, vh = innerHeight, issues = [];
+    if (document.documentElement.scrollWidth > vw + 1) issues.push(`doc scrollWidth ${document.documentElement.scrollWidth} > ${vw}`);
+    const rootEl = document.querySelector(rootSel);
+    if (!rootEl) return [`missing ${rootSel}`];
+    if (rootEl.scrollWidth > rootEl.clientWidth + 1) issues.push(`${rootSel} scrollWidth ${rootEl.scrollWidth} > ${rootEl.clientWidth}`);
+    for (const el of [rootEl, ...rootEl.querySelectorAll('[data-testid], button, [role="radio"], [role="combobox"]')]) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        const name = el.getAttribute('data-testid') ?? `${el.tagName}:${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 12)}`;
+        if (r.left < -0.5 || r.top < -0.5 || r.right > vw + 0.5 || r.bottom > vh + 0.5) issues.push(`${name} out of view [${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.right)},${Math.round(r.bottom)}]`);
+    }
+    for (const el of rootEl.querySelectorAll('button *, button')) {
+        if (el.children.length === 0 && el.textContent.trim() && el.scrollWidth > el.clientWidth + 1) issues.push(`truncated "${el.textContent.trim().slice(0, 16)}"`);
+    }
+    return issues;
+}, root);
+
 const runPlaySuite = async () => {
-    for (const [tag, viewport] of [['desktop', { width: 1280, height: 800 }], ['phone', { width: 390, height: 844 }]]) {
+    // E2E_PLAY_VIEWS=iphone-landscape,desktop：只跑指定的版面（除錯用）
+    const only = process.env.E2E_PLAY_VIEWS ? process.env.E2E_PLAY_VIEWS.split(',') : null;
+    for (const [tag, opts] of PLAY_VIEWS.filter(([t]) => !only || only.includes(t))) {
         console.log(`\n── PLAY mode (${tag})`);
-        const ctx = await browser.newContext({ viewport });
+        const viewport = opts.viewport;
+        const touch = !!opts.hasTouch;
+        const ctx = await browser.newContext(opts);
         const page = await ctx.newPage();
         page.setDefaultTimeout(15000);
         page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message.slice(0, 300)));
@@ -1716,9 +1752,25 @@ const runPlaySuite = async () => {
             if (m.type() === 'error' && !/favicon|404/.test(m.text())) consoleErrors.push('console.error: ' + m.text().slice(0, 200));
         });
         await page.goto(baseUrl);
+        // 主畫面只有一顆入口鈕，旁邊的交換鈕切換「模擬／PLAY」；預設模擬（工具腳本都點 START SIMULATION）
+        await page.waitForSelector('[data-testid="showcase-enter-btn"]');
+        await page.waitForTimeout(600);
+        const entry = await page.evaluate(() => ({
+            play: !!document.querySelector('[data-testid="showcase-play-btn"]'),
+            swap: !!document.querySelector('[data-testid="showcase-mode-swap"]'),
+        }));
+        ok(`PLAY ${tag}: the showcase shows one entry button plus a mode swap`, !entry.play && entry.swap, JSON.stringify(entry));
+        const cardIssues = await playLayoutIssues(page, '[data-testid="showcase-card"]');
+        ok(`PLAY ${tag}: the showcase title card and entry fit the viewport`, cardIssues.length === 0, cardIssues.slice(0, 4).join(' | '));
+        await page.click('[data-testid="showcase-mode-swap"]');
         await page.waitForSelector('[data-testid="showcase-play-btn"]');
+        ok(`PLAY ${tag}: swapping replaces the entry button`, await page.locator('[data-testid="showcase-enter-btn"]').count() === 0);
         await page.click('[data-testid="showcase-play-btn"]');
         await page.waitForSelector('[data-testid="play-setup"]');
+        await page.waitForTimeout(400);
+        const setupIssues = await playLayoutIssues(page, '[data-testid="play-setup"]');
+        if (setupIssues.length) await page.screenshot({ path: join(OUT, `play-setup-${tag}.png`) });
+        ok(`PLAY ${tag}: hero setup fits the viewport without scrolling (start button visible)`, setupIssues.length === 0, setupIssues.slice(0, 4).join(' | '));
         await page.click('[data-testid="play-role-RANGER"]');
         await page.click('[data-testid="play-start-btn"]');
         await page.waitForSelector('[data-testid="play-hud"]');
@@ -1728,13 +1780,28 @@ const runPlaySuite = async () => {
             return { role: hero?.role, controller: hero?.controller, stance: hero?.stance, hud: document.querySelector('[data-hud]')?.getAttribute('data-hud') };
         });
         ok(`PLAY ${tag}: the chosen hero is player-controlled and countering; tool bars hidden`, start.role === 'RANGER' && start.controller === 'PLAYER' && start.stance === 'COUNTER' && start.hud === 'off', JSON.stringify(start));
+        await page.waitForTimeout(400);
         const hudBox = await page.locator('[data-testid="play-hud"]').boundingBox();
-        ok(`PLAY ${tag}: HUD fits inside the viewport`, !!hudBox && hudBox.x >= 0 && hudBox.x + hudBox.width <= viewport.width + 1, JSON.stringify(hudBox));
+        const hudIssues = await playLayoutIssues(page, '[data-testid="play-hud"]');
+        ok(`PLAY ${tag}: HUD fits inside the viewport, no clipped skill labels`, !!hudBox && hudIssues.length === 0, hudIssues.slice(0, 4).join(' | '));
+        ok(`PLAY ${tag}: HUD takes at most ${PLAY_HUD_MAX_HEIGHT_SHARE * 100}% of the height`, !!hudBox && hudBox.height <= viewport.height * PLAY_HUD_MAX_HEIGHT_SHARE, JSON.stringify(hudBox));
+        const skillIcons = await page.locator('[data-testid^="play-skill-icon-"]').count();
+        ok(`PLAY ${tag}: skill buttons show the skill icons`, skillIcons === 4, String(skillIcons));
 
         await page.click('[data-testid="play-skill-2"]');
         const aim = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
         ok(`PLAY ${tag}: pressing a skill starts aiming`, aim?.slot === 2 && await page.locator('[data-testid="play-aim-hint"]').waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false), JSON.stringify(aim));
-        const foe = await page.evaluate(() => {
+        const hint = await page.locator('[data-testid="play-aim-hint"]').innerText();
+        ok(`PLAY ${tag}: the aim hint names the skill and only mentions keys on desktop`, hint.length > 0 && /Esc/.test(hint) === !touch, hint);
+        const aimIssues = await playLayoutIssues(page, '[data-testid="play-hud"]');
+        ok(`PLAY ${tag}: aiming layout fits the viewport`, aimIssues.length === 0, aimIssues.slice(0, 4).join(' | '));
+        await page.click('[data-testid="play-aim-cancel"]');
+        await page.waitForTimeout(150);
+        const cancelled = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+        ok(`PLAY ${tag}: the aim cancel button ends aiming`, cancelled === null, JSON.stringify(cancelled));
+        await page.click('[data-testid="play-skill-2"]');
+        const hudTop = hudBox ? hudBox.y : viewport.height;
+        const foe = await page.evaluate((bottom) => {
             const e = window.__TACTICAL_ENGINE__;
             const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
             const canvas = document.querySelector('canvas');
@@ -1743,9 +1810,9 @@ const runPlaySuite = async () => {
             const inView = e.agents.filter((a) => a.side !== hero.side && a.hp > 0).map((a) => {
                 const h = e.map?.getTerrainHeight ? e.map.getTerrainHeight(a.q, a.r) : 0;
                 return { id: a.id, x: rect.left + (a.px - cam.x) * cam.zoom + rect.width / 2, y: rect.top + (a.py - h - cam.y) * cam.zoom + rect.height / 2 };
-            }).filter((p) => p.x > 20 && p.x < rect.width - 20 && p.y > 80 && p.y < rect.height - 220);
+            }).filter((p) => p.x > 20 && p.x < rect.width - 20 && p.y > 80 && p.y < bottom - 20);
             return inView[0] ?? null;
-        });
+        }, hudTop);
         if (foe) {
             await page.mouse.click(foe.x, foe.y);
             await page.waitForTimeout(300);
@@ -1760,21 +1827,24 @@ const runPlaySuite = async () => {
         } else {
             ok(`PLAY ${tag}: an enemy is on screen to aim at`, false, 'no enemy in view');
         }
-        await page.keyboard.press('s');
+        if (touch) await page.click('[data-testid="play-stop-btn"]'); else await page.keyboard.press('s');
         await page.waitForTimeout(200);
         const lastCmd = await page.evaluate(() => window.__TACTICAL_ENGINE__.commands.log.slice(-1)[0]?.cmd?.type);
-        ok(`PLAY ${tag}: S sends a stop order`, lastCmd === 'ORDER_STOP', String(lastCmd));
-        await page.keyboard.press(' ');
+        ok(`PLAY ${tag}: stop (S / button) sends a stop order`, lastCmd === 'ORDER_STOP', String(lastCmd));
+        if (touch) await page.click('[data-testid="play-pause-btn"]'); else await page.keyboard.press(' ');
         await page.waitForTimeout(200);
         const paused = await page.evaluate(() => !window.__TACTICAL_ENGINE__.isRunning);
-        await page.keyboard.press(' ');
+        if (touch) await page.click('[data-testid="play-pause-btn"]'); else await page.keyboard.press(' ');
         await page.waitForTimeout(200);
         const resumed = await page.evaluate(() => window.__TACTICAL_ENGINE__.isRunning);
-        ok(`PLAY ${tag}: space pauses and resumes`, paused && resumed, JSON.stringify({ paused, resumed }));
+        ok(`PLAY ${tag}: pause (space / button) pauses and resumes`, paused && resumed, JSON.stringify({ paused, resumed }));
 
         await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
         await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
         const seed = await page.evaluate(() => window.__TACTICAL_ENGINE__.commands.matchStart?.seed);
+        await page.waitForTimeout(400);
+        const resultIssues = await playLayoutIssues(page, '[data-testid="play-result"]');
+        ok(`PLAY ${tag}: the result screen fits the viewport`, resultIssues.length === 0, resultIssues.slice(0, 4).join(' | '));
         ok(`PLAY ${tag}: the result screen shows an outcome`, ['WIN', 'LOSE', 'DRAW'].includes(await page.getAttribute('[data-testid="play-result"]', 'data-outcome')));
         await page.click('[data-testid="play-next-btn"]');
         await page.waitForSelector('[data-testid="play-hud"]');
@@ -1783,7 +1853,7 @@ const runPlaySuite = async () => {
         await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
         await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
         await page.click('[data-testid="play-menu-btn"]');
-        await page.waitForSelector('[data-testid="showcase-play-btn"]');
+        await page.waitForSelector('[data-testid="showcase-card"]');
         const back = await page.evaluate(() => ({ isPlay: window.__TACTICAL_ENGINE__.matchFlow.isPlay, isShowcase: window.__TACTICAL_ENGINE__.matchFlow.isShowcase }));
         ok(`PLAY ${tag}: main menu returns to the showcase`, !back.isPlay && back.isShowcase, JSON.stringify(back));
         await ctx.close();

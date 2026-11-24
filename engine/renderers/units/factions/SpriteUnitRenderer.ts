@@ -20,6 +20,7 @@ import { selectSpriteFrame, type SpriteFrameSelection } from '../../../../data/u
 import { variantKey } from '../../../../data/units/factionTint';
 import { poisonMaterialStore } from '../../status/PoisonMaterialStore';
 import { isStatusVisible } from '../../status/StatusActivity';
+import { UnitOutlinePass } from '../UnitOutlinePass';
 
 /** 受擊抖動頻率（弧度／秒） */
 const HIT_SHAKE_FREQ = 80;
@@ -222,16 +223,18 @@ export const SpriteUnitRenderer = {
             ctx.drawImage(atlasImage, sx, sy, sw, sh, dx, dy, dw, dh);
         }
 
+        // 剪影切片：輪廓光（PLAY 主角；UnitOutlinePass 記下這一刻的切片與變換，世界層畫完再補）與受擊閃白共用
+        const silhouetteAtlas = spriteAtlasStore.getSilhouette(manifestKey, mipLevel);
+        if (!silhouetteAtlas) return;
+        UnitOutlinePass.capture(ctx, agent, silhouetteAtlas, sx, sy, sw, sh, dx, dy, dw, dh);
+
         // 受擊閃白疊層（預烘焙剪影直接 blit）
         if (agent.view.hitFlashTimer > 0) {
-            const silhouetteAtlas = spriteAtlasStore.getSilhouette(manifestKey, mipLevel);
-            if (silhouetteAtlas) {
-                const flashAlpha = Math.min(1.0, agent.view.hitFlashTimer / (UNIT_SPRITE.hitFlashDuration || HIT_FLASH_FALLBACK_S));
-                ctx.save();
-                ctx.globalAlpha = flashAlpha * r.flashStrength;
-                ctx.drawImage(silhouetteAtlas, sx, sy, sw, sh, dx, dy, dw, dh);
-                ctx.restore();
-            }
+            const flashAlpha = Math.min(1.0, agent.view.hitFlashTimer / (UNIT_SPRITE.hitFlashDuration || HIT_FLASH_FALLBACK_S));
+            ctx.save();
+            ctx.globalAlpha = flashAlpha * r.flashStrength;
+            ctx.drawImage(silhouetteAtlas, sx, sy, sw, sh, dx, dy, dw, dh);
+            ctx.restore();
         }
     }
 };

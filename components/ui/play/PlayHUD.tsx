@@ -1,17 +1,22 @@
 import React, { useEffect, useRef } from 'react';
 import { TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
 import { SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
+import { PLAY_TEXT } from '../../../data/ui/labels/play';
 import { selectHeroBar, type HeroBarView, type HeroSkillSlotView } from '../../../engine/systems/ui/views/play';
 import { useCommands, useView } from '../../../hooks/useEnginePort';
+import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { VIEW_INSET_KIND } from '../../../hooks/useViewInsets';
-import { Button, IconButton, Meter } from '../primitives';
+import { IconButton, Meter, Segmented } from '../primitives';
 import { Icons } from '../icons';
+import { SkillIcon } from '../../inspector/parts/SkillIcon';
 import { cn } from '../primitives/cn';
 
 /**
  * PLAY 戰鬥 HUD（P5，docs/plans/play-mode.md）：主角的四個技能鈕（快捷鍵 1～4）、停止（S）、暫停（空白鍵）；
  * 主角倒下後改成觀戰（可加速）。按技能：射程 0 的直接放；其他進入瞄準（SET_AIM），在戰場上點目標，
- * Esc 或右鍵取消。「能不能放」「能點誰」都讀引擎的投影（selectHeroBar），這裡不判斷。
+ * Esc、右鍵或瞄準提示上的取消鈕取消。「能不能放」「能點誰」都讀引擎的投影（selectHeroBar），這裡不判斷。
+ * 版面：單列（技能鈕只放圖示，名稱在 title 與瞄準提示）；尺寸讀 --ui-play-* token，排法在 index.css 的 .play-hud。
+ * 手機（useCompactViewport，和工具視窗變底部面板同一個斷點）用純色外殼，不模糊。
  */
 export interface PlayHUDProps {
     onTogglePause: () => void;
@@ -26,10 +31,15 @@ const TEAM_MARK_COLOR: Readonly<Record<HeroSkillSlotView['teams'], string>> = {
     ALLY: TACTICAL_COLORS.TARGET_ALLY,
     ANY: TACTICAL_COLORS.PLAYER_MARK,
 };
+/** 觸控裝置：瞄準提示不提鍵盤 */
+const isCoarsePointer = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+
+const slotTitle = (s: HeroSkillSlotView): string => `${SKILL_TAG_LABEL[s.tag]}：${s.name}（${SLOT_KEYS[s.slot]}）`;
 
 export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
     const bar = useView(selectHeroBar);
     const { send } = useCommands();
+    const isCompact = useCompactViewport();
     const barRef = useRef<HeroBarView | null>(bar);
     barRef.current = bar;
 
@@ -75,91 +85,100 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
     }, [send, onTogglePause]);
 
     if (!bar) return null;
-    const aiming = bar.aimSlot !== null;
+    const aimed = bar.aimSlot !== null ? bar.slots.find((s) => s.slot === bar.aimSlot) ?? null : null;
+    const shell = isCompact ? 'shell shell-inactive' : 'shell shell-hud mat-blur';
 
     return (
-        <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-4"
-            style={{ zIndex: UI_Z.HUD }}
-        >
-            {aiming && (
-                <div data-testid="play-aim-hint" className="shell shell-hud mat-blur rounded-ui-pill px-3 py-1 text-ui-label text-fg-secondary">
-                    選擇目標 · Esc／右鍵取消
-                </div>
-            )}
-            <div
-                data-testid="play-hud"
-                data-view-inset={VIEW_INSET_KIND.BOTTOM_BAR}
-                className="pointer-events-auto shell shell-hud mat-blur rounded-ui-window flex max-w-full flex-wrap items-end justify-center gap-2 p-3 sm:flex-nowrap sm:gap-3"
-            >
-                <div className="flex w-full flex-col gap-2 self-center sm:w-28">
-                    <Meter value={bar.hpFrac} max={1} tone="success" size="sm" aria-label="主角生命" />
-                    <Meter value={bar.mpFrac} max={1} tone="accent" size="sm" aria-label="主角魔力" />
-                </div>
-
-                {bar.alive ? (
-                    <div className="flex gap-2">
-                        {bar.slots.map((s) => {
-                            const unavailable = s.block !== null && s.block !== 'COOLDOWN' && s.block !== 'BUSY';
-                            return (
-                                <Button
-                                    key={s.slot}
-                                    data-testid={`play-skill-${s.slot}`}
-                                    data-block={s.block ?? 'READY'}
-                                    variant={bar.aimSlot === s.slot ? 'primary' : 'secondary'}
-                                    title={`${SKILL_TAG_LABEL[s.tag]}：${s.name}（${SLOT_KEYS[s.slot]}）`}
-                                    onClick={() => pressSlot(s)}
-                                    className={cn('relative h-14 w-16 flex-col justify-end gap-0 overflow-hidden px-1 pb-1 sm:h-16 sm:w-24', unavailable && 'opacity-50')}
-                                >
-                                    {s.cooldownFrac > 0 && (
-                                        <span aria-hidden className="absolute inset-x-0 bottom-0 bg-surface-base/60" style={{ height: `${s.cooldownFrac * 100}%` }} />
-                                    )}
-                                    <span aria-hidden data-testid={`play-skill-mark-${s.slot}`} data-teams={s.teams} className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: TEAM_MARK_COLOR[s.teams] }} />
-                                    <span className="absolute left-1 top-1 font-mono text-ui-label text-fg-muted">{SLOT_KEYS[s.slot]}</span>
-                                    <span className="relative w-full truncate text-center text-ui-label">{s.name}</span>
-                                </Button>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div data-testid="play-spectate" className="flex items-center gap-2 self-center">
-                        <span className="text-ui-label text-fg-muted">SPECTATING</span>
-                        {SPECTATE_SPEEDS.map((v) => (
-                            <Button
-                                key={v}
-                                size="sm"
-                                variant={Math.abs(bar.timeScale - v) < UI_SETTINGS.TIME_SCALE.step / 2 ? 'primary' : 'secondary'}
-                                onClick={() => send({ type: 'SET_TIME_SCALE', timeScale: v })}
-                            >
-                                {`×${v}`}
-                            </Button>
-                        ))}
-                    </div>
-                )}
-
-                <div className="flex flex-col gap-2 self-center">
-                    <IconButton
-                        data-testid="play-pause-btn"
-                        label={bar.isRunning ? '暫停（空白鍵）' : '繼續（空白鍵）'}
-                        size="sm"
-                        variant="ghost"
-                        onClick={onTogglePause}
-                    >
-                        {bar.isRunning ? <Icons.Pause className="h-4 w-4" /> : <Icons.Play className="h-4 w-4" />}
-                    </IconButton>
-                    {bar.alive && (
+        <>
+            {aimed && (
+                <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-4" style={{ zIndex: UI_Z.HUD }}>
+                    <div data-testid="play-aim-hint" className={cn('pointer-events-auto rounded-ui-pill flex items-center gap-2 py-1 pl-3 pr-1 text-ui-label text-fg-secondary', shell)}>
+                        <span className="text-fg-primary">{aimed.name}</span>
+                        <span>{isCoarsePointer() ? PLAY_TEXT.AIM_HINT_TOUCH : `${PLAY_TEXT.AIM_HINT_TOUCH} · ${PLAY_TEXT.AIM_HINT_KEYS}`}</span>
                         <IconButton
-                            data-testid="play-stop-btn"
-                            label="停下（S）"
+                            data-testid="play-aim-cancel"
+                            label={PLAY_TEXT.AIM_CANCEL}
                             size="sm"
                             variant="ghost"
-                            onClick={() => send({ type: 'ORDER_STOP', agentId: bar.heroId })}
+                            onClick={() => send({ type: 'SET_AIM', aim: null })}
                         >
                             <Icons.Close className="h-4 w-4" />
                         </IconButton>
+                    </div>
+                </div>
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-2" style={{ zIndex: UI_Z.HUD }}>
+                <div
+                    data-testid="play-hud"
+                    data-view-inset={VIEW_INSET_KIND.BOTTOM_BAR}
+                    className={cn('play-hud pointer-events-auto rounded-ui-window', shell)}
+                >
+                    <div className="play-hud-meters">
+                        <Meter value={bar.hpFrac} max={1} tone="success" size="sm" aria-label={PLAY_TEXT.HP_ARIA} />
+                        <Meter value={bar.mpFrac} max={1} tone="accent" size="sm" aria-label={PLAY_TEXT.MP_ARIA} />
+                    </div>
+
+                    {bar.alive ? (
+                        <div className="play-hud-slots">
+                            {bar.slots.map((s) => {
+                                const unavailable = s.block !== null && s.block !== 'COOLDOWN' && s.block !== 'BUSY';
+                                return (
+                                    <IconButton
+                                        key={s.slot}
+                                        data-testid={`play-skill-${s.slot}`}
+                                        data-block={s.block ?? 'READY'}
+                                        label={slotTitle(s)}
+                                        size="auto"
+                                        variant={bar.aimSlot === s.slot ? 'primary' : 'secondary'}
+                                        onClick={() => pressSlot(s)}
+                                        className={cn('play-slot', unavailable && 'opacity-50')}
+                                    >
+                                        <SkillIcon skill={s} className="play-slot-icon" data-testid={`play-skill-icon-${s.slot}`} />
+                                        {s.cooldownFrac > 0 && (
+                                            <span aria-hidden className="play-slot-cooldown" style={{ height: `${s.cooldownFrac * 100}%` }} />
+                                        )}
+                                        <span aria-hidden data-testid={`play-skill-mark-${s.slot}`} data-teams={s.teams} className="play-slot-mark" style={{ backgroundColor: TEAM_MARK_COLOR[s.teams] }} />
+                                        <span aria-hidden className="play-slot-key font-mono text-ui-label">{SLOT_KEYS[s.slot]}</span>
+                                    </IconButton>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div data-testid="play-spectate" className="play-hud-slots items-center">
+                            <span className="text-ui-label text-fg-muted">{PLAY_TEXT.SPECTATING}</span>
+                            <Segmented
+                                ariaLabel={PLAY_TEXT.SPECTATE_SPEED_ARIA}
+                                value={String(SPECTATE_SPEEDS.find((v) => Math.abs(bar.timeScale - v) < UI_SETTINGS.TIME_SCALE.step / 2) ?? '')}
+                                onValueChange={(v) => send({ type: 'SET_TIME_SCALE', timeScale: Number(v) })}
+                                options={SPECTATE_SPEEDS.map((v) => ({ value: String(v), label: `×${v}`, testId: `play-speed-${v}` }))}
+                            />
+                        </div>
                     )}
+
+                    <div className="play-hud-sys">
+                        <IconButton
+                            data-testid="play-pause-btn"
+                            label={bar.isRunning ? PLAY_TEXT.PAUSE : PLAY_TEXT.RESUME}
+                            size="sm"
+                            variant="ghost"
+                            onClick={onTogglePause}
+                        >
+                            {bar.isRunning ? <Icons.Pause className="h-4 w-4" /> : <Icons.Play className="h-4 w-4" />}
+                        </IconButton>
+                        {bar.alive && (
+                            <IconButton
+                                data-testid="play-stop-btn"
+                                label={PLAY_TEXT.STOP}
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => send({ type: 'ORDER_STOP', agentId: bar.heroId })}
+                            >
+                                <Icons.Close className="h-4 w-4" />
+                            </IconButton>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };

@@ -3,6 +3,7 @@ import { Role } from '../../../types';
 import type { PlayHero } from '../../../types';
 import { UI_Z } from '../../../constants';
 import { ROLE_LABEL, SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
+import { PLAY_TEXT } from '../../../data/ui/labels/play';
 import { playLoadoutOptions } from '../../../engine/systems/ui/views/play';
 import { useView } from '../../../hooks/useEnginePort';
 import { Button, Combobox, Segmented } from '../primitives';
@@ -47,23 +48,24 @@ export const PlaySetup: React.FC<PlaySetupProps> = ({ isCompact, onStart, onCanc
             className="pointer-events-auto absolute inset-0 flex overflow-y-auto ui-scrim mat-blur"
             style={{ zIndex: UI_Z.OVERLAY }}
         >
-            <div className={cn('shell shell-window rounded-ui-window m-auto flex w-full max-w-lg flex-col', isCompact ? 'p-5 gap-3' : 'p-8 gap-5')}>
-                <header className="space-y-1 text-center">
-                    <span className="ui-heading text-ui-label text-fg-muted block">PLAY</span>
-                    <h2 className="ui-heading text-ui-title text-fg-primary">SELECT HERO</h2>
+            <div className={cn('play-setup-panel shell shell-window rounded-ui-window m-auto flex w-full max-w-lg flex-col', isCompact ? 'p-5 gap-3' : 'p-8 gap-5')}>
+                <header className="play-setup-head space-y-1 text-center">
+                    <span className="ui-heading text-ui-label text-fg-muted block">{PLAY_TEXT.SETUP_KICKER}</span>
+                    <h2 className="ui-heading text-ui-title text-fg-primary">{PLAY_TEXT.SETUP_TITLE}</h2>
                 </header>
 
                 <Segmented
-                    ariaLabel="主角職業"
+                    className="play-setup-roles self-center"
+                    ariaLabel={PLAY_TEXT.ROLE_ARIA}
                     value={role}
                     onValueChange={(v) => { if (v) setRole(v as Role); }}
                     options={ROLES.map((r) => {
                         const Icon = ROLE_ICON[r];
-                        return { value: r, label: ROLE_LABEL[r], icon: <Icon className="h-4 w-4" />, testId: `play-role-${r}` };
+                        return { value: r, label: ROLE_LABEL[r], title: ROLE_LABEL[r], icon: <Icon className="play-role-icon h-4 w-4" />, testId: `play-role-${r}` };
                     })}
                 />
 
-                <div className="flex flex-col gap-2">
+                <div className="play-setup-slots flex flex-col gap-2">
                     {slots.map((s) => (
                         <label key={s.slot} className="flex items-center gap-3">
                             <span className="w-16 shrink-0 text-ui-label text-fg-muted">{SKILL_TAG_LABEL[s.tag]}</span>
@@ -72,7 +74,7 @@ export const PlaySetup: React.FC<PlaySetupProps> = ({ isCompact, onStart, onCanc
                                 ariaLabel={`${SKILL_TAG_LABEL[s.tag]}技能`}
                                 value={chosen[s.slot] ?? RANDOM}
                                 onValueChange={(v) => setSlot(s.slot, v)}
-                                options={[{ value: RANDOM, label: '隨機' }, ...s.skills.map((k) => ({ value: k.id, label: k.name }))]}
+                                options={[{ value: RANDOM, label: PLAY_TEXT.RANDOM }, ...s.skills.map((k) => ({ value: k.id, label: k.name }))]}
                                 size={isCompact ? 'sm' : 'md'}
                                 className="min-w-0 flex-1"
                             />
@@ -80,14 +82,14 @@ export const PlaySetup: React.FC<PlaySetupProps> = ({ isCompact, onStart, onCanc
                     ))}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="play-setup-actions flex gap-3">
                     <Button data-testid="play-cancel-btn" variant="secondary" size={isCompact ? 'sm' : 'md'} onClick={onCancel} className="flex-1">
                         <Icons.Close className="h-4 w-4" />
-                        <span>返回</span>
+                        <span>{PLAY_TEXT.CANCEL}</span>
                     </Button>
                     <Button data-testid="play-start-btn" variant="primary" size={isCompact ? 'sm' : 'md'} onClick={start} className="flex-1">
                         <Icons.Play className="h-4 w-4" />
-                        <span>開戰</span>
+                        <span>{PLAY_TEXT.START}</span>
                     </Button>
                 </div>
             </div>

@@ -40,6 +40,7 @@ import { UltWorldRenderer } from "./ult/UltWorldRenderer";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
 import { poisonMaterialStore } from './status/PoisonMaterialStore';
+import { UnitOutlinePass } from './units/UnitOutlinePass';
 import { statusArtStore } from './status/StatusArtStore';
 import { ccBodyStore } from './units/CcBodyStore';
 import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM, RENDER_PIPELINE_PARAM, BACKGROUND_FX } from "../../constants";
@@ -221,8 +222,10 @@ export class RenderPipeline {
         });
         CtxOpCounter.track('tactical-overlay', () => {
             this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime, this.frames, hoveredHex);
+            // 單位輪廓光（PLAY 主角）：世界層之後、血條之前，壓在擋住主角的單位與障礙物上面（UnitOutlinePass）
+            UnitOutlinePass.flush(ctx, dpr);
         });
-        
+
         // this.frames 已由 drawWorld() 建立（先於此處執行）
         CtxOpCounter.track('hud', () => {
             this.hud.draw(ctx, this.renderer.hud, this.frames, highlight, battleTime, engine.state.isLastStand);
@@ -233,7 +236,8 @@ export class RenderPipeline {
         });
         ctx.restore(); 
 
-        if (engine.directorTargetId) {
+        // 導播攝影機框（DIRECTOR_CAM_FEED、TRK_ID）是展示與手動觀戰的裝飾；PLAY 有自己的 HUD，不畫
+        if (engine.directorTargetId && !engine.matchFlow?.isPlay) {
             CtxOpCounter.track('director-hud', () => {
                 this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
             });

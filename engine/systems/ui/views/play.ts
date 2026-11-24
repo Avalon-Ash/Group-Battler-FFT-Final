@@ -48,6 +48,9 @@ export interface HeroSkillSlotView {
     /** 冷卻剩幾成（0＝好了、1＝剛放） */
     readonly cooldownFrac: number;
     readonly cost: number;
+    /** 技能圖示（SkillIcon 讀這兩個；HUD 技能鈕只放圖示，名稱放提示） */
+    readonly visual: Skill['visual'];
+    readonly color: string;
 }
 
 /** PLAY 戰鬥 HUD 的投影：主角的技能槽、血量魔力、瞄準中的槽、是否在跑。不在 PLAY 是 null。 */
@@ -81,7 +84,7 @@ export function selectHeroBar(engine: GameEngine): HeroBarView | null {
         // 開戰前 skills 還是空的：activationBlock 讀 skills，開戰後才有意義
         const block = engine.battleStarted ? activationBlock(hero, slot) : null;
         const cooldownFrac = skill.cd > 0 ? quantize(Math.min(1, Math.max(0, (hero.curCDs[slot] || 0) / skill.cd))) : 0;
-        slots.push({ slot, name: skill.name, tag: skill.tag, mode: targeting.mode, teams: targeting.teams, block, cooldownFrac, cost: skill.cost });
+        slots.push({ slot, name: skill.name, tag: skill.tag, mode: targeting.mode, teams: targeting.teams, block, cooldownFrac, cost: skill.cost, visual: skill.visual, color: skill.color });
     });
     const aim = engine.state.aim;
     const view: HeroBarView = {

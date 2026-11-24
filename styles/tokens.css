@@ -118,6 +118,11 @@
   --ui-status-progress: 2px;
   --ui-status-action: 44px;
   --ui-scrollbar: 8px;
+  --ui-play-slot: 56px;
+  --ui-play-slot-touch: 48px;
+  --ui-play-meter: 112px;
+  --ui-play-gap: 8px;
+  --ui-play-pad: 8px;
 
   /* Team metadata from constants.ts TEAM_COLORS SSOT */
   --token-team-blue-glow: rgba(59, 130, 246, 0.6);

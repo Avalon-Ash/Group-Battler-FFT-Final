@@ -4,6 +4,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Team } from '../types';
+import { TACTICAL_COLORS } from './terrain';
 
 /**
  * 血條／浮動文字的錨點高度（離腳下地面）＝投影頭頂高度＋下列間距，
@@ -344,6 +345,18 @@ export const UI_ICON_BAKE = {
     DEFAULT_STATUS_RADIUS: 8,
 } as const;
 
+/**
+ * 單位輪廓光（UnitOutlinePass，RenderSpec §4「玩家單位標示」）：哪種單位描什麼顏色、多粗。
+ * 輪廓畫在世界層之後、血條之前，人擠在一起或站在障礙物後面也看得到。粗細是螢幕 CSS px，不隨鏡頭縮放變；
+ * 內圈實線 WIDTH_PX，外圈淡光暈 GLOW_WIDTH_PX（要比 WIDTH_PX 寬才看得到），光暈不透明度 GLOW_ALPHA。
+ * 誰拿哪一種只在 UnitOutlinePass.outlineKindOf 判斷。
+ */
+export const UNIT_OUTLINE = {
+    /** PLAY 主角（controller === PLAYER）：和腳下光圈、頭上箭頭同一個金色（TACTICAL_COLORS.PLAYER_MARK） */
+    HERO: { COLOR: TACTICAL_COLORS.PLAYER_MARK, WIDTH_PX: 2, GLOW_WIDTH_PX: 4, GLOW_ALPHA: 0.45 },
+} as const;
+/** 輪廓往外擴的取樣方向數（均勻分布在圓上）：越多越圓，每多一個方向每幀多一次 drawImage */
+export const UNIT_OUTLINE_SAMPLES = 8;
 /** 程序繪製參數：保留原始數值與運算次序。 */
 export const TACTICAL_DRAW = {
     /** 既有路徑連線離地高度（px） */

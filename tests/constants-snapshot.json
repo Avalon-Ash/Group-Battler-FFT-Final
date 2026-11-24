@@ -1882,6 +1882,15 @@
   "UNIT_OCCLUSION": {
     "MIN_STEP": 20
   },
+  "UNIT_OUTLINE": {
+    "HERO": {
+      "COLOR": "#facc15",
+      "WIDTH_PX": 2,
+      "GLOW_WIDTH_PX": 4,
+      "GLOW_ALPHA": 0.45
+    }
+  },
+  "UNIT_OUTLINE_SAMPLES": 8,
   "UNIT_SCALE": 0.65,
   "UNIT_SHADOW": {
     "WIDTH": 110,
