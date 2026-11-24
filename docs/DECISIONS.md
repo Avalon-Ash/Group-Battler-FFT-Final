@@ -83,7 +83,7 @@
 - 行為樹是獨立視窗，手動開、跟著選取走；取消選取時保留視窗顯示空狀態。
 - UI 狀態歸屬與依賴邊界：版面／選取留 UI store、倍率單源在引擎，匯入邊界經 `hooks/useEnginePort`／`hooks/adapters`／`GameCanvas`，詳見 [0013](adr/0013-ui-pure-projection-and-boundaries.md)。
 - 標題全用英文大寫等寬（JetBrains Mono），不用中文（使用者：中文不好看）；中文內文用系統字型，font stack 要列中文字型，否則 Windows 退回細明體。
-- 操作列（播放列、工具列）純圖示、單列，不放可見文字（使用者 2026-11-05：文字佔位、面板不夠就拉伸，每次改版都回來）。說明放 `aria-label`／`title`，數值讀數可以留，放不下時縮滑桿。由 `ui-audit-static` 的 `CONTROL_BAR_FILES` 與 `windows.e2e` 的 `checkControlBars` 擋住，新增操作列要一起加進去。
+- 操作列（播放列、工具列）純圖示、單列，不放可見文字（使用者 2026-11-05：文字佔位、面板不夠就拉伸，每次改版都回來）。說明放 `aria-label`／`title`，數值讀數可以留，放不下時縮滑桿。由 `ui-audit-static` 的 `CONTROL_BAR_FILES` 與 `windows.e2e` 的 `checkControlBars` 擋住，新增操作列要一起加進去。例外：PLAY 技能鈕每顆下面放兩字縮寫（使用者 2026-11-24：很多招共用同一個圖示，分不出來；規則在 `data/ui/labels/play.ts` 的 `skillShortLabel`，`tests/SkillShortLabel.test.ts` 擋同一個主角身上撞名）。
 - 開場標題直接浮在戰場上，和進入按鈕分開，不放玻璃板（使用者 2026-11-04）。設計由 GPT Astra 出方向與實作（校準座標：角標、刻度、TACTICAL 白＋.OS 強調色）。
 - 遊戲指令於戰鬥中下一個 tick 開頭套用並記錄（2026-11-09，L1），詳見 [0015](adr/0015-game-commands-at-tick-start.md)。
 - 固定步長 1/60 秒與倍率控制（2026-11-09，L3），詳見 [0016](adr/0016-fixed-timestep-and-timescale.md)。

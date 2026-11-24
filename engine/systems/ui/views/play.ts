@@ -37,6 +37,8 @@ export function playLoadoutOptions(db: readonly Skill[], role: Role): readonly P
 /** PLAY 戰鬥 HUD（P5）的一個技能槽 */
 export interface HeroSkillSlotView {
     readonly slot: number;
+    /** 技能 id（技能鈕縮寫 skillShortLabel 的例外表用它查） */
+    readonly skillId: string;
     readonly name: string;
     readonly tag: Skill['tag'];
     /** 選目標方式（castTargeting） */
@@ -47,7 +49,6 @@ export interface HeroSkillSlotView {
     readonly block: ActivationBlock | null;
     /** 冷卻剩幾成（0＝好了、1＝剛放） */
     readonly cooldownFrac: number;
-    readonly cost: number;
     /** 技能圖示（SkillIcon 讀這兩個；HUD 技能鈕只放圖示，名稱放提示） */
     readonly visual: Skill['visual'];
     readonly color: string;
@@ -59,7 +60,6 @@ export interface HeroBarView {
     readonly alive: boolean;
     readonly hpFrac: number;
     readonly mpFrac: number;
-    readonly mp: number;
     readonly slots: readonly HeroSkillSlotView[];
     readonly aimSlot: number | null;
     readonly isRunning: boolean;
@@ -84,7 +84,7 @@ export function selectHeroBar(engine: GameEngine): HeroBarView | null {
         // 開戰前 skills 還是空的：activationBlock 讀 skills，開戰後才有意義
         const block = engine.battleStarted ? activationBlock(hero, slot) : null;
         const cooldownFrac = skill.cd > 0 ? quantize(Math.min(1, Math.max(0, (hero.curCDs[slot] || 0) / skill.cd))) : 0;
-        slots.push({ slot, name: skill.name, tag: skill.tag, mode: targeting.mode, teams: targeting.teams, block, cooldownFrac, cost: skill.cost, visual: skill.visual, color: skill.color });
+        slots.push({ slot, skillId: skill.id, name: skill.name, tag: skill.tag, mode: targeting.mode, teams: targeting.teams, block, cooldownFrac, visual: skill.visual, color: skill.color });
     });
     const aim = engine.state.aim;
     const view: HeroBarView = {
@@ -92,7 +92,6 @@ export function selectHeroBar(engine: GameEngine): HeroBarView | null {
         alive,
         hpFrac: quantize(hero.maxHp > 0 ? Math.max(0, hero.hp) / hero.maxHp : 0),
         mpFrac: quantize(hero.maxMp > 0 ? hero.mp / hero.maxMp : 0),
-        mp: Math.floor(hero.mp),
         slots,
         aimSlot: aim && aim.agentId === hero.id ? aim.slot : null,
         isRunning: engine.isRunning,

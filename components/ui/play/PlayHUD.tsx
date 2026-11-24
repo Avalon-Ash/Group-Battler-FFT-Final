@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
 import { SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
-import { PLAY_TEXT } from '../../../data/ui/labels/play';
+import { PLAY_TEXT, skillShortLabel } from '../../../data/ui/labels/play';
 import { selectHeroBar, type HeroBarView, type HeroSkillSlotView } from '../../../engine/systems/ui/views/play';
 import { useCommands, useView } from '../../../hooks/useEnginePort';
 import { useCompactViewport } from '../../../hooks/useCompactViewport';
@@ -134,6 +134,7 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
                                         className={cn('play-slot', unavailable && 'opacity-50')}
                                     >
                                         <SkillIcon skill={s} className="play-slot-icon" data-testid={`play-skill-icon-${s.slot}`} />
+                                        <span data-testid={`play-skill-label-${s.slot}`} className="play-slot-label text-ui-num">{skillShortLabel({ id: s.skillId, name: s.name })}</span>
                                         {s.cooldownFrac > 0 && (
                                             <span aria-hidden className="play-slot-cooldown" style={{ height: `${s.cooldownFrac * 100}%` }} />
                                         )}

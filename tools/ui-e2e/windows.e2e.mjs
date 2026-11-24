@@ -1787,6 +1787,8 @@ const runPlaySuite = async () => {
         ok(`PLAY ${tag}: HUD takes at most ${PLAY_HUD_MAX_HEIGHT_SHARE * 100}% of the height`, !!hudBox && hudBox.height <= viewport.height * PLAY_HUD_MAX_HEIGHT_SHARE, JSON.stringify(hudBox));
         const skillIcons = await page.locator('[data-testid^="play-skill-icon-"]').count();
         ok(`PLAY ${tag}: skill buttons show the skill icons`, skillIcons === 4, String(skillIcons));
+        const shortLabels = await page.locator(`[data-testid^="play-skill-label-"]`).allInnerTexts();
+        ok(`PLAY ${tag}: skill buttons carry distinct 2-character labels`, shortLabels.length === 4 && new Set(shortLabels).size === 4 && shortLabels.every((t) => [...t.trim()].length === 2), JSON.stringify(shortLabels));
 
         await page.click('[data-testid="play-skill-2"]');
         const aim = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);

@@ -983,3 +983,11 @@
 - 收尾複查（顧問）：屍體也走 `SpriteUnitRenderer.draw`（`UnitDeathPainter`），拿掉 `hp > 0` 會讓倒下的主角留金邊，加回 `outlineKindOf`；為了預算再省兩處（外框只留光暈寬、`resetTransform`），進入點 257.5 kB 過。外框改寫後在 HEAD 重拍輪廓（桌機 DPR 2、手機，含變羊）對得上；`npm test` 1634、runtime-smoke、knip 重跑過。
 - 沒驗的：iPhone 實機（Safari 的合成行為、手感、輪廓粗細）。好幾招共用同一個 `visual`，圖示會一模一樣（例：遠程三招都是箭），只靠快捷鍵與色帶分。
 - **回退**：一個 commit，`git revert`。
+
+### DD. 2026-11-24 PLAY 技能鈕兩字縮寫、技能圖示美術輪代表素材（主代理 Opus，使用者：縮寫和每招一個圖示都要）
+- 縮寫規則（`data/ui/labels/play.ts` 的 `skillShortLabel`，唯一判斷處）：四字名取後兩字（招式本身：斬擊、彈射、閃現），後兩字以「之」開頭改取前兩字（淨化之光→淨化），三字名取前兩字（震盪箭→震盪），8 招例外表（撞名或不成詞）。先比過前兩字規則：同職業不同槽撞名 24 組（法師可能四招都是「奧術」），後兩字 6 組。`tests/SkillShortLabel.test.ts` 4 則：都是兩字、不以「之」開頭、同一個主角可能同時帶到的技能不撞名（不分陣營，比 PLAY 抽法嚴）、是原名的子字串。修前紅（5 組撞名），加例外後綠。
+- HUD：技能鈕圖示 28 px（新 token `--ui-play-slot-icon`）＋下面一行縮寫（`--ui-font-num`）；投影加 `skillId`。DECISIONS「UI」操作列純圖示那條記下這個例外（使用者 11-24）。e2e 加「四顆鈕都有兩字縮寫且不重複」。
+- 進入點預算又超 6 bytes（投影在首屏包）：拿掉投影裡沒人讀的 `cost` 與 `mp`（`mp` 是整數、幾乎每個 tick 變，原本會讓 HUD 多重繪），257.5 kB 過。
+- 驗證：lint、`npm test` 176 檔 1638 則、build（預算過）、`audit:ui` 0、knip、`E2E_ONLY=play` 三個版面過（直向「畫面裡沒有敵人」一次，是 HANDOFF D 的已知偶發，單獨重跑過）。手機截圖看過縮寫（直、橫）。
+- **技能圖示美術輪（art-round，停在代表素材關卡）**：現行圖示依 `visual` 只有 7 種，而且好幾招的技能色接近黑（`mb_u1` 奧術漩渦、`wr_u5` 毀滅重擊），現在的圖示在原尺寸幾乎看不見。沒有生圖工具、Codex 這週不給本專案，代表素材用本機已有的 lucide 線條圖（ISC，`node_modules/lucide-react`，約 2170 個）。對照板 `tools/ui-e2e/out/icon-board.png`（產生：`node tools/ui-e2e/out/icon-board.mjs`，不進版控）：遠程（藍）、法師（藍）、戰士（紅）各四顆，三列＝現行／A 白線色底（底＝技能色壓暗、白線）／B 色線暗底＋光暈，原尺寸貼岩漿戰場、放大 3 倍、灰階。主代理先看：B 和現行一樣，技能色太暗的兩招看不見；A 每種顏色都清楚、灰階也分得出。等使用者選。
+- **回退**：一個 commit，`git revert`。
