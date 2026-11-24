@@ -999,3 +999,9 @@
 - 沒換的：戰場上單位頭頂的詠唱量表（`GaugePainter`，畫布）仍是舊圖示；換它是渲染線，`battle_frozen` 保真基準可能要重錄，留在 HANDOFF。
 - 驗證：lint、`npm test` 177 檔 1642 則、build（兩個預算都過，JSON 有複製到 dist）、`audit:ui` 0、knip、完整 `e2e:ui` 313 項全過（含樣式快照）、手機直橫截圖看過（四顆圖示都不一樣，暗色技能也看得到）。ASSET_LEDGER §6b 記 lucide（ISC）。
 - **回退**：一個 commit，`git revert`；只想退回舊圖示，刪 `public/assets/ui/skill_glyphs.json` 也會自動退回。
+
+### DF. 2026-11-24 推上 main 後 Pages 建置超出進入點預算，地圖編輯工具列改延後載入（主代理 Opus，使用者：推上）
+- DC～DE 四個 commit 快轉進 main 並 push（c9045c54..c53554c2）。Pages 的 build job 失敗：CI 算出進入點 gzip 257,502 bytes，預算 257,500（本機同一份是 257,499，兩邊 zlib 差幾個 bytes）。線上仍是上一版。
+- 門檻不能放寬（CLAUDE.md），所以找首屏用不到的東西搬出進入點：用 source map 看進入點組成，引擎本來就要在首屏跑（展示模式），UI 裡 `MapEditorToolbar`（原始碼 10 kB）只在手動模式（HUD 開著）出現，改成 `React.lazy`（和 PLAY 畫面、工具視窗同一種做法）。進入點 257.5 → 256.6 kB，初始載入 380.6 → 379.8 kB，留出約 0.9 kB 餘裕。
+- 驗證：lint、`npm test` 177 檔 1642 則、build（兩個預算過）、knip、完整 `e2e:ui`：第一次第一頁就逾時（開發伺服器冷啟動），重跑 312 項過、1 項失敗＝PLAY iPhone 直向「畫面裡沒有敵人可瞄準」（HANDOFF D 的偶發），單獨重跑直向又失敗一次。這次在同一個版面連兩次，比之前頻繁，記進 HANDOFF。
+- **回退**：一個 commit，`git revert`。

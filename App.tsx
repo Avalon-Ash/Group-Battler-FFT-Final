@@ -2,7 +2,6 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import GameCanvas from './components/GameCanvas';
 import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
 import { PlaybackHUD } from './components/ui/PlaybackHUD';
-import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
 import { SystemMenu } from './components/ui/SystemMenu';
 import { WindowLayer } from './components/ui/window/WindowLayer';
 import { RegisteredWindows } from './components/ui/window/windowRegistry';
@@ -16,6 +15,8 @@ import { useCompactViewport } from './hooks/useCompactViewport';
 const PlaySetup = lazy(() => import('./components/ui/play/PlaySetup').then((m) => ({ default: m.PlaySetup })));
 const PlayResult = lazy(() => import('./components/ui/play/PlayResult').then((m) => ({ default: m.PlayResult })));
 const PlayHUD = lazy(() => import('./components/ui/play/PlayHUD').then((m) => ({ default: m.PlayHUD })));
+// 地圖編輯工具列只在手動模式（HUD 開著）出現，首屏的展示模式用不到；延遲載入讓出進入點預算（WORKLOG §2 DF）
+const MapEditorToolbar = lazy(() => import('./components/ui/MapEditorToolbar').then((m) => ({ default: m.MapEditorToolbar })));
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
@@ -139,6 +140,7 @@ function App() {
             />
       </div>
       {!hideHUD && (
+        <Suspense fallback={null}>
           <MapEditorToolbar 
               tool={state.tool}
               setTool={setters.setTool}
@@ -153,6 +155,7 @@ function App() {
               selectedObstacle={state.selectedObstacle} setSelectedObstacle={setters.setSelectedObstacle}
               hexLayout={state.hexLayout} onSetLayout={actions.handleUpdateLayout}
           />
+        </Suspense>
       )}
     </div>
     </EngineProvider>
