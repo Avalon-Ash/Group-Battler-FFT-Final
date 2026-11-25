@@ -1737,6 +1737,171 @@ const playLayoutIssues = (page, root) => page.evaluate((rootSel) => {
     return issues;
 }, root);
 
+// ── ADR 0026 K3：PLAY 桌機滑鼠對應與 Quick Cast（主代理寫的紅色驗收，執行代理不得修改）
+// 全部在暫停中做：局面不動，點到的格子與單位是確定的（避開 HANDOFF D「敵人移動中點偏」的偶發）。
+// 用 bus 監聽記下輸入層送出的 UI_COMMAND（只記錄、照常轉送，不改行為）。
+const K3_DRAG_PX = 60;
+const K3_DRAG_STEPS = 6;
+const K3_SETTLE_MS = 150;
+/** 瞄準與 Quick Cast 用普攻槽（SKILL_SLOTS.BASIC＝第 2 槽，鍵 3）：普攻不會因冷卻或魔力被拒收（ADR 0026），前面打過也一定按得出來 */
+const K3_AIM_KEY = '3';
+const K3_AIM_SLOT = 2;
+const spyUiCommands = (page) => page.evaluate(() => {
+    const e = window.__TACTICAL_ENGINE__;
+    window.__k3Sent = [];
+    if (!window.__k3Spy) {
+        const orig = e.bus.emit.bind(e.bus);
+        e.bus.emit = (type, payload) => {
+            if (type === 'UI_COMMAND' && window.__k3Sent) window.__k3Sent.push({ type: payload?.type, targetId: payload?.targetId ?? null });
+            return orig(type, payload);
+        };
+        window.__k3Spy = true;
+    }
+});
+const takeSent = (page) => page.evaluate(() => { const s = window.__k3Sent ?? []; window.__k3Sent = []; return s; });
+/** 畫面上（HUD 上方）的一格空地與一個敵人的螢幕座標 */
+/** 拖鏡頭的起點離 HUD 至少這麼遠（px） */
+const K3_PAN_MARGIN = 80;
+/** 左鍵點的空地離所有單位至少這麼多格（單位的身體框會蓋到上方幾格，點到就變成點單位） */
+const K3_GROUND_CLEAR_HEX = 3;
+const playScreenTargets = (page) => page.evaluate(({ panMargin, groundClear }) => {
+    const e = window.__TACTICAL_ENGINE__;
+    const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
+    const canvas = document.querySelector('canvas');
+    const rect = canvas.getBoundingClientRect();
+    const hud = document.querySelector('[data-testid="play-hud"]')?.getBoundingClientRect();
+    const bottom = (hud ? hud.top - rect.top : rect.height) - 40;
+    const cam = e.renderer.camera;
+    let ground = null;
+    for (let y = 100; y < bottom && !ground; y += 15) {
+        for (let x = 60; x < rect.width - 60; x += 15) {
+            const h = e.renderer.getHexAtScreenPoint(x, y, rect.width, rect.height, cam, e);
+            if (h && e.map.isValid(h.q, h.r) && !e.map.hasObstacle(h.q, h.r) && !e.agents.some((a) => a.hp > 0 && (Math.abs(a.q - h.q) + Math.abs(a.r - h.r) + Math.abs(a.q + a.r - h.q - h.r)) / 2 < groundClear)) {
+                ground = { x: Math.round(rect.left + x), y: Math.round(rect.top + y), q: h.q, r: h.r };
+                break;
+            }
+        }
+    }
+    const foe = e.agents.filter((a) => hero && a.side !== hero.side && a.hp > 0).map((a) => {
+        const th = e.map?.getTerrainHeight ? e.map.getTerrainHeight(a.q, a.r) : 0;
+        return { id: a.id, x: rect.left + (a.px - cam.x) * cam.zoom + rect.width / 2, y: rect.top + (a.py - th - cam.y) * cam.zoom + rect.height / 2 };
+    }).find((p) => p.x > rect.left + 40 && p.x < rect.right - 40 && p.y > rect.top + 100 && p.y < rect.top + bottom) ?? null;
+    return { ground, foe, center: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + Math.min(rect.height / 2, bottom - panMargin)) } };
+}, { panMargin: K3_PAN_MARGIN, groundClear: K3_GROUND_CLEAR_HEX }).catch(() => ({ ground: null, foe: null, center: null }));
+/** 主畫面進選主角畫面：入口鈕若還是模擬，先按交換鈕 */
+const openPlaySetup = async (page) => {
+    if (await page.locator('[data-testid="showcase-play-btn"]').count() === 0) await page.click('[data-testid="showcase-mode-swap"]');
+    await page.waitForSelector('[data-testid="showcase-play-btn"]');
+    await page.click('[data-testid="showcase-play-btn"]');
+    await page.waitForSelector('[data-testid="play-setup"]');
+};
+const dragWith = async (page, from, button) => {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button });
+    await page.mouse.move(from.x + K3_DRAG_PX, from.y + K3_DRAG_PX / 2, { steps: K3_DRAG_STEPS });
+    await page.mouse.up({ button });
+    await page.waitForTimeout(K3_SETTLE_MS);
+};
+const isOrder = (t) => typeof t === 'string' && t.startsWith('ORDER_');
+
+const runPlayMouseChecks = async (page, tag) => {
+    await page.keyboard.press(' ');
+    await page.waitForTimeout(K3_SETTLE_MS);
+    await spyUiCommands(page);
+    const t = await playScreenTargets(page);
+    if (!t.ground || !t.center) { ok(`PLAY ${tag} K3: an empty ground hex is on screen`, false, JSON.stringify(t)); await page.keyboard.press(' '); return; }
+
+    // 左鍵按下就送移動指令（不用等放開）
+    await page.mouse.move(t.ground.x, t.ground.y);
+    await takeSent(page);
+    await page.mouse.down();
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const onPress = await takeSent(page);
+    await page.mouse.up();
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const onRelease = await takeSent(page);
+    ok(`PLAY ${tag} K3: left button sends the move order on press, nothing more on release`,
+        onPress.filter((c) => c.type === 'ORDER_MOVE').length === 1 && !onRelease.some((c) => isOrder(c.type)),
+        JSON.stringify({ onPress, onRelease }));
+
+    // 左鍵按住拖：只有按下那一筆指令，不拖鏡頭
+    await dragWith(page, t.ground, 'left');
+    const leftDrag = await takeSent(page);
+    ok(`PLAY ${tag} K3: dragging with the left button keeps one order and does not pan`,
+        leftDrag.filter((c) => isOrder(c.type)).length === 1 && !leftDrag.some((c) => c.type === 'CAMERA_PAN'),
+        JSON.stringify(leftDrag));
+
+    // 右鍵、中鍵拖：拖鏡頭，不下指令
+    for (const button of ['right', 'middle']) {
+        await dragWith(page, t.center, button);
+        const sent = await takeSent(page);
+        ok(`PLAY ${tag} K3: dragging with the ${button} button pans the camera and sends no order`,
+            sent.some((c) => c.type === 'CAMERA_PAN') && !sent.some((c) => isOrder(c.type)),
+            JSON.stringify(sent));
+    }
+
+    // 瞄準中：右鍵拖鏡頭不取消瞄準；右鍵點一下（沒拖）取消瞄準
+    await page.keyboard.press(K3_AIM_KEY);
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const aimed = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+    ok(`PLAY ${tag} K3: with Quick Cast off (default) the skill key starts aiming`, aimed?.slot === K3_AIM_SLOT, JSON.stringify(aimed));
+    await dragWith(page, t.center, 'right');
+    const stillAimed = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+    ok(`PLAY ${tag} K3: right-drag while aiming pans without cancelling the aim`, stillAimed?.slot === K3_AIM_SLOT, JSON.stringify(stillAimed));
+    await page.mouse.move(t.center.x, t.center.y);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.up({ button: 'right' });
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const cancelled = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+    const rightClick = await takeSent(page);
+    ok(`PLAY ${tag} K3: right-click without dragging cancels the aim and sends no order`,
+        cancelled === null && !rightClick.some((c) => isOrder(c.type)), JSON.stringify({ cancelled, rightClick }));
+
+    await page.keyboard.press(' ');
+    await page.waitForTimeout(K3_SETTLE_MS);
+};
+
+/** 回到主畫面後再進一次 PLAY：選主角畫面有 Quick Cast 開關（預設關），打開後技能鍵直接對游標下的敵人施放 */
+const runPlayQuickCastCheck = async (page, tag) => {
+    await openPlaySetup(page);
+    const toggle = page.locator('[data-testid="play-quickcast-toggle"]');
+    const before = await toggle.count() === 1 ? await toggle.getAttribute('aria-pressed') : null;
+    ok(`PLAY ${tag} K3: hero setup has a Quick Cast toggle, off by default`, before === 'false', String(before));
+    if (before === null) return;
+    await toggle.click();
+    const after = await toggle.getAttribute('aria-pressed');
+    ok(`PLAY ${tag} K3: the Quick Cast toggle turns on`, after === 'true', String(after));
+    await page.click('[data-testid="play-role-RANGER"]');
+    await page.click('[data-testid="play-start-btn"]');
+    await page.waitForSelector('[data-testid="play-hud"]');
+    await page.waitForTimeout(400);
+    await page.keyboard.press(' ');
+    await page.waitForTimeout(K3_SETTLE_MS);
+    await spyUiCommands(page);
+    const t = await playScreenTargets(page);
+    if (!t.foe) { ok(`PLAY ${tag} K3: an enemy is on screen for Quick Cast`, false, 'no enemy in view'); return; }
+    await page.mouse.move(t.foe.x, t.foe.y);
+    await page.waitForTimeout(K3_SETTLE_MS);
+    await takeSent(page);
+    await page.keyboard.press(K3_AIM_KEY);
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const sent = await takeSent(page);
+    const aim = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+    ok(`PLAY ${tag} K3: with Quick Cast on, the skill key casts at the enemy under the cursor without aiming`,
+        sent.some((c) => c.type === 'ORDER_CAST' && c.targetId === t.foe.id) && aim === null,
+        JSON.stringify({ sent, aim, foe: t.foe.id }));
+    // 設定要留著：下次進選主角畫面仍是開的；關回去，不影響之後的執行
+    await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
+    await page.keyboard.press(' ');
+    await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
+    await page.click('[data-testid="play-menu-btn"]');
+    await page.waitForSelector('[data-testid="showcase-card"]');
+    await openPlaySetup(page);
+    const kept = await toggle.getAttribute('aria-pressed');
+    ok(`PLAY ${tag} K3: the Quick Cast setting is remembered`, kept === 'true', String(kept));
+    await toggle.click();
+};
+
 const runPlaySuite = async () => {
     // E2E_PLAY_VIEWS=iphone-landscape,desktop：只跑指定的版面（除錯用）
     const only = process.env.E2E_PLAY_VIEWS ? process.env.E2E_PLAY_VIEWS.split(',') : null;
@@ -1840,6 +2005,7 @@ const runPlaySuite = async () => {
         await page.waitForTimeout(200);
         const resumed = await page.evaluate(() => window.__TACTICAL_ENGINE__.isRunning);
         ok(`PLAY ${tag}: pause (space / button) pauses and resumes`, paused && resumed, JSON.stringify({ paused, resumed }));
+        if (!touch) await runPlayMouseChecks(page, tag);
 
         await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
         await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
@@ -1858,6 +2024,7 @@ const runPlaySuite = async () => {
         await page.waitForSelector('[data-testid="showcase-card"]');
         const back = await page.evaluate(() => ({ isPlay: window.__TACTICAL_ENGINE__.matchFlow.isPlay, isShowcase: window.__TACTICAL_ENGINE__.matchFlow.isShowcase }));
         ok(`PLAY ${tag}: main menu returns to the showcase`, !back.isPlay && back.isShowcase, JSON.stringify(back));
+        if (!touch) await runPlayQuickCastCheck(page, tag);
         await ctx.close();
     }
 };
