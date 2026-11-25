@@ -771,7 +771,7 @@
 .play-hud-meters { grid-area: meters; display: flex; flex-direction: column; gap: var(--ui-play-gap); }
 .play-hud-slots { grid-area: slots; display: flex; gap: var(--ui-play-gap); }
 .play-hud-sys { grid-area: sys; display: flex; flex-direction: column; gap: var(--ui-play-gap); }
-.play-slot { position: relative; overflow: hidden; width: var(--ui-play-slot); height: var(--ui-play-slot); flex-direction: column; gap: 0; }
+.play-slot { position: relative; overflow: hidden; width: var(--ui-play-slot); height: var(--ui-play-slot); flex-direction: column; gap: 0; touch-action: none; }
 .play-slot-icon { width: var(--ui-play-slot-icon); height: var(--ui-play-slot-icon); }
 .play-slot-label { position: relative; color: rgb(var(--token-fg-primary)); white-space: nowrap; }
 .play-slot-cooldown { position: absolute; inset-inline: 0; bottom: 0; background: rgb(var(--token-surface-base) / .6); }
