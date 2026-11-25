@@ -1022,3 +1022,13 @@
 - 改後：普攻前搖中下移動，固定種子模擬 23 次有 22 次 1 tick 內換路；剩 1 次是路被隊友擋住、先照堅守打一下（ADR 0022 既有設計，沒改，改了可能來回抖動）。走路改向 4 筆都 1 tick。瀏覽器探針換很多場後頁面會當（main 同樣會，第 27 輪），樣本因此小。
 - 驗證：lint、`npm test` 179 檔 1650 則、build（進入點 257.2／257.5 kB，只剩 0.3 kB）、knip、`balance:fingerprint` 180／180 相同、runtime-smoke、`E2E_ONLY=play` 三個版面過（iPhone 直向「畫面裡沒有敵人」偶發一次，單獨重跑過）。沒驗的：實機手感。
 - **回退**：`git revert 3a59fc62`（K1 實作）；驗收在 `bceb2eb1`。
+
+### DI. 2026-11-25 PLAY 操控 K2 奧義詠唱逐步扣魔、K3 桌機滑鼠與 Quick Cast（主代理 Opus，實作 agy Gemini 4 Neon high 兩條並行；使用者：照 session-002 開 K2、K3，合併）
+- 前置（主代理，`7d955603`）：播放列 `PlaybackHUD` 在展示與 PLAY 模式是隱藏的，改 `React.lazy`，進入點 257.2 → 255.5 kB；`windows.e2e.mjs` 支援 `--only=<組>`、新增 `npm run e2e:play`（允許清單只收確切指令）。完整 `e2e:ui` 314 項過。
+- K2（Neon 約 6 分鐘，10 則紅色驗收全綠、沒動測試）：`SkillStateMachine` 新增 `drainsManaDuringWindup`（tag ULT，扣魔、結算、魔力檢查共用）與 `windupDuration`（`beginWindup` 與扣魔共用）；每 tick 扣 `cost × min(dt, castTimer) ÷ 時長`、扣到 0 為止，完成只加 `gain`；前搖中的奧義不算魔力不足；不新增 Agent 欄位。`BTRegistry` 386、1007 行與 `TargetingSystem` 166 行的 `a.mp >= s.cost` 是既有重複判斷，沒動。
+- 指紋重錄（`cedd9f7a`）：改前 180／180 全不同（取樣含 mp）；`--dump=TEAMS:0` 比對 main，第一個差異在第 15 幀，只有詠唱奧義中的單位 mp 不同。`balance:sim` 兩種子各 1000 場（±3.1%）藍方勝率：種子 1 50.0 → 50.2%、種子 21 50.8 → 51.5%，平均每場 +0.1 秒，雜訊內。
+- K3（Neon 約 19 分鐘，PointerGesture 8 則與 e2e K3 11 項全綠、沒動測試）：`tapIntent.pointerGesture` 對應表（PLAY 滑鼠左鍵按下即下令、中鍵拖鏡頭、右鍵拖鏡頭或點一下取消瞄準；觸控與非 PLAY 照舊）；`resolveQuickCast` 與瞄準中 `resolveTap` 共用 `resolveAimCast`；`useGameInput` 照手勢分派，`PlayHUD` 的 window `contextmenu` 監聽移除（右鍵取消只在輸入層）。Quick Cast：`components/ui/play/playPrefs.ts` 唯一擁有者（localStorage，預設關；鍵名放這裡而不是 `constants/ui.ts`，因為 `UI_PIN` 受 `ConstantsBarrel` 快照鎖定），選主角畫面開關（非觸控才顯示），`App` 持有 ref 接 `GameCanvas`→`useGameInput` 與 `PlayHUD`。附帶消失：PLAY 暫停時滑鼠左鍵拖會變成編輯用的拖單位（`MOVE_AGENT`）。
+- 紅色驗收的 e2e 全在暫停中做、監聽 bus 記錄送出的 UI_COMMAND，避開「敵人移動中點偏」偶發。寫的時候踩過：鍵 1～4 對應槽位順序是 ULT／ACTIVE／BASIC／MOBILITY，開局按 1、2 會被魔力拒收，所以改用普攻槽（鍵 3）；左鍵點的空地要離單位 ≥3 格，否則會點到身體框。
+- agy 第一次派 K2 時，第一步就用終端機讀派工單被拒、整次結束（派工單裡「讀檔用內建工具」那句它還沒讀到）；`-p` 直接寫明後重派就正常。
+- 驗證（`integ/k2k3`，主資料夾）：lint、`npm test` 181 檔 1668 則、build（進入點 256.1／257.5 kB）、knip、`balance:fingerprint` 180／180 相同、runtime-smoke（battleTime 0.52→4.65）、完整 `e2e:ui` 324 項全過。沒驗的：桌機實機手感、iPhone。
+- **回退**：K3 `git revert 3be5a80d`；K2 `git revert bbb0eb52 cedd9f7a`（要一起退，指紋跟著實作）；播放列延後載入在 `7d955603`。
