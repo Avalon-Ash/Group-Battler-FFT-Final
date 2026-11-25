@@ -13,8 +13,24 @@ import type { Hex, UICommand } from '../../../types';
 import { sameSide } from '../../core/Allegiance';
 import { queryCastTargeting, isCastTarget } from './castTargeting';
 
-/** 指標按下時輸入層要走的手勢分支（ADR 0026 K3） */
-export type PointerGesture = 'ORDER_ON_DOWN' | 'TAP_ON_UP' | 'CAMERA' | 'CAMERA_OR_CANCEL' | 'IGNORE';
+/**
+ * 指標按下時輸入層要走的手勢分支（ADR 0026 K3、K4）
+ * - ORDER_ON_UP（K4，PLAY 觸控）：單指放開時在放開位置下令（resolveTap 用放開位置的格子與單位）；滑動不拖鏡頭。
+ */
+export type PointerGesture = 'ORDER_ON_DOWN' | 'ORDER_ON_UP' | 'TAP_ON_UP' | 'CAMERA' | 'CAMERA_OR_CANCEL' | 'IGNORE';
+
+/**
+ * 同時按著兩根以上指標時要做什麼（ADR 0026 K4）：
+ * - CAMERA_TWO_FINGER：兩指拖曳平移鏡頭（CAMERA_PAN，位移取兩指中點）；捏合縮放沿用 hooks/useCameraControl.ts，不另做。
+ * - CANCEL：取消還沒送出的單指動作（不下令、不拖），直到所有指標放開。
+ */
+export type MultiPointerGesture = 'CAMERA_TWO_FINGER' | 'CANCEL';
+
+/** 技能鈕拖曳放開時的意圖（ADR 0026 K4）：施放、改成一般瞄準（停在該槽）、或取消瞄準 */
+export type SkillDropIntent =
+    | { kind: 'ORDER'; command: Extract<UICommand, { type: 'ORDER_CAST' }> }
+    | { kind: 'AIM' }
+    | { kind: 'CANCEL' };
 
 /** 滑鼠按鍵編號（PointerEvent.button） */
 const MOUSE_BUTTON_LEFT = 0;
@@ -36,6 +52,25 @@ export function pointerGesture(isPlay: boolean, pointerType: string, button: num
         return 'IGNORE';
     }
     return button === MOUSE_BUTTON_LEFT ? 'TAP_ON_UP' : 'IGNORE';
+}
+
+/**
+ * 同時按著 activeCount 根指標時要做什麼（ADR 0026 K4）。
+ * 規則見 tests/PointerGesture.test.ts「multiPointerGesture」：只有 PLAY 模式觸控、剛好兩指是鏡頭，其他一律取消。
+ */
+export function multiPointerGesture(isPlay: boolean, pointerType: string, activeCount: number): MultiPointerGesture {
+    void isPlay; void pointerType; void activeCount;
+    throw new Error('K4：尚未實作 multiPointerGesture');
+}
+
+/**
+ * 技能鈕拖曳放開（ADR 0026 K4）：onBoard＝放開位置在戰場畫布上（不在按鈕或其他介面上）。
+ * 規則見 tests/PointerGesture.test.ts「resolveSkillDrop」：不在畫布上或不能接指令＝CANCEL；
+ * 在畫布上時和 Quick Cast 同一條規則（resolveQuickCast），有合法目標＝ORDER，沒有＝AIM。
+ */
+export function resolveSkillDrop(engine: GameEngine, selected: Agent | null, slot: number, hex: Hex | null, tapped: Agent | null, onBoard: boolean): SkillDropIntent {
+    void engine; void selected; void slot; void hex; void tapped; void onBoard;
+    throw new Error('K4：尚未實作 resolveSkillDrop');
 }
 
 export type TapIntent =

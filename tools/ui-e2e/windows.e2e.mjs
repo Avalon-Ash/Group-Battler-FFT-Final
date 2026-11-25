@@ -1752,7 +1752,7 @@ const spyUiCommands = (page) => page.evaluate(() => {
     if (!window.__k3Spy) {
         const orig = e.bus.emit.bind(e.bus);
         e.bus.emit = (type, payload) => {
-            if (type === 'UI_COMMAND' && window.__k3Sent) window.__k3Sent.push({ type: payload?.type, targetId: payload?.targetId ?? null });
+            if (type === 'UI_COMMAND' && window.__k3Sent) window.__k3Sent.push({ type: payload?.type, targetId: payload?.targetId ?? null, q: payload?.q ?? null, r: payload?.r ?? null, aim: payload?.type === 'SET_AIM' ? payload.aim : undefined });
             return orig(type, payload);
         };
         window.__k3Spy = true;
@@ -1902,6 +1902,201 @@ const runPlayQuickCastCheck = async (page, tag) => {
     await toggle.click();
 };
 
+// ── ADR 0026 K4：PLAY 觸控（主代理寫的紅色驗收，執行代理不得修改）
+// page.click／page.mouse 在 hasTouch 的 context 裡仍是滑鼠指標，這裡一律用 CDP Input.dispatchTouchEvent 送真的觸控
+// （每次送出目前所有按著的觸點；從清單拿掉的觸點就是放開）。和 K3 一樣全部在暫停中做、監聽 bus。
+/** 單指滑動、兩指拖曳的距離（px）：大於觸控的拖曳門檻 GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX（18） */
+const K4_SLIDE_PX = 60;
+/** 兩指的半間距（px），捏合時拉開到 K4_PINCH_OUT_PX */
+const K4_FINGER_HALF_GAP_PX = 40;
+const K4_PINCH_OUT_PX = 110;
+/** 技能鈕拖出去再拖回來時，離開按鈕的高度（px） */
+const K4_BUTTON_LIFT_PX = 120;
+const touchSend = (cdp, type, points) => cdp.send('Input.dispatchTouchEvent', {
+    type,
+    touchPoints: points.map((p) => ({ x: p.x, y: p.y, id: p.id ?? 0, radiusX: 1, radiusY: 1, force: 1 })),
+});
+/** 把每根手指從 from[i] 線性移到 to[i]（同時移動，K3_DRAG_STEPS 步） */
+const touchMoveAll = async (cdp, from, to) => {
+    for (let s = 1; s <= K3_DRAG_STEPS; s++) {
+        const k = s / K3_DRAG_STEPS;
+        await touchSend(cdp, 'touchMove', from.map((p, i) => ({ id: p.id, x: p.x + (to[i].x - p.x) * k, y: p.y + (to[i].y - p.y) * k })));
+    }
+};
+/** 探針前提（METHODOLOGY §4 第 11 條）：畫布真的收到觸控指標、真的同時按過兩根 */
+const recordCanvasPointers = (page) => page.evaluate(() => {
+    window.__k4Ptr = { types: [], maxActive: 0 };
+    if (window.__k4PtrSpy) return;
+    const cvs = document.querySelector('canvas');
+    const ids = new Set();
+    cvs.addEventListener('pointerdown', (e) => {
+        ids.add(e.pointerId);
+        const rec = window.__k4Ptr;
+        if (!rec.types.includes(e.pointerType)) rec.types.push(e.pointerType);
+        rec.maxActive = Math.max(rec.maxActive, ids.size);
+    }, true);
+    const release = (e) => ids.delete(e.pointerId);
+    cvs.addEventListener('pointerup', release, true);
+    cvs.addEventListener('pointercancel', release, true);
+    window.__k4PtrSpy = true;
+});
+const readAim = (page) => page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+
+const runPlayTouchChecks = async (page, tag) => {
+    const cdp = await page.context().newCDPSession(page);
+    const settle = () => page.waitForTimeout(K3_SETTLE_MS);
+    const orders = (sent) => sent.filter((c) => isOrder(c.type));
+    const movedTo = (sent, hex) => {
+        const o = orders(sent);
+        return o.length === 1 && o[0].type === 'ORDER_MOVE' && o[0].q === hex.q && o[0].r === hex.r;
+    };
+    await page.keyboard.press(' ');
+    await settle();
+    await spyUiCommands(page);
+    await recordCanvasPointers(page);
+    const t = await playScreenTargets(page);
+    if (!t.ground || !t.center) { ok(`PLAY ${tag} K4: an empty ground hex is on screen`, false, JSON.stringify(t)); await page.keyboard.press(' '); return; }
+    const g = { x: t.ground.x, y: t.ground.y, id: 0 };
+
+    // 單指輕點：放開才下令，打到點的那一格
+    await takeSent(page);
+    await touchSend(cdp, 'touchStart', [g]);
+    await settle();
+    const tapHold = await takeSent(page);
+    await touchSend(cdp, 'touchEnd', []);
+    await settle();
+    const tapUp = await takeSent(page);
+    ok(`PLAY ${tag} K4: a one-finger tap sends one move order to the tapped hex on release`,
+        orders(tapHold).length === 0 && movedTo(tapUp, t.ground), JSON.stringify({ tapHold, tapUp, ground: t.ground }));
+    const ptr = await page.evaluate(() => window.__k4Ptr);
+    ok(`PLAY ${tag} K4: the canvas receives touch pointers (probe check)`, ptr.types.includes('touch'), JSON.stringify(ptr));
+
+    // 單指滑動：不拖鏡頭，放開時對手指下的格子下令（不是按下的位置）
+    const dir = t.center.x >= g.x ? 1 : -1;
+    const s0 = { x: g.x + dir * K4_SLIDE_PX, y: g.y, id: 0 };
+    await touchSend(cdp, 'touchStart', [s0]);
+    await touchMoveAll(cdp, [s0], [g]);
+    await settle();
+    const slideHold = await takeSent(page);
+    await touchSend(cdp, 'touchEnd', []);
+    await settle();
+    const slideUp = await takeSent(page);
+    // main 上從單位身上滑動，暫停中會變成編輯用的拖單位（MOVE_AGENT）：PLAY 觸控不得送出
+    ok(`PLAY ${tag} K4: sliding one finger does not pan or drag units; the order goes to the hex under the finger on release`,
+        !slideHold.some((c) => c.type === 'CAMERA_PAN') && orders(slideHold).length === 0
+            && ![...slideHold, ...slideUp].some((c) => c.type === 'CAMERA_PAN' || c.type === 'MOVE_AGENT') && movedTo(slideUp, t.ground),
+        JSON.stringify({ slideHold, slideUp, ground: t.ground }));
+
+    // 第二根手指落下：取消還沒送出的單指指令（先放開第一根，再放開第二根）
+    const c1 = { x: t.center.x, y: t.center.y, id: 1 };
+    await touchSend(cdp, 'touchStart', [g]);
+    await settle();
+    await touchSend(cdp, 'touchStart', [g, c1]);
+    await settle();
+    await touchSend(cdp, 'touchMove', [c1]);
+    await settle();
+    await touchSend(cdp, 'touchEnd', []);
+    await settle();
+    const second = await takeSent(page);
+    ok(`PLAY ${tag} K4: a second finger cancels the pending one-finger order`, orders(second).length === 0, JSON.stringify(second));
+
+    // 兩指同方向拖：平移鏡頭，不下令
+    const p1 = { x: t.center.x - K4_FINGER_HALF_GAP_PX, y: t.center.y, id: 0 };
+    const p2 = { x: t.center.x + K4_FINGER_HALF_GAP_PX, y: t.center.y, id: 1 };
+    const shift = (p) => ({ id: p.id, x: p.x + K4_SLIDE_PX, y: p.y + K4_SLIDE_PX / 2 });
+    await touchSend(cdp, 'touchStart', [p1]);
+    await touchSend(cdp, 'touchStart', [p1, p2]);
+    await touchMoveAll(cdp, [p1, p2], [shift(p1), shift(p2)]);
+    await touchSend(cdp, 'touchEnd', []);
+    await settle();
+    const twoDrag = await takeSent(page);
+    ok(`PLAY ${tag} K4: dragging two fingers pans the camera and sends no order`,
+        twoDrag.some((c) => c.type === 'CAMERA_PAN') && orders(twoDrag).length === 0, JSON.stringify(twoDrag));
+    const ptr2 = await page.evaluate(() => window.__k4Ptr);
+    ok(`PLAY ${tag} K4: two touch pointers were down at once (probe check)`, ptr2.maxActive >= 2, JSON.stringify(ptr2));
+
+    // 兩指捏合：縮放（useCameraControl 既有，防退化），不下令
+    const spread = (p, sign) => ({ id: p.id, x: t.center.x + sign * K4_PINCH_OUT_PX, y: p.y });
+    await touchSend(cdp, 'touchStart', [p1]);
+    await touchSend(cdp, 'touchStart', [p1, p2]);
+    await touchMoveAll(cdp, [p1, p2], [spread(p1, -1), spread(p2, 1)]);
+    await touchSend(cdp, 'touchEnd', []);
+    await settle();
+    const pinch = await takeSent(page);
+    ok(`PLAY ${tag} K4: pinching zooms the camera and sends no order`,
+        pinch.some((c) => c.type === 'CAMERA_ZOOM') && orders(pinch).length === 0, JSON.stringify(pinch));
+
+    // 技能鈕拖到敵人放開：拖曳中瞄準該槽，放開對它施放並結束瞄準（鏡頭動過，重找目標）
+    const box = await page.locator(`[data-testid="play-skill-${K3_AIM_SLOT}"]`).boundingBox();
+    const b = box ? { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 0 } : null;
+    let t2 = await playScreenTargets(page);
+    if (!t2.foe) {
+        // 手機橫向可視範圍小：先把鏡頭對到最近的敵人（測的是拖曳，不是鏡頭；CAMERA_SNAP 是既有指令）
+        await page.evaluate(() => {
+            const e = window.__TACTICAL_ENGINE__;
+            const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
+            const foe = e.agents.filter((a) => hero && a.side !== hero.side && a.hp > 0)
+                .sort((a, b) => Math.hypot(a.px - hero.px, a.py - hero.py) - Math.hypot(b.px - hero.px, b.py - hero.py))[0];
+            if (!foe) return;
+            const th = e.map?.getTerrainHeight ? e.map.getTerrainHeight(foe.q, foe.r) : 0;
+            e.bus.emit('UI_COMMAND', { type: 'CAMERA_SNAP', x: foe.px, y: foe.py - th });
+        });
+        await page.waitForTimeout(K3_SETTLE_MS * 2);
+        await takeSent(page);
+        t2 = await playScreenTargets(page);
+    }
+    if (!b || !t2.foe) {
+        ok(`PLAY ${tag} K4: a skill button and an enemy are on screen for the skill drag`, false, JSON.stringify({ box, foe: t2.foe }));
+    } else {
+        const foe = { x: t2.foe.x, y: t2.foe.y, id: 0 };
+        await takeSent(page);
+        await touchSend(cdp, 'touchStart', [b]);
+        await touchMoveAll(cdp, [b], [foe]);
+        await settle();
+        const midAim = await readAim(page);
+        const dragHold = await takeSent(page);
+        await touchSend(cdp, 'touchEnd', []);
+        await settle();
+        const dropped = await takeSent(page);
+        const afterDrop = await readAim(page);
+        ok(`PLAY ${tag} K4: dragging a skill button aims that slot while the finger is down`,
+            midAim?.slot === K3_AIM_SLOT && orders(dragHold).length === 0, JSON.stringify({ midAim, dragHold }));
+        ok(`PLAY ${tag} K4: releasing a dragged skill button on an enemy casts at it and ends aiming`,
+            dropped.some((c) => c.type === 'ORDER_CAST' && c.targetId === t2.foe.id) && afterDrop === null,
+            JSON.stringify({ dropped, afterDrop, foe: t2.foe.id }));
+    }
+
+    if (b) {
+        // 拖出去再拖回按鈕放開：取消（不施放、不留在瞄準，放開時也不能被 click 再開一次瞄準）
+        const up = { x: b.x, y: b.y - K4_BUTTON_LIFT_PX, id: 0 };
+        await touchSend(cdp, 'touchStart', [b]);
+        await touchMoveAll(cdp, [b], [up]);
+        await settle();
+        await touchMoveAll(cdp, [up], [b]);
+        await touchSend(cdp, 'touchEnd', []);
+        await settle();
+        const back = await takeSent(page);
+        const afterBack = await readAim(page);
+        ok(`PLAY ${tag} K4: dragging a skill button out and back onto it cancels: no cast, not aiming`,
+            !back.some((c) => c.type === 'ORDER_CAST') && afterBack === null, JSON.stringify({ back, afterBack }));
+
+        // 原地輕點技能鈕：照舊進入瞄準（點鈕再點目標仍可用）
+        await touchSend(cdp, 'touchStart', [b]);
+        await touchSend(cdp, 'touchEnd', []);
+        await settle();
+        const tapAim = await readAim(page);
+        ok(`PLAY ${tag} K4: a touch tap on a skill button still starts aiming`, tapAim?.slot === K3_AIM_SLOT, JSON.stringify(tapAim));
+        if (tapAim) {
+            await page.click('[data-testid="play-aim-cancel"]');
+            await settle();
+        }
+    }
+
+    await cdp.detach();
+    await page.keyboard.press(' ');
+    await settle();
+};
+
 const runPlaySuite = async () => {
     // E2E_PLAY_VIEWS=iphone-landscape,desktop：只跑指定的版面（除錯用）
     const only = process.env.E2E_PLAY_VIEWS ? process.env.E2E_PLAY_VIEWS.split(',') : null;
@@ -2006,6 +2201,7 @@ const runPlaySuite = async () => {
         const resumed = await page.evaluate(() => window.__TACTICAL_ENGINE__.isRunning);
         ok(`PLAY ${tag}: pause (space / button) pauses and resumes`, paused && resumed, JSON.stringify({ paused, resumed }));
         if (!touch) await runPlayMouseChecks(page, tag);
+        if (touch) await runPlayTouchChecks(page, tag);
 
         await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
         await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
