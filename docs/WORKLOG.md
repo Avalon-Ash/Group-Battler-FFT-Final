@@ -1032,3 +1032,10 @@
 - agy 第一次派 K2 時，第一步就用終端機讀派工單被拒、整次結束（派工單裡「讀檔用內建工具」那句它還沒讀到）；`-p` 直接寫明後重派就正常。
 - 驗證（`integ/k2k3`，主資料夾）：lint、`npm test` 181 檔 1668 則、build（進入點 256.1／257.5 kB）、knip、`balance:fingerprint` 180／180 相同、runtime-smoke（battleTime 0.52→4.65）、完整 `e2e:ui` 324 項全過。沒驗的：桌機實機手感、iPhone。
 - **回退**：K3 `git revert 3be5a80d`；K2 `git revert bbb0eb52 cedd9f7a`（要一起退，指紋跟著實作）；播放列延後載入在 `7d955603`。
+
+### DJ. 2026-11-25 PLAY 操控 K4 觸控（主代理 Opus，實作 agy Gemini 4 Neon high；使用者：照 session-003 開 K4，合併）
+- 紅色驗收（主代理，`a25bad46`）：`tests/PointerGesture.test.ts` 改寫觸控一則、加 `multiPointerGesture`、`resolveSkillDrop` 共 8 則紅；`windows.e2e.mjs` 的 `runPlayTouchChecks` 用 CDP `Input.dispatchTouchEvent` 送真的觸控（`page.click`／`page.mouse` 在 `hasTouch` 裡仍是滑鼠指標），iPhone 兩版面各 11 項，main 上紅 4 項（單指滑動、兩指平移、技能鈕拖曳兩項），其餘是防退化（點按下令、第二指取消、捏合在 main 已成立；捏合本來就在 `useCameraControl`，不另做）。探針前提：畫布真的收到 `touch`、真的同時兩指。
+- 實作（Neon 約 16 分鐘，`302b64e6`，沒動驗收）：`tapIntent` 的 PLAY 觸控 `ORDER_ON_UP`（放開位置下令）、`multiPointerGesture`（只有 PLAY 觸控剛好兩指是鏡頭）、`resolveSkillDrop`（不在畫布或不能接指令＝取消；在畫布上走 `resolveQuickCast`，沒目標＝留在瞄準）；`useGameInput` 兩指中點位移送 `CAMERA_PAN`；`quickCastRef` 改成 `PlayPointerPort`（`quickCast`、`hoverAt`、`dropSkill`）；`PlayHUD` 技能鈕拖曳（超過拖曳門檻才送 `SET_AIM`，拖曳後補發的 click 抑止、鍵盤 click 照舊）；`.play-slot` `touch-action: none`。附帶消失：PLAY 暫停中單指從單位身上滑動會變成編輯用的拖單位（`MOVE_AGENT`）。
+- e2e 前提加固（主代理，`8642ed11`、`b1db24f9`，斷言不變）：敵人只選腳下 56 px 內沒有別的單位的、點腳下往上 12 世界 px（腳下在身體框下緣，會落到上一格空地：HANDOFF D「瞄準時點敵人沒送出指令」的來源之一）、取目標前等鏡頭停下、空地與滑動起點要在畫布上；觸控檢查移到 HUD 出現後立刻做（主角較晚會先倒下）、開頭清掉殘留瞄準、結束時交還導播縮放；「瞄準時點敵人」改比點擊前後的施放筆數。修前完整跑偶發 2～4 項，修後 iPhone `e2e:play` 連兩次、完整 `e2e:ui` 一次全過。一次直向技能鈕拖放沒送出施放（留在瞄準），原因未明，加診斷後沒再出現。
+- 驗證（`integ/k4-touch`，主資料夾）：lint、`npm test` 181 檔 1675 則、build（進入點 256.4／257.5 kB）、knip、`balance:fingerprint`、runtime-smoke、完整 `e2e:ui` 346 項全過。沒驗的：iPhone 實機；拒收槽不能拖、SELF、觸控筆、非 PLAY 觸控只有讀碼與單元測試。
+- **回退**：`git revert 302b64e6`（e2e 前提加固的兩個 commit 可留著）。
