@@ -1014,3 +1014,11 @@
 - RenderSpec「玩家單位標示」、`constants/terrain.ts`（`PLAYER_MARK` 註解）、DECISIONS「UI」同步。
 - 驗證：lint、`npm test` 178 檔 1643 則、build（進入點 256.7／257.5 kB）、runtime-smoke（battleTime 0.52→4.57）、`perf:guard`（保真 6 張過，`battle_frozen` 0 差異）、`E2E_ONLY=play` 三個版面全過。沒驗的：iPhone 實機。
 - **回退**：一個 commit，`git revert`。
+
+### DH. 2026-11-25 PLAY 操控手感：實測延遲來源、MOBA／RTS 對照、ADR 0026、K1 玩家指令打斷規則（主代理 Opus，K1 實作 agy Gemini 4 Neon high；使用者：控制不貼手、研究 MOBA／RTS、問答定規則、合併 K1）
+- 研究（`docs/plans/control-feel.md`）：探針 `tools/ui-e2e/out/input-latency3.mjs`（不進版控）量到傳導鏈本身 1～3 tick；延遲來自玩家指令沿用 AI 規則：普攻前搖中下移動等前搖走完（中位數 0.48 秒，10 筆）、走路中改向等 `REPATH_MIN_S`（中位數 0.23 秒，10 筆）、冷卻／魔力不足／自身技身邊沒敵人時乾站不普攻（魔力只靠出招累積，魔力不足會卡死）；輸入層放開才送、漂移超過 8 px 指令不見。使用者問答定案寫成 ADR 0026，拆 K1～K4（§7）。
+- K1（Neon 約 16 分鐘，7 則紅色驗收一次全綠、沒動測試）：打斷規則集中在 `Orders.orderInterrupts`；取消走 `SkillStateMachine` 新的 CANCEL 邊；`MovementSystem.allowImmediateRepath`；`ORDER_CAST` 依 `playerCastRefusal` 拒收、HUD 變暗並在上方提示原因（`PLAY_TEXT.CAST_BLOCK_*`）；SELF 招直接放，`targetModeOf` 搬到 `SkillQueries`。
+- 主代理審查補兩處：取消前搖原本不發事件，詠唱字與詠唱序列會殘留 → 新事件 `CAST_CANCEL`（`CombatSystem.cancelCast` 發，`announcesCast` 與 CAST_START 共用判斷；HUD 直接收掉詠唱字、`SequenceSystem.cancel`）。普攻冷卻被當成拒收，反擊中普攻鈕幾乎一直變暗（PLAY e2e 抓到）→ 普攻冷卻不拒收（攻擊間隔，MOBA 也不拒收），加一則驗收。舊測試「冷卻中下的施放指令不會被丟掉」與 ADR 0026 相反，移除。
+- 改後：普攻前搖中下移動，固定種子模擬 23 次有 22 次 1 tick 內換路；剩 1 次是路被隊友擋住、先照堅守打一下（ADR 0022 既有設計，沒改，改了可能來回抖動）。走路改向 4 筆都 1 tick。瀏覽器探針換很多場後頁面會當（main 同樣會，第 27 輪），樣本因此小。
+- 驗證：lint、`npm test` 179 檔 1650 則、build（進入點 257.2／257.5 kB，只剩 0.3 kB）、knip、`balance:fingerprint` 180／180 相同、runtime-smoke、`E2E_ONLY=play` 三個版面過（iPhone 直向「畫面裡沒有敵人」偶發一次，單獨重跑過）。沒驗的：實機手感。
+- **回退**：`git revert 3a59fc62`（K1 實作）；驗收在 `bceb2eb1`。
