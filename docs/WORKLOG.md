@@ -1046,3 +1046,13 @@
 - 雙擊／雙點重設縮放（`hooks/useCameraControl.ts`）：PLAY 模式連點是連續下令，`dblclick` 與觸控雙點不再交還導播（`tapResetsZoom`，讀 `engine.matchFlow.isPlay`）；手動、展示模式照舊。`tests/CameraInput.test.ts` 加一則（真的 `MatchFlowSystem.startPlay`），拿掉判斷時會紅（2 次重設）。
 - 驗證（主資料夾）：lint、`npm test` 181 檔 1676 則、build（進入點 256.5／257.5 kB）、runtime-smoke、完整 `e2e:ui` 全過。沒驗的：實機（HANDOFF §3）。
 - **回退**：`git revert` 這個 commit。
+
+### DL. 2026-11-25 K1～K4 Fable 終審（API）與三項修正（主代理 Opus，終審 Fable 5.2 走 API 點數 $2.09；使用者：Fable 開案、終審用 API，修 #1～#3）
+- 終審：單次請求附 `bceb2eb1^..HEAD` 的程式與測試 diff、`useGameInput.ts`、`tapIntent.ts`、ADR 0026、`control-feel.md`、`AGENTS.md`（輸入 86826、輸出 34828 token）。報 4 項 important，主代理讀碼查證 3 項成立；第 4 項（拖技能鈕時主角陣亡，`dragRef` 殘留）不成立：結算時 `PlayHUD` 整個卸載（`App.tsx`），觀戰期間沒有技能鈕。其餘（既有 bug、架構、低信心）記在 HANDOFF §2 PLAY 那條。
+- #1 奧義詠唱中換目標乾站：同一招前搖中的施放指令只要不是延續同一個前搖（換目標、換格），會取消前搖、已扣的魔力不退，但拒收判斷在取消前做、把它當成延續而跳過魔力檢查，新指令就因魔力不足在 `OrderCast` 原地等回魔。改成先組指令，`orderInterrupts(...).cancelWindup` 為真時用取消後的狀態判斷（`playerCastRefusal` 加 `restartsWindup`，`resourceBlock` 的 `isThisWindup` 改成參數）：魔力不夠就拒收、不打斷。
+- #2 瞄準卡在放不了的槽：瞄準中那一槽進冷卻後，點目標被靜默拒收、瞄準不清；再按同一顆鈕只跳「冷卻中」。改成施放被拒收時，瞄準的是同一槽就結束瞄準（`UICommandSystem`，仍是 `state.aim` 唯一寫入處）；`PlayHUD.pressSlot` 拒收時若按的是瞄準中的那一顆，先送 `SET_AIM null`。
+- #3 滑鼠 chord：同一個滑鼠已按著一顆鍵時再按或放另一顆，瀏覽器只發 `pointermove`（`button` 是變化的那顆）。`useGameInput` 把按下、放開的手勢起止抽成 `beginGesture`／`endGesture`／`resetGesture`，`pointermove` 用 `tapIntent.mouseChordChange`（按鍵位元表只在 `tapIntent`）判斷：按下＝放棄目前手勢、照那顆鍵開始（左鍵照樣下令）；放開的是目前手勢的那顆＝照放開結束（右鍵點一下照樣取消瞄準），再由還按著的鍵接手、不下令。
+- 紅色驗收（主代理先寫）：`tests/PlayReviewFixes.test.ts` 4 則（#1、#2 各一則紅、一則防退化），紅在要驗的那一行；`PointerGesture.test.ts` 加 `mouseChordChange`、`heldMouseButtons` 3 則；`windows.e2e.mjs` 的 K3 桌機加 3 項（右鍵拖中按左鍵下一筆指令、放開右鍵後左鍵不拖不下令、左鍵按著時右鍵點一下取消瞄準），main 上 3 項全紅。
+- 驗證（`fix/k-final-review`，`C:\Git\_wt_k3_input`）：lint、`npm test` 182 檔 1683 則、build（進入點 256.9／257.5 kB）、knip、runtime-smoke、完整 `e2e:ui` 346 項過（另 3 項：chord 驗收本身的落點問題，改完後 `e2e:play` 連兩次 chord 三項都過；K4 點按、滑動是既有偶發，見下）。chord 驗收第一版把右鍵拖到開頭取的空地座標，前面拖過鏡頭（還會被畫面邊緣夾住），左鍵常落到地圖外：改成右鍵按著不拖、按之前重取空地。探針（`tools/ui-e2e/out/chord-probe.mjs`，不進版控）：右鍵按著時按左鍵，main 0/2 送出指令、分支 3/3；觸控點按分支 4/4。
+- e2e 偶發（main 本來就有）：同一資料夾只跑 `iphone-landscape` 交替 A/B 各 3 次，K4 單指點按／滑動 main 失敗 2 次、分支 0 次；失敗時放開那一刻原本的空地座標已經不在地圖上（`tapNow.hex` 是 null），是取目標後鏡頭又動了。K3「左鍵按下送移動」與「瞄準時點敵人」在 main 也偶發（主角倒下或點偏）。沒驗的：實機（HANDOFF §3）。
+- **回退**：`git revert` 這一輪的 commit。
