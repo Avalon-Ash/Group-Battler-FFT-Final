@@ -542,8 +542,6 @@ export class UICommandSystem {
             case 'ORDER_CAST': {
                 const agent = this.playerUnit(cmd.agentId);
                 if (!agent || !Number.isInteger(cmd.slot) || cmd.slot < 0 || cmd.slot >= agent.skillIds.length || agent.skillIds[cmd.slot] === null) break;
-                // ADR 0026：冷卻中或魔力不足在驗證時拒收（與 HUD 共用 playerCastRefusal），不寫入指令、不打斷前搖
-                if (this.engine.battleStarted && playerCastRefusal(agent, cmd.slot) !== null) break;
                 let order: Order;
                 if (cmd.targetId !== undefined) {
                     const target = this.engine.agents.find((a) => a.id === cmd.targetId);
@@ -555,6 +553,14 @@ export class UICommandSystem {
                     order = { type: 'CAST', slot: cmd.slot, q: cmd.q, r: cmd.r };
                 } else {
                     order = { type: 'CAST', slot: cmd.slot };
+                }
+                // ADR 0026：冷卻中或魔力不足在驗證時拒收（與 HUD 共用 playerCastRefusal），不寫入指令、不打斷前搖。
+                // 會重開這一招前搖的指令用取消後的狀態判斷（終審 #1）；拒收時瞄準這一槽的也一併結束，免得瞄準卡住（終審 #2）
+                const restartsWindup = agent.castingSkillIdx === cmd.slot && orderInterrupts(agent, order).cancelWindup;
+                if (this.engine.battleStarted && playerCastRefusal(agent, cmd.slot, restartsWindup) !== null) {
+                    const aim = this.engine.state.aim;
+                    if (aim?.agentId === agent.id && aim.slot === cmd.slot) this.engine.state.aim = null;
+                    break;
                 }
                 this.applyPlayerOrder(agent, order);
                 // 施放指令成立＝這次瞄準結束（ADR 0025：state.aim 只在這裡寫）

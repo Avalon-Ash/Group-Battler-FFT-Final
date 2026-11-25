@@ -1867,6 +1867,29 @@ const runPlayMouseChecks = async (page, tag) => {
             JSON.stringify(sent));
     }
 
+    // 終審 #3（11-25）：同一個滑鼠已按著一顆鍵時再按另一顆，瀏覽器只發 pointermove（沒有 pointerdown／pointerup）
+    // 右鍵按著時按左鍵：照樣下令；放開右鍵後還按著的左鍵不拖鏡頭、不再下令
+    // 右鍵按著不拖：拖了鏡頭會動（畫面邊緣還會被夾住），左鍵按下的位置就不一定在地圖上；chord 只看另一顆鍵按著，和有沒有拖無關。
+    // 前面拖過鏡頭，開頭取的空地座標已經不準：重取一次
+    const tc = await playScreenTargets(page);
+    if (!tc.ground) { ok(`PLAY ${tag} K3: an empty ground hex is on screen for the chord checks`, false, JSON.stringify(tc)); await page.keyboard.press(' '); return; }
+    await page.mouse.move(tc.ground.x, tc.ground.y);
+    await page.mouse.down({ button: 'right' });
+    await page.waitForTimeout(K3_SETTLE_MS);
+    await takeSent(page);
+    await page.mouse.down({ button: 'left' });
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const chordPress = await takeSent(page);
+    await page.mouse.up({ button: 'right' });
+    await page.mouse.move(tc.ground.x + K3_DRAG_PX, tc.ground.y + K3_DRAG_PX / 2, { steps: K3_DRAG_STEPS });
+    await page.mouse.up({ button: 'left' });
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const chordAfter = await takeSent(page);
+    ok(`PLAY ${tag} K3: pressing left while right is held still sends one order`,
+        chordPress.filter((c) => isOrder(c.type)).length === 1, JSON.stringify({ chordPress, ground: tc.ground }));
+    ok(`PLAY ${tag} K3: after releasing right, the held left button neither pans nor orders`,
+        !chordAfter.some((c) => c.type === 'CAMERA_PAN' || isOrder(c.type)), JSON.stringify(chordAfter));
+
     // 瞄準中：右鍵拖鏡頭不取消瞄準；右鍵點一下（沒拖）取消瞄準
     await page.keyboard.press(K3_AIM_KEY);
     await page.waitForTimeout(K3_SETTLE_MS);
@@ -1883,6 +1906,25 @@ const runPlayMouseChecks = async (page, tag) => {
     const rightClick = await takeSent(page);
     ok(`PLAY ${tag} K3: right-click without dragging cancels the aim and sends no order`,
         cancelled === null && !rightClick.some((c) => isOrder(c.type)), JSON.stringify({ cancelled, rightClick }));
+
+    // 終審 #3：左鍵按著（瞄準普攻、點在空地上不施放）時右鍵點一下，照樣取消瞄準
+    await page.keyboard.press(K3_AIM_KEY);
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const t2 = await playScreenTargets(page);
+    const chordAt = t2.ground ?? t.ground;
+    await page.mouse.move(chordAt.x, chordAt.y);
+    await page.mouse.down({ button: 'left' });
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const aimBeforeChord = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.up({ button: 'right' });
+    await page.waitForTimeout(K3_SETTLE_MS);
+    const aimAfterChord = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
+    await page.mouse.up({ button: 'left' });
+    await page.waitForTimeout(K3_SETTLE_MS);
+    ok(`PLAY ${tag} K3: a right click while the left button is held cancels the aim`,
+        aimBeforeChord?.slot === K3_AIM_SLOT && aimAfterChord === null, JSON.stringify({ aimBeforeChord, aimAfterChord, chordAt }));
+    await takeSent(page);
 
     await page.keyboard.press(' ');
     await page.waitForTimeout(K3_SETTLE_MS);

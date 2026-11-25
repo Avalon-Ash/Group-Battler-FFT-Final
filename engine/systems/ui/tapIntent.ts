@@ -38,6 +38,30 @@ export type SkillDropIntent =
 const MOUSE_BUTTON_LEFT = 0;
 const MOUSE_BUTTON_MIDDLE = 1;
 const MOUSE_BUTTON_RIGHT = 2;
+/** 按鍵編號對 PointerEvent.buttons 的位元（Pointer Events 規格：左 1、右 2、中 4），依左、右、中的順序 */
+const MOUSE_BUTTON_BITS: ReadonlyArray<readonly [button: number, bit: number]> = [
+    [MOUSE_BUTTON_LEFT, 1],
+    [MOUSE_BUTTON_RIGHT, 2],
+    [MOUSE_BUTTON_MIDDLE, 4],
+];
+/** pointermove 的 button：沒有按鍵變化 */
+const NO_BUTTON_CHANGE = -1;
+
+/**
+ * 同一個滑鼠已按著一顆鍵時再按或放另一顆（chord），瀏覽器只發 pointermove（button 是變化的那一顆），
+ * 不發 pointerdown／pointerup（K1～K4 終審 #3）。回傳這次是按下還是放開；沒有按鍵變化或不是滑鼠回傳 null。
+ */
+export function mouseChordChange(pointerType: string, button: number, buttons: number): 'PRESS' | 'RELEASE' | null {
+    if (pointerType !== 'mouse' || button === NO_BUTTON_CHANGE) return null;
+    const bit = MOUSE_BUTTON_BITS.find(([b]) => b === button)?.[1];
+    if (bit === undefined) return null;
+    return (buttons & bit) !== 0 ? 'PRESS' : 'RELEASE';
+}
+
+/** buttons 位元裡還按著的滑鼠鍵（按鍵編號，左、右、中的順序） */
+export function heldMouseButtons(buttons: number): number[] {
+    return MOUSE_BUTTON_BITS.filter(([, bit]) => (buttons & bit) !== 0).map(([b]) => b);
+}
 
 /**
  * 這個指標的這一顆鍵按下要做什麼（ADR 0026 K3、K4）：

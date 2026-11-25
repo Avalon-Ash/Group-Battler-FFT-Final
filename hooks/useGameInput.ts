@@ -26,7 +26,7 @@ import {
     queryWorldAtScreenPoint,
 } from '../engine/systems/ui/editorQueries';
 import { pickAgentAt } from './pickAgentAt';
-import { pointerGesture, multiPointerGesture, resolveTap, resolveQuickCast, resolveSkillDrop, hoverHexOf, type PointerGesture, type SkillDropIntent, type TapIntent } from '../engine/systems/ui/tapIntent';
+import { pointerGesture, multiPointerGesture, resolveTap, resolveQuickCast, resolveSkillDrop, hoverHexOf, type PointerGesture, type SkillDropIntent, type TapIntent, mouseChordChange, heldMouseButtons } from '../engine/systems/ui/tapIntent';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
 export interface DraggedObstacle {
@@ -68,12 +68,17 @@ export interface PlayPointerPort {
     dropSkill(slot: number, p: PointerSample): SkillDropIntent;
 }
 
+/** activeButtonRef 的「沒有手勢」（PointerEvent.button 不會是負數） */
+const NO_ACTIVE_BUTTON = -1;
+
 export const useGameInput = (props: GameInputProps) => {
     const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent, onSelect, playPointerRef } = props;
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
     const [draggedObstacle, setDraggedObstacle] = useState<DraggedObstacle | null>(null);
     const interactionMode = useRef<InteractionMode>('IDLE');
     const activeGestureRef = useRef<PointerGesture>('IGNORE');
+    /** 目前手勢是哪一顆滑鼠鍵開始的（chord 放開時判斷是不是它，終審 #3）；NO_ACTIVE_BUTTON＝沒有手勢 */
+    const activeButtonRef = useRef<number>(NO_ACTIVE_BUTTON);
     const lastPointerPos = useRef<{x: number, y: number} | null>(null);
     const pressStartPos = useRef<{x: number, y: number} | null>(null);
     const lastPaintHex = useRef<string>("");
@@ -155,6 +160,13 @@ export const useGameInput = (props: GameInputProps) => {
         const gesture = pointerGesture(Boolean(engine.matchFlow?.isPlay), e.pointerType, e.button);
         // 不處理的鍵不 capture，在畫布外放開時收不到 pointerup：不記進 activePointers，否則懸停格會停更新
         if (gesture === 'IGNORE') { activePointers.current.delete(e.pointerId); return; }
+        beginGesture(e, gesture, e.button, true);
+    };
+    /**
+     * 一顆鍵（或一根指標）開始一個手勢。allowOrder＝false：只接手按著的狀態、不下令
+     * （滑鼠 chord 放開另一顆鍵後，還按著的那一顆，終審 #3）。
+     */
+    const beginGesture = (e: PointerEvent, gesture: PointerGesture, button: number, allowOrder: boolean) => {
         const cvs = canvasRef.current;
         if (!cvs) return;
         if (gesture === 'CAMERA') e.preventDefault();
@@ -165,6 +177,7 @@ export const useGameInput = (props: GameInputProps) => {
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
         activeGestureRef.current = gesture;
+        activeButtonRef.current = button;
         cvs.setPointerCapture(e.pointerId);
 
         if (gesture === 'CAMERA' || gesture === 'CAMERA_OR_CANCEL') {
@@ -183,7 +196,7 @@ export const useGameInput = (props: GameInputProps) => {
 
         if (gesture === 'ORDER_ON_DOWN') {
             trackHover(e);
-            dispatchTapIntent(resolveTap(engine, configRef.current.selectedAgent, h, agent ?? null));
+            if (allowOrder) dispatchTapIntent(resolveTap(engine, configRef.current.selectedAgent, h, agent ?? null));
             interactionMode.current = 'ORDERED';
             return;
         }
@@ -205,6 +218,8 @@ export const useGameInput = (props: GameInputProps) => {
         if (!cvs) return;
         const prev = activePointers.current.get(e.pointerId);
         if (prev) activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const chord = mouseChordChange(e.pointerType, e.button, e.buttons);
+        if (chord !== null) { handleMouseChord(e, chord); return; }
         if (interactionMode.current === 'TWO_FINGER_PAN') {
             if (activePointers.current.size === 2 && prev) {
                 const dx = (e.clientX - prev.x) / 2;
@@ -297,8 +312,13 @@ export const useGameInput = (props: GameInputProps) => {
         if (e.pointerType === 'touch') { hoveredHexRef.current = null; lastHoverPointerRef.current = null; }
         const cvs = canvasRef.current;
         if (!cvs) return;
+        endGesture(e, e.type === 'pointerup');
+        if (cvs.hasPointerCapture?.(e.pointerId)) cvs.releasePointerCapture(e.pointerId);
+    };
+    /** 結束目前的手勢（released＝真的放開，pointercancel 傳 false：不下令、不取消瞄準），回到 IDLE */
+    const endGesture = (e: PointerEvent, released: boolean) => {
         if (interactionMode.current === 'ORDER_UP') {
-            if (e.type === 'pointerup') {
+            if (released) {
                 const h = getHexFromEvent(e.clientX, e.clientY);
                 const agent = getAgentFromEvent(e, h) ?? null;
                 dispatchTapIntent(resolveTap(engine, configRef.current.selectedAgent, h, agent));
@@ -315,7 +335,7 @@ export const useGameInput = (props: GameInputProps) => {
             }
         }
         else if (interactionMode.current === 'CAMERA_DOWN') {
-            if (e.type === 'pointerup' && activeGestureRef.current === 'CAMERA_OR_CANCEL' && engine.state.aim !== null) {
+            if (released && activeGestureRef.current === 'CAMERA_OR_CANCEL' && engine.state.aim !== null) {
                 engine.bus.emit('UI_COMMAND', { type: 'SET_AIM', aim: null });
             }
         }
@@ -353,12 +373,39 @@ export const useGameInput = (props: GameInputProps) => {
                 });
             }
         }
+        resetGesture();
+    };
+    const resetGesture = () => {
         interactionMode.current = 'IDLE';
         activeGestureRef.current = 'IGNORE';
+        activeButtonRef.current = NO_ACTIVE_BUTTON;
         pressedAgentRef.current = null; setPressedAgent(null);
         draggedObstacleRef.current = null; setDraggedObstacle(null);
-        cvs.style.cursor = 'default';
-        if (cvs.hasPointerCapture?.(e.pointerId)) cvs.releasePointerCapture(e.pointerId);
+        const cvs = canvasRef.current;
+        if (cvs) cvs.style.cursor = 'default';
+    };
+    /**
+     * 同一個滑鼠再按或放另一顆鍵（chord，只有 pointermove，終審 #3）：
+     * 按下＝放棄目前的手勢、照那顆鍵開始新的（左鍵照樣下令）；
+     * 放開的是目前手勢的那顆＝照放開結束它（右鍵點一下照樣取消瞄準），再由還按著的鍵接手（不下令）。
+     */
+    const handleMouseChord = (e: PointerEvent, chord: 'PRESS' | 'RELEASE') => {
+        const isPlay = Boolean(engine.matchFlow?.isPlay);
+        if (chord === 'PRESS') {
+            const gesture = pointerGesture(isPlay, e.pointerType, e.button);
+            if (gesture === 'IGNORE') return;
+            resetGesture();
+            activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            beginGesture(e, gesture, e.button, true);
+            return;
+        }
+        if (e.button !== activeButtonRef.current) return;
+        endGesture(e, true);
+        const next = heldMouseButtons(e.buttons)
+            .map((button) => ({ button, gesture: pointerGesture(isPlay, e.pointerType, button) }))
+            .find((g) => g.gesture !== 'IGNORE');
+        if (next) beginGesture(e, next.gesture, next.button, false);
+        else activePointers.current.delete(e.pointerId);
     };
     const executePaintAction = (h: Hex) => {
         const { tool, winner, selectedObstacle, spawnMode, draftRole, draftBodyType, hpInput } = configRef.current;

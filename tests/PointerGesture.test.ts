@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import type { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/core/Agent';
 import type { Hex } from '../types';
-import { pointerGesture, multiPointerGesture, resolveQuickCast, resolveSkillDrop, resolveTap } from '../engine/systems/ui/tapIntent';
+import { pointerGesture, multiPointerGesture, mouseChordChange, heldMouseButtons, resolveQuickCast, resolveSkillDrop, resolveTap } from '../engine/systems/ui/tapIntent';
 import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
 import { buildBattle, emit } from './contracts/simState';
 
@@ -30,6 +30,31 @@ describe('pointerGesture：哪個指標、哪個鍵做什麼', () => {
         expect(pointerGesture(false, 'mouse', MIDDLE)).toBe('IGNORE');
         expect(pointerGesture(false, 'mouse', RIGHT)).toBe('IGNORE');
         expect(pointerGesture(false, 'touch', LEFT)).toBe('TAP_ON_UP');
+    });
+});
+
+/** PointerEvent.buttons 的位元（Pointer Events 規格：左 1、右 2、中 4） */
+const BITS = { LEFT: 1, RIGHT: 2, MIDDLE: 4 } as const;
+/** pointermove 沒有按鍵變化時 button 是 -1 */
+const NO_CHANGE = -1;
+
+describe('mouseChordChange：同一個滑鼠再按／放另一顆鍵（終審 #3）', () => {
+    it('pointermove 帶著變化的那顆鍵：在 buttons 裡＝按下，不在＝放開', () => {
+        expect(mouseChordChange('mouse', LEFT, BITS.RIGHT | BITS.LEFT)).toBe('PRESS');
+        expect(mouseChordChange('mouse', RIGHT, BITS.LEFT)).toBe('RELEASE');
+        expect(mouseChordChange('mouse', MIDDLE, BITS.LEFT | BITS.MIDDLE)).toBe('PRESS');
+    });
+
+    it('沒有按鍵變化、或不是滑鼠：不是 chord', () => {
+        expect(mouseChordChange('mouse', NO_CHANGE, BITS.LEFT)).toBeNull();
+        expect(mouseChordChange('touch', LEFT, BITS.LEFT)).toBeNull();
+        expect(mouseChordChange('pen', LEFT, BITS.LEFT)).toBeNull();
+    });
+
+    it('heldMouseButtons：buttons 位元換回按鍵編號（左、右、中的順序）', () => {
+        expect(heldMouseButtons(0)).toEqual([]);
+        expect(heldMouseButtons(BITS.LEFT | BITS.MIDDLE)).toEqual([LEFT, MIDDLE]);
+        expect(heldMouseButtons(BITS.RIGHT | BITS.LEFT)).toEqual([LEFT, RIGHT]);
     });
 });
 

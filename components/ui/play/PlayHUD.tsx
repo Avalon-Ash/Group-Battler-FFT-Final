@@ -95,6 +95,8 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, playPointerRef 
         const b = barRef.current;
         if (!b || !b.alive) return;
         if (slot.refusal !== null) {
+            // 瞄準中的那一槽放不了了（冷卻、魔力）：再按一次照樣結束瞄準，不讓瞄準卡住（終審 #2）
+            if (b.aimSlot === slot.slot) send({ type: 'SET_AIM', aim: null });
             showCastBlock(slot.name, slot.refusal);
             return;
         }

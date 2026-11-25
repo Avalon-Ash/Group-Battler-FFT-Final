@@ -44,11 +44,13 @@ function drainsManaDuringWindup(skill: Skill): boolean {
     return skill.tag === 'ULT';
 }
 
-/** 冷卻或魔力不足的單一判斷（activationBlock 與 playerCastRefusal 共用，不另寫一份）。 */
-function resourceBlock(a: Agent, idx: number): 'COOLDOWN' | 'MANA' | null {
+/**
+ * 冷卻或魔力不足的單一判斷（activationBlock 與 playerCastRefusal 共用，不另寫一份）。
+ * isThisWindup：這一招正在前搖、而且會接著放下去（重開前搖的指令傳 false，照沒在前搖判斷）。
+ */
+function resourceBlock(a: Agent, idx: number, isThisWindup: boolean = a.castingSkillIdx === idx): 'COOLDOWN' | 'MANA' | null {
     const skill = a.skills[idx];
     if (!skill) return null;
-    const isThisWindup = a.castingSkillIdx === idx;
     if (!isThisWindup) {
         const tolerance = skill.tag === 'BASIC' ? COMBAT_PARAM.BASIC_CD_TOLERANCE : COMBAT_PARAM.SKILL_CD_TOLERANCE;
         if ((a.curCDs[idx] || 0) > tolerance) return 'COOLDOWN';
@@ -60,9 +62,11 @@ function resourceBlock(a: Agent, idx: number): 'COOLDOWN' | 'MANA' | null {
 /**
  * 玩家施放指令要不要拒收、HUD 技能鈕要不要變暗（ADR 0026；UICommandSystem 與 HUD 檢視共用）：
  * 冷卻中、魔力不足拒收；普攻的冷卻只是攻擊間隔（和 MOBA 一樣不拒收攻擊指令），不算。
+ * restartsWindup：這道指令會取消這一招正在進行的前搖再重開（例如奧義詠唱中換目標）：
+ * 已扣的魔力不退，所以照取消後的狀態判斷（K1～K4 終審 #1）。
  */
-export function playerCastRefusal(a: Agent, idx: number): 'COOLDOWN' | 'MANA' | null {
-    const res = resourceBlock(a, idx);
+export function playerCastRefusal(a: Agent, idx: number, restartsWindup: boolean = false): 'COOLDOWN' | 'MANA' | null {
+    const res = resourceBlock(a, idx, a.castingSkillIdx === idx && !restartsWindup);
     return res === 'COOLDOWN' && a.skills[idx]?.tag === 'BASIC' ? null : res;
 }
 
