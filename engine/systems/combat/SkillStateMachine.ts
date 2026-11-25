@@ -1,8 +1,8 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  SkillStateMachine — 技能槽的狀態機                      ║
 // ║  職責：回答「這招現在能不能放、為什麼不能」（activationBlock）║
-// ║        並且是施法狀態欄位的唯一寫入處（前搖開始、結束、   ║
-// ║        主動取消、扣魔進冷卻、被打斷的懲罰）。             ║
+// ║        並且是施法狀態欄位的唯一寫入處（前搖開始、推進與   ║
+// ║        奧義逐步扣魔、結束、主動取消、結算進冷卻、打斷懲罰）║
 // ║  [ARCH] 狀態機管「這招做到哪」；AI_MODE_GRAPH 管「單位想  ║
 // ║  做什麼」。AI 只問 activationBlock 和呼叫施放，不直接判斷  ║
 // ║  冷卻、魔力或控制。階段由 castingSkillIdx 與 curCDs 推導，║
@@ -39,15 +39,21 @@ export function skillPhase(a: Agent, idx: number): SkillPhase {
 
 export type ActivationBlock = 'NO_SKILL' | 'DEAD' | 'CONTROLLED' | 'SILENCED' | 'ROOTED' | 'BUSY' | 'RECOVERY' | 'COOLDOWN' | 'MANA';
 
+/** 這招是不是在前搖中逐步扣魔（ADR 0026：奧義；扣魔、結算與魔力檢查共用這一個判斷）。 */
+function drainsManaDuringWindup(skill: Skill): boolean {
+    return skill.tag === 'ULT';
+}
+
 /** 冷卻或魔力不足的單一判斷（activationBlock 與 playerCastRefusal 共用，不另寫一份）。 */
 function resourceBlock(a: Agent, idx: number): 'COOLDOWN' | 'MANA' | null {
     const skill = a.skills[idx];
     if (!skill) return null;
-    if (a.castingSkillIdx !== idx) {
+    const isThisWindup = a.castingSkillIdx === idx;
+    if (!isThisWindup) {
         const tolerance = skill.tag === 'BASIC' ? COMBAT_PARAM.BASIC_CD_TOLERANCE : COMBAT_PARAM.SKILL_CD_TOLERANCE;
         if ((a.curCDs[idx] || 0) > tolerance) return 'COOLDOWN';
     }
-    if (a.mp < skill.cost) return 'MANA';
+    if (!(isThisWindup && drainsManaDuringWindup(skill)) && a.mp < skill.cost) return 'MANA';
     return null;
 }
 
@@ -76,24 +82,35 @@ export function activationBlock(a: Agent, idx: number): ActivationBlock | null {
     return null;
 }
 
+/** 前搖有效時長（起手計時與逐步扣魔共用同一算式）。 */
+function windupDuration(skill: Skill): number {
+    return Math.max(skill.cast, CAST_RULES.MIN_CAST_DURATION);
+}
+
 /** 前搖開始 */
 export function beginWindup(a: Agent, idx: number, skill: Skill): void {
-    const duration = Math.max(skill.cast, CAST_RULES.MIN_CAST_DURATION);
+    const duration = windupDuration(skill);
     a.castingSkillIdx = idx;
     a.castTimer = duration;
     a.castingAnimationTimer = duration;
 }
 
-/** 前搖推進；回傳前搖是否走完 */
+/** 前搖推進（逐步扣魔技能依本 tick 實際走掉的時間扣魔，扣到 0 為止）；回傳前搖是否走完 */
 export function advanceWindup(a: Agent, dt: number): boolean {
+    const skill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
+    if (skill && drainsManaDuringWindup(skill) && skill.cost > 0) {
+        const elapsed = Math.max(0, Math.min(dt, a.castTimer));
+        a.mp = Math.max(0, a.mp - (skill.cost * elapsed) / windupDuration(skill));
+    }
     a.castTimer -= dt;
     if (a.castingAnimationTimer > 0) a.castingAnimationTimer -= dt;
     return a.castTimer <= 0;
 }
 
-/** 前搖走完：扣魔、回魔、進冷卻 */
+/** 前搖走完：非逐步扣魔技能一次扣魔，所有技能照舊回魔（gain）並進冷卻 */
 export function commitSkill(a: Agent, idx: number, skill: Skill): void {
-    a.mp = Math.min(a.maxMp, Math.max(0, a.mp - skill.cost + skill.gain));
+    const cost = drainsManaDuringWindup(skill) ? 0 : skill.cost;
+    a.mp = Math.min(a.maxMp, Math.max(0, a.mp - cost + skill.gain));
     // BASIC attacks do not have a mandatory 0.3s floor CD
     const minCd = skill.tag === 'BASIC' ? CAST_RULES.MIN_BASIC_RETRY_CD : CAST_RULES.MIN_SKILL_RETRY_CD;
     a.curCDs[idx] = Math.max(skill.cd ?? 0, minCd);
@@ -121,7 +138,7 @@ export function endWindup(a: Agent, completed: boolean): void {
     a.castTarget = null;
 }
 
-/** 玩家主動取消前搖（ADR 0026，WINDUP → READY on CANCEL）：不進冷卻、不設中斷鎖定、不扣魔、不寫被打斷紀錄。 */
+/** 玩家主動取消前搖（ADR 0026，WINDUP → READY on CANCEL）：不進冷卻、不設中斷鎖定、不寫被打斷紀錄；非奧義不扣魔，奧義在前搖中已逐步扣掉的魔力不退。 */
 export function cancelWindup(a: Agent): boolean {
     if (a.castingSkillIdx === -1) return false;
     endWindup(a, false);

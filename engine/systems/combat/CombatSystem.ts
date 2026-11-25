@@ -82,7 +82,7 @@ export class CombatSystem {
     }
 
     /**
-     * 玩家自己取消前搖（ADR 0026）：走狀態機的 CANCEL 邊（不進冷卻、不設鎖定、不扣魔）；
+     * 玩家自己取消前搖（ADR 0026）：走狀態機的 CANCEL 邊（不進冷卻、不設鎖定；非奧義不扣魔，奧義已逐步扣掉的魔力不退）；
      * 有發過 CAST_START 的招再發 CAST_CANCEL，讓詠唱字與詠唱序列收掉（不演「被打斷」）。
      */
     public cancelCast(a: Agent, engine: GameEngine): void {
