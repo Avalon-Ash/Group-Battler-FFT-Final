@@ -1039,3 +1039,10 @@
 - e2e 前提加固（主代理，`8642ed11`、`b1db24f9`，斷言不變）：敵人只選腳下 56 px 內沒有別的單位的、點腳下往上 12 世界 px（腳下在身體框下緣，會落到上一格空地：HANDOFF D「瞄準時點敵人沒送出指令」的來源之一）、取目標前等鏡頭停下、空地與滑動起點要在畫布上；觸控檢查移到 HUD 出現後立刻做（主角較晚會先倒下）、開頭清掉殘留瞄準、結束時交還導播縮放；「瞄準時點敵人」改比點擊前後的施放筆數。修前完整跑偶發 2～4 項，修後 iPhone `e2e:play` 連兩次、完整 `e2e:ui` 一次全過。一次直向技能鈕拖放沒送出施放（留在瞄準），原因未明，加診斷後沒再出現。
 - 驗證（`integ/k4-touch`，主資料夾）：lint、`npm test` 181 檔 1675 則、build（進入點 256.4／257.5 kB）、knip、`balance:fingerprint`、runtime-smoke、完整 `e2e:ui` 346 項全過。沒驗的：iPhone 實機；拒收槽不能拖、SELF、觸控筆、非 PLAY 觸控只有讀碼與單元測試。
 - **回退**：`git revert 302b64e6`（e2e 前提加固的兩個 commit 可留著）。
+
+### DK. 2026-11-25 K4 後續：PLAY 連點不重設縮放、非 PLAY 右／中鍵拖出畫布後游標格停更新（主代理 Opus；使用者：PLAY 關掉雙擊重設、直接 commit 到 main）
+- 部署：`73b8956b` 的 Pages 第一次就成功（run 45634376593）。11-24 拆成 build、deploy 兩個 job 後 push 6 次，deploy 步驟 5/5 第一次成功，唯一失敗是 build job 的進入點預算（DF）。
+- 游標格（`hooks/useGameInput.ts`）：`handlePointerDown` 先把指標記進 `activePointers` 才判斷 `IGNORE` 就 return；這種指標沒有 capture，在畫布外放開時畫布收不到 `pointerup`，那筆紀錄留著，K4 加的提早 return（`IDLE` 且有按著的指標）就一直擋掉懸停。改成 `IGNORE` 不記（從根源修，不加指標類型判斷）。探針（`tools/ui-e2e/out/hover-stale-probe.mjs`，不進版控；非 PLAY、右鍵與中鍵各一次：畫布上按下、拖到按鈕上放開、回畫布掃 9 點數游標格非 null）：修前 0/9、0/9，修後 9/9、9/9；不按鍵移出移回的對照 7/9～9/9（展示鏡頭會動，部分點落到地圖外）。沒處理的邊角：已有觸控按著時再按 `IGNORE` 的滑鼠鍵，仍走多指標分支、沒有 capture。
+- 雙擊／雙點重設縮放（`hooks/useCameraControl.ts`）：PLAY 模式連點是連續下令，`dblclick` 與觸控雙點不再交還導播（`tapResetsZoom`，讀 `engine.matchFlow.isPlay`）；手動、展示模式照舊。`tests/CameraInput.test.ts` 加一則（真的 `MatchFlowSystem.startPlay`），拿掉判斷時會紅（2 次重設）。
+- 驗證（主資料夾）：lint、`npm test` 181 檔 1676 則、build（進入點 256.5／257.5 kB）、runtime-smoke、完整 `e2e:ui` 全過。沒驗的：實機（HANDOFF §3）。
+- **回退**：`git revert` 這個 commit。

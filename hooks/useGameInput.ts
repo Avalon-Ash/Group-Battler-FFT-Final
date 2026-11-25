@@ -153,7 +153,8 @@ export const useGameInput = (props: GameInputProps) => {
             return;
         }
         const gesture = pointerGesture(Boolean(engine.matchFlow?.isPlay), e.pointerType, e.button);
-        if (gesture === 'IGNORE') return;
+        // 不處理的鍵不 capture，在畫布外放開時收不到 pointerup：不記進 activePointers，否則懸停格會停更新
+        if (gesture === 'IGNORE') { activePointers.current.delete(e.pointerId); return; }
         const cvs = canvasRef.current;
         if (!cvs) return;
         if (gesture === 'CAMERA') e.preventDefault();

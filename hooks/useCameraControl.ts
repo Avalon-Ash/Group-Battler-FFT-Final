@@ -15,7 +15,7 @@ export function wheelZoomFactor(deltaY: number, deltaMode: number): number {
     return Math.exp(-pixels * Math.log(config.wheelFactor) / config.wheelPixels);
 }
 
-/** 手動縮放持續保留；雙擊／短距離雙點交還導播。 */
+/** 手動縮放持續保留；雙擊／短距離雙點交還導播（PLAY 模式不做：連點是下令，ADR 0026）。 */
 export const useCameraControl = ({ canvasRef, onZoom, engine }: CameraControlProps) => {
     const lastPinchDist = useRef(0);
 
@@ -25,7 +25,10 @@ export const useCameraControl = ({ canvasRef, onZoom, engine }: CameraControlPro
         const config = UI_SETTINGS.CAMERA_ZOOM;
         let tap: { x: number; y: number; time: number } | null = null;
         let lastTap: { x: number; y: number; time: number } | null = null;
+        // PLAY 模式連點兩下是連續下令，不交還導播；縮放用滾輪／捏合自己調
+        const tapResetsZoom = () => !engine.matchFlow?.isPlay;
         const resetZoom = () => engine.bus.emit('UI_COMMAND', { type: 'CAMERA_RESET_ZOOM' });
+        const onDblClick = () => { if (tapResetsZoom()) resetZoom(); };
         const onWheel = (e: WheelEvent) => {
             e.preventDefault();
             if (e.deltaY !== 0) onZoom(wheelZoomFactor(e.deltaY, e.deltaMode));
@@ -61,7 +64,7 @@ export const useCameraControl = ({ canvasRef, onZoom, engine }: CameraControlPro
                 const t = e.changedTouches[0];
                 if (e.timeStamp - tap.time <= config.tapMaxMs &&
                     Math.hypot(t.clientX - tap.x, t.clientY - tap.y) <= config.tapDistance) {
-                    if (lastTap && e.timeStamp - lastTap.time <= config.doubleTapMs &&
+                    if (tapResetsZoom() && lastTap && e.timeStamp - lastTap.time <= config.doubleTapMs &&
                         Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) <= config.tapDistance) {
                         e.preventDefault();
                         resetZoom();
@@ -73,14 +76,14 @@ export const useCameraControl = ({ canvasRef, onZoom, engine }: CameraControlPro
         };
         const onTouchCancel = () => { tap = lastTap = null; lastPinchDist.current = 0; };
         cvs.addEventListener('wheel', onWheel, { passive: false });
-        cvs.addEventListener('dblclick', resetZoom);
+        cvs.addEventListener('dblclick', onDblClick);
         cvs.addEventListener('touchstart', onTouchStart, { passive: false });
         cvs.addEventListener('touchmove', onTouchMove, { passive: false });
         cvs.addEventListener('touchend', onTouchEnd, { passive: false });
         cvs.addEventListener('touchcancel', onTouchCancel);
         return () => {
             cvs.removeEventListener('wheel', onWheel);
-            cvs.removeEventListener('dblclick', resetZoom);
+            cvs.removeEventListener('dblclick', onDblClick);
             cvs.removeEventListener('touchstart', onTouchStart);
             cvs.removeEventListener('touchmove', onTouchMove);
             cvs.removeEventListener('touchend', onTouchEnd);

@@ -5,6 +5,8 @@ import { GameRenderer } from '../engine/renderer';
 import { UI_SETTINGS } from '../constants';
 import { useCameraControl, wheelZoomFactor } from '../hooks/useCameraControl';
 import { useGameCamera } from '../hooks/useGameCamera';
+import { MatchFlowSystem } from '../engine/systems/match/MatchFlowSystem';
+import { Role } from '../types';
 
 const lifecycle = vi.hoisted(() => ({ cleanups: [] as Array<() => void> }));
 vi.mock('react', () => ({
@@ -57,6 +59,31 @@ describe('R6 zoom inputs', () => {
         expect(emit).toHaveBeenLastCalledWith('UI_COMMAND', { type: 'CAMERA_RESET_ZOOM' });
         canvas.dispatchEvent(new Event('dblclick'));
         expect(emit.mock.calls.filter(c => c[1] && 'type' in c[1] && c[1].type === 'CAMERA_RESET_ZOOM')).toHaveLength(2);
+        engine.stop();
+    });
+
+    it('PLAY mode: double click / double tap are orders, not a zoom reset (ADR 0026)', () => {
+        const engine = new GameEngine({ audio: false });
+        let seed = 900;
+        const flow = new MatchFlowSystem(engine, { isRosterReady: () => true, nextSeed: () => seed++ });
+        engine.matchFlow = flow;
+        flow.startPlay({ role: Role.SUPPORT });
+        expect(flow.isPlay).toBe(true);
+        const canvas = new EventTarget();
+        const emit = vi.spyOn(engine.bus, 'emit');
+        useCameraControl({ canvasRef: { current: canvas } as MutableRefObject<HTMLCanvasElement | null>, onZoom: vi.fn(), engine });
+        const touch = (type: string, touches: { clientX: number; clientY: number }[], time: number, changedTouches = touches) => {
+            const event = new Event(type, { cancelable: true });
+            Object.defineProperties(event, { touches: { value: touches }, changedTouches: { value: changedTouches }, timeStamp: { value: time } });
+            canvas.dispatchEvent(event);
+        };
+        const finger = [{ clientX: 20, clientY: 20 }];
+        touch('touchstart', finger, 100);
+        touch('touchend', [], 150, finger);
+        touch('touchstart', finger, 200);
+        touch('touchend', [], 250, finger);
+        canvas.dispatchEvent(new Event('dblclick'));
+        expect(emit.mock.calls.filter(c => c[1] && 'type' in c[1] && c[1].type === 'CAMERA_RESET_ZOOM')).toHaveLength(0);
         engine.stop();
     });
 
