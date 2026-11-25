@@ -40,7 +40,13 @@
       "command(npx vitest run tests/PlayerOrderInterrupt.test.ts)",
       "command(npx vitest run tests/PlayerOrders.test.ts)",
       "command(npx vitest run tests/contracts/G3.contract.test.ts)",
-      "command(npx vitest run tests/TapIntent.test.ts)"
+      "command(npx vitest run tests/TapIntent.test.ts)",
+      "command(npx vitest run tests/UltManaDrain.test.ts)",
+      "command(npx vitest run tests/PointerGesture.test.ts)",
+      "command(npx vitest run tests/SkillStateMachine.test.ts)",
+      "command(npx vitest run tests/CastingDeathInterruption.test.ts)",
+      "command(npm run e2e:play)",
+      "command(node tools/balance/sim-fingerprint.mjs --battles=60)"
     ]
   }
 }

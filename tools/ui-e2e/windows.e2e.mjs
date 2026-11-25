@@ -1862,7 +1862,10 @@ const runPlaySuite = async () => {
     }
 };
 
-const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
+// 只跑某幾組：E2E_ONLY=play,editor，或 --only=play（npm run e2e:play；允許清單只收確切指令，不收環境變數前綴）
+const onlyArg = process.argv.find((a) => a.startsWith('--only='))?.slice('--only='.length);
+const onlySpec = onlyArg ?? process.env.E2E_ONLY;
+const filterOnly = onlySpec ? onlySpec.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
 try {

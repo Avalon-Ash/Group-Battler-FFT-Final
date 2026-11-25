@@ -1,7 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import GameCanvas from './components/GameCanvas';
 import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
-import { PlaybackHUD } from './components/ui/PlaybackHUD';
 import { SystemMenu } from './components/ui/SystemMenu';
 import { WindowLayer } from './components/ui/window/WindowLayer';
 import { RegisteredWindows } from './components/ui/window/windowRegistry';
@@ -17,6 +16,8 @@ const PlayResult = lazy(() => import('./components/ui/play/PlayResult').then((m)
 const PlayHUD = lazy(() => import('./components/ui/play/PlayHUD').then((m) => ({ default: m.PlayHUD })));
 // 地圖編輯工具列只在手動模式（HUD 開著）出現，首屏的展示模式用不到；延遲載入讓出進入點預算（WORKLOG §2 DF）
 const MapEditorToolbar = lazy(() => import('./components/ui/MapEditorToolbar').then((m) => ({ default: m.MapEditorToolbar })));
+// 播放列在展示模式與 PLAY 模式是隱藏的（hidden），首屏用不到；一樣延遲載入讓出進入點預算（ADR 0026 K3 前置）
+const PlaybackHUD = lazy(() => import('./components/ui/PlaybackHUD').then((m) => ({ default: m.PlaybackHUD })));
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
@@ -88,15 +89,17 @@ function App() {
         )}
       </Suspense>
 
-      <PlaybackHUD 
-          hidden={hideHUD}
-          isPlaying={state.isPlaying}
-          winner={state.winner}
-          onTogglePlay={actions.togglePlay}
-          onRestart={actions.handleReset}
-          onRandom={actions.handleRandomBattlefield} 
-          onShowcase={actions.startShowcase}
-      />
+      <Suspense fallback={null}>
+        <PlaybackHUD
+            hidden={hideHUD}
+            isPlaying={state.isPlaying}
+            winner={state.winner}
+            onTogglePlay={actions.togglePlay}
+            onRestart={actions.handleReset}
+            onRandom={actions.handleRandomBattlefield}
+            onShowcase={actions.startShowcase}
+        />
+      </Suspense>
       {/* 有勝方就收起選單：手動模式的結算畫面，以及展示模式從分出勝負到下一局開打之間 */}
       {state.winner === null && (
           <SystemMenu 
