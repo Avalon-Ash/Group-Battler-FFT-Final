@@ -1764,7 +1764,28 @@ const takeSent = (page) => page.evaluate(() => { const s = window.__k3Sent ?? []
 const K3_PAN_MARGIN = 80;
 /** 左鍵點的空地離所有單位至少這麼多格（單位的身體框會蓋到上方幾格，點到就變成點單位） */
 const K3_GROUND_CLEAR_HEX = 3;
-const playScreenTargets = (page) => page.evaluate(({ panMargin, groundClear }) => {
+/** 選來點的敵人，腳下的點離其他活著的單位至少這麼遠（螢幕 px）：重疊時會點到前面那一個（UnitPick 取 sortY 大者） */
+const K3_FOE_CLEAR_PX = 56;
+/** 暫停後鏡頭還會緩動一陣子：等到相鄰兩次取樣的位移與縮放都小於門檻才取目標（最多等 CAMERA_SETTLE_MAX_MS） */
+const CAMERA_SETTLE_EPS = 0.5;
+const CAMERA_SETTLE_POLL_MS = 100;
+const CAMERA_SETTLE_MAX_MS = 3000;
+const waitCameraSettled = async (page) => {
+    const camAt = () => page.evaluate(() => { const c = window.__TACTICAL_ENGINE__.renderer.camera; return { x: c.x, y: c.y, z: c.zoom }; });
+    let prev = await camAt();
+    for (let waited = 0; waited < CAMERA_SETTLE_MAX_MS; waited += CAMERA_SETTLE_POLL_MS) {
+        await page.waitForTimeout(CAMERA_SETTLE_POLL_MS);
+        const now = await camAt();
+        const moved = Math.max(Math.abs(now.x - prev.x), Math.abs(now.y - prev.y)) * now.z;
+        if (moved < CAMERA_SETTLE_EPS && Math.abs(now.z - prev.z) < CAMERA_SETTLE_EPS / 100) return;
+        prev = now;
+    }
+};
+const playScreenTargets = async (page) => {
+    await waitCameraSettled(page);
+    return playScreenTargetsNow(page);
+};
+const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, foeClear }) => {
     const e = window.__TACTICAL_ENGINE__;
     const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
     const canvas = document.querySelector('canvas');
@@ -1782,12 +1803,16 @@ const playScreenTargets = (page) => page.evaluate(({ panMargin, groundClear }) =
             }
         }
     }
-    const foe = e.agents.filter((a) => hero && a.side !== hero.side && a.hp > 0).map((a) => {
+    const screenOf = (a) => {
         const th = e.map?.getTerrainHeight ? e.map.getTerrainHeight(a.q, a.r) : 0;
-        return { id: a.id, x: rect.left + (a.px - cam.x) * cam.zoom + rect.width / 2, y: rect.top + (a.py - th - cam.y) * cam.zoom + rect.height / 2 };
-    }).find((p) => p.x > rect.left + 40 && p.x < rect.right - 40 && p.y > rect.top + 100 && p.y < rect.top + bottom) ?? null;
-    return { ground, foe, center: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + Math.min(rect.height / 2, bottom - panMargin)) } };
-}, { panMargin: K3_PAN_MARGIN, groundClear: K3_GROUND_CLEAR_HEX }).catch(() => ({ ground: null, foe: null, center: null }));
+        return { id: a.id, side: a.side, x: rect.left + (a.px - cam.x) * cam.zoom + rect.width / 2, y: rect.top + (a.py - th - cam.y) * cam.zoom + rect.height / 2 };
+    };
+    const living = e.agents.filter((a) => a.hp > 0).map(screenOf);
+    const foe = living.filter((p) => hero && p.side !== hero.side)
+        .filter((p) => p.x > rect.left + 40 && p.x < rect.right - 40 && p.y > rect.top + 100 && p.y < rect.top + bottom)
+        .find((p) => living.every((o) => o.id === p.id || Math.hypot(o.x - p.x, o.y - p.y) >= foeClear)) ?? null;
+    return { ground, foe: foe && { id: foe.id, x: foe.x, y: foe.y }, center: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + Math.min(rect.height / 2, bottom - panMargin)) } };
+}, { panMargin: K3_PAN_MARGIN, groundClear: K3_GROUND_CLEAR_HEX, foeClear: K3_FOE_CLEAR_PX }).catch(() => ({ ground: null, foe: null, center: null }));
 /** 主畫面進選主角畫面：入口鈕若還是模擬，先按交換鈕 */
 const openPlaySetup = async (page) => {
     if (await page.locator('[data-testid="showcase-play-btn"]').count() === 0) await page.click('[data-testid="showcase-mode-swap"]');
@@ -1952,8 +1977,13 @@ const runPlayTouchChecks = async (page, tag) => {
     };
     await page.keyboard.press(' ');
     await settle();
+    // 前面的流程（例如「an enemy is on screen to aim at」偶發失敗時）可能留下瞄準：瞄準中點空地本來就不下令，先清掉
+    await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_AIM', aim: null }));
+    await settle();
     await spyUiCommands(page);
     await recordCanvasPointers(page);
+    const heroHp = await page.evaluate(() => { const e = window.__TACTICAL_ENGINE__; return e.agents.find((a) => a.id === e.matchFlow.playHeroId)?.hp ?? 0; });
+    if (heroHp <= 0) { ok(`PLAY ${tag} K4: the hero is alive for the touch checks (probe check)`, false, String(heroHp)); await page.keyboard.press(' '); return; }
     const t = await playScreenTargets(page);
     if (!t.ground || !t.center) { ok(`PLAY ${tag} K4: an empty ground hex is on screen`, false, JSON.stringify(t)); await page.keyboard.press(' '); return; }
     const g = { x: t.ground.x, y: t.ground.y, id: 0 };
@@ -1966,8 +1996,17 @@ const runPlayTouchChecks = async (page, tag) => {
     await touchSend(cdp, 'touchEnd', []);
     await settle();
     const tapUp = await takeSent(page);
+    // 失敗時一併記下放開那一刻點下的格子、主角能不能接指令（區分「點偏」與「沒送指令」）
+    const tapNow = await page.evaluate((pt) => {
+        const e = window.__TACTICAL_ENGINE__;
+        const rect = document.querySelector('canvas').getBoundingClientRect();
+        const h = e.renderer.getHexAtScreenPoint(pt.x - rect.left, pt.y - rect.top, rect.width, rect.height, e.renderer.camera, e);
+        const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
+        const top = document.elementFromPoint(pt.x, pt.y);
+        return { hex: h && { q: h.q, r: h.r }, heroHp: hero?.hp, controller: hero?.controller, finishing: e.state.victory.isFinishing, top: top?.tagName + (top?.getAttribute('data-testid') ? `#${top.getAttribute('data-testid')}` : '') };
+    }, g);
     ok(`PLAY ${tag} K4: a one-finger tap sends one move order to the tapped hex on release`,
-        orders(tapHold).length === 0 && movedTo(tapUp, t.ground), JSON.stringify({ tapHold, tapUp, ground: t.ground }));
+        orders(tapHold).length === 0 && movedTo(tapUp, t.ground), JSON.stringify({ tapHold, tapUp, ground: t.ground, tapNow }));
     const ptr = await page.evaluate(() => window.__k4Ptr);
     ok(`PLAY ${tag} K4: the canvas receives touch pointers (probe check)`, ptr.types.includes('touch'), JSON.stringify(ptr));
 
@@ -2035,8 +2074,10 @@ const runPlayTouchChecks = async (page, tag) => {
         await page.evaluate(() => {
             const e = window.__TACTICAL_ENGINE__;
             const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
-            const foe = e.agents.filter((a) => hero && a.side !== hero.side && a.hp > 0)
-                .sort((a, b) => Math.hypot(a.px - hero.px, a.py - hero.py) - Math.hypot(b.px - hero.px, b.py - hero.py))[0];
+            // 選離其他單位最遠的敵人（playScreenTargets 只收沒被別人蓋住的敵人）
+            const living = e.agents.filter((a) => a.hp > 0);
+            const gap = (a) => Math.min(...living.filter((o) => o !== a).map((o) => Math.hypot(o.px - a.px, o.py - a.py)));
+            const foe = living.filter((a) => hero && a.side !== hero.side).sort((a, b) => gap(b) - gap(a))[0];
             if (!foe) return;
             const th = e.map?.getTerrainHeight ? e.map.getTerrainHeight(foe.q, foe.r) : 0;
             e.bus.emit('UI_COMMAND', { type: 'CAMERA_SNAP', x: foe.px, y: foe.py - th });
@@ -2059,11 +2100,20 @@ const runPlayTouchChecks = async (page, tag) => {
         await settle();
         const dropped = await takeSent(page);
         const afterDrop = await readAim(page);
+        // 失敗時記下放開點上方的元素、格子與那一格的單位、目標敵人現在的位置（區分「點偏」與「規則」）
+        const dropNow = await page.evaluate(({ pt, foeId }) => {
+            const e = window.__TACTICAL_ENGINE__;
+            const rect = document.querySelector('canvas').getBoundingClientRect();
+            const h = e.renderer.getHexAtScreenPoint(pt.x - rect.left, pt.y - rect.top, rect.width, rect.height, e.renderer.camera, e);
+            const top = document.elementFromPoint(pt.x, pt.y);
+            const f = e.agents.find((a) => a.id === foeId);
+            return { top: top?.tagName + (top?.getAttribute('data-testid') ? `#${top.getAttribute('data-testid')}` : ''), hex: h && { q: h.q, r: h.r }, at: h ? e.agents.filter((a) => a.hp > 0 && a.q === h.q && a.r === h.r).map((a) => a.id) : [], foeHex: f && { q: f.q, r: f.r, hp: f.hp } };
+        }, { pt: foe, foeId: t2.foe.id });
         ok(`PLAY ${tag} K4: dragging a skill button aims that slot while the finger is down`,
             midAim?.slot === K3_AIM_SLOT && orders(dragHold).length === 0, JSON.stringify({ midAim, dragHold }));
         ok(`PLAY ${tag} K4: releasing a dragged skill button on an enemy casts at it and ends aiming`,
             dropped.some((c) => c.type === 'ORDER_CAST' && c.targetId === t2.foe.id) && afterDrop === null,
-            JSON.stringify({ dropped, afterDrop, foe: t2.foe.id }));
+            JSON.stringify({ dropped, afterDrop, foe: t2.foe.id, dropNow }));
     }
 
     if (b) {
@@ -2149,6 +2199,8 @@ const runPlaySuite = async () => {
         ok(`PLAY ${tag}: skill buttons show the skill icons`, skillIcons === 4, String(skillIcons));
         const shortLabels = await page.locator(`[data-testid^="play-skill-label-"]`).allInnerTexts();
         ok(`PLAY ${tag}: skill buttons carry distinct 2-character labels`, shortLabels.length === 4 && new Set(shortLabels).size === 4 && shortLabels.every((t) => [...t.trim()].length === 2), JSON.stringify(shortLabels));
+        // K4 觸控緊接在 HUD 出現後做：越晚做主角越可能已經倒下（倒下就沒有技能鈕、點地面也不下令）
+        if (touch) await runPlayTouchChecks(page, tag);
 
         await page.click('[data-testid="play-skill-2"]');
         const aim = await page.evaluate(() => window.__TACTICAL_ENGINE__.state.aim);
@@ -2201,7 +2253,6 @@ const runPlaySuite = async () => {
         const resumed = await page.evaluate(() => window.__TACTICAL_ENGINE__.isRunning);
         ok(`PLAY ${tag}: pause (space / button) pauses and resumes`, paused && resumed, JSON.stringify({ paused, resumed }));
         if (!touch) await runPlayMouseChecks(page, tag);
-        if (touch) await runPlayTouchChecks(page, tag);
 
         await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 5 }));
         await page.waitForSelector('[data-testid="play-result"]', { timeout: 120000 });
