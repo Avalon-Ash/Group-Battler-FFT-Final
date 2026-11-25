@@ -1766,6 +1766,8 @@ const K3_PAN_MARGIN = 80;
 const K3_GROUND_CLEAR_HEX = 3;
 /** 選來點的敵人，腳下的點離其他活著的單位至少這麼遠（螢幕 px）：重疊時會點到前面那一個（UnitPick 取 sortY 大者） */
 const K3_FOE_CLEAR_PX = 56;
+/** 點敵人時點在腳下往上這麼多（世界 px，乘上鏡頭縮放）：腳下那一點在身體框的下緣，差一點就落到上一格的空地 */
+const K3_FOE_BODY_LIFT = 12;
 /** 暫停後鏡頭還會緩動一陣子：等到相鄰兩次取樣的位移與縮放都小於門檻才取目標（最多等 CAMERA_SETTLE_MAX_MS） */
 const CAMERA_SETTLE_EPS = 0.5;
 const CAMERA_SETTLE_POLL_MS = 100;
@@ -1785,7 +1787,7 @@ const playScreenTargets = async (page) => {
     await waitCameraSettled(page);
     return playScreenTargetsNow(page);
 };
-const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, foeClear }) => {
+const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, foeClear, foeLift }) => {
     const e = window.__TACTICAL_ENGINE__;
     const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
     const canvas = document.querySelector('canvas');
@@ -1797,7 +1799,7 @@ const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, 
     for (let y = 100; y < bottom && !ground; y += 15) {
         for (let x = 60; x < rect.width - 60; x += 15) {
             const h = e.renderer.getHexAtScreenPoint(x, y, rect.width, rect.height, cam, e);
-            if (h && e.map.isValid(h.q, h.r) && !e.map.hasObstacle(h.q, h.r) && !e.agents.some((a) => a.hp > 0 && (Math.abs(a.q - h.q) + Math.abs(a.r - h.r) + Math.abs(a.q + a.r - h.q - h.r)) / 2 < groundClear)) {
+            if (h && document.elementFromPoint(rect.left + x, rect.top + y) === canvas && e.map.isValid(h.q, h.r) && !e.map.hasObstacle(h.q, h.r) && !e.agents.some((a) => a.hp > 0 && (Math.abs(a.q - h.q) + Math.abs(a.r - h.r) + Math.abs(a.q + a.r - h.q - h.r)) / 2 < groundClear)) {
                 ground = { x: Math.round(rect.left + x), y: Math.round(rect.top + y), q: h.q, r: h.r };
                 break;
             }
@@ -1811,8 +1813,8 @@ const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, 
     const foe = living.filter((p) => hero && p.side !== hero.side)
         .filter((p) => p.x > rect.left + 40 && p.x < rect.right - 40 && p.y > rect.top + 100 && p.y < rect.top + bottom)
         .find((p) => living.every((o) => o.id === p.id || Math.hypot(o.x - p.x, o.y - p.y) >= foeClear)) ?? null;
-    return { ground, foe: foe && { id: foe.id, x: foe.x, y: foe.y }, center: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + Math.min(rect.height / 2, bottom - panMargin)) } };
-}, { panMargin: K3_PAN_MARGIN, groundClear: K3_GROUND_CLEAR_HEX, foeClear: K3_FOE_CLEAR_PX }).catch(() => ({ ground: null, foe: null, center: null }));
+    return { ground, foe: foe && { id: foe.id, x: foe.x, y: foe.y - foeLift * cam.zoom }, center: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + Math.min(rect.height / 2, bottom - panMargin)) } };
+}, { panMargin: K3_PAN_MARGIN, groundClear: K3_GROUND_CLEAR_HEX, foeClear: K3_FOE_CLEAR_PX, foeLift: K3_FOE_BODY_LIFT }).catch(() => ({ ground: null, foe: null, center: null }));
 /** 主畫面進選主角畫面：入口鈕若還是模擬，先按交換鈕 */
 const openPlaySetup = async (page) => {
     if (await page.locator('[data-testid="showcase-play-btn"]').count() === 0) await page.click('[data-testid="showcase-mode-swap"]');
@@ -2011,7 +2013,9 @@ const runPlayTouchChecks = async (page, tag) => {
     ok(`PLAY ${tag} K4: the canvas receives touch pointers (probe check)`, ptr.types.includes('touch'), JSON.stringify(ptr));
 
     // 單指滑動：不拖鏡頭，放開時對手指下的格子下令（不是按下的位置）
-    const dir = t.center.x >= g.x ? 1 : -1;
+    // 滑動起點也要在畫布上（畫面上緣可能有介面蓋住）：先試往畫面中央那一側，不行換另一側
+    const pref = t.center.x >= g.x ? 1 : -1;
+    const dir = await page.evaluate(({ x, y, d, px }) => { const cvs = document.querySelector('canvas'); return [d, -d].find((k) => document.elementFromPoint(x + k * px, y) === cvs) ?? d; }, { x: g.x, y: g.y, d: pref, px: K4_SLIDE_PX });
     const s0 = { x: g.x + dir * K4_SLIDE_PX, y: g.y, id: 0 };
     await touchSend(cdp, 'touchStart', [s0]);
     await touchMoveAll(cdp, [s0], [g]);
@@ -2142,6 +2146,9 @@ const runPlayTouchChecks = async (page, tag) => {
         }
     }
 
+    // 兩指平移與捏合拉近會留到後面的流程（畫面裡的敵人變少）：交還導播縮放、等鏡頭停下
+    await page.evaluate(() => window.__TACTICAL_ENGINE__.bus.emit('UI_COMMAND', { type: 'CAMERA_RESET_ZOOM' }));
+    await waitCameraSettled(page);
     await cdp.detach();
     await page.keyboard.press(' ');
     await settle();
@@ -2228,15 +2235,18 @@ const runPlaySuite = async () => {
             return inView[0] ?? null;
         }, hudTop);
         if (foe) {
+            // 前面的 K4 技能鈕拖曳也會送同一槽的 ORDER_CAST：比點擊前後的筆數，只算這次點擊送出的
+            const castCount = () => page.evaluate(() => { const e = window.__TACTICAL_ENGINE__; return e.commands.log.filter((r) => r.cmd.type === 'ORDER_CAST' && r.cmd.agentId === e.matchFlow.playHeroId && r.cmd.slot === 2).length; });
+            const castsBefore = await castCount();
             await page.mouse.click(foe.x, foe.y);
             await page.waitForTimeout(300);
+            const castsAfter = await castCount();
             const cast = await page.evaluate(() => {
                 const e = window.__TACTICAL_ENGINE__;
                 const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
                 // 射程內的話指令可能已經放完清掉：看指令紀錄
-                const logged = e.commands.log.some((r) => r.cmd.type === 'ORDER_CAST' && r.cmd.agentId === hero?.id && r.cmd.slot === 2);
-                return { logged, aim: e.state.aim };
-            });
+                return { aim: e.state.aim, heroId: hero?.id };
+            }).then((c) => ({ ...c, logged: castsAfter > castsBefore, castsBefore, castsAfter }));
             ok(`PLAY ${tag}: tapping an enemy while aiming issues a cast order and ends aiming`, cast.logged && cast.aim === null, JSON.stringify(cast));
         } else {
             ok(`PLAY ${tag}: an enemy is on screen to aim at`, false, 'no enemy in view');
