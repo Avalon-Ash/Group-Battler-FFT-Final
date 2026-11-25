@@ -1,9 +1,10 @@
 // ╔══════════════════════════════════════════════════════════╗
-// ║  tapIntent — 一次點擊要做什麼（契約 G3 的輸入規則）        ║
-// ║  職責：把「選取中的單位＋點到的格子與單位」翻成意圖：選取、 ║
-// ║        下指令、或不動作。純函式，只讀引擎、不送指令。      ║
-// ║  上游：hooks/useGameInput.ts（選取工具的點擊；指令由它送）。║
-// ║  [ARCH] 規則只寫在這裡，輸入層不自己判斷敵我或能不能走。   ║
+// ║  tapIntent — 指標手勢與點擊意圖（契約 G3、ADR 0026 K3）   ║
+// ║  職責：決定哪個指標／按鍵要做什麼手勢（pointerGesture），  ║
+// ║        以及把「選取中的單位＋游標位置」翻成意圖：選取、    ║
+// ║        下指令（含 Quick Cast）、或不動作。純函式，只讀。  ║
+// ║  上游：hooks/useGameInput.ts（照回傳分派，不自行判斷）。  ║
+// ║  [ARCH] 規則只寫在這裡，輸入層不自己判斷按鍵、敵我或瞄準。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { GameEngine } from '../../game';
@@ -11,6 +12,31 @@ import type { Agent } from '../../core/Agent';
 import type { Hex, UICommand } from '../../../types';
 import { sameSide } from '../../core/Allegiance';
 import { queryCastTargeting, isCastTarget } from './castTargeting';
+
+/** 指標按下時輸入層要走的手勢分支（ADR 0026 K3） */
+export type PointerGesture = 'ORDER_ON_DOWN' | 'TAP_ON_UP' | 'CAMERA' | 'CAMERA_OR_CANCEL' | 'IGNORE';
+
+/** 滑鼠按鍵編號（PointerEvent.button） */
+const MOUSE_BUTTON_LEFT = 0;
+const MOUSE_BUTTON_MIDDLE = 1;
+const MOUSE_BUTTON_RIGHT = 2;
+
+/**
+ * 這個指標的這一顆鍵按下要做什麼（ADR 0026 K3）：
+ * - 非滑鼠（觸控、觸控筆）：照舊放開才判斷（TAP_ON_UP；觸控在 K4 才改）。
+ * - PLAY 模式滑鼠：左鍵按下就下令、中鍵拖鏡頭、右鍵拖鏡頭或點一下取消瞄準、其他鍵不處理。
+ * - 非 PLAY 滑鼠（手動、編輯、展示）：左鍵照舊放開才判斷、其他鍵不處理。
+ */
+export function pointerGesture(isPlay: boolean, pointerType: string, button: number): PointerGesture {
+    if (pointerType !== 'mouse') return 'TAP_ON_UP';
+    if (isPlay) {
+        if (button === MOUSE_BUTTON_LEFT) return 'ORDER_ON_DOWN';
+        if (button === MOUSE_BUTTON_MIDDLE) return 'CAMERA';
+        if (button === MOUSE_BUTTON_RIGHT) return 'CAMERA_OR_CANCEL';
+        return 'IGNORE';
+    }
+    return button === MOUSE_BUTTON_LEFT ? 'TAP_ON_UP' : 'IGNORE';
+}
 
 export type TapIntent =
     /** 選取這個單位；null＝取消選取 */
@@ -29,6 +55,21 @@ function canTakeOrders(engine: GameEngine, unit: Agent | null): unit is Agent {
         && engine.agents.includes(unit);
 }
 
+/** 瞄準中與 Quick Cast 共用的施放判定：對指定技能槽把格子與單位翻成 ORDER_CAST 或 NONE。 */
+function resolveAimCast(engine: GameEngine, caster: Agent, slot: number, hex: Hex | null, tapped: Agent | null): TapIntent {
+    const targeting = queryCastTargeting(engine, caster, slot);
+    if (!targeting) return { kind: 'NONE' };
+    if (tapped) {
+        return isCastTarget(engine, caster, slot, tapped)
+            ? { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: caster.id, slot, targetId: tapped.id } }
+            : { kind: 'NONE' };
+    }
+    if (targeting.mode === 'UNIT_OR_GROUND' && hex && engine.map.isValid(hex.q, hex.r) && !engine.hasObstacle(hex.q, hex.r)) {
+        return { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: caster.id, slot, q: hex.q, r: hex.r } };
+    }
+    return { kind: 'NONE' };
+}
+
 /**
  * 選取中的單位是玩家控制的：點敵人＝攻擊、點空地＝移動、點自己或其他不是敵人的單位＝選取它、
  * 點到地圖外或障礙物＝不動作。
@@ -45,17 +86,7 @@ export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex 
 
     const aim = engine.state.aim;
     if (aim !== null && aim.agentId === selected.id) {
-        const targeting = queryCastTargeting(engine, selected, aim.slot);
-        if (!targeting) return { kind: 'NONE' };
-        if (tapped) {
-            return isCastTarget(engine, selected, aim.slot, tapped)
-                ? { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: selected.id, slot: aim.slot, targetId: tapped.id } }
-                : { kind: 'NONE' };
-        }
-        if (targeting.mode === 'UNIT_OR_GROUND' && hex && engine.map.isValid(hex.q, hex.r) && !engine.hasObstacle(hex.q, hex.r)) {
-            return { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: selected.id, slot: aim.slot, q: hex.q, r: hex.r } };
-        }
-        return { kind: 'NONE' };
+        return resolveAimCast(engine, selected, aim.slot, hex, tapped);
     }
 
     if (tapped) {
@@ -70,6 +101,15 @@ export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex 
         return { kind: 'ORDER', command: { type: 'ORDER_MOVE', agentId: selected.id, q: hex.q, r: hex.r } };
     }
     return { kind: 'NONE' };
+}
+
+/**
+ * Quick Cast（ADR 0026 K3）：按技能鍵時直接對游標下施放；不修改 engine.state.aim。
+ * 與瞄準中的 resolveTap 共用 resolveAimCast；不能接指令的單位回 NONE。
+ */
+export function resolveQuickCast(engine: GameEngine, selected: Agent | null, slot: number, hex: Hex | null, tapped: Agent | null): TapIntent {
+    if (!canTakeOrders(engine, selected)) return { kind: 'NONE' };
+    return resolveAimCast(engine, selected, slot, hex, tapped);
 }
 
 /**

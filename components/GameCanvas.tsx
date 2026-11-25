@@ -4,7 +4,7 @@ import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
 import { VisualMath } from '../engine/math/VisualMath';
-import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup, MatchPhase } from '../types';
+import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup, MatchPhase, type UICommand } from '../types';
 import { VictoryOverlay } from './ui/VictoryOverlay';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
@@ -43,11 +43,13 @@ interface GameCanvasProps {
     onSaveReplay: () => void;
     nextLevel: () => void;
     onOpenLogs: () => void;
+    /** PLAY Quick Cast（ADR 0026 K3）：交給 useGameInput 填入游標下施放查詢 */
+    quickCastRef?: React.MutableRefObject<((slot: number) => UICommand | null) | null>;
 }
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, isPlayMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, onOpenLogs, onReplay, onSaveReplay 
+        isShowcaseMode, isPlayMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, onOpenLogs, onReplay, onSaveReplay, quickCastRef 
     } = props;
     const isCompact = useCompactViewport();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -72,7 +74,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { pressedAgent, draggedObstacle, hoveredHexRef, refreshHover } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent,
-        onSelect
+        onSelect, quickCastRef
     });
 
     const handleDraw = useCallback((ctx: CanvasRenderingContext2D, fps: number) => {

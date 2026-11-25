@@ -24,6 +24,11 @@ export const PLAY_TEXT = {
     /** 技能因冷卻或魔力不足無法施放的原因提示（ADR 0026） */
     CAST_BLOCK_COOLDOWN: '冷卻中',
     CAST_BLOCK_MANA: '魔力不足',
+    /** Quick Cast 設定（ADR 0026 K3） */
+    QUICK_CAST: 'QUICK CAST',
+    QUICK_CAST_HINT: '按技能鍵直接對游標下施放',
+    QUICK_CAST_ON: 'ON',
+    QUICK_CAST_OFF: 'OFF',
 } as const;
 
 export const PLAY_OUTCOME_TITLE = { WIN: 'VICTORY', LOSE: 'DEFEAT', DRAW: 'DRAW' } as const;
