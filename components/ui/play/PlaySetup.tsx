@@ -9,6 +9,7 @@ import { useView } from '../../../hooks/useEnginePort';
 import { Button, Combobox, Segmented } from '../primitives';
 import { Icons } from '../icons';
 import { cn } from '../primitives/cn';
+import { isCoarsePointer, readQuickCast, writeQuickCast } from './playPrefs';
 
 /** 選主角畫面（PLAY P4，docs/plans/play-mode.md）：職業＋四個技能槽，「隨機」＝照一般生成抽。 */
 export interface PlaySetupProps {
@@ -32,6 +33,7 @@ export const PlaySetup: React.FC<PlaySetupProps> = ({ isCompact, onStart, onCanc
     const db = useView((engine) => engine.skillDB);
     const [role, setRole] = useState<Role>(Role.WARRIOR);
     const [picks, setPicks] = useState<Readonly<Partial<Record<Role, readonly string[]>>>>({});
+    const [quickCast, setQuickCast] = useState<boolean>(() => readQuickCast());
     const slots = useMemo(() => (db ? playLoadoutOptions(db, role) : []), [db, role]);
     const chosen = picks[role] ?? slots.map(() => RANDOM);
 
@@ -39,6 +41,11 @@ export const PlaySetup: React.FC<PlaySetupProps> = ({ isCompact, onStart, onCanc
         const next = [...chosen];
         next[slot] = value;
         setPicks((p) => ({ ...p, [role]: next }));
+    };
+    const toggleQuickCast = () => {
+        const next = !quickCast;
+        writeQuickCast(next);
+        setQuickCast(next);
     };
     const start = () => onStart({ role, skillIds: chosen.map((id) => (id === RANDOM ? undefined : id)) });
 
@@ -81,6 +88,25 @@ export const PlaySetup: React.FC<PlaySetupProps> = ({ isCompact, onStart, onCanc
                         </label>
                     ))}
                 </div>
+
+                {!isCoarsePointer() && (
+                    <div className="play-setup-prefs flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <span className="ui-heading text-ui-label text-fg-primary block">{PLAY_TEXT.QUICK_CAST}</span>
+                            <span className="text-ui-label text-fg-muted block">{PLAY_TEXT.QUICK_CAST_HINT}</span>
+                        </div>
+                        <Button
+                            data-testid="play-quickcast-toggle"
+                            aria-label={PLAY_TEXT.QUICK_CAST}
+                            aria-pressed={quickCast}
+                            variant={quickCast ? 'primary' : 'secondary'}
+                            size={isCompact ? 'sm' : 'md'}
+                            onClick={toggleQuickCast}
+                        >
+                            <span>{quickCast ? PLAY_TEXT.QUICK_CAST_ON : PLAY_TEXT.QUICK_CAST_OFF}</span>
+                        </Button>
+                    </div>
+                )}
 
                 <div className="play-setup-actions flex gap-3">
                     <Button data-testid="play-cancel-btn" variant="secondary" size={isCompact ? 'sm' : 'md'} onClick={onCancel} className="flex-1">

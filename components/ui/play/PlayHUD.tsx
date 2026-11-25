@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import type { UICommand } from '../../../types';
 import { TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
 import { SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
 import { PLAY_TEXT, skillShortLabel } from '../../../data/ui/labels/play';
@@ -10,16 +11,20 @@ import { IconButton, Meter, Segmented } from '../primitives';
 import { Icons } from '../icons';
 import { SkillIcon } from '../../inspector/parts/SkillIcon';
 import { cn } from '../primitives/cn';
+import { isCoarsePointer, readQuickCast } from './playPrefs';
 
 /**
  * PLAY 戰鬥 HUD（P5，docs/plans/play-mode.md）：主角的四個技能鈕（快捷鍵 1～4）、停止（S）、暫停（空白鍵）；
- * 主角倒下後改成觀戰（可加速）。按技能：射程 0 的直接放；其他進入瞄準（SET_AIM），在戰場上點目標，
- * Esc、右鍵或瞄準提示上的取消鈕取消。「能不能放」「能點誰」都讀引擎的投影（selectHeroBar），這裡不判斷。
+ * 主角倒下後改成觀戰（可加速）。按技能：射程 0 的直接放；Quick Cast 開著時鍵盤快捷鍵優先對游標下施放，
+ * 沒有合法目標再進入瞄準（SET_AIM），在戰場上點目標，Esc、右鍵（useGameInput）或瞄準提示上的取消鈕取消。
+ * 「能不能放」「能點誰」都讀引擎的投影（selectHeroBar），這裡不判斷。
  * 版面：單列（技能鈕只放圖示，名稱在 title 與瞄準提示）；尺寸讀 --ui-play-* token，排法在 index.css 的 .play-hud。
  * 手機（useCompactViewport，和工具視窗變底部面板同一個斷點）用純色外殼，不模糊。
  */
 export interface PlayHUDProps {
     onTogglePause: () => void;
+    /** Quick Cast（ADR 0026 K3）：向輸入層詢問目前游標下對該槽施放的指令；null＝游標下沒有合法目標 */
+    quickCastRef?: MutableRefObject<((slot: number) => UICommand | null) | null>;
 }
 
 /** 觀戰時的倍率選項（在 UI_SETTINGS.TIME_SCALE 的範圍內） */
@@ -31,8 +36,6 @@ const TEAM_MARK_COLOR: Readonly<Record<HeroSkillSlotView['teams'], string>> = {
     ALLY: TACTICAL_COLORS.TARGET_ALLY,
     ANY: TACTICAL_COLORS.PLAYER_MARK,
 };
-/** 觸控裝置：瞄準提示不提鍵盤 */
-const isCoarsePointer = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
 
 /** 技能因冷卻或魔力不足無法施放時，提示條顯示的毫秒數（ADR 0026） */
 const CAST_BLOCK_HINT_MS = 1500;
@@ -44,7 +47,7 @@ const CAST_BLOCK_LABEL: Readonly<Record<CastBlockReason, string>> = {
 
 const slotTitle = (s: HeroSkillSlotView): string => `${SKILL_TAG_LABEL[s.tag]}：${s.name}（${SLOT_KEYS[s.slot]}）`;
 
-export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
+export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, quickCastRef }) => {
     const bar = useView(selectHeroBar);
     const { send } = useCommands();
     const isCompact = useCompactViewport();
@@ -74,7 +77,7 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
         if (blockTimerRef.current !== null) window.clearTimeout(blockTimerRef.current);
     }, []);
 
-    const pressSlot = useCallback((slot: HeroSkillSlotView) => {
+    const pressSlot = useCallback((slot: HeroSkillSlotView, fromKeyboard: boolean) => {
         const b = barRef.current;
         if (!b || !b.alive) return;
         if (slot.refusal !== null) {
@@ -86,8 +89,15 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
             send({ type: 'ORDER_CAST', agentId: b.heroId, slot: slot.slot });
             return;
         }
+        if (fromKeyboard && readQuickCast()) {
+            const cmd = quickCastRef?.current?.(slot.slot) ?? null;
+            if (cmd) {
+                send(cmd);
+                return;
+            }
+        }
         send({ type: 'SET_AIM', aim: b.aimSlot === slot.slot ? null : { agentId: b.heroId, slot: slot.slot } });
-    }, [send, showCastBlock, clearCastBlock]);
+    }, [send, showCastBlock, clearCastBlock, quickCastRef]);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -98,7 +108,7 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
             const idx = SLOT_KEYS.indexOf(e.key);
             if (idx >= 0) {
                 const slot = b.slots.find((s) => s.slot === idx);
-                if (slot) { pressSlot(slot); e.preventDefault(); }
+                if (slot) { pressSlot(slot, true); e.preventDefault(); }
             } else if (e.key === 'Escape' && b.aimSlot !== null) {
                 send({ type: 'SET_AIM', aim: null });
             } else if ((e.key === 's' || e.key === 'S') && b.alive) {
@@ -108,15 +118,9 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
                 e.preventDefault();
             }
         };
-        // 右鍵取消瞄準（戰場的右鍵選單本來就關掉了）
-        const onContext = () => {
-            if (barRef.current?.aimSlot !== null) send({ type: 'SET_AIM', aim: null });
-        };
         window.addEventListener('keydown', onKey);
-        window.addEventListener('contextmenu', onContext);
         return () => {
             window.removeEventListener('keydown', onKey);
-            window.removeEventListener('contextmenu', onContext);
         };
     }, [send, onTogglePause, pressSlot]);
 
@@ -175,7 +179,7 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause }) => {
                                         label={slotTitle(s)}
                                         size="auto"
                                         variant={bar.aimSlot === s.slot ? 'primary' : 'secondary'}
-                                        onClick={() => pressSlot(s)}
+                                        onClick={() => pressSlot(s, false)}
                                         className={cn('play-slot', unavailable && 'opacity-50')}
                                     >
                                         <SkillIcon skill={{ id: s.skillId, name: s.name, visual: s.visual, color: s.color }} className="play-slot-icon" data-testid={`play-skill-icon-${s.slot}`} />

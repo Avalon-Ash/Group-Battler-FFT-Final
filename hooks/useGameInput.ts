@@ -1,7 +1,17 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  useGameInput — 畫布指標輸入分派（契約 G3、ADR 0026 K3）   ║
+// ║  職責：收畫布 pointer 事件，照 tapIntent.pointerGesture    ║
+// ║        分派手勢（PLAY 滑鼠左鍵按下下令、中／右鍵拖鏡頭、   ║
+// ║        右鍵點一下取消瞄準；其餘照舊放開才判斷），只轉送    ║
+// ║        UI_COMMAND，並透過 quickCastRef 提供游標下 Quick    ║
+// ║        Cast 查詢（呼叫 tapIntent.resolveQuickCast）。      ║
+// ║  上游：components/GameCanvas.tsx                          ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { useRef, useEffect, MutableRefObject, useState, useCallback } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Hex, Team, Role, BodyTypeId } from '../types';
+import { ToolType, Hex, Team, Role, BodyTypeId, type UICommand } from '../types';
 import { HexUtils, Vector } from '../engine/utils';
 import { GameRenderer } from '../engine/renderer';
 import { GAME_INPUT_PARAM } from '../constants';
@@ -15,7 +25,7 @@ import {
     queryWorldAtScreenPoint,
 } from '../engine/systems/ui/editorQueries';
 import { pickAgentAt } from './pickAgentAt';
-import { resolveTap, hoverHexOf } from '../engine/systems/ui/tapIntent';
+import { pointerGesture, resolveTap, resolveQuickCast, hoverHexOf, type PointerGesture, type TapIntent } from '../engine/systems/ui/tapIntent';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
 export interface DraggedObstacle {
@@ -44,16 +54,19 @@ interface GameInputProps {
     /** 目前選取的單位：它是玩家控制的話，點擊會變成指令（契約 G3） */
     selectedAgent: Agent | null;
     onSelect: (a: Agent | null) => void;
+    /** PLAY Quick Cast（ADR 0026 K3）：填入「依目前游標位置查詢該槽施放指令」的函式 */
+    quickCastRef?: MutableRefObject<((slot: number) => UICommand | null) | null>;
 }
-type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
+type InteractionMode = 'IDLE' | 'DOWN' | 'ORDERED' | 'CAMERA_DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
 /** 指標事件裡取格子與單位要用的部分（PointerEvent 或最後一次記下的位置） */
 type PointerSample = Pick<PointerEvent, 'clientX' | 'clientY' | 'pointerType'>;
 
 export const useGameInput = (props: GameInputProps) => {
-    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent, onSelect } = props;
+    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent, onSelect, quickCastRef } = props;
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
     const [draggedObstacle, setDraggedObstacle] = useState<DraggedObstacle | null>(null);
     const interactionMode = useRef<InteractionMode>('IDLE');
+    const activeGestureRef = useRef<PointerGesture>('IGNORE');
     const lastPointerPos = useRef<{x: number, y: number} | null>(null);
     const pressStartPos = useRef<{x: number, y: number} | null>(null);
     const lastPaintHex = useRef<string>("");
@@ -111,20 +124,42 @@ export const useGameInput = (props: GameInputProps) => {
         wasAimingRef.current = aiming;
     }, []);
 
+    const dispatchTapIntent = (intent: TapIntent) => {
+        if (intent.kind === 'ORDER') engine.bus.emit('UI_COMMAND', intent.command);
+        else if (intent.kind === 'SELECT') onSelect(intent.agent);
+    };
+
     const handlePointerDown = (e: PointerEvent) => {
         activePointers.current.add(e.pointerId);
         if (activePointers.current.size > 1) { interactionMode.current = 'IDLE'; return; }
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const gesture = pointerGesture(Boolean(engine.matchFlow?.isPlay), e.pointerType, e.button);
+        if (gesture === 'IGNORE') return;
         const cvs = canvasRef.current;
         if (!cvs) return;
+        if (gesture === 'CAMERA') e.preventDefault();
         cachedRectRef.current = cvs.getBoundingClientRect();
         const rect = cachedRectRef.current;
         const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
         pressStartPos.current = { x: sx, y: sy };
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
+        activeGestureRef.current = gesture;
+        cvs.setPointerCapture(e.pointerId);
+
+        if (gesture === 'CAMERA' || gesture === 'CAMERA_OR_CANCEL') {
+            interactionMode.current = 'CAMERA_DOWN';
+            return;
+        }
+
         const h = getHexFromEvent(e.clientX, e.clientY);
         const agent = getAgentFromEvent(e, h);
+
+        if (gesture === 'ORDER_ON_DOWN') {
+            trackHover(e);
+            dispatchTapIntent(resolveTap(engine, configRef.current.selectedAgent, h, agent ?? null));
+            interactionMode.current = 'ORDERED';
+            return;
+        }
 
         if (agent) { 
             pressedAgentRef.current = agent; 
@@ -137,7 +172,6 @@ export const useGameInput = (props: GameInputProps) => {
             setDraggedObstacle(obj);
         }
         interactionMode.current = 'DOWN';
-        cvs.setPointerCapture(e.pointerId);
     };
     const handlePointerMove = (e: PointerEvent) => {
         const cvs = canvasRef.current;
@@ -171,6 +205,11 @@ export const useGameInput = (props: GameInputProps) => {
                     else interactionMode.current = 'PAN';
                 } else if (!engine.isRunning && configRef.current.tool !== ToolType.SELECT) interactionMode.current = 'PAINT';
                 else interactionMode.current = 'PAN';
+            }
+        } else if (interactionMode.current === 'CAMERA_DOWN' && pressStartPos.current) {
+            const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
+            if (dist > GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX) {
+                interactionMode.current = 'PAN';
             }
         }
         if (interactionMode.current === 'PAN') { 
@@ -224,9 +263,12 @@ export const useGameInput = (props: GameInputProps) => {
                 if (h) executePaintAction(h);
             } else {
                 // 選取工具的點擊：選取、或對選取中的玩家單位下指令（規則在 resolveTap，這裡只負責送出）
-                const intent = resolveTap(engine, configRef.current.selectedAgent, getHexFromEvent(e.clientX, e.clientY), pressedAgentRef.current);
-                if (intent.kind === 'ORDER') engine.bus.emit('UI_COMMAND', intent.command);
-                else if (intent.kind === 'SELECT') onSelect(intent.agent);
+                dispatchTapIntent(resolveTap(engine, configRef.current.selectedAgent, getHexFromEvent(e.clientX, e.clientY), pressedAgentRef.current));
+            }
+        }
+        else if (interactionMode.current === 'CAMERA_DOWN') {
+            if (e.type === 'pointerup' && activeGestureRef.current === 'CAMERA_OR_CANCEL' && engine.state.aim !== null) {
+                engine.bus.emit('UI_COMMAND', { type: 'SET_AIM', aim: null });
             }
         }
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
@@ -264,10 +306,11 @@ export const useGameInput = (props: GameInputProps) => {
             }
         }
         interactionMode.current = 'IDLE';
+        activeGestureRef.current = 'IGNORE';
         pressedAgentRef.current = null; setPressedAgent(null);
         draggedObstacleRef.current = null; setDraggedObstacle(null);
         cvs.style.cursor = 'default';
-        cvs.releasePointerCapture(e.pointerId);
+        if (cvs.hasPointerCapture?.(e.pointerId)) cvs.releasePointerCapture(e.pointerId);
     };
     const executePaintAction = (h: Hex) => {
         const { tool, winner, selectedObstacle, spawnMode, draftRole, draftBodyType, hpInput } = configRef.current;
@@ -302,6 +345,23 @@ export const useGameInput = (props: GameInputProps) => {
         }
     };
     const handlePointerLeave = () => { hoveredHexRef.current = null; lastHoverPointerRef.current = null; };
+    useEffect(() => {
+        if (!quickCastRef) return;
+        quickCastRef.current = (slot: number): UICommand | null => {
+            const p = lastHoverPointerRef.current;
+            if (!p) return null;
+            const cvs = canvasRef.current;
+            if (cvs) cachedRectRef.current = cvs.getBoundingClientRect();
+            const h = getHexFromEvent(p.clientX, p.clientY);
+            const agent = getAgentFromEvent(p, h) ?? null;
+            const intent = resolveQuickCast(engine, configRef.current.selectedAgent, slot, h, agent);
+            return intent.kind === 'ORDER' ? intent.command : null;
+        };
+        return () => {
+            quickCastRef.current = null;
+        };
+    }, [engine, quickCastRef]);
+
     useEffect(() => {
         const cvs = canvasRef.current;
         if (!cvs) return;
