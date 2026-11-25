@@ -1,10 +1,12 @@
 // ╔══════════════════════════════════════════════════════════╗
-// ║  tapIntent — 指標手勢與點擊意圖（契約 G3、ADR 0026 K3）   ║
-// ║  職責：決定哪個指標／按鍵要做什麼手勢（pointerGesture），  ║
-// ║        以及把「選取中的單位＋游標位置」翻成意圖：選取、    ║
-// ║        下指令（含 Quick Cast）、或不動作。純函式，只讀。  ║
-// ║  上游：hooks/useGameInput.ts（照回傳分派，不自行判斷）。  ║
-// ║  [ARCH] 規則只寫在這裡，輸入層不自己判斷按鍵、敵我或瞄準。 ║
+// ║  tapIntent — 指標手勢與點擊意圖（契約 G3、ADR 0026 K3/K4）║
+// ║  職責：決定單指／多指指標手勢（pointerGesture、            ║
+// ║        multiPointerGesture），以及把「選取中的單位＋游標   ║
+// ║        位置」翻成意圖：選取、下指令（含 Quick Cast、技能鈕 ║
+// ║        拖曳放開 resolveSkillDrop）、或不動作。純函式只讀。 ║
+// ║  上游：hooks/useGameInput.ts、PlayHUD（照回傳分派，        ║
+// ║        不自行判斷）。                                      ║
+// ║  [ARCH] 規則只寫在這裡，輸入層不自己判斷按鍵、指數、敵我。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { GameEngine } from '../../game';
@@ -13,8 +15,24 @@ import type { Hex, UICommand } from '../../../types';
 import { sameSide } from '../../core/Allegiance';
 import { queryCastTargeting, isCastTarget } from './castTargeting';
 
-/** 指標按下時輸入層要走的手勢分支（ADR 0026 K3） */
-export type PointerGesture = 'ORDER_ON_DOWN' | 'TAP_ON_UP' | 'CAMERA' | 'CAMERA_OR_CANCEL' | 'IGNORE';
+/**
+ * 指標按下時輸入層要走的手勢分支（ADR 0026 K3、K4）
+ * - ORDER_ON_UP（K4，PLAY 觸控）：單指放開時在放開位置下令（resolveTap 用放開位置的格子與單位）；滑動不拖鏡頭。
+ */
+export type PointerGesture = 'ORDER_ON_DOWN' | 'ORDER_ON_UP' | 'TAP_ON_UP' | 'CAMERA' | 'CAMERA_OR_CANCEL' | 'IGNORE';
+
+/**
+ * 同時按著兩根以上指標時要做什麼（ADR 0026 K4）：
+ * - CAMERA_TWO_FINGER：兩指拖曳平移鏡頭（CAMERA_PAN，位移取兩指中點）；捏合縮放沿用 hooks/useCameraControl.ts，不另做。
+ * - CANCEL：取消還沒送出的單指動作（不下令、不拖），直到所有指標放開。
+ */
+export type MultiPointerGesture = 'CAMERA_TWO_FINGER' | 'CANCEL';
+
+/** 技能鈕拖曳放開時的意圖（ADR 0026 K4）：施放、改成一般瞄準（停在該槽）、或取消瞄準 */
+export type SkillDropIntent =
+    | { kind: 'ORDER'; command: Extract<UICommand, { type: 'ORDER_CAST' }> }
+    | { kind: 'AIM' }
+    | { kind: 'CANCEL' };
 
 /** 滑鼠按鍵編號（PointerEvent.button） */
 const MOUSE_BUTTON_LEFT = 0;
@@ -22,13 +40,14 @@ const MOUSE_BUTTON_MIDDLE = 1;
 const MOUSE_BUTTON_RIGHT = 2;
 
 /**
- * 這個指標的這一顆鍵按下要做什麼（ADR 0026 K3）：
- * - 非滑鼠（觸控、觸控筆）：照舊放開才判斷（TAP_ON_UP；觸控在 K4 才改）。
+ * 這個指標的這一顆鍵按下要做什麼（ADR 0026 K3、K4）：
+ * - PLAY 模式觸控：單指放開時在放開位置下令（ORDER_ON_UP），滑動不拖鏡頭。
+ * - 觸控筆與非 PLAY 觸控：照舊放開才判斷（TAP_ON_UP）。
  * - PLAY 模式滑鼠：左鍵按下就下令、中鍵拖鏡頭、右鍵拖鏡頭或點一下取消瞄準、其他鍵不處理。
  * - 非 PLAY 滑鼠（手動、編輯、展示）：左鍵照舊放開才判斷、其他鍵不處理。
  */
 export function pointerGesture(isPlay: boolean, pointerType: string, button: number): PointerGesture {
-    if (pointerType !== 'mouse') return 'TAP_ON_UP';
+    if (pointerType !== 'mouse') return isPlay && pointerType === 'touch' ? 'ORDER_ON_UP' : 'TAP_ON_UP';
     if (isPlay) {
         if (button === MOUSE_BUTTON_LEFT) return 'ORDER_ON_DOWN';
         if (button === MOUSE_BUTTON_MIDDLE) return 'CAMERA';
@@ -36,6 +55,26 @@ export function pointerGesture(isPlay: boolean, pointerType: string, button: num
         return 'IGNORE';
     }
     return button === MOUSE_BUTTON_LEFT ? 'TAP_ON_UP' : 'IGNORE';
+}
+
+/**
+ * 同時按著 activeCount 根指標時要做什麼（ADR 0026 K4）：
+ * 只有 PLAY 模式觸控且剛好兩指回傳 CAMERA_TWO_FINGER（平移鏡頭），其他一律 CANCEL。
+ */
+export function multiPointerGesture(isPlay: boolean, pointerType: string, activeCount: number): MultiPointerGesture {
+    return isPlay && pointerType === 'touch' && activeCount === 2 ? 'CAMERA_TWO_FINGER' : 'CANCEL';
+}
+
+/**
+ * 技能鈕拖曳放開（ADR 0026 K4）：onBoard＝放開位置在戰場畫布上（不在按鈕或其他介面上）。
+ * 不在畫布上或不能接指令＝CANCEL；在畫布上時呼叫 resolveQuickCast，有合法目標＝ORDER，沒有＝AIM。
+ */
+export function resolveSkillDrop(engine: GameEngine, selected: Agent | null, slot: number, hex: Hex | null, tapped: Agent | null, onBoard: boolean): SkillDropIntent {
+    if (!onBoard || !canTakeOrders(engine, selected)) return { kind: 'CANCEL' };
+    const intent = resolveQuickCast(engine, selected, slot, hex, tapped);
+    return intent.kind === 'ORDER' && intent.command.type === 'ORDER_CAST'
+        ? { kind: 'ORDER', command: intent.command }
+        : { kind: 'AIM' };
 }
 
 export type TapIntent =

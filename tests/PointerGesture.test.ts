@@ -1,10 +1,10 @@
-// ADR 0026（K3）：PLAY 桌機輸入對應與 Quick Cast 的純規則。主代理寫的紅色驗收，執行代理不得修改。
-// 規則只寫在 engine/systems/ui/tapIntent.ts；hooks/useGameInput.ts 只照它分派、不自己判斷按鍵或敵我。
+// ADR 0026（K3、K4）：PLAY 桌機與觸控輸入對應、Quick Cast、技能鈕拖曳的純規則。主代理寫的紅色驗收，執行代理不得修改。
+// 規則只寫在 engine/systems/ui/tapIntent.ts；hooks/useGameInput.ts、PlayHUD 只照它分派、不自己判斷按鍵、指數或敵我。
 import { describe, it, expect } from 'vitest';
 import type { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/core/Agent';
 import type { Hex } from '../types';
-import { pointerGesture, resolveQuickCast, resolveTap } from '../engine/systems/ui/tapIntent';
+import { pointerGesture, multiPointerGesture, resolveQuickCast, resolveSkillDrop, resolveTap } from '../engine/systems/ui/tapIntent';
 import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
 import { buildBattle, emit } from './contracts/simState';
 
@@ -20,8 +20,8 @@ describe('pointerGesture：哪個指標、哪個鍵做什麼', () => {
         expect(pointerGesture(true, 'mouse', RIGHT)).toBe('CAMERA_OR_CANCEL');
     });
 
-    it('PLAY 模式觸控與觸控筆：照舊放開才判斷（K4 才改觸控）', () => {
-        expect(pointerGesture(true, 'touch', LEFT)).toBe('TAP_ON_UP');
+    it('PLAY 模式觸控（K4）：單指放開時在放開位置下令；觸控筆照舊放開才判斷（ADR 0026 只改觸控）', () => {
+        expect(pointerGesture(true, 'touch', LEFT)).toBe('ORDER_ON_UP');
         expect(pointerGesture(true, 'pen', LEFT)).toBe('TAP_ON_UP');
     });
 
@@ -107,5 +107,86 @@ describe('resolveQuickCast：按技能鍵直接對游標下施放', () => {
         emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'AI' });
         expect(resolveQuickCast(e, hero, 2, at, foe)).toEqual({ kind: 'NONE' });
         expect(resolveQuickCast(e, null, 2, at, foe)).toEqual({ kind: 'NONE' });
+    });
+});
+
+describe('multiPointerGesture：同時按著多根指標（K4）', () => {
+    it('PLAY 模式觸控剛好兩指：拖曳平移鏡頭', () => {
+        expect(multiPointerGesture(true, 'touch', 2)).toBe('CAMERA_TWO_FINGER');
+    });
+
+    it('其他情況一律取消還沒送出的單指動作：三指以上、非 PLAY 觸控（手動與編輯照舊）、觸控筆', () => {
+        expect(multiPointerGesture(true, 'touch', 3)).toBe('CANCEL');
+        expect(multiPointerGesture(false, 'touch', 2)).toBe('CANCEL');
+        expect(multiPointerGesture(true, 'pen', 2)).toBe('CANCEL');
+    });
+});
+
+describe('resolveSkillDrop：技能鈕拖到戰場放開（K4）', () => {
+    const setup = () => {
+        const e = buildBattle('TEAMS', 41);
+        const hero = e.agents[0];
+        const friend = e.agents.find((a) => a !== hero && a.side === hero.side) as Agent;
+        const foe = e.agents.find((a) => a.side !== hero.side) as Agent;
+        emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'PLAYER' });
+        const aoe = e.skillDB.find((s) => s.type === 'AOE' && s.range > 0 && s.tag !== 'MOBILITY');
+        const hit = e.skillDB.find((s) => s.type === 'SINGLE' && s.range > 0 && s.teams === undefined && s.power > 0 && s.tag !== 'MOBILITY');
+        if (!aoe || !hit) throw new Error('資料庫缺範圍技或單體傷害技');
+        emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 1, skillId: aoe.id });
+        emit(e, { type: 'SET_AGENT_SKILL', agentId: hero.id, slot: 2, skillId: hit.id });
+        const hex = querySpawnableHexes(e).find((h) => !e.agents.some((a) => a.q === h.q && a.r === h.r));
+        if (!hex) throw new Error('沒有空格');
+        return { e, hero, friend, foe, empty: { q: hex.q, r: hex.r } };
+    };
+
+    it('放在敵人身上＝對它施放（單體技）', () => {
+        const { e, hero, foe } = setup();
+        expect(resolveSkillDrop(e, hero, 2, { q: foe.q, r: foe.r }, foe, true)).toEqual({
+            kind: 'ORDER',
+            command: { type: 'ORDER_CAST', agentId: hero.id, slot: 2, targetId: foe.id },
+        });
+    });
+
+    it('放在戰場上但沒有合法目標＝改成一般瞄準（AIM），和 Quick Cast 找不到目標時一樣', () => {
+        const { e, hero, friend, empty } = setup();
+        expect(resolveSkillDrop(e, hero, 2, empty, null, true)).toEqual({ kind: 'AIM' });
+        expect(resolveSkillDrop(e, hero, 2, { q: friend.q, r: friend.r }, friend, true)).toEqual({ kind: 'AIM' });
+        expect(resolveSkillDrop(e, hero, 1, null, null, true)).toEqual({ kind: 'AIM' });
+    });
+
+    it('不在戰場上（拖回按鈕或放在其他介面上）＝取消，即使那個位置換算得到合法目標', () => {
+        const { e, hero, foe, empty } = setup();
+        expect(resolveSkillDrop(e, hero, 2, { q: foe.q, r: foe.r }, foe, false)).toEqual({ kind: 'CANCEL' });
+        expect(resolveSkillDrop(e, hero, 1, empty, null, false)).toEqual({ kind: 'CANCEL' });
+    });
+
+    it('在戰場上時和 Quick Cast 是同一條規則：有指令時結果等於 resolveQuickCast', () => {
+        const { e, hero, friend, foe, empty } = setup();
+        const cases: Array<[Hex | null, Agent | null]> = [
+            [empty, null],
+            [{ q: foe.q, r: foe.r }, foe],
+            [{ q: friend.q, r: friend.r }, friend],
+            [{ q: hero.q, r: hero.r }, hero],
+            [null, null],
+            [{ q: 999, r: 999 }, null],
+        ];
+        for (const slot of [1, 2]) {
+            for (const [h, t] of cases) {
+                const quick = resolveQuickCast(e, hero, slot, h, t);
+                const drop = resolveSkillDrop(e, hero, slot, h, t, true);
+                expect(drop).toEqual(quick.kind === 'ORDER' ? quick : { kind: 'AIM' });
+            }
+        }
+    });
+
+    it('不能接指令的單位（AI 控制、陣亡、已分勝負、沒有選取）：取消，不留在瞄準', () => {
+        const { e, hero, foe } = setup();
+        const at = { q: foe.q, r: foe.r };
+        e.state.victory.isFinishing = true;
+        expect(resolveSkillDrop(e, hero, 2, at, foe, true)).toEqual({ kind: 'CANCEL' });
+        e.state.victory.isFinishing = false;
+        expect(resolveSkillDrop(e, null, 2, at, foe, true)).toEqual({ kind: 'CANCEL' });
+        emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'AI' });
+        expect(resolveSkillDrop(e, hero, 2, at, foe, true)).toEqual({ kind: 'CANCEL' });
     });
 });

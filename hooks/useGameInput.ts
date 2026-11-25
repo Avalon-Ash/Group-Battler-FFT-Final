@@ -1,11 +1,12 @@
 
 // ╔══════════════════════════════════════════════════════════╗
-// ║  useGameInput — 畫布指標輸入分派（契約 G3、ADR 0026 K3）   ║
-// ║  職責：收畫布 pointer 事件，照 tapIntent.pointerGesture    ║
-// ║        分派手勢（PLAY 滑鼠左鍵按下下令、中／右鍵拖鏡頭、   ║
-// ║        右鍵點一下取消瞄準；其餘照舊放開才判斷），只轉送    ║
-// ║        UI_COMMAND，並透過 quickCastRef 提供游標下 Quick    ║
-// ║        Cast 查詢（呼叫 tapIntent.resolveQuickCast）。      ║
+// ║  useGameInput — 畫布指標輸入分派（契約 G3、ADR 0026 K3/K4）║
+// ║  職責：收畫布 pointer 事件，照 tapIntent.pointerGesture／   ║
+// ║        multiPointerGesture 分派手勢（PLAY 滑鼠左鍵按下下令、║
+// ║        中／右鍵拖鏡頭、右鍵點一下取消瞄準；PLAY 觸控單指放  ║
+// ║        開下令、兩指中點平移鏡頭、第二指取消單指指令；其餘   ║
+// ║        照舊放開才判斷），只轉送 UI_COMMAND，並透過         ║
+// ║        playPointerRef 提供 Quick Cast 與技能鈕拖曳查詢。    ║
 // ║  上游：components/GameCanvas.tsx                          ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -25,7 +26,7 @@ import {
     queryWorldAtScreenPoint,
 } from '../engine/systems/ui/editorQueries';
 import { pickAgentAt } from './pickAgentAt';
-import { pointerGesture, resolveTap, resolveQuickCast, hoverHexOf, type PointerGesture, type TapIntent } from '../engine/systems/ui/tapIntent';
+import { pointerGesture, multiPointerGesture, resolveTap, resolveQuickCast, resolveSkillDrop, hoverHexOf, type PointerGesture, type SkillDropIntent, type TapIntent } from '../engine/systems/ui/tapIntent';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
 export interface DraggedObstacle {
@@ -54,15 +55,21 @@ interface GameInputProps {
     /** 目前選取的單位：它是玩家控制的話，點擊會變成指令（契約 G3） */
     selectedAgent: Agent | null;
     onSelect: (a: Agent | null) => void;
-    /** PLAY Quick Cast（ADR 0026 K3）：填入「依目前游標位置查詢該槽施放指令」的函式 */
-    quickCastRef?: MutableRefObject<((slot: number) => UICommand | null) | null>;
+    /** PLAY 輸入埠（ADR 0026 K3、K4）：填入 Quick Cast、技能鈕拖曳預覽與放開結算 */
+    playPointerRef?: MutableRefObject<PlayPointerPort | null>;
 }
-type InteractionMode = 'IDLE' | 'DOWN' | 'ORDERED' | 'CAMERA_DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
+type InteractionMode = 'IDLE' | 'DOWN' | 'ORDER_UP' | 'ORDERED' | 'CAMERA_DOWN' | 'TWO_FINGER_PAN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
 /** 指標事件裡取格子與單位要用的部分（PointerEvent 或最後一次記下的位置） */
 type PointerSample = Pick<PointerEvent, 'clientX' | 'clientY' | 'pointerType'>;
+/** PLAY 輸入埠（ADR 0026 K3、K4）：由 useGameInput 填入、App 持有、PlayHUD 讀取 */
+export interface PlayPointerPort {
+    quickCast(slot: number): UICommand | null;
+    hoverAt(p: PointerSample | null): void;
+    dropSkill(slot: number, p: PointerSample): SkillDropIntent;
+}
 
 export const useGameInput = (props: GameInputProps) => {
-    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent, onSelect, quickCastRef } = props;
+    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent, onSelect, playPointerRef } = props;
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
     const [draggedObstacle, setDraggedObstacle] = useState<DraggedObstacle | null>(null);
     const interactionMode = useRef<InteractionMode>('IDLE');
@@ -75,7 +82,7 @@ export const useGameInput = (props: GameInputProps) => {
     const hoveredHexRef = useRef<Hex | null>(null);
     /** 最後一個滑鼠指標位置（觸控沒有懸停：放開、離開畫布就清掉）；瞄準中每幀用它重算游標格（refreshHover） */
     const lastHoverPointerRef = useRef<PointerSample | null>(null);
-    const activePointers = useRef<Set<number>>(new Set());
+    const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
     const cachedRectRef = useRef<DOMRect | null>(null);
     const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent });
     useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent]);
@@ -108,7 +115,7 @@ export const useGameInput = (props: GameInputProps) => {
         const h = getHexFromEvent(p.clientX, p.clientY);
         hoveredHexRef.current = hoverHexOf(engine, configRef.current.selectedAgent, h, () => getAgentFromEvent(p, h) ?? null);
     };
-    const trackHover = (e: PointerEvent) => {
+    const trackHover = (e: PointerSample) => {
         lastHoverPointerRef.current = e.pointerType === 'touch' ? null : { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType };
         resolveHover(e);
     };
@@ -130,8 +137,21 @@ export const useGameInput = (props: GameInputProps) => {
     };
 
     const handlePointerDown = (e: PointerEvent) => {
-        activePointers.current.add(e.pointerId);
-        if (activePointers.current.size > 1) { interactionMode.current = 'IDLE'; return; }
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activePointers.current.size > 1) {
+            const cvs = canvasRef.current;
+            const multi = multiPointerGesture(Boolean(engine.matchFlow?.isPlay), e.pointerType, activePointers.current.size);
+            if (multi === 'CAMERA_TWO_FINGER') {
+                cvs?.setPointerCapture(e.pointerId);
+                interactionMode.current = 'TWO_FINGER_PAN';
+            } else {
+                interactionMode.current = 'IDLE';
+            }
+            activeGestureRef.current = 'IGNORE';
+            hoveredHexRef.current = null;
+            lastHoverPointerRef.current = null;
+            return;
+        }
         const gesture = pointerGesture(Boolean(engine.matchFlow?.isPlay), e.pointerType, e.button);
         if (gesture === 'IGNORE') return;
         const cvs = canvasRef.current;
@@ -148,6 +168,12 @@ export const useGameInput = (props: GameInputProps) => {
 
         if (gesture === 'CAMERA' || gesture === 'CAMERA_OR_CANCEL') {
             interactionMode.current = 'CAMERA_DOWN';
+            return;
+        }
+
+        if (gesture === 'ORDER_ON_UP') {
+            trackHover(e);
+            interactionMode.current = 'ORDER_UP';
             return;
         }
 
@@ -176,11 +202,25 @@ export const useGameInput = (props: GameInputProps) => {
     const handlePointerMove = (e: PointerEvent) => {
         const cvs = canvasRef.current;
         if (!cvs) return;
-        if (!lastPointerPos.current || activePointers.current.size > 1) {
+        const prev = activePointers.current.get(e.pointerId);
+        if (prev) activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (interactionMode.current === 'TWO_FINGER_PAN') {
+            if (activePointers.current.size === 2 && prev) {
+                const dx = (e.clientX - prev.x) / 2;
+                const dy = (e.clientY - prev.y) / 2;
+                if (dx !== 0 || dy !== 0) engine.bus.emit('UI_COMMAND', { type: 'CAMERA_PAN', dx, dy });
+            }
+            return;
+        }
+        if (!lastPointerPos.current || activePointers.current.size > 1 || (interactionMode.current === 'IDLE' && activePointers.current.size > 0)) {
             // 尚未按過指標時也要更新懸停格（放置預覽、格子高亮）
             if (activePointers.current.size === 0) {
                 trackHover(e);
             }
+            return;
+        }
+        if (interactionMode.current === 'ORDER_UP') {
+            trackHover(e);
             return;
         }
         const rect = cvs.getBoundingClientRect();
@@ -256,7 +296,14 @@ export const useGameInput = (props: GameInputProps) => {
         if (e.pointerType === 'touch') { hoveredHexRef.current = null; lastHoverPointerRef.current = null; }
         const cvs = canvasRef.current;
         if (!cvs) return;
-        if (interactionMode.current === 'DOWN') {
+        if (interactionMode.current === 'ORDER_UP') {
+            if (e.type === 'pointerup') {
+                const h = getHexFromEvent(e.clientX, e.clientY);
+                const agent = getAgentFromEvent(e, h) ?? null;
+                dispatchTapIntent(resolveTap(engine, configRef.current.selectedAgent, h, agent));
+            }
+        }
+        else if (interactionMode.current === 'DOWN') {
             const currentTool = configRef.current.tool;
             if (currentTool !== ToolType.SELECT) {
                 const h = getHexFromEvent(e.clientX, e.clientY);
@@ -346,21 +393,42 @@ export const useGameInput = (props: GameInputProps) => {
     };
     const handlePointerLeave = () => { hoveredHexRef.current = null; lastHoverPointerRef.current = null; };
     useEffect(() => {
-        if (!quickCastRef) return;
-        quickCastRef.current = (slot: number): UICommand | null => {
-            const p = lastHoverPointerRef.current;
-            if (!p) return null;
-            const cvs = canvasRef.current;
-            if (cvs) cachedRectRef.current = cvs.getBoundingClientRect();
-            const h = getHexFromEvent(p.clientX, p.clientY);
-            const agent = getAgentFromEvent(p, h) ?? null;
-            const intent = resolveQuickCast(engine, configRef.current.selectedAgent, slot, h, agent);
-            return intent.kind === 'ORDER' ? intent.command : null;
+        if (!playPointerRef) return;
+        playPointerRef.current = {
+            quickCast(slot) {
+                const p = lastHoverPointerRef.current;
+                if (!p) return null;
+                const cvs = canvasRef.current;
+                if (cvs) cachedRectRef.current = cvs.getBoundingClientRect();
+                const h = getHexFromEvent(p.clientX, p.clientY);
+                const agent = getAgentFromEvent(p, h) ?? null;
+                const intent = resolveQuickCast(engine, configRef.current.selectedAgent, slot, h, agent);
+                return intent.kind === 'ORDER' ? intent.command : null;
+            },
+            hoverAt(p) {
+                if (!p) {
+                    hoveredHexRef.current = null;
+                    lastHoverPointerRef.current = null;
+                    return;
+                }
+                const cvs = canvasRef.current;
+                if (cvs) cachedRectRef.current = cvs.getBoundingClientRect();
+                trackHover(p);
+            },
+            dropSkill(slot, p) {
+                const cvs = canvasRef.current;
+                const onBoard = cvs !== null && document.elementFromPoint(p.clientX, p.clientY) === cvs;
+                if (!onBoard) return resolveSkillDrop(engine, configRef.current.selectedAgent, slot, null, null, false);
+                cachedRectRef.current = cvs.getBoundingClientRect();
+                const h = getHexFromEvent(p.clientX, p.clientY);
+                const agent = getAgentFromEvent(p, h) ?? null;
+                return resolveSkillDrop(engine, configRef.current.selectedAgent, slot, h, agent, true);
+            },
         };
         return () => {
-            quickCastRef.current = null;
+            playPointerRef.current = null;
         };
-    }, [engine, quickCastRef]);
+    }, [engine, playPointerRef]);
 
     useEffect(() => {
         const cvs = canvasRef.current;

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import type { UICommand } from '../../../types';
-import { TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
+import { GAME_INPUT_PARAM, TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
+import type { PlayPointerPort } from '../../../hooks/useGameInput';
 import { SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
 import { PLAY_TEXT, skillShortLabel } from '../../../data/ui/labels/play';
 import { selectHeroBar, type HeroBarView, type HeroSkillSlotView } from '../../../engine/systems/ui/views/play';
@@ -14,17 +14,19 @@ import { cn } from '../primitives/cn';
 import { isCoarsePointer, readQuickCast } from './playPrefs';
 
 /**
- * PLAY 戰鬥 HUD（P5，docs/plans/play-mode.md）：主角的四個技能鈕（快捷鍵 1～4）、停止（S）、暫停（空白鍵）；
- * 主角倒下後改成觀戰（可加速）。按技能：射程 0 的直接放；Quick Cast 開著時鍵盤快捷鍵優先對游標下施放，
- * 沒有合法目標再進入瞄準（SET_AIM），在戰場上點目標，Esc、右鍵（useGameInput）或瞄準提示上的取消鈕取消。
+ * PLAY 戰鬥 HUD（P5，docs/plans/play-mode.md；ADR 0026 K3、K4）：主角的四個技能鈕（快捷鍵 1～4）、停止（S）、
+ * 暫停（空白鍵）；主角倒下後改成觀戰（可加速）。按技能：射程 0 的直接放；Quick Cast 開著時鍵盤快捷鍵優先對
+ * 游標下施放，沒有合法目標再進入瞄準（SET_AIM）；非 SELF 且未被拒收的槽也可從技能鈕拖到戰場放開施放（拖曳中
+ * 透過 playPointerRef.hoverAt 更新預覽，放開由 dropSkill 決定施放／留在瞄準／取消，拖回按鈕取消），與點鈕切換
+ * 瞄準並存。Esc、右鍵（useGameInput）或瞄準提示上的取消鈕取消。
  * 「能不能放」「能點誰」都讀引擎的投影（selectHeroBar），這裡不判斷。
  * 版面：單列（技能鈕只放圖示，名稱在 title 與瞄準提示）；尺寸讀 --ui-play-* token，排法在 index.css 的 .play-hud。
  * 手機（useCompactViewport，和工具視窗變底部面板同一個斷點）用純色外殼，不模糊。
  */
 export interface PlayHUDProps {
     onTogglePause: () => void;
-    /** Quick Cast（ADR 0026 K3）：向輸入層詢問目前游標下對該槽施放的指令；null＝游標下沒有合法目標 */
-    quickCastRef?: MutableRefObject<((slot: number) => UICommand | null) | null>;
+    /** PLAY 輸入埠（ADR 0026 K3、K4）：由 useGameInput 填入 Quick Cast 與技能鈕拖曳查詢 */
+    playPointerRef?: MutableRefObject<PlayPointerPort | null>;
 }
 
 /** 觀戰時的倍率選項（在 UI_SETTINGS.TIME_SCALE 的範圍內） */
@@ -47,7 +49,7 @@ const CAST_BLOCK_LABEL: Readonly<Record<CastBlockReason, string>> = {
 
 const slotTitle = (s: HeroSkillSlotView): string => `${SKILL_TAG_LABEL[s.tag]}：${s.name}（${SLOT_KEYS[s.slot]}）`;
 
-export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, quickCastRef }) => {
+export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, playPointerRef }) => {
     const bar = useView(selectHeroBar);
     const { send } = useCommands();
     const isCompact = useCompactViewport();
@@ -55,6 +57,14 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, quickCastRef })
     barRef.current = bar;
     const [castBlock, setCastBlock] = useState<{ readonly name: string; readonly reason: CastBlockReason } | null>(null);
     const blockTimerRef = useRef<number | null>(null);
+    const dragRef = useRef<{
+        pointerId: number;
+        slot: HeroSkillSlotView;
+        startX: number;
+        startY: number;
+        active: boolean;
+    } | null>(null);
+    const suppressClickRef = useRef(false);
 
     const clearCastBlock = useCallback(() => {
         if (blockTimerRef.current !== null) {
@@ -75,7 +85,11 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, quickCastRef })
 
     useEffect(() => () => {
         if (blockTimerRef.current !== null) window.clearTimeout(blockTimerRef.current);
-    }, []);
+        if (dragRef.current) {
+            dragRef.current = null;
+            playPointerRef?.current?.hoverAt(null);
+        }
+    }, [playPointerRef]);
 
     const pressSlot = useCallback((slot: HeroSkillSlotView, fromKeyboard: boolean) => {
         const b = barRef.current;
@@ -90,14 +104,77 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, quickCastRef })
             return;
         }
         if (fromKeyboard && readQuickCast()) {
-            const cmd = quickCastRef?.current?.(slot.slot) ?? null;
+            const cmd = playPointerRef?.current?.quickCast(slot.slot) ?? null;
             if (cmd) {
                 send(cmd);
                 return;
             }
         }
         send({ type: 'SET_AIM', aim: b.aimSlot === slot.slot ? null : { agentId: b.heroId, slot: slot.slot } });
-    }, [send, showCastBlock, clearCastBlock, quickCastRef]);
+    }, [send, showCastBlock, clearCastBlock, playPointerRef]);
+
+    const onSlotPointerDown = (s: HeroSkillSlotView, e: React.PointerEvent<HTMLButtonElement>) => {
+        const b = barRef.current;
+        if (!b || !b.alive) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        suppressClickRef.current = false;
+        if (s.refusal !== null || s.mode === 'SELF' || dragRef.current !== null) return;
+        dragRef.current = { pointerId: e.pointerId, slot: s, startX: e.clientX, startY: e.clientY, active: false };
+        e.currentTarget.setPointerCapture(e.pointerId);
+    };
+
+    const onSlotPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== e.pointerId) return;
+        const b = barRef.current;
+        if (!b || !b.alive) {
+            dragRef.current = null;
+            playPointerRef?.current?.hoverAt(null);
+            return;
+        }
+        if (!drag.active) {
+            const threshold = e.pointerType === 'touch' ? GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX : GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;
+            if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) <= threshold) return;
+            drag.active = true;
+            clearCastBlock();
+            send({ type: 'SET_AIM', aim: { agentId: b.heroId, slot: drag.slot.slot } });
+        }
+        playPointerRef?.current?.hoverAt({ clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType });
+    };
+
+    const onSlotPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== e.pointerId) return;
+        dragRef.current = null;
+        if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+        suppressClickRef.current = true;
+        if (!drag.active) {
+            const latest = barRef.current?.slots.find((x) => x.slot === drag.slot.slot) ?? drag.slot;
+            pressSlot(latest, false);
+            return;
+        }
+        const intent = playPointerRef?.current?.dropSkill(drag.slot.slot, { clientX: e.clientX, clientY: e.clientY, pointerType: e.pointerType }) ?? { kind: 'CANCEL' };
+        if (intent.kind === 'ORDER') send(intent.command);
+        else if (intent.kind === 'CANCEL') send({ type: 'SET_AIM', aim: null });
+        playPointerRef?.current?.hoverAt(null);
+    };
+
+    const onSlotPointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== e.pointerId) return;
+        dragRef.current = null;
+        if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+        send({ type: 'SET_AIM', aim: null });
+        playPointerRef?.current?.hoverAt(null);
+    };
+
+    const onSlotClick = (s: HeroSkillSlotView, e: React.MouseEvent<HTMLButtonElement>) => {
+        if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            if (e.detail !== 0) return;
+        }
+        pressSlot(s, false);
+    };
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -179,7 +256,11 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, quickCastRef })
                                         label={slotTitle(s)}
                                         size="auto"
                                         variant={bar.aimSlot === s.slot ? 'primary' : 'secondary'}
-                                        onClick={() => pressSlot(s, false)}
+                                        onPointerDown={(e) => onSlotPointerDown(s, e)}
+                                        onPointerMove={onSlotPointerMove}
+                                        onPointerUp={onSlotPointerUp}
+                                        onPointerCancel={onSlotPointerCancel}
+                                        onClick={(e) => onSlotClick(s, e)}
                                         className={cn('play-slot', unavailable && 'opacity-50')}
                                     >
                                         <SkillIcon skill={{ id: s.skillId, name: s.name, visual: s.visual, color: s.color }} className="play-slot-icon" data-testid={`play-skill-icon-${s.slot}`} />

@@ -4,11 +4,11 @@ import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
 import { VisualMath } from '../engine/math/VisualMath';
-import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup, MatchPhase, type UICommand } from '../types';
+import { Team, ToolType, Skill, Role, BodyTypeId, BattleSetup, MatchPhase } from '../types';
 import { VictoryOverlay } from './ui/VictoryOverlay';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
-import { useGameInput } from '../hooks/useGameInput';
+import { useGameInput, type PlayPointerPort } from '../hooks/useGameInput';
 import { useCameraControl } from '../hooks/useCameraControl';
 import { useCompactViewport } from '../hooks/useCompactViewport';
 import { useViewInsets } from '../hooks/useViewInsets';
@@ -43,13 +43,13 @@ interface GameCanvasProps {
     onSaveReplay: () => void;
     nextLevel: () => void;
     onOpenLogs: () => void;
-    /** PLAY Quick Cast（ADR 0026 K3）：交給 useGameInput 填入游標下施放查詢 */
-    quickCastRef?: React.MutableRefObject<((slot: number) => UICommand | null) | null>;
+    /** PLAY 輸入埠（ADR 0026 K3、K4）：交給 useGameInput 填入 Quick Cast 與技能鈕拖曳查詢 */
+    playPointerRef?: React.MutableRefObject<PlayPointerPort | null>;
 }
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, isPlayMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, onOpenLogs, onReplay, onSaveReplay, quickCastRef 
+        isShowcaseMode, isPlayMode, spawnMode, draftRole, draftBodyType, onSelect, winner, winnerId, winnerSide, battleSetup, rematch, nextLevel, onOpenLogs, onReplay, onSaveReplay, playPointerRef 
     } = props;
     const isCompact = useCompactViewport();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -74,7 +74,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { pressedAgent, draggedObstacle, hoveredHexRef, refreshHover } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, selectedAgent,
-        onSelect, quickCastRef
+        onSelect, playPointerRef
     });
 
     const handleDraw = useCallback((ctx: CanvasRenderingContext2D, fps: number) => {

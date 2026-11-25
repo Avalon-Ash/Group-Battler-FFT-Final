@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import type { UICommand } from './types';
+import type { PlayPointerPort } from './hooks/useGameInput';
 import GameCanvas from './components/GameCanvas';
 import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
 import { SystemMenu } from './components/ui/SystemMenu';
@@ -28,7 +28,7 @@ function App() {
   const inspectorState = useWindowState('inspector');
   const isInspectorOpen = inspectorState?.isOpen ?? false;
   const prevSelectedAgentIdRef = useRef<string | null>(null);
-  const quickCastRef = useRef<((slot: number) => UICommand | null) | null>(null);
+  const playPointerRef = useRef<PlayPointerPort | null>(null);
   const [playSetupOpen, setPlaySetupOpen] = useState(false);
   const isCompact = useCompactViewport();
 
@@ -78,7 +78,7 @@ function App() {
           />
         )}
         {state.isPlayMode && state.playOutcome === null && (
-          <PlayHUD onTogglePause={actions.togglePlay} quickCastRef={quickCastRef} />
+          <PlayHUD onTogglePause={actions.togglePlay} playPointerRef={playPointerRef} />
         )}
         {state.playOutcome !== null && (
           <PlayResult
@@ -142,7 +142,7 @@ function App() {
                 onSaveReplay={actions.saveReplay}
                 nextLevel={actions.handleNextLevel} 
                 onOpenLogs={() => windowActions.open('logs')}
-                quickCastRef={quickCastRef}
+                playPointerRef={playPointerRef}
             />
       </div>
       {!hideHUD && (
