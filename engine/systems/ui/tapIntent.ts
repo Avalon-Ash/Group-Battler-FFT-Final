@@ -118,14 +118,27 @@ function canTakeOrders(engine: GameEngine, unit: Agent | null): unit is Agent {
         && engine.agents.includes(unit);
 }
 
+/**
+ * PLAY：己方（主角或隊友）的身體框比格子高（含觸控容差），會蓋到後面的地面。
+ * 指標那一格不是它站的格子，這次點擊就當點那一格地面（移動與瞄準施放共用這一條）。
+ */
+function ownBodyOverGround(engine: GameEngine, selected: Agent, hex: Hex | null, tapped: Agent): boolean {
+    return engine.matchFlow?.isPlay === true
+        && sameSide(tapped, selected)
+        && hex !== null
+        && !(hex.q === tapped.q && hex.r === tapped.r);
+}
+
 /** 瞄準中與 Quick Cast 共用的施放判定：對指定技能槽把格子與單位翻成 ORDER_CAST 或 NONE。 */
 function resolveAimCast(engine: GameEngine, caster: Agent, slot: number, hex: Hex | null, tapped: Agent | null): TapIntent {
     const targeting = queryCastTargeting(engine, caster, slot);
     if (!targeting) return { kind: 'NONE' };
     if (tapped) {
-        return isCastTarget(engine, caster, slot, tapped)
-            ? { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: caster.id, slot, targetId: tapped.id } }
-            : { kind: 'NONE' };
+        if (isCastTarget(engine, caster, slot, tapped)) {
+            return { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: caster.id, slot, targetId: tapped.id } };
+        }
+        // 點到的己方單位不是這招的目標：身體框蓋到別的地面時改看那一格（落到下面的地面判斷）
+        if (!ownBodyOverGround(engine, caster, hex, tapped)) return { kind: 'NONE' };
     }
     if (targeting.mode === 'UNIT_OR_GROUND' && hex && engine.map.isValid(hex.q, hex.r) && !engine.hasObstacle(hex.q, hex.r)) {
         return { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: caster.id, slot, q: hex.q, r: hex.r } };
@@ -141,7 +154,8 @@ function resolveAimCast(engine: GameEngine, caster: Agent, slot: number, hex: He
  * @param tapped 指標下的單位（身體框命中，身體框比格子高，可能不站在 hex 那一格；沒有是 null）
  *
  * [契約 P5] 瞄準中（engine.state.aim 是選取中的單位）：點到 isCastTarget 的單位＝ORDER_CAST 對它；
- * UNIT_OR_GROUND 的招點到空地（地圖上、不是障礙物）＝ORDER_CAST 對那一格；其他點擊不動作（不改選取、不移動）。
+ * UNIT_OR_GROUND 的招點到空地（地圖上、不是障礙物）＝ORDER_CAST 對那一格；PLAY 點到不是這招目標的己方身體框、
+ * 指標那一格不是它站的格子＝照那一格當點地面；其他點擊不動作（不改選取、不移動）。
  * PLAY 模式不瞄準時：點隊友不改選取（主角一直是選取中的單位）；點到主角或隊友的身體框、但指標那一格
  * 不是它站的格子（身體框蓋到後面的地面）＝照那一格當點地面；其餘照上面的規則。
  */
@@ -158,9 +172,8 @@ export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex 
             return { kind: 'ORDER', command: { type: 'ORDER_ATTACK', agentId: selected.id, targetId: tapped.id } };
         }
         if (!engine.matchFlow?.isPlay) return { kind: 'SELECT', agent: tapped };
-        // PLAY：主角一直是選取中的單位，點隊友不換選取。己方身體框（含觸控容差）會蓋到後面的地面：
-        // 指標那一格不是它站的格子，就當點地面（落到下面的移動判斷）
-        if (!sameSide(tapped, selected) || (hex !== null && hex.q === tapped.q && hex.r === tapped.r)) return { kind: 'NONE' };
+        // PLAY：主角一直是選取中的單位，點隊友不換選取；身體框蓋到別的地面時當點地面（落到下面的移動判斷）
+        if (!ownBodyOverGround(engine, selected, hex, tapped)) return { kind: 'NONE' };
     }
     if (hex && engine.map.isValid(hex.q, hex.r) && !engine.hasObstacle(hex.q, hex.r)) {
         return { kind: 'ORDER', command: { type: 'ORDER_MOVE', agentId: selected.id, q: hex.q, r: hex.r } };
