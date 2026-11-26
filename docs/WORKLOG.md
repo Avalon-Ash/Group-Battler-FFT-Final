@@ -1070,3 +1070,10 @@
 - onCast（照 `docs/plans/oncast-motion-decoupling.md`）：`SkillQueries` 匯出 `castMotion`、新增 `movesSelf`、`hasCastAction`；`motionOfAction` 用 `never` 窮舉，`CastAction` 加新種類沒處理就編譯失敗。`SkillExecutor` 的 `mobilityDash`（仍只認 DASH）、`retreated`（`castMotion === 'BACK'`）、不前衝條件（`!movesSelf`），`SkillStateMachine` 的定身擋招（`movesSelf`）都改讀它。資料裡的 `onCast` 都只有一個動作（BLINK 2、DASH 3、RETREAT 6），同義替換。
 - 驗證（主資料夾 main）：lint、`npm test` 182 檔 1689 則、build（進入點 257.0／257.5 kB）、knip、`balance:fingerprint`（TEAMS／ROYALE／SQUADS 各 60/60 相同）、`e2e:play` 100 項全過。沒驗的：實機（HANDOFF §3）。
 - **回退**：`git revert` 這一輪的 commit（瞄準與 onCast 各一個）。
+### DO. 2026-11-27 PLAY 指令路徑三項耦合（開案書 `docs/plans/play-order-decoupling.md`；研究與 D0～D3 實作 Fable 5.2 子代理，審查與合約其餘四處主代理 Opus；使用者 11-26：第 1 項選 A、D1／D2 動工）
+- 研究：Fable 讀 Game Programming Patterns（Command、Event Queue、State）、OpenRA、0 A.D.、Unity／Android 的拖曳門檻；結論是不改走 `engine.bus`（回放快轉時 bus 靜音，ADR 0019 禁止模擬層訂閱），改把職責放回擁有者。
+- D1（`55a0cd8f`）：`currentTelegraph` 只由 `SkillStateMachine` 寫：`beginWindup` 多收預警格參數、`endWindup` 清掉，`CombatSystem`、`CastingEngine` 不再寫；登記進 `AGENT_FIELD_OWNERS`。新測試 `tests/TelegraphOwnership.test.ts`（先紅後綠）。審查時把重複的「會不會預警」判斷收成 `SkillQueries.announcesCast`，`CombatSystem` 與測試都讀它（`7c3d853e`）。
+- D2（`756e8822`）：拖曳門檻收成 `tapIntent.isPastDragSlop`；`useGameInput` 兩處直接讀，`PlayHUD` 經 `PlayPointerPort` 讀（元件不能 import 引擎模組）。埠還沒填時當成還沒開始拖。
+- D3（`48b1c6ce`）：`UICommandSystem.applyPlayerOrder` 搬成 `engine/systems/orders/OrderIntake.ts` 的 `applyOrder`，`UICommandSystem` 回到只驗證；ADR 0027。合約「系統之間只透過 `engine.bus`」改寫成「改別的系統的狀態呼叫擁有者的 API，bus 只通知、模擬層不訂閱」：`AGENTS.md`（Fable）、`CLAUDE.md`、`docs/METHODOLOGY.md`、`.claude/agents/reviewer.md`、`.codex/agents/reviewer.toml`（主代理；子代理不改主代理合約）。合約改動下一個工作階段才生效。
+- 驗證：D0 逐 tick 探針（`tools/ui-e2e/out/order-ab.mjs`，不進版控；3 種子、89 道 `ORDER_*`，取消前搖 16、立即換路 15、拒收 8、預警格出現 14／清掉 13）D1、D3 後和基準 `cmp` 相同；`balance:fingerprint` 每包 180/180；`perf:fidelity` 六張 PASS、改前改後數字相同；runtime-smoke 過。審查後重跑（`_wt_play-orders`）：lint、`npm test` 183 檔 1695 則、build（進入點 257.0／257.5 kB）、knip、指紋 180/180；主資料夾 `e2e:play` 100 項全過。沒驗的：實機（行為不變，無新項目）。
+- **回退**：反向 `git revert` 這四個 commit（`7c3d853e`、`48b1c6ce`、`756e8822`、`55a0cd8f`）。

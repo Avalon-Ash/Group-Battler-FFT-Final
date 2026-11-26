@@ -16,7 +16,7 @@
 ## 2. 下一步
 
 **排程（主代理 2026-11-22）**：三條線並行，渲染線同時只開一條。
-- **PLAY 操控手感（ADR 0026，拆包在 `docs/plans/control-feel.md` §7）**：K1（指令打斷、立即換路、冷卻／魔力拒收、自身技直接放）11-25 合併（WORKLOG §2 DH）；K2 奧義詠唱逐步扣魔、K3 桌機滑鼠＋Quick Cast 11-25 合併（WORKLOG §2 DI）；K4 觸控 11-25 合併（WORKLOG §2 DJ），K1～K4 全部做完，等實機（§3）。11-25 Fable 終審（API）找到的三項已修（WORKLOG §2 DL）；終審沒修的：編輯模式觸控拖障礙物時放第二指，障礙物會消失（既有）；`applyPlayerOrder` 直接呼叫戰鬥與移動系統、`cancelWindup` 和 `CombatSystem` 都寫 `currentTelegraph`、`PlayHUD` 自己判斷拖曳門檻（架構；使用者 11-26：由 Fable 參考 MOBA／RTS 做法直接定設計給結論，Fable 子代理在寫開案書）；後撤類 SELF 機動技的目標格設在腳下、`CAST_CANCEL` 的音效與粒子收尾、K2 之前錄的回放重播會不同（低信心，實機看到再查）。11-26 點己方身體框蓋住的地面會被吞掉已修（WORKLOG §2 DM），瞄準中同一條規則也改了（WORKLOG §2 DN）。進入點 256.9／257.5 kB。瀏覽器探針換很多場（約 20～30 場）後頁面會當，main 也一樣，原因未查。
+- **PLAY 操控手感（ADR 0026，拆包在 `docs/plans/control-feel.md` §7）**：K1（指令打斷、立即換路、冷卻／魔力拒收、自身技直接放）11-25 合併（WORKLOG §2 DH）；K2 奧義詠唱逐步扣魔、K3 桌機滑鼠＋Quick Cast 11-25 合併（WORKLOG §2 DI）；K4 觸控 11-25 合併（WORKLOG §2 DJ），K1～K4 全部做完，等實機（§3）。11-25 Fable 終審（API）找到的三項已修（WORKLOG §2 DL）；終審沒修的：編輯模式觸控拖障礙物時放第二指，障礙物會消失（既有）；`applyPlayerOrder` 直接呼叫戰鬥與移動系統、`cancelWindup` 和 `CombatSystem` 都寫 `currentTelegraph`、`PlayHUD` 自己判斷拖曳門檻 11-27 收掉（WORKLOG §2 DO，ADR 0027）；後撤類 SELF 機動技的目標格設在腳下、`CAST_CANCEL` 的音效與粒子收尾、K2 之前錄的回放重播會不同（低信心，實機看到再查）。11-26 點己方身體框蓋住的地面會被吞掉已修（WORKLOG §2 DM），瞄準中同一條規則也改了（WORKLOG §2 DN）。進入點 256.9／257.5 kB。瀏覽器探針換很多場（約 20～30 場）後頁面會當，main 也一樣，原因未查。
 - **PLAY 模式（L2）**：11-23 全部做完（WORKLOG §2 CU、CW、CY），等使用者實機試玩（§3，Pages 11-24 已上線）。之後 L4 行為編輯器（G5），設計由使用者和 Fable 討論（11-26 週額度已恢復）。
 - **邏輯線**：J 平衡這輪收尾（11-23 使用者：藍方 52.5％ 不補刀）；大逃殺 11-24 加到兩種子各 1500 場（WORKLOG §2 CZ），使用者 11-26：**先調職業**（坦克、戰士），排在工具佈陣 P5 之後（兩者都會改指紋基準，不並行）。
 - **工具佈陣收斂（L 第 4 項）**：使用者 11-26 同意動工、含 P5。Fable 子代理在 `C:\Git\_wt_tool-deploy`（`feat/tool-deployment`）跑 P0～P6，跑完前那個工作樹只讀不寫。
