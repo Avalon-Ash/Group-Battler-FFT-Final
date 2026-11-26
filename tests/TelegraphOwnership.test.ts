@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Agent } from '../engine/core/Agent';
 import { beginWindup, cancelWindup, endWindup } from '../engine/systems/combat/SkillStateMachine';
+import { announcesCast } from '../engine/core/SkillQueries';
 import { Team } from '../types';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import type { MapConfig } from '../engine/utils';
@@ -16,7 +17,7 @@ const HEXES = [{ q: 3, r: 3 }, { q: 3, r: 4 }];
 const INVARIANT_TICKS = 600;
 
 /** 從正本技能表取一招會發 CAST_START 的招（非普攻、有詠唱時間），不寫死技能 */
-const announcedSkillOf = (a: Agent) => a.skills.findIndex((s) => !!s && s.tag !== 'BASIC' && s.cast > 0);
+const announcedSkillOf = (a: Agent) => a.skills.findIndex((s) => !!s && announcesCast(s));
 
 describe('currentTelegraph 由 SkillStateMachine 單一擁有', () => {
     it('beginWindup 寫入傳進來的預警格；沒傳就是 null', () => {
@@ -54,7 +55,7 @@ describe('currentTelegraph 由 SkillStateMachine 單一擁有', () => {
             for (const a of e.agents) {
                 const skill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
                 if (!skill) expect(a.currentTelegraph, `${a.id} tick ${t}`).toBeNull();
-                else if (skill.tag === 'BASIC' || skill.cast <= 0) expect(a.currentTelegraph, `${a.id} tick ${t}`).toBeNull();
+                else if (!announcesCast(skill)) expect(a.currentTelegraph, `${a.id} tick ${t}`).toBeNull();
                 else { expect(a.currentTelegraph, `${a.id} tick ${t}`).not.toBeNull(); withTelegraph++; }
             }
         }

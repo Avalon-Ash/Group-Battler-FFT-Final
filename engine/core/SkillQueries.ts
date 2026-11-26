@@ -126,6 +126,11 @@ export function hasCastAction(skill: Pick<Skill, 'onCast'>, action: CastAction['
     return skill.onCast?.some((a) => a.action === action) ?? false;
 }
 
+/** 這招開始前搖時會不會發 CAST_START（詠唱字、詠唱序列、預警格）；取消時同一個判斷決定要不要發 CAST_CANCEL */
+export function announcesCast(skill: Pick<Skill, 'cast' | 'tag'>): boolean {
+    return skill.cast > 0 && skill.tag !== 'BASIC';
+}
+
 /** 這個職業、這一隊能帶的技能：職業相同，且技能沒有限定隊伍或限定的就是這一隊（生成單位與 PLAY 選主角共用） */
 export function roleSkills(db: readonly Skill[], role: Role, team: Team): Skill[] {
     return db.filter((s) => s.role === role && (s.team === undefined || s.team === team));

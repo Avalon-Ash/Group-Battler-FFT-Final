@@ -1,8 +1,6 @@
 import { COMBAT_PARAM, CAST_RULES } from '../../../constants';
 import { activationBlock, beginWindup, cancelWindup, castAim, commitSkill, extendInterruptLockout } from "./SkillStateMachine";
-
-/** 這招開始前搖時會不會發 CAST_START（詠唱字、詠唱序列、預警格）；取消時同一個判斷決定要不要發 CAST_CANCEL */
-const announcesCast = (skill: Skill): boolean => skill.cast > 0 && skill.tag !== 'BASIC';
+import { announcesCast } from "../../core/SkillQueries";
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CombatSystem — 戰鬥系統 Orchestrator                   ║
 // ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
