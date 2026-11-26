@@ -7,7 +7,7 @@
 // ║  不看動作細節。                                           ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { CastTargeting, HitAction, Role, Skill, SkillIntent, SkillStatus, SkillTeams, Team } from '../../types';
+import type { CastAction, CastTargeting, HitAction, Role, Skill, SkillIntent, SkillStatus, SkillTeams, Team } from '../../types';
 import { sameSide } from './Allegiance';
 
 type HitActionKind = HitAction['action'];
@@ -94,12 +94,36 @@ export function hasIntentIn(skill: Skill, intents: ReadonlySet<SkillIntent>): bo
 
 /** 出手時施法者自己怎麼位移（讀 onCast）：TOWARD＝往目標去（DASH 突進、BLINK 瞬移到目標身邊）、BACK＝往遠離目標的方向後撤（RETREAT）、null＝不動 */
 type CastMotion = 'TOWARD' | 'BACK';
-function castMotion(skill: Pick<Skill, 'onCast'>): CastMotion | null {
+/** 單一出手動作怎麼移動施法者（null＝不移動自己）。新增 CastAction 種類時這裡少處理一種就編譯失敗，逼新增者決定它算不算移動。 */
+function motionOfAction(a: CastAction): CastMotion | null {
+    switch (a.action) {
+        case 'DASH':
+        case 'BLINK':
+            return 'TOWARD';
+        case 'RETREAT':
+            return 'BACK';
+        default: {
+            const unhandled: never = a;
+            return unhandled;
+        }
+    }
+}
+export function castMotion(skill: Pick<Skill, 'onCast'>): CastMotion | null {
     for (const a of skill.onCast ?? []) {
-        if (a.action === 'DASH' || a.action === 'BLINK') return 'TOWARD';
-        if (a.action === 'RETREAT') return 'BACK';
+        const motion = motionOfAction(a);
+        if (motion !== null) return motion;
     }
     return null;
+}
+
+/** 出手時會不會移動施法者自己（定身時不能放、有出手位移的不再前衝） */
+export function movesSelf(skill: Pick<Skill, 'onCast'>): boolean {
+    return castMotion(skill) !== null;
+}
+
+/** 出手動作裡有沒有這一種（例如只認 DASH 的突進落點規則；BLINK 算不算是玩法決定，另議） */
+export function hasCastAction(skill: Pick<Skill, 'onCast'>, action: CastAction['action']): boolean {
+    return skill.onCast?.some((a) => a.action === action) ?? false;
 }
 
 /** 這個職業、這一隊能帶的技能：職業相同，且技能沒有限定隊伍或限定的就是這一隊（生成單位與 PLAY 選主角共用） */

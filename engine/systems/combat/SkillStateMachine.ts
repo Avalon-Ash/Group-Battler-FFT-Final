@@ -14,6 +14,7 @@
 import type { Agent } from "../../core/Agent";
 import type { Skill } from "../../../types";
 import { isActionBlocked } from "../../core/Effects";
+import { movesSelf } from "../../core/SkillQueries";
 import { onSkillReleased } from "../../core/Orders";
 import { CAST_LOCKOUT, CAST_RULES, COMBAT_PARAM } from "../../../constants";
 
@@ -78,7 +79,7 @@ export function activationBlock(a: Agent, idx: number): ActivationBlock | null {
     if (isActionBlocked(a, 'CAST')) return 'CONTROLLED';
     if (skill.tag !== 'BASIC' && isActionBlocked(a, 'SKILL')) return 'SILENCED';
     // 突進、瞬移、後撤都是自己移動，被定身時不能放
-    if (skill.onCast?.length && isActionBlocked(a, 'MOVE')) return 'ROOTED';
+    if (movesSelf(skill) && isActionBlocked(a, 'MOVE')) return 'ROOTED';
     const res = resourceBlock(a, idx);
     if (res) return res;
     if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return 'BUSY';

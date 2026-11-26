@@ -1065,3 +1065,8 @@
 - 紅色驗收（改 A 之前）：`tests/TapIntent.test.ts` 加 3 則（真的開一場 PLAY），2 則紅在要驗的那一行；第 3 則原本紅在前提：戰鬥中 `SET_OBSTACLE` 排到下一個 tick 才套用，測試改成 emit 後 `flushQueued()`。`e2e:play` 新增三項全紅（`behindSent: []`）。
 - 驗證（`fix/play-tap-own-body`，`C:\Git\_wt_k3_input`）：lint、`npm test` 182 檔 1686 則、build（進入點 256.9／257.5 kB）、knip、runtime-smoke；完整 `e2e:ui` 349 項過，新增三項全過，另 3 項紅：桌機 Quick Cast、iPhone 直向技能鈕拖放與「瞄準時點敵人」，都是瞄準路徑（`resolveAimCast`／`resolveSkillDrop`，這次沒動），是既有偶發；接著重跑 `e2e:play` 100 項全過（含這 3 項）。沒驗的：實機（HANDOFF §3）。
 - **回退**：`git revert` 這一輪的 commit。
+### DN. 2026-11-26 瞄準中點己方身體框蓋住的地面、onCast 位移判斷收進 SkillQueries（主代理 Opus；使用者 11-26 積壓卡片：瞄準「照樣改」、onCast「同意動工」）
+- 瞄準（`engine/systems/ui/tapIntent.ts`）：DM 的判斷抽成 `ownBodyOverGround`（PLAY、己方、指標那一格不是它站的格子），`resolveTap` 的移動與 `resolveAimCast` 共用這一處。`resolveAimCast` 先看點到的單位是不是這招的目標（是就對它施放，治療點隊友照舊），不是且 `ownBodyOverGround` 成立就落到地面判斷（UNIT_OR_GROUND 的招對那一格施放）；Quick Cast、技能鈕拖放、`hoverHexOf` 預覽都走 `resolveAimCast`／`resolveTap`，一起跟上。`tests/TapIntent.test.ts` 加 2 則（真的開一場 PLAY）：範圍技點主角／隊友身後空地＝對那格施放、預覽同一格；點己方自己站的格子、地圖外、單體技點己方身體框＝不動作。
+- onCast（照 `docs/plans/oncast-motion-decoupling.md`）：`SkillQueries` 匯出 `castMotion`、新增 `movesSelf`、`hasCastAction`；`motionOfAction` 用 `never` 窮舉，`CastAction` 加新種類沒處理就編譯失敗。`SkillExecutor` 的 `mobilityDash`（仍只認 DASH）、`retreated`（`castMotion === 'BACK'`）、不前衝條件（`!movesSelf`），`SkillStateMachine` 的定身擋招（`movesSelf`）都改讀它。資料裡的 `onCast` 都只有一個動作（BLINK 2、DASH 3、RETREAT 6），同義替換。
+- 驗證（主資料夾 main）：lint、`npm test` 182 檔 1689 則、build（進入點 257.0／257.5 kB）、knip、`balance:fingerprint`（TEAMS／ROYALE／SQUADS 各 60/60 相同）、`e2e:play` 100 項全過。沒驗的：實機（HANDOFF §3）。
+- **回退**：`git revert` 這一輪的 commit（瞄準與 onCast 各一個）。
