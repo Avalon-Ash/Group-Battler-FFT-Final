@@ -135,11 +135,14 @@ placed.size !== roster.length → 丟錯
 - 改完先**不帶 `--record`** 跑一次，記下每個情境的 `identical` 數。
 - 和預測不符（例如預測 ROYALE 60/60 卻不是）就停，不重錄。
 
-**(c) 統計型工具用「舊版跨種子範圍」當尺。** 佈陣改了等於重新抽樣，不該逐位元比。
+**(c) 統計型工具用「合併種子的兩比例 z 檢定」當尺。** 佈陣改了等於重新抽樣，不該逐位元比。
+
+> 2026-11-27 主代理依新證據改寫。原判準是「新版同種子的摘要落在舊版三個種子的最小～最大之間」；對一個獨立重抽的值，單一值落在這個範圍外的機率約 1/2（n=3 時 2/(n+1)），P2、P3 比對 105 個值有 20 個在外而停下（數字在 6d55d9b9、b50f01f4 的 commit 訊息）。改判準不是為了過關放寬：舊判準分不出回歸與抽樣。
 
 - P0 先用舊版各跑 3 個種子，存下摘要。
-- 新版同種子的摘要落在舊版三個種子的最小～最大之間，視為預期中的改變。
-- 落在外面就停下來問，不調門檻、不挑種子。
+- 比例型的值（勝率）把各種子合併後做兩比例 z 檢定，|z|<2 視為相同；超出才停下來問，不調門檻、不挑種子。
+- 證據（主代理跑，指令 `node tools/balance/ai-idle-sim.mjs --scenario=TEAMS --battles=200 --seed=N`，N=4..9；舊版在主資料夾、新版在工作樹，原始輸出在兩邊的 `tools/ui-e2e/out/td2/`）：勝率 old→new，種子 4～9 TANK 42.6→44.0（z 1.02）、WARRIOR 29.4→29.4、RANGER 38.0→38.0、MAGE 35.4→34.7、SUPPORT 36.4→35.7；種子 1～9 合併（每職業 3600 picks）全部 |z|≤0.75；`idlePct` 差 ≤0.1 點。種子 1～3 的「TANK、WARRIOR 三個都較低」在 4～9 反轉。
+- `--swapSides`（3000 場 × 3 種子，每臂合計 9000 場）：swap 藍方勝率 new−old +0.69 點（1.96σ＝±1.46），swap 與不 swap 的差 new−old −0.35 點（±2.06），都在雜訊內。
 - 比對欄位：
   - `batch-sim`：`blueWinRate`（連同 `ci95`）、`avgTime`、`damageAttribution.attributedPct`、`wins.TIMEOUT`。
   - `mobility-probe`：全部門檻列。既有門檻必須照樣 PASS。
@@ -216,11 +219,11 @@ P5 可以單獨否決。不做的話，`simFingerprint.ts` 會在 ADR 裡登記�
 |---|---|---|
 | P0 | 沒有程式改動；刪掉 `tools/ui-e2e/out/td/` 即可。 | 無 |
 | P1 | `git revert <P1>`。只有新增檔；要先退掉 P2～P5。 | 共同驗收 |
-| P2／P3／P4 | 各自 `git revert <sha>`，互不影響。工具輸出在 gitignore 目錄，沒有殘留。 | 共同驗收；該工具用 P0 的指令重跑，摘要與 `old-…` 相同 |
+| P2／P3／P4 | P4 可單獨 `git revert`。**P3 用到 P2 加的 `HEADLESS_SETUP`：要先退 P3 再退 P2**（2026-11-27 補；原寫「互不影響」不成立）。工具輸出在 gitignore 目錄，沒有殘留。 | 共同驗收；該工具用 P0 的指令重跑，摘要與 `old-…` 相同 |
 | P5 | `git revert <P5>`。程式和基準檔在同一個 commit，一起回到舊版。**不要**用 `--record` 回退。 | `npm run balance:fingerprint` 回到舊基準的 180/180 |
 | P6 | `git revert <P6>`。若 ADR 已是「採用」而之後要推翻，照 `docs/adr/README.md` 另開一份取代，不改原檔。 | `npm test` |
 
-回退順序是反向：P6 → P5 → P2～P4 → P1。
+回退順序是反向：P6 → P5 → P3 → P2 → P4 → P1。
 
 ## 6. 要不要 ADR
 
