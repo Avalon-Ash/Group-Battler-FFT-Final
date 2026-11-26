@@ -30,7 +30,7 @@ try {
     const { SIM_STEP_S, stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
     const DT = DT_ARG === null ? SIM_STEP_S : Number(DT_ARG);
     const step = (engine) => (DT_ARG === null ? stepSimulation(engine) : engine.tick(DT));
-    const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
+    const { buildHeadlessBattle, HEADLESS_SETUP } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
     const { SkillExecutor } = await server.ssrLoadModule('/engine/systems/combat/SkillExecutor.ts');
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
     const { CCManager } = await server.ssrLoadModule('/engine/systems/combat/CCManager.ts');
@@ -38,8 +38,7 @@ try {
     const { HazardSystem } = await server.ssrLoadModule('/engine/systems/HazardSystem.ts');
     const { HazardManager } = await server.ssrLoadModule('/engine/systems/combat/HazardManager.ts');
     const { Agent } = await server.ssrLoadModule('/engine/core/Agent.ts');
-    const { Team, Role } = await server.ssrLoadModule('/types.ts');
-    const { HexUtils } = await server.ssrLoadModule('/engine/utils.ts');
+    const { Team } = await server.ssrLoadModule('/types.ts');
     const { DEFAULT_SKILL_DB } = await server.ssrLoadModule('/skillDatabase.ts');
     const skillMetaMap = new Map(DEFAULT_SKILL_DB.map((s) => [s.id, s]));
 
@@ -163,26 +162,11 @@ try {
     const origSpawn = CombatSystem.prototype.spawnProjectile;
     CombatSystem.prototype.spawnProjectile = function (a, s, e) { countCast(s); return origSpawn.call(this, a, s, e); };
 
-    const roles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
     const battles = [];
     const t0 = Date.now();
     for (let b = 0; b < BATTLES; b++) {
-        const engine = new GameEngine({ audio: false });
-        engine.seedSimulation(SEED * 100000 + b);
-        engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
-        const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
-        const valid = [...engine.map.mapKeys].map((k) => { const [q, r] = k.split(',').map(Number); return { q, r }; })
-            .filter((h) => !engine.hasObstacle(h.q, h.r) && HexUtils.dist({ q: 0, r: 0 }, h) < radius);
-        const left = valid.filter((h) => h.q < -1), right = valid.filter((h) => h.q > 1);
-        // 固定順序洗牌（引擎已設種子，這裡用自己的 LCG，不動引擎亂數）
-        let s = (SEED * 7919 + b * 104729) >>> 0;
-        const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-        for (const arr of [left, right]) for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
-        for (let i = 0; i < 5; i++) {
-            const bh = SWAP ? right[i] : left[i], rh = SWAP ? left[i] : right[i];
-            engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.BLUE, q: bh.q, r: bh.r, role: roles[i] });
-            engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.RED, q: rh.q, r: rh.r, role: roles[i] });
-        }
+        // 佈陣走共用入口（規則在 Deployment.ts）；--swapSides＝兩陣營對調隊伍，藍方改站右邊
+        const { engine } = buildHeadlessBattle({ seed: SEED * 100000 + b, setup: HEADLESS_SETUP.TEAMS, mirrorSides: SWAP });
         cur = {
             skills: {},
             casts: {},
