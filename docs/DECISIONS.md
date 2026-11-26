@@ -27,6 +27,7 @@
 ## 4. 架構
 - 座標協議以 `engine/renderers/RenderSpec.ts` 為準，渲染／座標工作一次只開一條，詳見 [0003](adr/0003-coordinate-protocol-and-serial-render.md)。
 - 狀態欄位唯一寫入者（`engine/core/AgentOwnership.ts`）與嘲諷鎖定歸屬，詳見 [0002](adr/0002-state-field-single-owner.md)。
+- 改別的系統的狀態直接呼叫擁有者的 API、匯流排只通知（模擬層不訂閱）；指令的套用點在 `engine/systems/orders/OrderIntake.ts`（2026-11-26 使用者同意），詳見 [0027](adr/0027-direct-owner-calls-and-order-intake.md)。
 - 大逃殺的「發呆看門狗」不採用：B0 證據 IDLE 為 0，屬掩蓋症狀且改到 facade。根因修法是行為樹 `Combat Actions` SELECTOR。
 - 保真基準不得任意重錄、門檻不得放寬，重錄須附新舊差異圖並獨立 commit，詳見 [0007](adr/0007-visual-verification-same-env-ab.md)。
 - 文件防過時（2026-10-20）：過時直接刪除不歸檔、檔頭瘦身、`tests/DocDrift.test.ts` 把關，詳見 [0004](adr/0004-doc-anti-drift.md)。
