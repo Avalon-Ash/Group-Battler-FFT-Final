@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import type { GameEngine } from '../engine/game';
+import { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/core/Agent';
 import { resolveTap, hoverHexOf } from '../engine/systems/ui/tapIntent';
 import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
+import { MatchFlowSystem } from '../engine/systems/match/MatchFlowSystem';
+import { Role } from '../types';
 import { buildBattle, emit } from './contracts/simState';
 
 /** 點擊規則（契約 G3 的輸入）：選取中的單位是玩家控制的，點擊才會變成指令。 */
@@ -17,6 +19,19 @@ const emptyHex = (e: GameEngine) => {
     const hex = querySpawnableHexes(e).find((h) => !e.agents.some((a) => a.q === h.q && a.r === h.r));
     if (!hex) throw new Error('沒有空格');
     return { q: hex.q, r: hex.r };
+};
+
+/** 真的開一場 PLAY（和 CameraInput 同一種建法） */
+const playSetup = () => {
+    const e = new GameEngine({ audio: false });
+    let seed = 900;
+    const flow = new MatchFlowSystem(e, { isRosterReady: () => true, nextSeed: () => seed++ });
+    e.matchFlow = flow;
+    flow.startPlay({ role: Role.TANK });
+    const hero = e.agents.find((a) => a.id === flow.playHeroId) as Agent;
+    const friend = e.agents.find((a) => a !== hero && a.side === hero.side) as Agent;
+    const foe = e.agents.find((a) => a.side !== hero.side) as Agent;
+    return { e, hero, friend, foe };
 };
 
 describe('resolveTap', () => {
@@ -41,6 +56,36 @@ describe('resolveTap', () => {
         emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'PLAYER' });
         expect(resolveTap(e, hero, hero, hero)).toEqual({ kind: 'SELECT', agent: hero });
         expect(resolveTap(e, hero, friend, friend)).toEqual({ kind: 'SELECT', agent: friend });
+    });
+
+    // 11-26：己方的身體框會蓋到後面的地面（含觸控容差），PLAY 不能因此吞掉移動指令
+    it('PLAY 模式：點到主角或隊友的身體框、指標那一格是別的地面＝移動到那一格', () => {
+        const { e, hero, friend } = playSetup();
+        const dest = emptyHex(e);
+        const move = { kind: 'ORDER', command: { type: 'ORDER_MOVE', agentId: hero.id, q: dest.q, r: dest.r } };
+        expect(resolveTap(e, hero, dest, hero)).toEqual(move);
+        expect(resolveTap(e, hero, dest, friend)).toEqual(move);
+        e.stop();
+    });
+
+    it('PLAY 模式：指標就在主角或隊友自己站的那一格＝不動作；敵人的身體框照舊攻擊', () => {
+        const { e, hero, friend, foe } = playSetup();
+        expect(resolveTap(e, hero, { q: hero.q, r: hero.r }, hero)).toEqual({ kind: 'NONE' });
+        expect(resolveTap(e, hero, { q: friend.q, r: friend.r }, friend)).toEqual({ kind: 'NONE' });
+        expect(resolveTap(e, hero, emptyHex(e), foe)).toEqual({ kind: 'ORDER', command: { type: 'ORDER_ATTACK', agentId: hero.id, targetId: foe.id } });
+        e.stop();
+    });
+
+    it('PLAY 模式：己方身體框蓋到地圖外或障礙物＝不動作', () => {
+        const { e, hero, friend } = playSetup();
+        expect(resolveTap(e, hero, null, friend)).toEqual({ kind: 'NONE' });
+        expect(resolveTap(e, hero, { q: 999, r: 999 }, hero)).toEqual({ kind: 'NONE' });
+        const wall = emptyHex(e);
+        emit(e, { type: 'SET_OBSTACLE', q: wall.q, r: wall.r, obstacleType: 'WALL' });
+        e.uiCommands.flushQueued(); // 戰鬥中 GameCommand 排到下一個 tick 開頭才套用
+        expect(e.hasObstacle(wall.q, wall.r)).toBe(true);
+        expect(resolveTap(e, hero, wall, friend)).toEqual({ kind: 'NONE' });
+        e.stop();
     });
 
     it('點到地圖外或障礙物：不動作，選取不變', () => {

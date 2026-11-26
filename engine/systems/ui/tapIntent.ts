@@ -138,11 +138,12 @@ function resolveAimCast(engine: GameEngine, caster: Agent, slot: number, hex: He
  * 點到地圖外或障礙物＝不動作。
  * 其他情況照舊：點單位就選取，點空地取消選取。
  * @param hex 點到的格子（沒點在地圖上是 null）
- * @param tapped 按下時那一格上的單位（沒有是 null）
+ * @param tapped 指標下的單位（身體框命中，身體框比格子高，可能不站在 hex 那一格；沒有是 null）
  *
  * [契約 P5] 瞄準中（engine.state.aim 是選取中的單位）：點到 isCastTarget 的單位＝ORDER_CAST 對它；
  * UNIT_OR_GROUND 的招點到空地（地圖上、不是障礙物）＝ORDER_CAST 對那一格；其他點擊不動作（不改選取、不移動）。
- * PLAY 模式不瞄準時：點隊友不改選取（主角一直是選取中的單位），其餘照上面的規則。
+ * PLAY 模式不瞄準時：點隊友不改選取（主角一直是選取中的單位）；點到主角或隊友的身體框、但指標那一格
+ * 不是它站的格子（身體框蓋到後面的地面）＝照那一格當點地面；其餘照上面的規則。
  */
 export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex | null, tapped: Agent | null): TapIntent {
     if (!canTakeOrders(engine, selected)) return { kind: 'SELECT', agent: tapped };
@@ -156,9 +157,10 @@ export function resolveTap(engine: GameEngine, selected: Agent | null, hex: Hex 
         if (tapped !== selected && tapped.hp > 0 && !sameSide(tapped, selected)) {
             return { kind: 'ORDER', command: { type: 'ORDER_ATTACK', agentId: selected.id, targetId: tapped.id } };
         }
-        // PLAY 模式：主角一直是選取中的單位，點隊友不換選取
-        if (engine.matchFlow?.isPlay) return { kind: 'NONE' };
-        return { kind: 'SELECT', agent: tapped };
+        if (!engine.matchFlow?.isPlay) return { kind: 'SELECT', agent: tapped };
+        // PLAY：主角一直是選取中的單位，點隊友不換選取。己方身體框（含觸控容差）會蓋到後面的地面：
+        // 指標那一格不是它站的格子，就當點地面（落到下面的移動判斷）
+        if (!sameSide(tapped, selected) || (hex !== null && hex.q === tapped.q && hex.r === tapped.r)) return { kind: 'NONE' };
     }
     if (hex && engine.map.isValid(hex.q, hex.r) && !engine.hasObstacle(hex.q, hex.r)) {
         return { kind: 'ORDER', command: { type: 'ORDER_MOVE', agentId: selected.id, q: hex.q, r: hex.r } };

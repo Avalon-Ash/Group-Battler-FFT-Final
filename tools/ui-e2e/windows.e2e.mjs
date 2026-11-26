@@ -1762,8 +1762,11 @@ const takeSent = (page) => page.evaluate(() => { const s = window.__k3Sent ?? []
 /** 畫面上（HUD 上方）的一格空地與一個敵人的螢幕座標 */
 /** 拖鏡頭的起點離 HUD 至少這麼遠（px） */
 const K3_PAN_MARGIN = 80;
-/** 左鍵點的空地離所有單位至少這麼多格（單位的身體框會蓋到上方幾格，點到就變成點單位） */
-const K3_GROUND_CLEAR_HEX = 3;
+/**
+ * 點地面用的點不能落在任何單位的身體框裡（會變成點單位；框可以蓋到好幾格外）：用產品自己的命中判斷
+ * 加觸控容差再多留這麼多（螢幕 px），鏡頭還有微小收斂也不會翻面
+ */
+const K3_PICK_SLACK_PX = 6;
 /** 選來點的敵人，腳下的點離其他活著的單位至少這麼遠（螢幕 px）：重疊時會點到前面那一個（UnitPick 取 sortY 大者） */
 const K3_FOE_CLEAR_PX = 56;
 /** 點敵人時點在腳下往上這麼多（世界 px，乘上鏡頭縮放）：腳下那一點在身體框的下緣，差一點就落到上一格的空地 */
@@ -1787,7 +1790,8 @@ const playScreenTargets = async (page) => {
     await waitCameraSettled(page);
     return playScreenTargetsNow(page);
 };
-const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, foeClear, foeLift }) => {
+const playScreenTargetsNow = (page) => page.evaluate(async ({ panMargin, pickSlack, foeClear, foeLift }) => {
+    const { GAME_INPUT_PARAM } = await import('/constants.ts');
     const e = window.__TACTICAL_ENGINE__;
     const hero = e.agents.find((a) => a.id === e.matchFlow.playHeroId);
     const canvas = document.querySelector('canvas');
@@ -1795,14 +1799,18 @@ const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, 
     const hud = document.querySelector('[data-testid="play-hud"]')?.getBoundingClientRect();
     const bottom = (hud ? hud.top - rect.top : rect.height) - 40;
     const cam = e.renderer.camera;
-    let ground = null;
-    for (let y = 100; y < bottom && !ground; y += 15) {
-        for (let x = 60; x < rect.width - 60; x += 15) {
+    // ground＝沒有任何單位會被點到的空地；behind＝格子是空地、但點落在己方身體框本體裡（被主角或隊友擋住的地面）
+    let ground = null, behind = null;
+    for (let y = 100; y < bottom && !(ground && behind); y += 15) {
+        for (let x = 60; x < rect.width - 60 && !(ground && behind); x += 15) {
             const h = e.renderer.getHexAtScreenPoint(x, y, rect.width, rect.height, cam, e);
-            if (h && document.elementFromPoint(rect.left + x, rect.top + y) === canvas && e.map.isValid(h.q, h.r) && !e.map.hasObstacle(h.q, h.r) && !e.agents.some((a) => a.hp > 0 && (Math.abs(a.q - h.q) + Math.abs(a.r - h.r) + Math.abs(a.q + a.r - h.q - h.r)) / 2 < groundClear)) {
-                ground = { x: Math.round(rect.left + x), y: Math.round(rect.top + y), q: h.q, r: h.r };
-                break;
-            }
+            if (!h || document.elementFromPoint(rect.left + x, rect.top + y) !== canvas || !e.map.isValid(h.q, h.r) || e.map.hasObstacle(h.q, h.r)) continue;
+            if (e.agents.some((a) => a.hp > 0 && a.q === h.q && a.r === h.r)) continue;
+            const wx = (x - rect.width / 2) / cam.zoom + cam.x, wy = (y - rect.height / 2) / cam.zoom + cam.y;
+            const near = e.renderer.unit.pickAgent(wx, wy, (GAME_INPUT_PARAM.PICK_PAD_TOUCH_PX + pickSlack) / cam.zoom);
+            const point = { x: Math.round(rect.left + x), y: Math.round(rect.top + y), q: h.q, r: h.r };
+            if (!near) ground ??= point;
+            else if (hero && near.side === hero.side && e.renderer.unit.pickAgent(wx, wy, 0)?.side === hero.side) behind ??= point;
         }
     }
     const screenOf = (a) => {
@@ -1813,8 +1821,8 @@ const playScreenTargetsNow = (page) => page.evaluate(({ panMargin, groundClear, 
     const foe = living.filter((p) => hero && p.side !== hero.side)
         .filter((p) => p.x > rect.left + 40 && p.x < rect.right - 40 && p.y > rect.top + 100 && p.y < rect.top + bottom)
         .find((p) => living.every((o) => o.id === p.id || Math.hypot(o.x - p.x, o.y - p.y) >= foeClear)) ?? null;
-    return { ground, foe: foe && { id: foe.id, x: foe.x, y: foe.y - foeLift * cam.zoom }, center: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + Math.min(rect.height / 2, bottom - panMargin)) } };
-}, { panMargin: K3_PAN_MARGIN, groundClear: K3_GROUND_CLEAR_HEX, foeClear: K3_FOE_CLEAR_PX, foeLift: K3_FOE_BODY_LIFT }).catch(() => ({ ground: null, foe: null, center: null }));
+    return { ground, behind, foe: foe && { id: foe.id, x: foe.x, y: foe.y - foeLift * cam.zoom }, center: { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + Math.min(rect.height / 2, bottom - panMargin)) } };
+}, { panMargin: K3_PAN_MARGIN, pickSlack: K3_PICK_SLACK_PX, foeClear: K3_FOE_CLEAR_PX, foeLift: K3_FOE_BODY_LIFT }).catch(() => ({ ground: null, behind: null, foe: null, center: null }));
 /** 主畫面進選主角畫面：入口鈕若還是模擬，先按交換鈕 */
 const openPlaySetup = async (page) => {
     if (await page.locator('[data-testid="showcase-play-btn"]').count() === 0) await page.click('[data-testid="showcase-mode-swap"]');
@@ -1837,6 +1845,20 @@ const runPlayMouseChecks = async (page, tag) => {
     await spyUiCommands(page);
     const t = await playScreenTargets(page);
     if (!t.ground || !t.center) { ok(`PLAY ${tag} K3: an empty ground hex is on screen`, false, JSON.stringify(t)); await page.keyboard.press(' '); return; }
+
+    // 11-26：主角或隊友的身體框蓋到的地面，照指標那一格下移動指令
+    let behindSent = [];
+    if (t.behind) {
+        await page.mouse.move(t.behind.x, t.behind.y);
+        await takeSent(page);
+        await page.mouse.down();
+        await page.mouse.up();
+        await page.waitForTimeout(K3_SETTLE_MS);
+        behindSent = (await takeSent(page)).filter((c) => isOrder(c.type));
+    }
+    ok(`PLAY ${tag} K3: clicking ground behind an own-side body sends a move order to that hex`,
+        behindSent.length === 1 && behindSent[0].type === 'ORDER_MOVE' && behindSent[0].q === t.behind.q && behindSent[0].r === t.behind.r,
+        JSON.stringify({ behind: t.behind, behindSent }));
 
     // 左鍵按下就送移動指令（不用等放開）
     await page.mouse.move(t.ground.x, t.ground.y);
@@ -2053,6 +2075,19 @@ const runPlayTouchChecks = async (page, tag) => {
         orders(tapHold).length === 0 && movedTo(tapUp, t.ground), JSON.stringify({ tapHold, tapUp, ground: t.ground, tapNow }));
     const ptr = await page.evaluate(() => window.__k4Ptr);
     ok(`PLAY ${tag} K4: the canvas receives touch pointers (probe check)`, ptr.types.includes('touch'), JSON.stringify(ptr));
+
+    // 11-26：主角或隊友的身體框蓋到的地面，照指標那一格下移動指令
+    let behindSent = [];
+    if (t.behind) {
+        await takeSent(page);
+        await touchSend(cdp, 'touchStart', [{ x: t.behind.x, y: t.behind.y, id: 0 }]);
+        await settle();
+        await touchSend(cdp, 'touchEnd', []);
+        await settle();
+        behindSent = await takeSent(page);
+    }
+    ok(`PLAY ${tag} K4: tapping ground behind an own-side body sends a move order to that hex`,
+        !!t.behind && movedTo(behindSent, t.behind), JSON.stringify({ behind: t.behind, behindSent }));
 
     // 單指滑動：不拖鏡頭，放開時對手指下的格子下令（不是按下的位置）
     // 滑動起點也要在畫布上（畫面上緣可能有介面蓋住）：先試往畫面中央那一側，不行換另一側
