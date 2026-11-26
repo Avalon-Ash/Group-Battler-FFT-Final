@@ -1,4 +1,4 @@
-// 無畫面工具的佈陣入口（tools/sim/headlessBattle.ts，ADR 0027）：
+// 無畫面工具的佈陣入口（tools/sim/headlessBattle.ts，ADR 0028）：
 // 佈陣規則讀 Deployment.ts，這裡驗入口有照它排、參數各自生效、缺格會丟錯、同種子可重現。
 import { describe, it, expect } from 'vitest';
 import { buildHeadlessBattle, type HeadlessBattleSpec } from '../tools/sim/headlessBattle';

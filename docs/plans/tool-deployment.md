@@ -325,5 +325,12 @@ P5 可以單獨否決。不做的話，`simFingerprint.ts` 會在 ADR 裡登記�
 - `batch-sim` 200 場：seed 1／2／3 藍方勝率 0.485／0.560／0.520（ci95 0.069），seed 1 `--swapSides` 0.490；`avgTime` 19.5／19.5／19.3；`attributedPct` 88.8／89.6／89.0；TIMEOUT 0。
 - `mobility-probe --report` seed 31、32、33、`ai-idle-sim` 五情境 × seed 1、2、3（15 次都退出碼 0）、`record-bench`（MAGMA 20 人，807 tick）都存檔。
 - **P0 開放項目的量法**（判準在跑新版前寫定，`criterion.md`）：`batch-sim` 每個種子 3000 場、seed 1、2、3，swap 與不 swap 各一臂。舊版藍方勝率：不 swap 0.514／0.529／0.518，swap 0.513／0.494／0.509（各 ci95 0.018）。量 A＝swap 勝率 new − old；量 B＝(new swap − new 不 swap) − (old swap − old 不 swap)；以 9000 場合計為準，超過 1.96σ 就停在 P5 之前。
-- ADR 編號：`docs/adr/` 現在最大是 0026，新 ADR 取 **0027**（上面寫的 0026 已過時）。
+- ADR 編號：`docs/adr/` 現在最大是 0026；0027 已被另一條分支（`refactor/play-order-path`）用掉，新 ADR 取 **0028**（上面寫的 0026 已過時；2026-11-27 主代理指定）。
+
+**P5 停下（2026-11-27）**：情境表先收成一份（`SIM_SCENARIOS` 改成 `BattleSetup` 的形狀，5ba85f97，指紋 180/180）。`buildBattle` 改成轉呼叫入口後，不帶 `--record` 的結果和預測一致：TEAMS 0/60、ROYALE 60/60、SQUADS 0/60 相同；三個情境第 0 場的 dump，TEAMS、SQUADS 第一個取樣點就不同（站位），ROYALE 全程相同。但 `npm test` 有 2 項非契約測試變紅（契約驗收全綠），照停下條件沒有重錄、沒有 commit：
+
+- `tests/PlayerOrders.test.ts`「縮圈：站在警告格上，下指令走到安全格，走得出去」：`buildBattle('TEAMS', 41)` 的 `agents[0]` 在新站位下 3000 tick 內沒有站上警告格（第 136 行的前提）。
+- `tests/PlayerStance.test.ts`「COUNTER：被打後會離開原地去打攻擊者；HOLD：同一場一步都不走」：種子 73 的前提（攻擊者在 3 格外）在新站位下不成立，`chasedAttacker` 為 false（第 56 行）。
+
+兩項都是測試用特定種子湊出的前提，跟著 TEAMS 的排法變了。要繼續 P5，得由主代理決定怎麼改這兩個測試的前提（換種子或自己擺位），那是改驗收，不在實作代理的權限內。P5 的改動存成 patch：`tools/ui-e2e/out/td/p5-buildBattle.patch`（只動 `tools/balance/simFingerprint.ts`）。P6 接在 P5 之後，尚未做。
 - P5 預測在改 `buildBattle` 前寫定（`p5-prediction.md`）：TEAMS 0/60、SQUADS 0/60、ROYALE 60/60 相同。
