@@ -48,8 +48,12 @@ export class CombatSystem {
         const skill = a.skills[skillIdx]!;
 
         if (a.castingSkillIdx === -1) {
-            beginWindup(a, skillIdx, skill);
             const aim = castAim(a);
+            // 預警格在起手時定下，交給狀態機存（currentTelegraph 只由 SkillStateMachine 寫）；不發 CAST_START 的招沒有預警格
+            const telegraph = announcesCast(skill)
+                ? engine.movement.targeting.getImpactArea(a, a.targetHex || (aim ? {q: aim.q, r: aim.r} : {q: a.q, r: a.r}), skill, engine)
+                : null;
+            beginWindup(a, skillIdx, skill, telegraph);
                         // 施法中的 AI 狀態由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b），這裡不寫 aiState
 
             let targetName = '地面';
@@ -63,10 +67,6 @@ export class CombatSystem {
 
             // sourceId 必須傳遞，供 HUD 綁定文字
             if (announcesCast(skill)) {
-                // [FIX] Caching impact area for performance optimization in telegraph rendering
-                const targetHex = a.targetHex || (aim ? {q: aim.q, r: aim.r} : {q: a.q, r: a.r});
-                a.currentTelegraph = engine.movement.targeting.getImpactArea(a, targetHex, skill, engine);
-                
                 engine.events.push({ type: 'CAST_START', pos: unitEventPos(a, engine), skill, sourceId: a.id, targetId });
                 engine.bus.emit('CAST_START', { sourceId: a.id, skill });
             }
