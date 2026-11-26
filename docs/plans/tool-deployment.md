@@ -315,3 +315,12 @@ P5 可以單獨否決。不做的話，`simFingerprint.ts` 會在 ADR 裡登記�
 14. `public/replays/bench-magma-20.json` 由 `perf-frames.mjs`（`?replay=`）與 `ReplayIO.ts` 讀取；沒有流程自動重跑 record-bench。
 
 未核對：`queryMapKeys`、`queryHasObstacle` 內文、tick 迭代順序、ai-idle 的 `royaleRoles`、`startsNewMatch` 內文。
+
+**P0 舊版取證（2026-11-26，08f81481，工作樹 `_wt_tool-deploy`）**：使用者同意動工、含 P5。輸出在 `tools/ui-e2e/out/td/`（不進版控）。
+
+- `npm run balance:fingerprint`：180/180；三個情境的第 0 場 dump 另存 `old-dump-<情境>-0.txt`；`npx knip` 輸出另存 `old-knip.txt`。
+- `batch-sim` 200 場：seed 1／2／3 藍方勝率 0.485／0.560／0.520（ci95 0.069），seed 1 `--swapSides` 0.490；`avgTime` 19.5／19.5／19.3；`attributedPct` 88.8／89.6／89.0；TIMEOUT 0。
+- `mobility-probe --report` seed 31、32、33、`ai-idle-sim` 五情境 × seed 1、2、3（15 次都退出碼 0）、`record-bench`（MAGMA 20 人，807 tick）都存檔。
+- **P0 開放項目的量法**（判準在跑新版前寫定，`criterion.md`）：`batch-sim` 每個種子 3000 場、seed 1、2、3，swap 與不 swap 各一臂。舊版藍方勝率：不 swap 0.514／0.529／0.518，swap 0.513／0.494／0.509（各 ci95 0.018）。量 A＝swap 勝率 new − old；量 B＝(new swap − new 不 swap) − (old swap − old 不 swap)；以 9000 場合計為準，超過 1.96σ 就停在 P5 之前。
+- ADR 編號：`docs/adr/` 現在最大是 0026，新 ADR 取 **0027**（上面寫的 0026 已過時）。
+- P5 預測在改 `buildBattle` 前寫定（`p5-prediction.md`）：TEAMS 0/60、SQUADS 0/60、ROYALE 60/60 相同。
