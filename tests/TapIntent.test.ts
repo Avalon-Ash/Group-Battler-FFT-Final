@@ -76,6 +76,12 @@ describe('resolveTap', () => {
         e.stop();
     });
 
+    it('PLAY 模式：隊友的身體框蓋到別的單位站的格子＝移動到那一格（ORDER_MOVE 收有人的格子，走得過去時才走）', () => {
+        const { e, hero, friend, foe } = playSetup();
+        expect(resolveTap(e, hero, { q: foe.q, r: foe.r }, friend)).toEqual({ kind: 'ORDER', command: { type: 'ORDER_MOVE', agentId: hero.id, q: foe.q, r: foe.r } });
+        e.stop();
+    });
+
     it('PLAY 模式：己方身體框蓋到地圖外或障礙物＝不動作', () => {
         const { e, hero, friend } = playSetup();
         expect(resolveTap(e, hero, null, friend)).toEqual({ kind: 'NONE' });
