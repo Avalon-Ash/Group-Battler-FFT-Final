@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { GAME_INPUT_PARAM, TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
+import { TACTICAL_COLORS, UI_SETTINGS, UI_Z } from '../../../constants';
 import type { PlayPointerPort } from '../../../hooks/useGameInput';
 import { SKILL_TAG_LABEL } from '../../../data/ui/labels/l3';
 import { PLAY_TEXT, skillShortLabel } from '../../../data/ui/labels/play';
@@ -135,8 +135,8 @@ export const PlayHUD: React.FC<PlayHUDProps> = ({ onTogglePause, playPointerRef 
             return;
         }
         if (!drag.active) {
-            const threshold = e.pointerType === 'touch' ? GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX : GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;
-            if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) <= threshold) return;
+            // 開始拖了沒由輸入埠回答（規則在 tapIntent.isPastDragSlop）；埠還沒填就當還沒開始拖
+            if (!playPointerRef?.current?.isPastDragSlop(e.clientX - drag.startX, e.clientY - drag.startY, e.pointerType)) return;
             drag.active = true;
             clearCastBlock();
             send({ type: 'SET_AIM', aim: { agentId: b.heroId, slot: drag.slot.slot } });

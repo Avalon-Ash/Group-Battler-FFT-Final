@@ -3,7 +3,8 @@
 // ║  職責：決定單指／多指指標手勢（pointerGesture、            ║
 // ║        multiPointerGesture），以及把「選取中的單位＋游標   ║
 // ║        位置」翻成意圖：選取、下指令（含 Quick Cast、技能鈕 ║
-// ║        拖曳放開 resolveSkillDrop）、或不動作。純函式只讀。 ║
+// ║        拖曳放開 resolveSkillDrop）、或不動作；以及按下後   ║
+// ║        漂移多少算開始拖（isPastDragSlop）。純函式只讀。    ║
 // ║  上游：hooks/useGameInput.ts、PlayHUD（照回傳分派，        ║
 // ║        不自行判斷）。                                      ║
 // ║  [ARCH] 規則只寫在這裡，輸入層不自己判斷按鍵、指數、敵我。 ║
@@ -14,6 +15,7 @@ import type { Agent } from '../../core/Agent';
 import type { Hex, UICommand } from '../../../types';
 import { sameSide } from '../../core/Allegiance';
 import { queryCastTargeting, isCastTarget } from './castTargeting';
+import { GAME_INPUT_PARAM } from '../../../constants';
 
 /**
  * 指標按下時輸入層要走的手勢分支（ADR 0026 K3、K4）
@@ -87,6 +89,16 @@ export function pointerGesture(isPlay: boolean, pointerType: string, button: num
  */
 export function multiPointerGesture(isPlay: boolean, pointerType: string, activeCount: number): MultiPointerGesture {
     return isPlay && pointerType === 'touch' && activeCount === 2 ? 'CAMERA_TWO_FINGER' : 'CANCEL';
+}
+
+/**
+ * 按下後的位移（螢幕像素）算不算開始拖曳：嚴格超過門檻才算。門檻依指標種類：觸控手指粗用
+ * GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX，滑鼠、觸控筆與其他用 DRAG_DRIFT_MOUSE_PX。
+ * 畫布拖曳、鏡頭鍵拖曳、技能鈕拖曳都問這裡（PlayHUD 經 PlayPointerPort 問），不各比一次。
+ */
+export function isPastDragSlop(dxPx: number, dyPx: number, pointerType: string): boolean {
+    const slop = pointerType === 'touch' ? GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX : GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;
+    return Math.hypot(dxPx, dyPx) > slop;
 }
 
 /**

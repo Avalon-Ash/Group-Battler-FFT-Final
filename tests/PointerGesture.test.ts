@@ -4,7 +4,8 @@ import { describe, it, expect } from 'vitest';
 import type { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/core/Agent';
 import type { Hex } from '../types';
-import { pointerGesture, multiPointerGesture, mouseChordChange, heldMouseButtons, resolveQuickCast, resolveSkillDrop, resolveTap } from '../engine/systems/ui/tapIntent';
+import { GAME_INPUT_PARAM } from '../constants';
+import { isPastDragSlop, pointerGesture, multiPointerGesture, mouseChordChange, heldMouseButtons, resolveQuickCast, resolveSkillDrop, resolveTap } from '../engine/systems/ui/tapIntent';
 import { querySpawnableHexes } from '../engine/systems/ui/editorQueries';
 import { buildBattle, emit } from './contracts/simState';
 
@@ -213,5 +214,27 @@ describe('resolveSkillDrop：技能鈕拖到戰場放開（K4）', () => {
         expect(resolveSkillDrop(e, null, 2, at, foe, true)).toEqual({ kind: 'CANCEL' });
         emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'AI' });
         expect(resolveSkillDrop(e, hero, 2, at, foe, true)).toEqual({ kind: 'CANCEL' });
+    });
+});
+
+describe('isPastDragSlop：按下後漂移多少才算開始拖（門檻讀 GAME_INPUT_PARAM）', () => {
+    const touch = GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX;
+    const mouse = GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;
+    it('剛好在門檻上不算，超過才算（嚴格大於）', () => {
+        expect(isPastDragSlop(mouse, 0, 'mouse')).toBe(false);
+        expect(isPastDragSlop(mouse + 1, 0, 'mouse')).toBe(true);
+        expect(isPastDragSlop(0, -touch, 'touch')).toBe(false);
+        expect(isPastDragSlop(0, -(touch + 1), 'touch')).toBe(true);
+    });
+    it('看的是位移長度，不是單一軸', () => {
+        expect(isPastDragSlop(mouse, mouse, 'mouse')).toBe(true);
+        expect(isPastDragSlop(-mouse / 2, mouse / 2, 'mouse')).toBe(false);
+    });
+    it('觸控用觸控門檻；滑鼠、觸控筆與其他都用滑鼠門檻', () => {
+        expect(touch).toBeGreaterThan(mouse);
+        const between = (touch + mouse) / 2;
+        expect(isPastDragSlop(between, 0, 'touch')).toBe(false);
+        expect(isPastDragSlop(between, 0, 'mouse')).toBe(true);
+        expect(isPastDragSlop(between, 0, 'pen')).toBe(true);
     });
 });
