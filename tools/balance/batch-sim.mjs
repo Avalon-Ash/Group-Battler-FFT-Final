@@ -30,7 +30,8 @@ try {
     const { SIM_STEP_S, stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
     const DT = DT_ARG === null ? SIM_STEP_S : Number(DT_ARG);
     const step = (engine) => (DT_ARG === null ? stepSimulation(engine) : engine.tick(DT));
-    const { buildHeadlessBattle, HEADLESS_SETUP } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { buildHeadlessBattle } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { SIM_SCENARIOS } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
     const { SkillExecutor } = await server.ssrLoadModule('/engine/systems/combat/SkillExecutor.ts');
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
     const { CCManager } = await server.ssrLoadModule('/engine/systems/combat/CCManager.ts');
@@ -166,7 +167,7 @@ try {
     const t0 = Date.now();
     for (let b = 0; b < BATTLES; b++) {
         // 佈陣走共用入口（規則在 Deployment.ts）；--swapSides＝兩陣營對調隊伍，藍方改站右邊
-        const { engine } = buildHeadlessBattle({ seed: SEED * 100000 + b, setup: HEADLESS_SETUP.TEAMS, mirrorSides: SWAP });
+        const { engine } = buildHeadlessBattle({ seed: SEED * 100000 + b, setup: SIM_SCENARIOS.TEAMS, mirrorSides: SWAP });
         cur = {
             skills: {},
             casts: {},

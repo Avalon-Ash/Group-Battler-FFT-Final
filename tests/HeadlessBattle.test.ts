@@ -1,14 +1,15 @@
 // 無畫面工具的佈陣入口（tools/sim/headlessBattle.ts，ADR 0027）：
 // 佈陣規則讀 Deployment.ts，這裡驗入口有照它排、參數各自生效、缺格會丟錯、同種子可重現。
 import { describe, it, expect } from 'vitest';
-import { buildHeadlessBattle, HEADLESS_SETUP, type HeadlessBattleSpec } from '../tools/sim/headlessBattle';
+import { buildHeadlessBattle, type HeadlessBattleSpec } from '../tools/sim/headlessBattle';
+import { SIM_SCENARIOS } from '../tools/balance/simFingerprint';
 import { planRoster } from '../engine/systems/match/Deployment';
 import { GAME_APP_PARAM, UI_SETTINGS } from '../constants';
 import { SCENE_DB } from '../data/scenes';
 import { Role, Team } from '../types';
 import type { BattleSetup } from '../types';
 
-const { TEAMS, ROYALE } = HEADLESS_SETUP;
+const { TEAMS, ROYALE } = SIM_SCENARIOS;
 const SEED = 4242;
 const GAP = GAME_APP_PARAM.TEAMS_SPLIT_GAP_Q;
 

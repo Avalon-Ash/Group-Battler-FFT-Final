@@ -24,12 +24,6 @@ const DEFAULT_ROUND = 0;
 /** mirrorSides 只對兩個陣營有意義。 */
 const MIRROR_FACTIONS = 2;
 
-/** 工具常用的兩種對戰規模：兩隊各五人、十人各自為戰。其他規模由工具自己傳 setup。 */
-export const HEADLESS_SETUP = {
-    TEAMS: { factions: 2, unitsPerFaction: 5 },
-    ROYALE: { factions: 10, unitsPerFaction: 1 },
-} as const satisfies Record<string, BattleSetup>;
-
 export interface HeadlessBattleSpec {
     /** 模擬種子：各工具自己的種子公式算好傳進來 */
     seed: number;

@@ -10,7 +10,7 @@
 import { GameEngine } from '../../engine/game';
 import type { Agent } from '../../engine/core/Agent';
 import { Team, Role } from '../../types';
-import type { UICommand, EffectSlot } from '../../types';
+import type { UICommand, EffectSlot, BattleSetup } from '../../types';
 import { querySpawnableHexes, layoutFactionHexes } from '../../engine/systems/ui/editorQueries';
 import { random } from '../../engine/math/rng';
 import { SIM_STEP_S } from '../../engine/core/Replay';
@@ -23,10 +23,10 @@ export const DT = SIM_STEP_S;
  * 改順序或插入新情境就要重錄 fingerprint.baseline.json。
  */
 export const SIM_SCENARIOS = {
-    TEAMS: { factions: 2, units: 5 },
-    ROYALE: { factions: 10, units: 1 },
-    SQUADS: { factions: 4, units: 3 },
-} as const;
+    TEAMS: { factions: 2, unitsPerFaction: 5 },
+    ROYALE: { factions: 10, unitsPerFaction: 1 },
+    SQUADS: { factions: 4, unitsPerFaction: 3 },
+} as const satisfies Record<string, BattleSetup>;
 export type SimScenarioId = keyof typeof SIM_SCENARIOS;
 
 /** 第 f 陣營第 u 人的職業是 ROLES[(f + u) % 5]。 */
@@ -44,22 +44,22 @@ export function buildBattle(scenario: SimScenarioId, seed: number, matchSalt?: n
     const e = new GameEngine({ audio: false });
     if (matchSalt !== undefined) e.agentManager.matchSalt = matchSalt;
     e.seedSimulation(seed);
-    emit(e, { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.units } });
+    emit(e, { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.unitsPerFaction } });
     emit(e, { type: 'RANDOMIZE_MAP', randomizeScene: true });
     const hexes = [...querySpawnableHexes(e)];
     for (let i = hexes.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1));
         [hexes[i], hexes[j]] = [hexes[j], hexes[i]];
     }
-    const layout = layoutFactionHexes(hexes, sc.factions, sc.units);
+    const layout = layoutFactionHexes(hexes, sc.factions, sc.unitsPerFaction);
     for (let f = 0; f < sc.factions; f++) {
-        for (let u = 0; u < sc.units; u++) {
+        for (let u = 0; u < sc.unitsPerFaction; u++) {
             const hex = layout[f]?.[u];
             if (!hex) throw new Error(`${scenario}: 陣營 ${f} 第 ${u} 人沒有出生格`);
             emit(e, { type: 'PLACE_AGENT', team: f % 2 === 0 ? Team.BLUE : Team.RED, side: f, q: hex.q, r: hex.r, role: ROLES[(f + u) % ROLES.length] });
         }
     }
-    if (e.agents.length !== sc.factions * sc.units) throw new Error(`${scenario}: 只生成了 ${e.agents.length} 人`);
+    if (e.agents.length !== sc.factions * sc.unitsPerFaction) throw new Error(`${scenario}: 只生成了 ${e.agents.length} 人`);
     return e;
 }
 

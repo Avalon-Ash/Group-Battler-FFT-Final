@@ -24,7 +24,8 @@ try {
     const { SIM_STEP_S, stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
     const DT = DT_ARG === null ? SIM_STEP_S : Number(DT_ARG);
     const step = (engine) => (DT_ARG === null ? stepSimulation(engine) : engine.tick(DT));
-    const { buildHeadlessBattle, HEADLESS_SETUP } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { buildHeadlessBattle } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { SIM_SCENARIOS } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
     const { SkillExecutor } = await server.ssrLoadModule('/engine/systems/combat/SkillExecutor.ts');
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
     const { CCManager } = await server.ssrLoadModule('/engine/systems/combat/CCManager.ts');
@@ -102,7 +103,7 @@ try {
 
     let ringOuts = 0, totalTime = 0;
     for (let b = 0; b < BATTLES; b++) {
-        const { engine } = buildHeadlessBattle({ seed: SEED * 100000 + b, setup: HEADLESS_SETUP.TEAMS });
+        const { engine } = buildHeadlessBattle({ seed: SEED * 100000 + b, setup: SIM_SCENARIOS.TEAMS });
         const origDead = engine.agentManager.handleDeadState.bind(engine.agentManager);
         engine.agentManager.handleDeadState = (a, e, reason, text) => {
             if (text === 'RING_OUT') {

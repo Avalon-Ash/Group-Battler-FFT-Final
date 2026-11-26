@@ -52,7 +52,8 @@ try {
     const { HexUtils } = await server.ssrLoadModule('/engine/utils.ts');
     const { COMBAT_PARAM } = await server.ssrLoadModule('/constants.ts');
     const { isGroundMeleeRange, isMeleeAttackCell } = await server.ssrLoadModule('/engine/ai/MeleeAttack.ts');
-    const { buildHeadlessBattle, HEADLESS_SETUP } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { buildHeadlessBattle } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { SIM_SCENARIOS } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
     const { random } = await server.ssrLoadModule('/engine/math/rng.ts');
     const { Pathfinder } = await server.ssrLoadModule('/engine/ai/Pathfinder.ts');
     const { HEX_SIZE } = await server.ssrLoadModule('/constants.ts');
@@ -115,11 +116,11 @@ try {
 
     // 情境 → 佈陣入口的參數（佈陣規則在 Deployment.ts；沒有 roleOf＝照它的職業排法）
     const SCENARIO_SPEC = {
-        TEAMS: { setup: HEADLESS_SETUP.TEAMS },
-        MELEE: { setup: HEADLESS_SETUP.TEAMS, roleOf: () => Role.WARRIOR },
-        ROYALE: { setup: HEADLESS_SETUP.ROYALE },
-        MELEE_ROYALE: { setup: HEADLESS_SETUP.ROYALE, roleOf: () => Role.WARRIOR },
-        TANK_ROYALE: { setup: HEADLESS_SETUP.ROYALE, roleOf: () => Role.TANK },
+        TEAMS: { setup: SIM_SCENARIOS.TEAMS },
+        MELEE: { setup: SIM_SCENARIOS.TEAMS, roleOf: () => Role.WARRIOR },
+        ROYALE: { setup: SIM_SCENARIOS.ROYALE },
+        MELEE_ROYALE: { setup: SIM_SCENARIOS.ROYALE, roleOf: () => Role.WARRIOR },
+        TANK_ROYALE: { setup: SIM_SCENARIOS.ROYALE, roleOf: () => Role.TANK },
     };
 
     const createRoleStat = () => ({
