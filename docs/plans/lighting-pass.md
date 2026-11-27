@@ -117,9 +117,9 @@
 
 ### E 量測與收尾（完成；盲評只有一位）
 
-量測都在階段 D 的 commit 上跑，一次只跑一個工具。瀏覽器都加 `--force_high_performance_gpu`（`lib/perf-common.mjs`），顯示卡字串是 `ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 (0x00002786) Direct3D11 vs_5_0 ps_5_0, D3D11)`（`perf:frames` 的 `env.gpu`、`perf:lit` 的 `lit-shots.json`）；`mem-probe` 不印顯示卡字串，它只量畫布位元組數。
+量測都在階段 D 的 commit 上跑，一次只跑一個工具。瀏覽器都加 `--force_high_performance_gpu`（`lib/perf-common.mjs`），顯示卡字串是 `ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 (0x00002786) Direct3D11 vs_5_0 ps_5_0, D3D11)`（`perf:frames` 的 `env.gpu`、`perf-mobile-emu` 輸出 JSON 的 `gpu`、`perf:lit` 的 `lit-shots.json`）。
 
-**桌機幀時間**（`PERF_SCENARIOS=battle_calm,battle_vfx_storm,replay_magma20 npm run perf:frames`，打光版加 `PERF_QUERY=lit=1`；2560×1440、DPR 1、有視窗、20 秒 × 3 輪）。這台螢幕這次的刷新率量到約 56 Hz（工具的 `refreshRate`：關 56、開 28；不是平常的 239），所以中位數被 vsync 釘在 17.7 ms，看得出差別的是掉幀：
+**桌機幀時間**（`PERF_SCENARIOS=battle_calm,battle_vfx_storm,replay_magma20 npm run perf:frames`，打光版加 `PERF_QUERY=lit=1`；2560×1440、DPR 1、有視窗、20 秒 × 3 輪）。工具開頭估的 `refreshRate` 是頁面自己的 rAF 頻率，不是螢幕規格：關的那次 56、開的那次 28（平常這台是 239，這次為什麼只有 56 沒有查）。也就是打光開啟時，頁面在估算那一段只跑到一半的頻率。中位數被 vsync 釘在 17.7 ms 左右，看得出差別的是掉幀：
 
 | 情境 | 版本 | 中位 ms | p90 | p95 | p99 | 平均 FPS | 1% low FPS |
 | :-- | :-- | --: | --: | --: | --: | --: | --: |
@@ -143,12 +143,24 @@
 
 手機模擬明顯變差（平均 FPS 少三到四成）。照 §5 這是要使用者決定的事；目前預設關，手機不受影響。主要成本推測是每幀五張畫布上傳、特效與障礙物多畫一次、每像素 16 次投影取樣，沒有逐項拆開量。
 
-**手機解析度的畫布記憶體**（`node tools/ui-e2e/mem-probe.mjs 60 mute` 與 `… 60 "mute&lit=1"`；393×852、DPR 3）：打光通道自己的 7 張 Canvas 畫布合計 6 MB（工具的「最高時的組成」那一行：`LightingPass×7=6MB`）。兩次跑到的局數不同（關 2 局、開 1 局），畫布總量（中位 387 對 268 MB）是不同內容，**不能拿來比**。工具量不到 GL 貼圖：照程式裡的格式估算（主畫布像素數 N，世界與背景貼圖各 4N、三張半解析度遮罩共 3N、兩張全解析度 RGBA16F 各 8N、投影物與兩張泛光半解析度 RGBA16F 共 6N，合計約 33N 位元組），在 N＝786×1704 時約 44 MB。這是估算，不是量到的。
+**手機解析度的畫布記憶體**（`node tools/ui-e2e/mem-probe.mjs 60 "mute&quality=0"` 與 `… 60 "mute&quality=0&lit=1"`；393×852、DPR 3，品質階層釘在 0）：打光通道自己的 Canvas 畫布 7 張合計 10 MB（工具「最高時的組成」的 `LightingPass×7=10MB`：世界畫布 5.4 MB 加四張半解析度遮罩與暫存）；同時 `PostProcessor` 的 5 MB 暫存畫布不再出現（打光時不跑色調分級）。兩次跑到的局數不同（關 2 局、開 3 局），畫布總量（中位 344 對 369 MB、最高 399 對 466 MB）內容不同，**不能直接當成打光的增量**。第一次沒釘品質階層時量到的是 6 MB（階層被自動降低，畫布變小），那個數字不採用。工具量不到 GL 貼圖：照程式裡的格式估算（主畫布像素數 N，世界與背景貼圖各 4N、三張半解析度遮罩共 3N、兩張全解析度 RGBA16F 各 8N、投影物與兩張泛光半解析度 RGBA16F 共 6N，合計約 33N 位元組），階層 0、N＝786×1704 時約 44 MB。這是估算，不是量到的。`mem-probe` 不印顯示卡字串（它量的是畫布位元組數，不是時間）。
 
-**盲評**（`reviewer` 子代理、Sonnet，只讀圖與 `visual-experiment.md` §2、§3，沒被告知哪版是新的；摘錄在 `docs/plans/visual-experiment/E_lit_blind_review_sonnet.md`）：六張平均，打光關 4.3、打光開 7.0（VOID 5→8、FOREST 4→7、ICE 4→8、MAGMA 4→5、DESERT 4→7、戰鬥幀 5→7）。開案書寫兩位評審取低分；另一位是 Codex Astra，HANDOFF 記使用者 11-23 說 Codex 額度這週不給本專案，這次的排程也只授權 Sonnet 評審，所以**只有一位，沒有取低分**。評審指出打光版的退步：
-- 沒進光池的紅方單位變成暗褐色、像剪影，陣營紅看不出來。
-- 戰鬥幀裡黃綠色的施法預警格變成淡白黃，範圍預警比原本弱（它畫在地塊 op 的貼地鋪設層裡，被當成環境降彩、壓暗）。
-- DESERT 地塊變粉紫偏白、群系感變弱；FOREST 有兩棵樹被點光打成黃綠色搶戲；MAGMA 的裂紋仍是全場最高對比。
+**盲評**（兩位 `reviewer` 子代理、都是 Sonnet，各自獨立；評分表是 `visual-experiment.md` §3；原文摘錄在 `docs/plans/visual-experiment/E_lit_blind_review_sonnet.md`）。取低分，六張平均：**打光關 4.3、打光開 6.0**。
+
+| 場景 | 打光關 | 打光開（第一位／第二位，取低） |
+| :-- | --: | :-- |
+| VOID | 5 | 8／7 → 7 |
+| FOREST | 4 | 7／6 → 6 |
+| ICE | 4 | 8／7 → 7 |
+| MAGMA | 4 | 5／5 → 5 |
+| DESERT | 4 | 7／6 → 6 |
+| battle_frozen | 5 | 7／5 → 5 |
+
+- 第一位的派工單寫了哪邊是 `_off`、哪邊是 `_lit`，不算盲評，而且它的 E 分和自己寫的觀察不一致（分數偏高，平均 7.0）。第二位用匿名檔名、左右隨機的對照板重評，才是盲評。開案書寫的另一位是 Codex Astra；HANDOFF 記使用者 11-23 說 Codex 額度這週不給本專案，所以兩位都是 Sonnet（排程寫「可以開一個 reviewer 子代理」，第二個是為了補第一次不盲的錯）。
+- 進步在畫面層次與單位分離：環境退成暗冷色。
+- **體積感與材質兩項，盲評 12 格全部 1 分，打光開關沒有差別**：原尺寸下看不到輪廓亮線。階段 D 的輪廓法線與邊光在 40 px 的單位上讀不出來。
+- **戰鬥幀沒有進步（5 對 5），打光開的可讀性是 0**：地面的施法範圍預警從黃綠變成淺灰白細線（它畫在地塊 op 的貼地鋪設層裡，被當成環境降彩、壓暗）；藍方法師的深藍帽融進深青地塊。
+- 其他退步：沒進光池的單位偏暗（紅方被染成褐色）；ICE 藍方腳下的金色六角框在光池裡幾乎看不到；DESERT 地塊變粉紫；FOREST 有樹被點光打成黃綠色；MAGMA 的裂紋仍是全場最高對比（只進步 1 分）。
 
 **同步**：`RenderSpec` §1 尾段補上 `LightingPass.tag`；`LightingPass.ts`、`LightingGate.ts`、`shaders.ts`、`constants/lighting.ts`、`RenderPipeline.ts` 的檔頭在各階段的 commit 已更新；`visual-experiment.md` 加 §14。`perf-frames.mjs` 加 `PERF_QUERY`、`perf-mobile-emu.mjs` 加 `--query`（只是附加網址參數）。
 
@@ -159,5 +171,8 @@
 - 桌機幀時間被 56 Hz 的 vsync 釘住，沒有每幀毫秒數的差。
 - 打光開啟時沒有保真基準（照開案書，方向定案後才重錄）；`perf:fidelity` 只保證關閉時和 main 相同。
 - 視覺上沒做的：地塊側面的類別（現在和頂面一樣吃月光）、被前方高地塊擋住的單位遮罩、貼地法陣與施法預警格的自發光、單位死亡時光的淡出、精靈形狀的影子、烘焙法線圖、群系各自的光色表（只有 MAGMA 的彩度覆寫）。
+- 狀態層（`statusOrchestrator.draw`：護盾、狀態圈、燃燒、中毒）與遮擋剪影沒有進任何遮罩，被當成環境打光、降彩。
+- 障礙物重新分發到遮罩時，它的加法發光疊層（冰晶星芒、黑曜柱、方尖碑的光）也一起畫進去，遮罩在那些位置不精確。
+- 打光加 PLAY 模式沒有跑過（讀碼確認：遮罩用的剪影路徑在 `UnitOutlinePass.capture` 之前就返回，不會重複登記主角輪廓光）。
 - 長距離走路的連續畫面沒有單獨擷取；`perf:lit --walk` 跟到的是交戰中的單位。
 - 進入點只剩 0.1 kB（257.4／257.5 kB）：之後動 `RenderPipeline` 或任何首屏程式都可能超出預算。
