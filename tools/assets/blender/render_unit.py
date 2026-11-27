@@ -2,7 +2,7 @@
 
 Usage: blender -b -P render_unit.py -- <characters_dir> <out_root> <TEAM> <ROLE> [res]
   TEAM = BLUE | RED ; ROLE = TANK | WARRIOR | RANGER | MAGE | SUPPORT
-Optional trial: --lighting <preset> --skin lionheart-warrior|lionheart-roles|ashen-roles --body MALE|FEMALE --idle-only --save-blend --padding 96
+Optional trial: --skin lionheart-warrior|lionheart-roles|ashen-roles --body MALE|FEMALE --idle-only --save-blend --padding 96
 Use Blender --python-exit-code 1 so script exceptions produce a failure status.
 Camera: orthographic, elevation 30deg (engine ISO_SCALE_Y = 0.5 = sin 30deg).
 Directions are native renders (no mirror): SE/SW/NE/NW = model yaw +45/-45/+135/-135 deg.
@@ -14,7 +14,7 @@ from mathutils import Vector
 from bpy_extras.object_utils import world_to_camera_view
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bake_common import LIGHTING_PRESETS, apply_lighting_preset, build_toon_ramp, add_key_sun   # bake lighting lives in bake_common.py
+from bake_common import build_toon_ramp, add_key_sun   # bake lighting lives in bake_common.py
 
 argv = sys.argv[sys.argv.index('--') + 1:]
 CHAR_DIR, OUT_ROOT, TEAM, ROLE = argv[0], argv[1], argv[2], argv[3]
@@ -27,7 +27,6 @@ parser.add_argument('--skin', choices=['lionheart-warrior', 'lionheart-roles', '
 parser.add_argument('--body', choices=['MALE','FEMALE'], default='MALE')
 parser.add_argument('--idle-only', action='store_true')
 parser.add_argument('--save-blend', action='store_true')
-parser.add_argument('--lighting', choices=list(LIGHTING_PRESETS), default='classic', help='Bake lighting preset (bake_common.LIGHTING_PRESETS); non-classic presets are offline trials')
 parser.add_argument('--padding', type=int, default=0, help='Extra pixels per edge; preserves pixels/world and outline size')
 args = parser.parse_args(argv[option_start:])
 if args.padding < 0 or RES <= 0:
@@ -143,6 +142,7 @@ def toon_material(mat, override_rgb=None, tint_rgb=None):
     nt.links.new(ramp.outputs['Color'], mul.inputs['A'])
     if override_rgb is not None:
         mul.inputs['B'].default_value = (*override_rgb, 1)
+        nt.links.new(mul.outputs['Result'], emit.inputs['Color'])
     else:
         if base_src is not None:
             if tint_rgb is not None:
@@ -157,7 +157,7 @@ def toon_material(mat, override_rgb=None, tint_rgb=None):
                 nt.links.new(base_src, mul.inputs['B'])
         else:
             mul.inputs['B'].default_value = base_rgb
-    nt.links.new(apply_lighting_preset(nt, args.lighting, s2r, ramp, mul), emit.inputs['Color'])
+        nt.links.new(mul.outputs['Result'], emit.inputs['Color'])
     nt.links.new(emit.outputs['Emission'], out.inputs['Surface'])
 
 
