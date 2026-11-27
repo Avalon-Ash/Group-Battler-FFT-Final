@@ -863,8 +863,8 @@
       "ALPHA_PULSE": 0.35,
       "FILL": "#ff2a1f",
       "EDGE": "#ffb0a6",
-      "FILL_ALPHA": 0.75,
-      "EDGE_ALPHA": 0.8,
+      "FILL_ALPHA": 0.34,
+      "EDGE_ALPHA": 0.7,
       "CORE_ALPHA": 0.45
     },
     "RANGE": {

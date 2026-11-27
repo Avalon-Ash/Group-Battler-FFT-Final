@@ -42,7 +42,7 @@ export const GRID_OVERLAY = {
      * 舊版逐格描 1.5～2 px 實線，AOE 範圍內相鄰格的雙邊排成密集網格，是畫面「毛刺、髒」的主因。
      * FILL_ALPHA＝底色、EDGE_ALPHA＝內緣光、CORE_ALPHA＝細芯線；預警整格不透明度在 ALPHA_MIN～＋ALPHA_PULSE 間以 FREQ 律動。
      */
-    WARNING: { FREQ: 5, ALPHA_MIN: 0.65, ALPHA_PULSE: 0.35, FILL: '#ff2a1f', EDGE: '#ffb0a6', FILL_ALPHA: 0.75, EDGE_ALPHA: 0.8, CORE_ALPHA: 0.45 },
+    WARNING: { FREQ: 5, ALPHA_MIN: 0.65, ALPHA_PULSE: 0.35, FILL: '#ff2a1f', EDGE: '#ffb0a6', FILL_ALPHA: 0.34, EDGE_ALPHA: 0.7, CORE_ALPHA: 0.45 },
     /** 射程（只描格邊）與施法範圍（詠唱預警、PLAY 範圍預覽：底色＋格邊，施法者陣營色）。CAST_BLEND＝施法範圍的混合方式：
      *  screen 在亮色地面（冰原、沙漠）上同色系會被洗掉看不見（2026-11-24 PLAY 截圖），所以施法範圍用一般疊加，射程維持 screen */
     RANGE: { FILL_ALPHA: 0.35, EDGE_ALPHA: 0.55, CORE_ALPHA: 0.3, CAST_BLEND: 'source-over' as GlobalCompositeOperation },
