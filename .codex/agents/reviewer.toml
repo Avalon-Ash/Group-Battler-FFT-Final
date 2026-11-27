@@ -19,7 +19,7 @@ Check especially (these have caused real bugs here):
 - React StrictMode: cleanup that destroys an object the remount will reuse.
 - Fixes that hide a symptom instead of the cause (example: "if idle, walk randomly").
 - Re-recorded test baselines or loosened thresholds.
-- `as any`, magic numbers/colors outside `constants/`/`data/**`, `console.log` in tick/render loops, methods added to `Agent`, systems calling each other directly instead of `engine.bus`.
+- `as any`, magic numbers/colors outside `constants/`/`data/**`, `console.log` in tick/render loops, methods added to `Agent`, writing a field another system owns instead of calling the owner's API (`engine/core/AgentOwnership.ts`), simulation code subscribing to `engine.bus` (ADR 0027).
 
 Report only problems you can point to in the code. Mark each as CONFIRMED (you traced it) or PLAUSIBLE (likely but not traced). Do not pad with style nits.
 

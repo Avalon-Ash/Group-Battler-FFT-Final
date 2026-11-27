@@ -13,9 +13,8 @@
 import { useRef, useEffect, MutableRefObject, useState, useCallback } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role, BodyTypeId, type UICommand } from '../types';
-import { HexUtils, Vector } from '../engine/utils';
+import { HexUtils } from '../engine/utils';
 import { GameRenderer } from '../engine/renderer';
-import { GAME_INPUT_PARAM } from '../constants';
 import {
     queryAgentAt,
     queryIsValidHex,
@@ -26,7 +25,7 @@ import {
     queryWorldAtScreenPoint,
 } from '../engine/systems/ui/editorQueries';
 import { pickAgentAt } from './pickAgentAt';
-import { pointerGesture, multiPointerGesture, resolveTap, resolveQuickCast, resolveSkillDrop, hoverHexOf, type PointerGesture, type SkillDropIntent, type TapIntent, mouseChordChange, heldMouseButtons } from '../engine/systems/ui/tapIntent';
+import { pointerGesture, multiPointerGesture, resolveTap, resolveQuickCast, resolveSkillDrop, hoverHexOf, isPastDragSlop, type PointerGesture, type SkillDropIntent, type TapIntent, mouseChordChange, heldMouseButtons } from '../engine/systems/ui/tapIntent';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
 export interface DraggedObstacle {
@@ -66,6 +65,8 @@ export interface PlayPointerPort {
     quickCast(slot: number): UICommand | null;
     hoverAt(p: PointerSample | null): void;
     dropSkill(slot: number, p: PointerSample): SkillDropIntent;
+    /** 技能鈕按下後的位移算不算開始拖（規則在 tapIntent.isPastDragSlop，這裡只轉手） */
+    isPastDragSlop(dxPx: number, dyPx: number, pointerType: string): boolean;
 }
 
 /** activeButtonRef 的「沒有手勢」（PointerEvent.button 不會是負數） */
@@ -245,9 +246,7 @@ export const useGameInput = (props: GameInputProps) => {
         const h = getHexFromEvent(e.clientX, e.clientY);
         trackHover(e);
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
-            const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
-            const driftThreshold = e.pointerType === 'touch' ? GAME_INPUT_PARAM.DRAG_DRIFT_TOUCH_PX : GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX;
-            if (dist > driftThreshold) {
+            if (isPastDragSlop(sx - pressStartPos.current.x, sy - pressStartPos.current.y, e.pointerType)) {
                 if (!engine.isRunning && configRef.current.tool === ToolType.SELECT) {
                     if (pressedAgentRef.current) interactionMode.current = 'DRAG_UNIT';
                     else if (draggedObstacleRef.current) { 
@@ -263,8 +262,8 @@ export const useGameInput = (props: GameInputProps) => {
                 else interactionMode.current = 'PAN';
             }
         } else if (interactionMode.current === 'CAMERA_DOWN' && pressStartPos.current) {
-            const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
-            if (dist > GAME_INPUT_PARAM.DRAG_DRIFT_MOUSE_PX) {
+            // 鏡頭鍵只有滑鼠會進來（tapIntent.pointerGesture），所以這裡照滑鼠門檻
+            if (isPastDragSlop(sx - pressStartPos.current.x, sy - pressStartPos.current.y, e.pointerType)) {
                 interactionMode.current = 'PAN';
             }
         }
@@ -472,6 +471,7 @@ export const useGameInput = (props: GameInputProps) => {
                 const agent = getAgentFromEvent(p, h) ?? null;
                 return resolveSkillDrop(engine, configRef.current.selectedAgent, slot, h, agent, true);
             },
+            isPastDragSlop,
         };
         return () => {
             playPointerRef.current = null;

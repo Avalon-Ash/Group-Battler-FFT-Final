@@ -11,6 +11,8 @@
 // ║  [ARCH] 回放檔只記開戰快照＋種子＋指令：模擬改了（平衡、AI） ║
 // ║  它仍然播得出來，但已不是同一場；要固定的場景就重錄並在      ║
 // ║  commit 訊息寫明原因。                                       ║
+// ║  [ARCH] 佈陣只經 tools/sim/headlessBattle.ts（ADR 0028）， ║
+// ║  不自己挑出生格、不洗牌、不自己放人。                    ║
 // ╚══════════════════════════════════════════════════════════╝
 import { createServer } from 'vite';
 import { writeFileSync, mkdirSync } from 'fs';
@@ -33,33 +35,15 @@ const MAX_BATTLE_S = 300;
 const server = await createServer({ root: process.cwd(), server: { middlewareMode: true }, logLevel: 'error', appType: 'custom' });
 let failed = false;
 try {
-    const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
+    const { buildHeadlessBattle } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
     const { SIM_STEP_S, stepSimulation, exportReplay } = await server.ssrLoadModule('/engine/core/Replay.ts');
-    const { querySpawnableHexes, layoutFactionHexes } = await server.ssrLoadModule('/engine/systems/ui/editorQueries.ts');
-    const { random } = await server.ssrLoadModule('/engine/math/rng.ts');
-    const { Team, Role } = await server.ssrLoadModule('/types.ts');
-    const ROLES = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
 
-    const e = new GameEngine({ audio: false });
+    const { engine: e } = buildHeadlessBattle({
+        seed: SEED,
+        setup: { factions: FACTIONS, unitsPerFaction: UNITS },
+        map: { sceneId: SCENE, w: W, h: H },
+    });
     const emit = (cmd) => e.bus.emit('UI_COMMAND', cmd);
-    e.seedSimulation(SEED);
-    emit({ type: 'SET_BATTLE_SETUP', setup: { factions: FACTIONS, unitsPerFaction: UNITS } });
-    emit({ type: 'RANDOMIZE_MAP', w: W, h: H, sceneId: SCENE, randomizeScene: false });
-    if (e.currentScene.id !== SCENE) throw new Error(`場景 ${SCENE} 不存在（現在是 ${e.currentScene.id}）`);
-    const hexes = [...querySpawnableHexes(e)];
-    for (let i = hexes.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [hexes[i], hexes[j]] = [hexes[j], hexes[i]];
-    }
-    const layout = layoutFactionHexes(hexes, FACTIONS, UNITS);
-    for (let f = 0; f < FACTIONS; f++) {
-        for (let u = 0; u < UNITS; u++) {
-            const hex = layout[f]?.[u];
-            if (!hex) throw new Error(`陣營 ${f} 第 ${u} 人沒有出生格（地圖 ${W}x${H} 太小？）`);
-            emit({ type: 'PLACE_AGENT', team: f % 2 === 0 ? Team.BLUE : Team.RED, side: f, q: hex.q, r: hex.r, role: ROLES[(f + u) % ROLES.length] });
-        }
-    }
-    if (e.agents.length !== FACTIONS * UNITS) throw new Error(`只生成了 ${e.agents.length} 人`);
 
     emit({ type: 'START_GAME', seed: SEED });
     const maxTicks = Math.round(MAX_BATTLE_S / SIM_STEP_S);

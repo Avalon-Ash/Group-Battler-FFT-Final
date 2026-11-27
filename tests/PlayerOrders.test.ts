@@ -128,12 +128,14 @@ describe('玩家操控（契約 G3 以外的行為）', () => {
 
     it('縮圈：站在警告格上，下指令走到安全格，走得出去', () => {
         // 不關縮圈（setup 會關）
+        // 前提不靠種子湊站位：全部交給玩家（沒指令＝原地堅守），縮圈掃到誰腳下就由誰當主角
         const e = buildBattle('TEAMS', 41);
-        const hero = e.agents[0];
-        emit(e, { type: 'SET_CONTROLLER', agentId: hero.id, controller: 'PLAYER' });
+        for (const a of e.agents) emit(e, { type: 'SET_CONTROLLER', agentId: a.id, controller: 'PLAYER' });
         emit(e, { type: 'START_GAME', seed: 1 });
-        for (let i = 0; i < 3000 && e.isRunning && hero.hp > 0 && !e.isWarningTile(HexUtils.key(hero)); i++) runTicks(e, 1);
-        expect(e.isWarningTile(HexUtils.key(hero))).toBe(true);
+        const onWarning = () => e.agents.find((a) => a.hp > 0 && !a.outOfBounds && e.isWarningTile(HexUtils.key(a)));
+        for (let i = 0; i < 3000 && e.isRunning && !onWarning(); i++) runTicks(e, 1);
+        const hero = onWarning();
+        if (!hero) throw new Error('前提：3000 tick 內有單位站上警告格');
 
         const safe = [...e.map.mapKeys]
             .map((k) => { const [q, r] = k.split(',').map(Number); return { q, r }; })

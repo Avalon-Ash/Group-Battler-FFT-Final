@@ -1,8 +1,6 @@
 import { COMBAT_PARAM, CAST_RULES } from '../../../constants';
 import { activationBlock, beginWindup, cancelWindup, castAim, commitSkill, extendInterruptLockout } from "./SkillStateMachine";
-
-/** 這招開始前搖時會不會發 CAST_START（詠唱字、詠唱序列、預警格）；取消時同一個判斷決定要不要發 CAST_CANCEL */
-const announcesCast = (skill: Skill): boolean => skill.cast > 0 && skill.tag !== 'BASIC';
+import { announcesCast } from "../../core/SkillQueries";
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CombatSystem — 戰鬥系統 Orchestrator                   ║
 // ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
@@ -48,8 +46,12 @@ export class CombatSystem {
         const skill = a.skills[skillIdx]!;
 
         if (a.castingSkillIdx === -1) {
-            beginWindup(a, skillIdx, skill);
             const aim = castAim(a);
+            // 預警格在起手時定下，交給狀態機存（currentTelegraph 只由 SkillStateMachine 寫）；不發 CAST_START 的招沒有預警格
+            const telegraph = announcesCast(skill)
+                ? engine.movement.targeting.getImpactArea(a, a.targetHex || (aim ? {q: aim.q, r: aim.r} : {q: a.q, r: a.r}), skill, engine)
+                : null;
+            beginWindup(a, skillIdx, skill, telegraph);
                         // 施法中的 AI 狀態由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b），這裡不寫 aiState
 
             let targetName = '地面';
@@ -63,10 +65,6 @@ export class CombatSystem {
 
             // sourceId 必須傳遞，供 HUD 綁定文字
             if (announcesCast(skill)) {
-                // [FIX] Caching impact area for performance optimization in telegraph rendering
-                const targetHex = a.targetHex || (aim ? {q: aim.q, r: aim.r} : {q: a.q, r: a.r});
-                a.currentTelegraph = engine.movement.targeting.getImpactArea(a, targetHex, skill, engine);
-                
                 engine.events.push({ type: 'CAST_START', pos: unitEventPos(a, engine), skill, sourceId: a.id, targetId });
                 engine.bus.emit('CAST_START', { sourceId: a.id, skill });
             }

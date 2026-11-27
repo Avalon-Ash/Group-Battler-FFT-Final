@@ -3,8 +3,9 @@
 // ║  職責：Agent.order 的唯一寫入處，以及「玩家指令能打斷什麼」║
 // ║        的單一規則（orderInterrupts，ADR 0026）。             ║
 // ║        資料形狀在 types/Orders.ts。                         ║
-// ║  上游：UICommandSystem（ORDER_*、SET_CONTROLLER 驗證後下達 ║
-// ║        或清掉）、engine/ai/BTRegistry.ts 的執行節點（完成   ║
+// ║  上游：OrderIntake（ORDER_* 驗證後的套用點，下達或清掉）、 ║
+// ║        UICommandSystem（SET_CONTROLLER 清掉）、             ║
+// ║        engine/ai/BTRegistry.ts 的執行節點（完成             ║
 // ║        或確定做不了時清掉）、SkillStateMachine（技能放出去  ║
 // ║        時回報）、MatchSnapshot（還原開戰前下的指令）。       ║
 // ║  [ARCH] 指令一律經 GameCommand 進來，所以會進佇列、進紀錄、 ║

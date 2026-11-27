@@ -100,10 +100,9 @@ export class CastingEngine {
     }
 
     private resetCaster(a: Agent, fromCompletion: boolean = false) {
-        // 對友軍施法結束要立刻重新決策；endWindup 會清掉施法目標，所以先記下
+        // 對友軍施法結束要立刻重新決策；endWindup 會清掉施法目標（與預警格），所以先記下
         const allyCast = a.castTarget !== null;
         endWindup(a, fromCompletion);
-        a.currentTelegraph = null;
         if (allyCast) {
             a.forceAiUpdate = true;
         }

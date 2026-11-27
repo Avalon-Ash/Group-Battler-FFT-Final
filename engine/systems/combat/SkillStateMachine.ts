@@ -12,8 +12,9 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Agent } from "../../core/Agent";
-import type { Skill } from "../../../types";
+import type { Hex, Skill } from "../../../types";
 import { isActionBlocked } from "../../core/Effects";
+import { movesSelf } from "../../core/SkillQueries";
 import { onSkillReleased } from "../../core/Orders";
 import { CAST_LOCKOUT, CAST_RULES, COMBAT_PARAM } from "../../../constants";
 
@@ -78,7 +79,7 @@ export function activationBlock(a: Agent, idx: number): ActivationBlock | null {
     if (isActionBlocked(a, 'CAST')) return 'CONTROLLED';
     if (skill.tag !== 'BASIC' && isActionBlocked(a, 'SKILL')) return 'SILENCED';
     // 突進、瞬移、後撤都是自己移動，被定身時不能放
-    if (skill.onCast?.length && isActionBlocked(a, 'MOVE')) return 'ROOTED';
+    if (movesSelf(skill) && isActionBlocked(a, 'MOVE')) return 'ROOTED';
     const res = resourceBlock(a, idx);
     if (res) return res;
     if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return 'BUSY';
@@ -91,12 +92,13 @@ function windupDuration(skill: Skill): number {
     return Math.max(skill.cast, CAST_RULES.MIN_CAST_DURATION);
 }
 
-/** 前搖開始 */
-export function beginWindup(a: Agent, idx: number, skill: Skill): void {
+/** 前搖開始。telegraph：這次施法的預警格（會發 CAST_START 的招才有；currentTelegraph 只在這裡寫入、endWindup 清掉） */
+export function beginWindup(a: Agent, idx: number, skill: Skill, telegraph: Hex[] | null = null): void {
     const duration = windupDuration(skill);
     a.castingSkillIdx = idx;
     a.castTimer = duration;
     a.castingAnimationTimer = duration;
+    a.currentTelegraph = telegraph;
 }
 
 /** 前搖推進（逐步扣魔技能依本 tick 實際走掉的時間扣魔，扣到 0 為止）；回傳前搖是否走完 */
@@ -140,13 +142,13 @@ export function endWindup(a: Agent, completed: boolean): void {
     a.castingAnimationTimer = 0;
     if (completed) a._castCompleteCooldown = CAST_RULES.COMPLETE_COOLDOWN;
     a.castTarget = null;
+    a.currentTelegraph = null;
 }
 
 /** 玩家主動取消前搖（ADR 0026，WINDUP → READY on CANCEL）：不進冷卻、不設中斷鎖定、不寫被打斷紀錄；非奧義不扣魔，奧義在前搖中已逐步扣掉的魔力不退。 */
 export function cancelWindup(a: Agent): boolean {
     if (a.castingSkillIdx === -1) return false;
     endWindup(a, false);
-    a.currentTelegraph = null;
     return true;
 }
 

@@ -168,4 +168,37 @@ describe('hoverHexOf', () => {
         expect(resolveTap(e, hero, empty, null)).toMatchObject({ kind: 'ORDER', command: { q: empty.q, r: empty.r } });
         expect(hoverHexOf(e, hero, empty, () => foe)).toEqual({ q: foe.q, r: foe.r });
     });
+
+    // 11-26：瞄準中也照「己方身體框蓋到後面的地面」那一條（和不瞄準時的移動同一個判斷）
+    const playAimSetup = () => {
+        const s = playSetup();
+        const aoe = s.e.skillDB.find((sk) => sk.type === 'AOE' && sk.range > 0 && sk.tag !== 'MOBILITY' && sk.teams === undefined);
+        const hit = s.e.skillDB.find((sk) => sk.type === 'SINGLE' && sk.range > 0 && sk.teams === undefined && sk.power > 0 && sk.tag !== 'MOBILITY');
+        if (!aoe || !hit) throw new Error('資料庫缺範圍技或單體傷害技');
+        emit(s.e, { type: 'SET_AGENT_SKILL', agentId: s.hero.id, slot: 1, skillId: aoe.id });
+        emit(s.e, { type: 'SET_AGENT_SKILL', agentId: s.hero.id, slot: 2, skillId: hit.id });
+        s.e.uiCommands.flushQueued(); // 戰鬥中 GameCommand 排到下一個 tick 開頭才套用
+        return s;
+    };
+
+    it('PLAY 瞄準範圍技：點到主角或隊友的身體框、指標那一格是別的地面＝對那一格施放；預覽同一格', () => {
+        const { e, hero, friend } = playAimSetup();
+        emit(e, { type: 'SET_AIM', aim: { agentId: hero.id, slot: 1 } });
+        const dest = emptyHex(e);
+        const cast = { kind: 'ORDER', command: { type: 'ORDER_CAST', agentId: hero.id, slot: 1, q: dest.q, r: dest.r } };
+        expect(resolveTap(e, hero, dest, hero)).toEqual(cast);
+        expect(resolveTap(e, hero, dest, friend)).toEqual(cast);
+        expect(hoverHexOf(e, hero, dest, () => friend)).toEqual(dest);
+        e.stop();
+    });
+
+    it('PLAY 瞄準：指標在己方自己站的格子、或單體技點到己方身體框＝不動作', () => {
+        const { e, hero, friend } = playAimSetup();
+        emit(e, { type: 'SET_AIM', aim: { agentId: hero.id, slot: 1 } });
+        expect(resolveTap(e, hero, { q: friend.q, r: friend.r }, friend)).toEqual({ kind: 'NONE' });
+        expect(resolveTap(e, hero, null, friend)).toEqual({ kind: 'NONE' });
+        emit(e, { type: 'SET_AIM', aim: { agentId: hero.id, slot: 2 } });
+        expect(resolveTap(e, hero, emptyHex(e), friend)).toEqual({ kind: 'NONE' });
+        e.stop();
+    });
 });

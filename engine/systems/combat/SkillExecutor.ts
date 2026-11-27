@@ -8,7 +8,7 @@ import { Skill, SkillStatus, Hex } from "../../../types";
 import { HexUtils } from "../../utils";
 import { isMeleeAttackCell } from "../../ai/MeleeAttack";
 import { DamageCalculator } from "./DamageCalculator";
-import { hasAnyStatus, hasStatusIn, isSkillTarget } from "../../core/SkillQueries";
+import { castMotion, hasAnyStatus, hasCastAction, hasStatusIn, isSkillTarget, movesSelf } from "../../core/SkillQueries";
 import { runEndActions, runHitActions, runImpactActions } from "./SkillActions";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
@@ -88,8 +88,8 @@ export class SkillExecutor {
         let targets: Agent[] = [];
         
         // 1. 確定施法中心點
-        const mobilityDash = skill.tag === 'MOBILITY' && (skill.onCast?.some(a => a.action === 'DASH') ?? false);
-        const retreated = skill.onCast?.some(a => a.action === 'RETREAT') ?? false;
+        const mobilityDash = skill.tag === 'MOBILITY' && hasCastAction(skill, 'DASH');
+        const retreated = castMotion(skill) === 'BACK';
         const targetHex = deferred ? deferred.center : mobilityDash && skill.type === 'AOE' ? { q: source.q, r: source.r } : SkillExecutor.castCenter(source, skill);
 
         // 普攻沒有 CAST_START；近戰斬擊與瞬發光束由 VISUAL_BEAM 事件觸發技能序列（SkillSequences）
@@ -105,7 +105,7 @@ export class SkillExecutor {
         // 有出手動作的（突進等）已在 CombatSystem.completeCast 移動過，不再前衝
         if (
             !deferred &&
-            !skill.onCast?.length &&
+            !movesSelf(skill) &&
             skill.range >= 1 &&
             skill.range <= 2 &&
             (skill.projectileSpeed ?? 0) === 0 &&

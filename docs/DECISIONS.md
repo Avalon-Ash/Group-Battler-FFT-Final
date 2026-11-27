@@ -26,7 +26,9 @@
 
 ## 4. 架構
 - 座標協議以 `engine/renderers/RenderSpec.ts` 為準，渲染／座標工作一次只開一條，詳見 [0003](adr/0003-coordinate-protocol-and-serial-render.md)。
+- 無畫面工具的佈陣一律經 `tools/sim/headlessBattle.ts` 組合 `Deployment.ts`，工具之間只差參數；指紋基準只在佈陣定義或玩法故意改變時重錄（2026-11-27，使用者同意含 P5），詳見 [0028](adr/0028-headless-tool-deployment-via-deployment.md)。
 - 狀態欄位唯一寫入者（`engine/core/AgentOwnership.ts`）與嘲諷鎖定歸屬，詳見 [0002](adr/0002-state-field-single-owner.md)。
+- 改別的系統的狀態直接呼叫擁有者的 API、匯流排只通知（模擬層不訂閱）；指令的套用點在 `engine/systems/orders/OrderIntake.ts`（2026-11-26 使用者同意），詳見 [0027](adr/0027-direct-owner-calls-and-order-intake.md)。
 - 大逃殺的「發呆看門狗」不採用：B0 證據 IDLE 為 0，屬掩蓋症狀且改到 facade。根因修法是行為樹 `Combat Actions` SELECTOR。
 - 保真基準不得任意重錄、門檻不得放寬，重錄須附新舊差異圖並獨立 commit，詳見 [0007](adr/0007-visual-verification-same-env-ab.md)。
 - 文件防過時（2026-10-20）：過時直接刪除不歸檔、檔頭瘦身、`tests/DocDrift.test.ts` 把關，詳見 [0004](adr/0004-doc-anti-drift.md)。
@@ -97,6 +99,7 @@
 - 玩家指令三個落點（驗證／寫入／執行）與規則（2026-11-18，契約 G3），詳見 [0022](adr/0022-player-control-mode-graph-and-orders.md)。
 - 玩家操控的單位是導播的主角（2026-11-19，使用者試玩回饋）：有玩家單位時導播不看排分，鏡頭以它為中心並留出四周視野；場上用金色標示，不靠選取：頭上箭頭＋輪廓光＋腳下那格的地塊光（11-24 使用者：輪廓 50% 透明、拿掉腳下橢圓，改讓網格那格發亮）。理由：玩家要一直知道自己控的是哪一隻，也要看得到周圍才能下指令。
 - 點擊規則集中於 `engine/systems/ui/tapIntent.ts`、輸入層只負責送出（2026-11-18），詳見 [0022](adr/0022-player-control-mode-graph-and-orders.md)。
-- PLAY 不瞄準時點到主角或隊友的身體框、但指標那一格不是它站的格子，當成點那一格地面（2026-11-26，使用者選 A＋B）。理由：身體框比格子高、加上觸控容差，iPhone 上畫面裡的空地約 11～19% 被己方身體框蓋住，點了都被吞掉；敵人的身體框照舊攻擊，瞄準中的施放判斷沒改（`resolveAimCast` 同類問題沒定）。
+- PLAY 不瞄準時點到主角或隊友的身體框、但指標那一格不是它站的格子，當成點那一格地面（2026-11-26，使用者選 A＋B）。理由：身體框比格子高、加上觸控容差，iPhone 上畫面裡的空地約 11～19% 被己方身體框蓋住，點了都被吞掉；敵人的身體框照舊攻擊。瞄準中（含 Quick Cast、技能鈕拖放）同一條規則（11-26 使用者選「照樣改」，WORKLOG §2 DN）：點到的己方單位是這招的目標就對它施放，不是才看指標那一格；判斷只在 `tapIntent.ts` 的 `ownBodyOverGround` 一處。
+- 戰場上單位頭頂的詠唱量表維持 7 種類別圖示，不換成每招一個（2026-11-26，使用者）。理由：頭頂圖示太小、每招一個辨識不了，不值得為此重錄 `battle_frozen`；檢查器與 PLAY HUD 照舊每招一個。
 - 架構契約先行：型別、空殼與受保護紅色驗收（2026-11-17），詳見 [0017](adr/0017-contract-first-architecture.md)。
 - UI 採用現成基礎元件庫（Radix、lucide、TanStack Virtual、cva），詳見 [0014](adr/0014-ui-off-the-shelf-primitives.md)。

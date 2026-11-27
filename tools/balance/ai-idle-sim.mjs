@@ -8,6 +8,8 @@
 // ║  做法：Vite ssrLoadModule 載入引擎（Node，無渲染），       ║
 // ║  每 tick 後分類單位狀態（busy/moving/waitInRange/發呆原因），║
 // ║  攔截死亡與擊殺統計，彙整各角色勝率與發呆原因。           ║
+// ║  [ARCH] 佈陣只經 tools/sim/headlessBattle.ts（ADR 0028）， ║
+// ║  不自己挑出生格、不洗牌、不自己放人。                    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { createServer } from 'vite';
@@ -47,13 +49,13 @@ try {
     const { SIM_STEP_S, stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
     const DT = DT_ARG === null ? SIM_STEP_S : Number(DT_ARG);
     const step = (engine) => (DT_ARG === null ? stepSimulation(engine) : engine.tick(DT));
-    const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
     const { AgentManager } = await server.ssrLoadModule('/engine/systems/agentManager.ts');
     const { Team, Role, ActionState, AIState } = await server.ssrLoadModule('/types.ts');
     const { HexUtils } = await server.ssrLoadModule('/engine/utils.ts');
     const { COMBAT_PARAM } = await server.ssrLoadModule('/constants.ts');
     const { isGroundMeleeRange, isMeleeAttackCell } = await server.ssrLoadModule('/engine/ai/MeleeAttack.ts');
-    const { querySpawnableHexes, layoutFactionHexes } = await server.ssrLoadModule('/engine/systems/ui/editorQueries.ts');
+    const { buildHeadlessBattle } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { SIM_SCENARIOS } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
     const { random } = await server.ssrLoadModule('/engine/math/rng.ts');
     const { Pathfinder } = await server.ssrLoadModule('/engine/ai/Pathfinder.ts');
     const { HEX_SIZE } = await server.ssrLoadModule('/constants.ts');
@@ -104,16 +106,6 @@ try {
         return origFindPath.call(this, startAgent, ...rest);
     };
 
-    const shuffle = (arr) => {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(random() * (i + 1));
-            const tmp = arr[i];
-            arr[i] = arr[j];
-            arr[j] = tmp;
-        }
-        return arr;
-    };
-
     // 「其他」再細分：擠在路上走不動、施法後硬直、逃生冷卻、行為樹落到 Idle
     const otherReason = (a) => {
         if (a.isMoving) return 'moveBlocked'; // moveProgress 沒動卻還在移動：照理不會發生，出現就是 bug
@@ -123,6 +115,15 @@ try {
     };
 
     const rolesList = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
+
+    // 情境 → 佈陣入口的參數（佈陣規則在 Deployment.ts；沒有 roleOf＝照它的職業排法）
+    const SCENARIO_SPEC = {
+        TEAMS: { setup: SIM_SCENARIOS.TEAMS },
+        MELEE: { setup: SIM_SCENARIOS.TEAMS, roleOf: () => Role.WARRIOR },
+        ROYALE: { setup: SIM_SCENARIOS.ROYALE },
+        MELEE_ROYALE: { setup: SIM_SCENARIOS.ROYALE, roleOf: () => Role.WARRIOR },
+        TANK_ROYALE: { setup: SIM_SCENARIOS.ROYALE, roleOf: () => Role.TANK },
+    };
 
     const createRoleStat = () => ({
         picks: 0,
@@ -219,64 +220,7 @@ try {
     const t0 = Date.now();
 
     for (let b = 0; b < BATTLES; b++) {
-        const engine = new GameEngine({ audio: false });
-        engine.seedSimulation(SEED * 100000 + b);
-        engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
-
-        const spawnable = querySpawnableHexes(engine);
-        if (spawnable.length === 0) {
-            throw new Error(`Battle ${b}: querySpawnableHexes returned 0 valid hexes`);
-        }
-
-        if (scenario === 'TEAMS') {
-            const left = spawnable.filter((h) => h.q < -1);
-            const right = spawnable.filter((h) => h.q > 1);
-            if (left.length < 5 || right.length < 5) {
-                throw new Error(`Battle ${b}: Not enough left/right hexes (left=${left.length}, right=${right.length})`);
-            }
-            shuffle(left);
-            shuffle(right);
-            for (let i = 0; i < 5; i++) {
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.BLUE, q: left[i].q, r: left[i].r, role: rolesList[i] });
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.RED, q: right[i].q, r: right[i].r, role: rolesList[i] });
-            }
-        } else if (scenario === 'MELEE') {
-            const left = spawnable.filter((h) => h.q < -1);
-            const right = spawnable.filter((h) => h.q > 1);
-            if (left.length < 5 || right.length < 5) {
-                throw new Error(`Battle ${b}: Not enough left/right hexes (left=${left.length}, right=${right.length})`);
-            }
-            shuffle(left);
-            shuffle(right);
-            for (let i = 0; i < 5; i++) {
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.BLUE, q: left[i].q, r: left[i].r, role: Role.WARRIOR });
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.RED, q: right[i].q, r: right[i].r, role: Role.WARRIOR });
-            }
-        } else if (scenario === 'ROYALE') {
-            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 10, unitsPerFaction: 1 } });
-            const shuffledHexes = shuffle([...spawnable]);
-            const layout = layoutFactionHexes(shuffledHexes, 10, 1);
-            const royaleRoles = [
-                Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT,
-                Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT
-            ];
-            for (let i = 0; i < 10; i++) {
-                const hex = layout[i]?.[0];
-                if (!hex) throw new Error(`Battle ${b}: Faction ${i} missing spawn hex`);
-                const team = (i % 2 === 0) ? Team.BLUE : Team.RED;
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team, side: i, q: hex.q, r: hex.r, role: royaleRoles[i] });
-            }
-        } else if (scenario === 'MELEE_ROYALE' || scenario === 'TANK_ROYALE') {
-            engine.bus.emit('UI_COMMAND', { type: 'SET_BATTLE_SETUP', setup: { factions: 10, unitsPerFaction: 1 } });
-            const shuffledHexes = shuffle([...spawnable]);
-            const layout = layoutFactionHexes(shuffledHexes, 10, 1);
-            for (let i = 0; i < 10; i++) {
-                const hex = layout[i]?.[0];
-                if (!hex) throw new Error(`Battle ${b}: Faction ${i} missing spawn hex`);
-                const team = (i % 2 === 0) ? Team.BLUE : Team.RED;
-                engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team, side: i, q: hex.q, r: hex.r, role: scenario === 'TANK_ROYALE' ? Role.TANK : Role.WARRIOR });
-            }
-        }
+        const { engine } = buildHeadlessBattle({ seed: SEED * 100000 + b, ...SCENARIO_SPEC[scenario] });
 
         if (HP_SCALE !== 1) {
             const roleHps = engine.agents.map((a) => a.maxHp);
