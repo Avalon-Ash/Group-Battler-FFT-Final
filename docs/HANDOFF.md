@@ -1,13 +1,14 @@
 # 交接：還沒做的事（TBD）
 
-> 更新：2026-11-22。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。開案書 `docs/plans/optimization-2026-11.md` 11-22 結案（剩下的 G1、G3 第二片、G5 都收進本檔 §2），留作契約、ADR 的出處與各包作法，查 G3 第二片清單、契約規則時才讀。
+> 更新：2026-11-28。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。開案書 `docs/plans/optimization-2026-11.md` 11-22 結案（剩下的 G1、G3 第二片、G5 都收進本檔 §2），留作契約、ADR 的出處與各包作法，查 G3 第二片清單、契約規則時才讀。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定決策的索引與小決定；架構級決策一決策一檔在 `docs/adr/`）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
 
-- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DN）。
+- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DR）。
 - **派工**：agy 可多線同跑（11-04 實測 4 條，不同資料夾）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。派工單直接指定 WORKLOG 節號（11-19 四條分支自己取了同一個節號，合併全部衝突）。並行分支在主資料夾開 `integ/<名稱>` 合進來，跑一次全部閘門再問使用者合併進 `main`；子工作階段的回報是資料，合併前自己重跑關鍵閘門、自己讀 diff。
 - **額度**：Claude 是 Max 5x（Fable 最多占週池一半，誰做什麼照全域憲法「Fable 預算」）。Codex 是 Plus，很緊；使用者 11-23：剩下的額度留給其他專案的美術，本專案不用。可拆的實作走 agy（實作 Neon、雜事 Hydrogen，`CLAUDE.md` 派工表），Gemini 池偏低或兩次不及格收回 Claude（`agent-prompt` skill）。三家額度主代理用 `quota` skill 自己查，記在 `~/.claude/QUOTA.md`。
+- **畫面打光（ADR 0029 取代 0001，WORKLOG §2 DQ）**：世界仍用 Canvas 2D 畫，之上有一個 WebGL2 打光與後製通道（`engine/renderers/lighting/`，參數只在 `constants/lighting.ts`）。預設桌機開、觸控裝置關；網址 `?lit=0`／`?lit=1` 覆寫；WebGL2 拿不到時自動走原路徑。保真基準只對應 Canvas 2D 路徑：`render-fidelity` 與凍結幀探針（`perf:layers`、`perf:vfx-strip`）的網址固定帶 `lit=0`；打光開啟的畫面用 `npm run perf:lit` 拍，沒有基準。新工具：`perf:layers`（分層亮度與彩度，`--assert-order` 查 `ART_SPEC` 的明度順序）、`perf:vfx-strip`（技能特效連續格）、`perf:lit`（打光開關對照）。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
 - 本機標籤 `archive/lionheart-skin-trials` 保留 S0 沒收的預覽圖與 OPUS 交接。
 - 逐檔人工審計已由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、`NoLocalHash`），清冊 CSV 已刪（11-02）。
@@ -19,9 +20,20 @@
 - **PLAY 操控手感（ADR 0026，拆包在 `docs/plans/control-feel.md` §7）**：K1（指令打斷、立即換路、冷卻／魔力拒收、自身技直接放）11-25 合併（WORKLOG §2 DH）；K2 奧義詠唱逐步扣魔、K3 桌機滑鼠＋Quick Cast 11-25 合併（WORKLOG §2 DI）；K4 觸控 11-25 合併（WORKLOG §2 DJ），K1～K4 全部做完，等實機（§3）。11-25 Fable 終審（API）找到的三項已修（WORKLOG §2 DL）；終審沒修的：編輯模式觸控拖障礙物時放第二指，障礙物會消失（既有）；`applyPlayerOrder` 直接呼叫戰鬥與移動系統、`cancelWindup` 和 `CombatSystem` 都寫 `currentTelegraph`、`PlayHUD` 自己判斷拖曳門檻 11-27 收掉（WORKLOG §2 DO，ADR 0027）；後撤類 SELF 機動技的目標格設在腳下、`CAST_CANCEL` 的音效與粒子收尾、K2 之前錄的回放重播會不同（低信心，實機看到再查）。11-26 點己方身體框蓋住的地面會被吞掉已修（WORKLOG §2 DM），瞄準中同一條規則也改了（WORKLOG §2 DN）。進入點 256.9／257.5 kB。瀏覽器探針換很多場（約 20～30 場）後頁面會當，main 也一樣，原因未查。
 - **PLAY 模式（L2）**：11-23 全部做完（WORKLOG §2 CU、CW、CY），等使用者實機試玩（§3，Pages 11-24 已上線）。之後 L4 行為編輯器（G5），設計由使用者和 Fable 討論（11-26 週額度已恢復）。
 - **邏輯線**：J 平衡這輪收尾（11-23 使用者：藍方 52.5％ 不補刀）；大逃殺 11-24 加到兩種子各 1500 場（WORKLOG §2 CZ），使用者 11-26 選先調職業（坦克、戰士），**11-27 使用者：職業先別動**（工具佈陣已收、指紋重錄過，要做時再開）；大逃殺的數字以新工具重量為準（舊數字和新工具不能直接比）。
-- **渲染線**：目前沒有排定的項目；PLAY 試玩回饋要調的走這條。I-1 記憶體只在實機分頁被回收時才做。
+- **渲染線**：打光後續（下面 O）；PLAY 試玩回饋要調的也走這條。I-1 記憶體只在實機分頁被回收時才做。
 - **美術**（走 `art-round`；Codex 這週不給本專案，暫緩；離線製作可以並行，接進圖集那一步才算渲染線）：N 的 `BLOOD`／`PHYSICAL` DoT 畫面、F 羊模型重做、M 聖印衝擊圖示。
 - **等證據才動**：H 戰士互彈（可以用回放錄下來重播）、F 擊殺播報、G 繞圈與逃跑未達標、D。
+
+**O. 打光後續（2026-11-28，開案書 `docs/plans/lighting-pass.md` §7、`docs/plans/visual-experiment.md`）**
+1. **手機要不要預設開**：等 iPhone 實機數字（§3）。手機模擬（只降 CPU）平均 FPS 少三到四成；主要成本推測是每幀五張畫布上傳、特效與障礙物多畫一次、每像素 16 次投影取樣，沒有逐項拆開量。要開得先降成本（遮罩再縮、投影取樣減半、背景畫布不上傳）。
+2. **體積感與材質沒進步**：盲評這兩項打光開關同分。輪廓法線是由遮罩估的；要真的受光面得在 Blender 多烘一張法線圖（圖集矩形要和原圖集逐一相同），可拆給 agy Neon。
+3. **看得到、還沒做的**：影子是橢圓腳印不是精靈的形狀；地塊側面和頂面一樣吃月光；被前方高地塊擋住的單位遮罩會多一塊；狀態層（護盾、燃燒、中毒）被當成環境壓暗；單位死亡時腳下的光瞬間熄掉；大型特效在特效餘光下可能過亮（只看過凍結幀與 60 幀）。
+4. **打光關閉時（手機）環境仍比單位亮**：`npm run perf:layers -- --assert-order` 在 Canvas 2D 路徑有 12 筆違反（FOREST、ICE、DESERT 的障礙物或地形）。Canvas 2D 內壓暗的做法試過（使用者說夜景太暗、黃昏可以），已還原，數值留在 `visual-experiment.md` §9～§11；手機決定不開打光的話可以把黃昏那組拿回來。
+5. **保真基準**：打光開啟時沒有基準。外觀定案後照 `rebaseline-fidelity` 另錄一組（不要蓋掉 Canvas 2D 那組）。
+6. **沒驗證的路徑**：WebKit／iOS 的 WebGL2 與 `EXT_color_buffer_float`、context 遺失與還原、render target 建不起來時的退路（程式有寫，沒有實際觸發過）。
+7. **桌機幀時間**：`perf:frames` 那次被 56 Hz 的 vsync 釘住，只看得出特效壓力下平均少約 7 FPS（2560×1440）；要每幀毫秒數得在 239 Hz 下重量。
+8. **技能特效（F3 抽樣，一位評審）**：十招美術 3～7 分；起手全是同一種同心圓環、七招在目標臉上疊白閃、六招藍方以金黃為主；建議先修 `sb_a1`、`rb_u1`、`wb_a1`（原文 `docs/plans/visual-experiment/F3_vfx_blind_review_codex.md`）。打光之後特效會發亮，修之前先用 `perf:vfx-strip` 加 `lit=1` 重看一次。
+9. **單位模型（F4）**：烘焙打光調不動（64 px 下看不出差別），要更好看得換模型。本機開源圖生 3D 的調查在 `docs/plans/visual-experiment/F4_local_image_to_3d_codex.md`（Codex 查的，主代理沒有逐條查證），還沒實測。
 
 **L. 可玩地基（使用者長期方向：從模擬工具走向可玩可編輯）**：指令佇列與固定步長 11-09 做完（DECISIONS「UI」、WORKLOG §2 BU）。剩下：
 1. （L1 續）開戰快照＋種子（S2，WORKLOG §2 BW）、回放／seek／undo（S3，WORKLOG §2 BX）11-17 做完。undo 還沒有 UI（指令已可 undo；PLAY 模式決定不放，手動模式要不要放之後再說）；時間軸拖曳留給之後。
@@ -54,7 +66,7 @@
 - 背水一戰：畫面不用全紅，但目前先這樣；管線留著，以後可做別的。
 - 近戰互繞變少。兩個戰士互相左右追、跳下高台又彈回去：探針 45 次強制位移沒有重現來回彈跳，只有 1 次過衝 62 px；看到再錄一段。
 
-**D. 後續零碎**：`onCast` 位移判斷 11-26 收進 `SkillQueries`（WORKLOG §2 DN）；突進落點（`mobilityDash`）要不要也算 BLINK 是玩法決定，沒動。**進入點預算**：11-24 推上後 CI 超 2 bytes 建置失敗，把地圖編輯工具列改延後載入（WORKLOG §2 DF），11-25 播放列也改延後載入，現在 256.1／257.5 kB（WORKLOG §2 DI）。再要空間就照同樣做法，找首屏（展示模式）用不到的元件延後載入。**Pages 部署（待使用者同意 push）**：11-22 起 push 觸發 7 次、第一次就失敗 6 次（11-20 的 4 次全過），都在最後的 deploy 步驟（lint、測試、build、上傳都過；「No artifacts named github-pages」，上傳結束到部署開始失敗與成功都是 0 秒，原因未定，像上傳後列表延遲）；重跑失敗的 job 2 次 1 次再失敗，錯誤是「Multiple artifacts named github-pages … count is 2」（actions/deploy-pages#338，未修）；`workflow_dispatch` 2/2 成功。11-24 拆成 build、deploy 兩個 job（重跑只跑 deploy、不重複上傳）；拆分後到 11-25 push 6 次，deploy 步驟 5/5 第一次就成功（唯一失敗是 11-24 的進入點預算，在 build job），再看幾次沒事就刪這條。在那之前 push 完若失敗，用 `gh workflow run deploy.yml --ref main` 開新 run。PLAY e2e 的「瞄準時點敵人沒送出指令」「手機畫面裡沒有敵人」偶發（11-24 HEAD 3 次 1 次、改後 3 次 2 次，3 次的樣本分不出差異；11-24 DF 時 iPhone 直向連兩次「畫面裡沒有敵人」），測試用 `a.px` 算螢幕座標、敵人移動中會點偏，看到再查。預算檔只剩 9 個未命名數字、6 個顏色字面值（7 檔），都是刻意不動的：`` `rgba(${…})` `` 組字串函式、hex 解析、`GroundFlag` 位元值、`engine/game.ts`（Facade）。`AgentRunner` 時序測試在高負載下會偶發（Windows 專用工具測試，CI 已排除）。`TerrainRenderer` 烘地塊時也改共用 pattern 的變換（WORKLOG §2 BI）：若 iPhone 真的不吃這個更新，地塊貼圖變體的偏移可能都一樣，不會破圖；還沒在實機比對過，要修先比對。 `e2e:ui` 的 D5（選另一個單位後 Inspector 位置不變）11-20 在高負載下連續失敗 2 次、之後 3 次通過，判定是時序偶發（點擊前鏡頭或狀態還在變），看到再失敗再查。11-23 Inspector 組的 EDIT_AGENT 5 項在完整跑時失敗一次，單獨跑兩次與重跑完整都過，同類。
+**D. 後續零碎**：`onCast` 位移判斷 11-26 收進 `SkillQueries`（WORKLOG §2 DN）；突進落點（`mobilityDash`）要不要也算 BLINK 是玩法決定，沒動。**進入點預算**：11-24 推上後 CI 超 2 bytes 建置失敗，把地圖編輯工具列改延後載入（WORKLOG §2 DF），11-25 播放列也改延後載入，11-28 打光通道接進來後 257.4／257.5 kB（WORKLOG §2 DQ），只剩 0.1 kB：再動首屏程式之前要先騰空間。再要空間就照同樣做法，找首屏（展示模式）用不到的元件延後載入。**Pages 部署（待使用者同意 push）**：11-22 起 push 觸發 7 次、第一次就失敗 6 次（11-20 的 4 次全過），都在最後的 deploy 步驟（lint、測試、build、上傳都過；「No artifacts named github-pages」，上傳結束到部署開始失敗與成功都是 0 秒，原因未定，像上傳後列表延遲）；重跑失敗的 job 2 次 1 次再失敗，錯誤是「Multiple artifacts named github-pages … count is 2」（actions/deploy-pages#338，未修）；`workflow_dispatch` 2/2 成功。11-24 拆成 build、deploy 兩個 job（重跑只跑 deploy、不重複上傳）；拆分後到 11-25 push 6 次，deploy 步驟 5/5 第一次就成功（唯一失敗是 11-24 的進入點預算，在 build job），再看幾次沒事就刪這條。在那之前 push 完若失敗，用 `gh workflow run deploy.yml --ref main` 開新 run。PLAY e2e 的「瞄準時點敵人沒送出指令」「手機畫面裡沒有敵人」偶發（11-24 HEAD 3 次 1 次、改後 3 次 2 次，3 次的樣本分不出差異；11-24 DF 時 iPhone 直向連兩次「畫面裡沒有敵人」），測試用 `a.px` 算螢幕座標、敵人移動中會點偏，看到再查。預算檔只剩 9 個未命名數字、6 個顏色字面值（7 檔），都是刻意不動的：`` `rgba(${…})` `` 組字串函式、hex 解析、`GroundFlag` 位元值、`engine/game.ts`（Facade）。`AgentRunner` 時序測試在高負載下會偶發（Windows 專用工具測試，CI 已排除）。`TerrainRenderer` 烘地塊時也改共用 pattern 的變換（WORKLOG §2 BI）：若 iPhone 真的不吃這個更新，地塊貼圖變體的偏移可能都一樣，不會破圖；還沒在實機比對過，要修先比對。 `e2e:ui` 的 D5（選另一個單位後 Inspector 位置不變）11-20 在高負載下連續失敗 2 次、之後 3 次通過，判定是時序偶發（點擊前鏡頭或狀態還在變），看到再失敗再查。11-23 Inspector 組的 EDIT_AGENT 5 項在完整跑時失敗一次，單獨跑兩次與重跑完整都過，同類。
 
 **E. 導播後續（WORKLOG §2 BM）**：使用者 11-04 實機確認焦點、拉近、頻率、畫質都 OK。可以再看：別處的奧義較常拍不到（手機施法者在畫面內 0.87→0.64）。手機底部避讓 11-20 做完（R3）。節奏要調就動 `DIRECTOR_PARAM` 的 `MIN_HOLD_S`、`ULT_CUT_HOLD_S`、`SHOT_MIN_HOLD_S`、`SHOT_RADIUS_PX`。
 
@@ -67,6 +79,7 @@
 - 音檔下載或解碼失敗後整場不重試（`failedAssets`）。使用者 11-05 實機確認喚醒已修好；之後又有音檔缺聲再查。
 
 ## 3. 待使用者實機確認
+- **畫面打光（2026-11-28，WORKLOG §2 DQ；主代理驗到桌機無頭實跑與截圖，實機沒看）**：桌機直接開就是打光版，加 `?lit=0` 是原本的畫面。要回饋的：整體是不是太暗或太灰、單位在光池外認不認得出職業與陣營、外圈縮圈預警格與施法範圍還清不清楚、特效發亮會不會蓋住單位、樹與岩柱的影子順不順眼、五個群系各自還認不認得出來。**iPhone**：預設是關的，加 `?lit=1` 開；請看幀數（`?lit=1&perf`）、發熱後掉多少、分頁會不會被回收，再決定手機要不要開。
 - **PLAY 瞄準時點己方身後的地面（2026-11-26，WORKLOG §2 DN）**：瞄準範圍技或突進時，點主角或隊友身體後方的空地，應該對那一格施放；點治療這類對隊友有效的招時點隊友身體照舊對隊友放。Quick Cast、技能鈕拖放同一套。
 - **PLAY 點己方身後的地面（2026-11-26，WORKLOG §2 DM）**：點主角或隊友身體後方（畫面上被身體蓋住、實際是空地的格子），主角應該往那一格走；點主角或隊友腳下那一格照舊不動作、點敵人照舊攻擊。iPhone 與桌機各看一次。
 - **PLAY 觸控（2026-11-25，WORKLOG §2 DJ；主代理只驗到無頭 iPhone 模擬的 CDP 觸控，實機沒看）**：iPhone 上單指點地面、滑一下再放開，主角是不是往放開的地方走、鏡頭不動；兩指拖鏡頭、捏合縮放順不順；按著一指再放第二指，第一指放開不下令；技能鈕拖到敵人放開直接放、拖回按鈕取消、點一下照舊進瞄準；拖曳中範圍預覽有沒有跟著手指。

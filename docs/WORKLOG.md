@@ -1084,3 +1084,28 @@
 - 工具輸出從這一輪起和舊紀錄不能直接比（分界 `31c74032`）；新工具和遊戲同樣左邊陣營先放。
 - 驗證（`integ/2026-11-27`，DN、DO、DP 三條合在一起）：lint、`npm test` 184 檔 1704 則、build（進入點 257.0／257.5 kB）、knip、`balance:fingerprint` 180/180、runtime-smoke 過。`e2e:play` 四次 2／2／3／0 項紅，main（`08f81481`）交替跑兩次 3／2 項紅，失敗項目都是 K3／K4 既有偶發（HANDOFF §2 D），判為偶發。
 - **回退**：反向 revert；P3 依賴 P2 與情境表收斂（`5ba85f97`），先退後者之後的 commit；P5 程式與基準同一個 commit，不用 `--record` 回退。
+### DQ. 2026-11-28 畫面打光：WebGL2 打光與後製通道（ADR 0029 取代 0001；開案書 `docs/plans/visual-experiment.md`、`docs/plans/lighting-pass.md`；主席 Fable 5.2，階段 A～E 由排程工作階段跑；Codex 做 F0 探針、F3 長條圖工具、盲評與 F4 調查；使用者 11-27「畫面好很重要」、11-28「0001 改」「你全權處理弄好你滿意就回主線部署」）
+- **結論**：使用者說戰場「亂而平」。量測（`npm run perf:layers`）證實 FOREST、ICE、DESERT 的環境比單位亮；只調烘焙打光在 64 px 下看不出差別、只在 Canvas 2D 壓暗做不出衰減與投影。改成世界照舊用 Canvas 2D 畫，之上加一個 WebGL2 通道打光：冷環境光加月光、每個單位一盞暖色點光、地面投影與接觸暗部、特效與玩法標示不受壓暗、特效照亮周圍、泛光、色調映射。
+- **做法**（`engine/renderers/lighting/`，參數只在 `constants/lighting.ts`）：`RenderPipeline.draw` 在通道啟用時把世界畫進離屏的世界畫布，每畫完一個 op 呼叫 `LightingPass.tag` 記遮罩（直立物幾何、特效、玩法標示，半解析度；地塊本體不重畫）並收集點光與投影物；`present` 上傳、打光、後製、貼回主畫布。疊層與 HUD 照舊畫在主畫布，不打光。不引入任何函式庫。
+- **開關與退路**：預設桌機開、觸控裝置關；`?lit=0`／`?lit=1` 覆寫。WebGL2 或 `EXT_color_buffer_float` 拿不到、只有軟體算圖（`failIfMajorPerformanceCaveat`）、render target 建不起來、context 遺失時走原路徑。自適應品質降到解析度階層（`RENDER_QUALITY.LIT_MAX_TIER`）時釋放通道、這個頁面不再打開（網址明寫 `lit=1` 時不關）。
+- **量測**（每個數字的指令在 `docs/plans/lighting-pass.md` §7）：
+  - 盲評（兩位 Sonnet `reviewer`，匿名、左右隨機的對照板，取低分，六張平均）：打光關 3.5、開 5.2；兩位六張都偏好打光版。體積感與材質兩項開關同分（40 px 的單位上看不出來）。第一位在四張圖給打光版的可讀性 1 分（關是 2 分）：光池外的單位與暗處的格線要找；之後把單位保底受光與環境光調高，這次調整沒有再送評。
+  - 內顯（無頭 Edge 不加旗標選到 AMD 內顯、1280×720）：打光讓 33 FPS 掉到 17；約 30 秒內自動關掉，回到 56 FPS（關掉後品質階層也降了）。
+  - 桌機 RTX 4070、2560×1440：特效壓力下平均少約 7 FPS（被 56 Hz vsync 釘住，沒有每幀毫秒數）。
+  - 手機模擬（只降 CPU 4 倍）：平均 FPS 少三到四成，所以觸控裝置預設關。iPhone 實機沒量。
+  - 關閉打光時 `npm run perf:fidelity` 六張的數字和 main 逐位數相同（VOID 0.296、FOREST 0.659、ICE 0.302、MAGMA 0.614、DESERT 0.500、battle_frozen 0.177）。
+- **工具**：`perf:layers`（分層亮度與彩度；`--assert-order` 在 Canvas 2D 路徑有 12 筆明度順序違反，沒有調到變綠）、`perf:vfx-strip`（技能特效連續格，決定性）、`perf:lit`（打光開關對照與 `--walk N` 連續幀）。`render-fidelity` 與凍結幀探針的網址固定帶 `lit=0`（基準只對應 Canvas 2D 路徑）；`windows.e2e.mjs` 加 `--force_high_performance_gpu`（不加時選到內顯，打光讓指標類檢查 14 項逾時；加了之後 352 項全過）。`perf-frames` 加 `PERF_QUERY`、`perf-mobile-emu` 加 `--query`。
+- **保留與丟掉**：
+  - kept -> 烘焙主光與色帶收進 `bake_common.py`（`ea1935e5`）-> 重構前後原始 PNG 逐像素 0 差異。
+  - dropped -> 烘焙打光預設 `--lighting`（`bac6c919`，已 revert）-> 兩位評審 64 px 下都分不出來。
+  - dropped -> Canvas 2D 內壓暗、降彩、背景、縮圈格、六角光池（`4454108b`～`315a17e0`，`e5f994f3` 還原）-> 和打光通道疊加會太暗；數值留在 `visual-experiment.md` §9～§12。
+  - dropped -> 離線打光原型（`819386b8` 的探針）-> 引擎版取代。
+  - kept -> F3 技能特效抽樣結果、F4 本機圖生 3D 調查 -> HANDOFF §2 O 的待辦還要用（`docs/plans/visual-experiment/`）。
+- **驗證**（`exp/visual-lighting`，合併前）：lint、`npm test` 184 檔 1704 項、build（進入點 257.4／257.5 kB）、knip、`perf:guard`（保真六張、效能護欄）、`runtime-smoke`（預設與 `lit=0`）、`e2e:ui` 352 項全過、`perf:lit` 六張與 60 幀連續畫面 0 個頁面錯誤。主席看過：五群系與戰鬥幀的對照、60 幀走路條（光與影子連續）、本機預覽的展示模式與編輯模式。沒驗的：iPhone 實機、WebKit、context 遺失路徑、長時間遊玩、PLAY 模式的實際手感。
+- **回退**：`git revert -m 1` 合併 commit 回到純 Canvas 2D；只想關掉效果的話把 `RENDER_QUALITY.LIT_DEFAULT_ON` 改成 false（程式留著、預設不載入）。
+
+| 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+| :-- | :-- | :-- |
+| ADR 0029 取代 0001；`AGENTS.md` §1 第 4 點、`CLAUDE.md` 架構不變式、`METHODOLOGY.md` §2 改成「WebGL 只用在 `engine/renderers/lighting/`，不引入渲染函式庫」 | 排程工作階段照這條把 WebGL 程式碼限定在一個目錄、沒有引入函式庫（`git diff main --stat` 只有 `lighting/` 三個檔用到 GL） | helped |
+| 全域 `art-benchmark` skill（開案先定標、交圖盲評） | 第一輪盲評就判 F1 不量產，省掉整組重烘；排程工作階段的第一位評審派工單洩漏了版本，靠「盲評要匿名」這條才發現並重評 | helped |
+| 排程任務的派工單寫「驗收失敗兩次就停、不改驗收」 | C1 的 0 差異驗收第一種做法沒過，它照備案改做法而不是放寬門檻（`lighting-pass.md` §7 C1） | helped |

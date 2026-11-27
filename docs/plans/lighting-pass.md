@@ -1,7 +1,7 @@
 # 開案書：打光通道接進引擎（實驗分支 `exp/visual-lighting`）
 
 日期：2026-11-28。主席：Fable 5.2。使用者授權（2026-11-28 原話）：「0001 改！」「接進去跑看看」「你全權處理。退路都是 git，每一階段計畫要寫好」。
-前情與原型：`docs/plans/visual-experiment.md` §13、`tools/ui-e2e/lit-proto.mjs`、ADR 0029。
+前情與原型：`docs/plans/visual-experiment.md` §13、離線原型（commit `819386b8` 裡的離線探針，引擎版完成後已刪）、ADR 0029。
 
 合併進 `main` 與 push 仍然各自要問使用者。每個階段一個 commit，退路是 revert 那個 commit；整條線的退路是不合併這個分支。
 
@@ -176,3 +176,32 @@
 - 打光加 PLAY 模式沒有跑過（讀碼確認：遮罩用的剪影路徑在 `UnitOutlinePass.capture` 之前就返回，不會重複登記主角輪廓光）。
 - 長距離走路的連續畫面沒有單獨擷取；`perf:lit --walk` 跟到的是交戰中的單位。
 - 進入點只剩 0.1 kB（257.4／257.5 kB）：之後動 `RenderPipeline` 或任何首屏程式都可能超出預算。
+
+### F 外觀調整、預設開關與上線前的保護（2026-11-28，主席在原工作階段）
+
+使用者看過階段 E 的結果後授權：「你全權處理弄好你滿意就回主線部署」。
+
+- **外觀**（看 `npm run perf:lit` 的截圖調；參數都在 `constants/lighting.ts`）：
+  - 地塊 op 順帶畫的基礎疊層（狀態底色、區域、地塊光）進玩法標示遮罩，貼地法陣進特效遮罩：施法預警格與法陣不再被當成地面壓成灰白。遮罩覆蓋率乘上 `INFO_COVERAGE`／`GLOW_COVERAGE`，半透明的標示保有原色。
+  - 特效餘光（`GLOW_LIGHT`）：上一幀的泛光縮到 1／8、抹開，當成光加在下一幀的受光面上，特效會照亮周圍。
+  - 單位保底受光（`UNIT_FILL`）；點光抬高到 95（原型的 35 太斜，地上看不到光池、樹反而被打亮）、顏色更暖；點光打在障礙物上減弱（`ON_OBSTACLE`）。
+  - 環境光與天空壓暗；群系覆寫：FOREST 彩度 0.64、DESERT 彩度 0.7 且月光與環境光往中性（否則沙變粉紫）。
+  - 60 幀連續畫面裡大型特效過曝成白塊：`EMISSIVE_GAIN` 1.8 → 1.2、泛光門檻 1.25、強度 0.4。
+- **預設**：`LIT_DEFAULT_ON` true，觸控裝置一律關；`LIT_MAX_TIER` 1（品質降到解析度階層就關、不再開）；`failIfMajorPerformanceCaveat`；render target 不完整或 context 遺失時原樣疊回。
+- **為什麼要自動關**：`tools/ui-e2e/out/lit-state-noflags.mjs`（未進版控；無頭 Edge 不加 GPU 旗標，選到 `ANGLE (AMD, AMD Radeon(TM) Graphics …)`，1280×720 展示模式）：打光開 17～18 FPS、`?lit=0` 33 FPS；開著等 30 秒後 `window.__LIGHTING__` 是 `shed`、56.5 FPS。
+- **e2e**：`npm run e2e:ui` 在打光預設開、沒有 GPU 旗標時 14 項失敗（都是點畫布下指令、等結果的檢查）；`windows.e2e.mjs` 加 `--force_high_performance_gpu` 後 352 項全過。
+- **盲評**（`tools/ui-e2e/out/blind-boards.py` 產生匿名、左右隨機的對照板，答案檔放在評審看不到的地方；兩位 `reviewer` 子代理各自獨立；E 項改成絕對分）：
+
+| 場景 | 打光關（第一位／第二位 → 取低） | 打光開（第一位／第二位 → 取低） |
+| :-- | :-- | :-- |
+| ICE | 5／4 → 4 | 6／5 → 5 |
+| FOREST | 5／3 → 3 | 6／5 → 5 |
+| VOID | 6／4 → 4 | 7／6 → 6 |
+| MAGMA | 4／3 → 3 | 5／5 → 5 |
+| battle_frozen | 5／3 → 3 | 6／5 → 5 |
+| DESERT | 4／4 → 4 | 6／5 → 5 |
+| 平均 | 3.5 | 5.2 |
+
+  - 兩位六張都偏好打光版。體積感與材質兩項兩邊都是 1 分。
+  - 第一位在 ICE、FOREST、VOID、battle_frozen 給打光版的可讀性 1 分、關閉版 2 分：光池外的單位偏暗要找、暗處的格線幾乎看不到。第二位兩邊都給 1 分。
+  - 針對這兩點再調了一次（單位保底受光、環境光與月光調高，數值見 `constants/lighting.ts`），這次調整**沒有再送盲評**，只有主席看圖。
