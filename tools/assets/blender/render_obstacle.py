@@ -27,8 +27,10 @@ KENNEY = os.path.join(ASSETS, 'kenney_nature_kit/extracted/Models/GLTF format')
 
 # fit: max footprint radius (hex units); height: projected screen height in canvas units; tint multiplies the
 # model colour (None = keep), override replaces it.
+TREE_TINT = (0.46, 0.60, 0.62)   # multiplies the KayKit tree colours (linear); (1, 1, 1) = the shipped look
 TYPES = {
-    'TREE': {'fit': 1.05, 'variants': [
+    # F2 trial (exp/visual-lighting): canopy value pulled under the unit median (perf:layers); teal-leaning, less chroma
+    'TREE': {'fit': 1.05, 'tint': TREE_TINT, 'variants': [
         {'file': f'{FOREST}/Tree_1_A_Color1.gltf', 'height': 132},
         {'file': f'{FOREST}/Tree_2_A_Color1.gltf', 'height': 120},
         {'file': f'{FOREST}/Tree_3_A_Color1.gltf', 'height': 140},
