@@ -13,6 +13,9 @@ import bpy, sys, math, os, argparse, json
 from mathutils import Vector
 from bpy_extras.object_utils import world_to_camera_view
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bake_common import build_toon_ramp, add_key_sun   # bake lighting lives in bake_common.py
+
 argv = sys.argv[sys.argv.index('--') + 1:]
 CHAR_DIR, OUT_ROOT, TEAM, ROLE = argv[0], argv[1], argv[2], argv[3]
 # Blender resolves relative render paths differently after saving a .blend.
@@ -129,18 +132,11 @@ def toon_material(mat, override_rgb=None, tint_rgb=None):
     emit = nt.nodes.new('ShaderNodeEmission')
     diff = nt.nodes.new('ShaderNodeBsdfDiffuse')
     s2r = nt.nodes.new('ShaderNodeShaderToRGB')
-    ramp = nt.nodes.new('ShaderNodeValToRGB')
+    ramp = build_toon_ramp(nt)
     mul = nt.nodes.new('ShaderNodeMix')
     mul.data_type = 'RGBA'
     mul.blend_type = 'MULTIPLY'
     mul.inputs['Factor'].default_value = 1.0
-    ramp.color_ramp.interpolation = 'CONSTANT'
-    ramp.color_ramp.elements[0].position = 0.0
-    ramp.color_ramp.elements[0].color = (0.50, 0.50, 0.58, 1)
-    e1 = ramp.color_ramp.elements.new(0.38)
-    e1.color = (0.80, 0.80, 0.82, 1)
-    e2 = ramp.color_ramp.elements.new(0.72)
-    e2.color = (1.0, 1.0, 1.0, 1)
     nt.links.new(diff.outputs['BSDF'], s2r.inputs['Shader'])
     nt.links.new(s2r.outputs['Color'], ramp.inputs['Fac'])
     nt.links.new(ramp.outputs['Color'], mul.inputs['A'])
@@ -183,7 +179,6 @@ for o in bpy.data.objects:
             toon_material(slot.material, tint_rgb=pal['armor'])
 
 if args.skin:
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     if args.skin == 'lionheart-warrior':
         from lionheart_skin import apply_skin
         apply_skin(rig, args.body, toon_material, OUT_ROOT)
@@ -192,10 +187,7 @@ if args.skin:
         profile_path = ROLE_PROFILE.with_name('ashenRolesSkin.json') if args.skin == 'ashen-roles' else ROLE_PROFILE
         apply_role_skin(rig, ROLE, args.body, toon_material, OUT_ROOT, profile_path=profile_path)
 
-sun = bpy.data.objects.new('Sun', bpy.data.lights.new('Sun', 'SUN'))
-sun.data.energy = 3.0
-scene.collection.objects.link(sun)
-sun.rotation_euler = (math.radians(50), math.radians(10), math.radians(-35))
+add_key_sun(scene)
 
 cam = bpy.data.objects.new('Cam', bpy.data.cameras.new('Cam'))
 cam.data.type = 'ORTHO'

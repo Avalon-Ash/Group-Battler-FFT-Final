@@ -13,5 +13,6 @@ export * from './constants/terrain';
 export * from './constants/vfx';
 export * from './constants/ui';
 export * from './constants/render';
+export * from './constants/lighting';
 export * from './constants/audio';
 export * from './constants/ai';

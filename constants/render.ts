@@ -105,6 +105,19 @@ export const RENDER_QUALITY = {
     GLOW_QUERY_KEY: 'glow',
     /** 網址 ?interp=0 關掉兩個模擬 tick 之間的畫面插值（UnitFrameStore.build，契約 R1），給實機 A/B 與診斷 */
     INTERP_QUERY_KEY: 'interp',
+    /** 打光通道（ADR 0029）：網址 ?lit=1 開、?lit=0 關；沒寫時看 LIT_DEFAULT_ON。外觀參數在 constants/lighting.ts */
+    LIT_QUERY_KEY: 'lit',
+    /**
+     * 網址沒寫 lit 時的預設（使用者 2026-11-28 同意上線）：桌機開；觸控裝置（isMemoryConstrainedDevice）不管這個值一律關，
+     * 手機模擬量到平均 FPS 少三到四成、實機還沒量（docs/plans/lighting-pass.md §7 E），要在手機上看就加 ?lit=1。
+     * 保真基準只對應 Canvas 2D 路徑，所以 render-fidelity 與凍結幀探針的網址固定帶 lit=0。
+     */
+    LIT_DEFAULT_ON: true,
+    /**
+     * 自適應品質降到這個階層以上（2／3＝幀間隔平均 > DOWN_RES_MS，約 < 45 FPS 持續 DOWN_HOLD_S）就把打光關掉，這個頁面不再打開：
+     * 內顯量到打光讓 33 FPS 掉到 17（2026-11-28，無頭 Edge、AMD 內顯、1280×720）。網址明寫 lit=1 時不關（實機量測用）。
+     */
+    LIT_MAX_TIER: 1,
 } as const;
 
 /**

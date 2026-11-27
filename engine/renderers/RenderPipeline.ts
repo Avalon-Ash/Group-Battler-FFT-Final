@@ -12,6 +12,10 @@
 // ║  剪影只畫在擋住單位的地塊柱與障礙物上（SilhouetteMask，§13）。║
 // ║  轉場黑幕：最上層、只在轉場中（OUT 漸黑、IN 漸亮）。         ║
 // ║  [ARCH] 毒材質在 update 排程準備，draw 只登記活躍頁。     ║
+// ║  [ARCH] 打光通道（lighting/LightingGate，ADR 0029）啟用時  ║
+// ║  drawWorld 畫進它的世界畫布（同尺寸、同變換），畫完貼回主  ║
+// ║  畫布；背景、後製、疊層、HUD 照舊畫主畫布。座標不變。      ║
+// ║  啟用時不跑 applyToneGrade（通道自己做色調映射）。         ║
 // ║  [ARCH] statusOrchestrator.draw 另收 mapConfig 算狀態方向。║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -41,6 +45,8 @@ import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
 import { poisonMaterialStore } from './status/PoisonMaterialStore';
 import { UnitOutlinePass } from './units/UnitOutlinePass';
+import { getLightingPass } from './lighting/LightingGate';
+import type { LightingPass } from './lighting/LightingPass';
 import { statusArtStore } from './status/StatusArtStore';
 import { ccBodyStore } from './units/CcBodyStore';
 import { VFX_BIOME_GAIN, RENDER_QUALITY, GAME_APP_PARAM, RENDER_PIPELINE_PARAM, BACKGROUND_FX } from "../../constants";
@@ -195,12 +201,18 @@ export class RenderPipeline {
         RenderStats.begin('world');
         // 地形烘焙預算每幀重置；轉場中地塊從畫面外落入，超過預算的延後一幀（RENDER_CACHE.TRANSITION_BAKE_BUDGET_MS）
         TerrainRenderer.beginFrame(this.transitionPhase !== 'IDLE');
-        ctx.save();
-        this.renderer.camera.sync(camera); 
-        this.renderer.camera.applyTransform(ctx, lW, lH);
+        // 打光通道（ADR 0029）啟用時，世界畫進它的世界畫布，畫完由它處理後貼回主畫布；否則直接畫主畫布
+        const lit = getLightingPass();
+        const litCtx = lit ? lit.beginWorld(pW, pH, dpr) : null;
+        const wctx = litCtx ? CtxOpCounter.wrapContext(litCtx) : ctx;
+        wctx.save();
+        this.renderer.camera.sync(camera);
+        this.renderer.camera.applyTransform(wctx, lW, lH);
         // World objects use BattleTime to sync with logic
-        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt);
-        ctx.restore(); 
+        this.drawWorld(wctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt, litCtx ? lit : null);
+        // present 要讀世界畫布此刻的相機變換，所以在 restore 之前
+        if (lit && litCtx) lit.present(rawCtx, sc.textureType);
+        wctx.restore();
         RenderStats.end('world');
 
         // 3. Post Processing
@@ -209,7 +221,8 @@ export class RenderPipeline {
             let transAb = (this.transitionPhase !== 'IDLE') ? 4 * this.transitionT * (1 - this.transitionT) * 0.5 : 0;
             this.post.apply(ctx, pW, pH, this.renderer.camera.getTrauma(), transAb);
             // [MATERIAL UPGRADE] 色調分級：只作用於世界層，HUD/Overlay 之前
-            this.post.applyToneGrade(ctx, pW, pH);
+            // 打光通道自己做色調映射，不再疊一次色調分級
+            if (!litCtx) this.post.applyToneGrade(ctx, pW, pH);
         });
         RenderStats.end('post');
         
@@ -267,7 +280,7 @@ export class RenderPipeline {
         CtxOpCounter.endFrame();
     }
 
-    private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number, dt: number) {
+    private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number, dt: number, lit: LightingPass | null) {
         this.renderList.reset();
         this.groundDrape.begin();
 
@@ -322,6 +335,7 @@ export class RenderPipeline {
                 CtxOpCounter.setScope(scope);
             }
             RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit, this.groundDrape);
+            lit?.tag(op, engine.mapConfig.layout, t, this.renderer.unit, this.groundDrape);
         }
 
         // [FIX] 編輯模式（isRunning === false）下禁用 silhouette pass：

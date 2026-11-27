@@ -40,7 +40,11 @@ export class RenderSpec {
         s += "| CORPSE           | 48       | 死亡單位（擊飛、淡出） |\n";
         s += "| VFX (air)        | 50       | 空中特效，套 z-boost |\n";
         s += "| PROJECTILE       | 50       | 投射物，套同一套 z-boost |\n\n";
-        s += "RenderList 之外的螢幕層（RenderPipeline.draw 尾端，依序）：後製模糊 → 轉場黑幕（只在轉場中，OUT 漸黑、IN 漸亮，BACKGROUND_FX.BLACKOUT_FADE_S）。\n\n";
+        s += "RenderList 之外的螢幕層（RenderPipeline.draw 尾端，依序）：後製模糊 → 轉場黑幕（只在轉場中，OUT 漸黑、IN 漸亮，BACKGROUND_FX.BLACKOUT_FADE_S）。\n";
+        s += "打光通道（ADR 0029，engine/renderers/lighting/）：啟用時整個 RenderList 與剪影、狀態層（drawWorld）畫進和主畫布同尺寸、同變換的世界畫布，\n";
+        s += "畫完由 LightingPass.present 處理後貼回主畫布（背景之上、後製與疊層之前）。它不改 op 的任何座標與排序鍵；關閉或 WebGL2 拿不到時 drawWorld 直接畫主畫布。\n";
+        s += "通道需要的每像素類別由 LightingPass.tag 取得：RenderPipeline 每分發完一個 op 呼叫一次，它用同一個 op（同一個繪製點）把單位剪影、障礙物、特效、玩法標示\n";
+        s += "另畫在半解析度的遮罩畫布上，並收集點光與投影物；單位的腳底與高度只讀 UnitFrame（footX、floorY、hudAnchorY、transition），障礙物讀精靈錨點，不自己算高度。地塊 op 不重畫。\n\n";
 
         s += "--- \n\n";
 
