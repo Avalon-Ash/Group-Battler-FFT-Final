@@ -335,7 +335,7 @@ export class RenderPipeline {
                 CtxOpCounter.setScope(scope);
             }
             RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit, this.groundDrape);
-            lit?.tag(op, engine.mapConfig.layout, t, this.renderer.unit);
+            lit?.tag(op, engine.mapConfig.layout, t, this.renderer.unit, this.groundDrape);
         }
 
         // [FIX] 編輯模式（isRunning === false）下禁用 silhouette pass：

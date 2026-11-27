@@ -7,8 +7,8 @@
 // ║  時光的大小跟著地圖走。顏色是線性 RGB。                    ║
 // ║  開關不在這裡：RENDER_QUALITY.LIT_QUERY_KEY／LIT_DEFAULT_ON  ║
 // ║  （進入點要讀；這張表只進延後載入的打光 chunk）。          ║
-// ║  數值來源：tools/ui-e2e/lit-proto.mjs 的 LOOK（原型在縮放   ║
-// ║  0.857 的畫面上以螢幕像素調，這裡已除以 0.857 換成世界像素）。║
+// ║  數值來源：離線原型（commit 819386b8）的 LOOK，換成世界像素 ║
+// ║  後在引擎裡看 npm run perf:lit 的截圖調過（WORKLOG §2 DQ）。║
 // ╚══════════════════════════════════════════════════════════╝
 
 type RGB = readonly [number, number, number];
@@ -40,17 +40,19 @@ export const LIGHTING = {
     /** 單位腳前的暖色點光 */
     UNIT_LIGHT: {
         /** 依陣營（Team 列舉值）的光色；沒列到的陣營用 FALLBACK */
-        COLOR: { 0: [1.0, 0.70, 0.38], 1: [1.0, 0.46, 0.22] } as Readonly<Record<number, RGB>>,
+        COLOR: { 0: [1.0, 0.64, 0.30], 1: [1.0, 0.42, 0.18] } as Readonly<Record<number, RGB>>,
         FALLBACK: [1.0, 0.60, 0.30] as RGB,
-        INTENSITY: 3.6,
+        INTENSITY: 4.4,
         /** 照得到的最遠距離（世界像素，地面平面上） */
-        RANGE: 280,
+        RANGE: 300,
         /** 光源離地高度 */
-        HEIGHT: 35,
+        HEIGHT: 95,
         /** 光源從腳底往鏡頭方向（地面 y）偏移，讓單位正面受光 */
-        FRONT: 47,
+        FRONT: 40,
         /** 衰減曲線的膝點：距離到 RANGE × sqrt(KNEE) 時亮度約減半；越小光越集中在腳邊 */
-        KNEE: 0.06,
+        KNEE: 0.10,
+        /** 點光打在障礙物（樹、岩柱、冰晶）上的倍率：它們整面朝鏡頭，不減弱會比地上的光池還亮 */
+        ON_OBSTACLE: 0.45,
     },
 
     /**
@@ -59,14 +61,27 @@ export const LIGHTING = {
      */
     MASK_SCALE: 0.5,
     /** 特效像素的亮度倍率（HDR，不受環境光壓暗；超過 1 的部分進泛光） */
-    EMISSIVE_GAIN: 1.6,
-    /** 玩法標示（射程、預警、縮圈格）的亮度倍率：不受光，維持接近原本畫出來的亮度 */
+    EMISSIVE_GAIN: 1.2,
+    /** 玩法標示（射程、預警、縮圈格、狀態底色、地塊光）的亮度倍率：不受光，維持接近原本畫出來的亮度 */
     INFO_GAIN: 1.0,
+    /**
+     * 遮罩覆蓋率的放大倍率：半透明的疊層（預警格底色約 0.35、柔邊的法陣）在遮罩裡的 alpha 很低，
+     * 照原值混合會被當成環境壓暗、降彩。乘上這個倍率再夾到 1，半透明的標示與特效才保有原本的顏色。
+     */
+    INFO_COVERAGE: 2.6,
+    GLOW_COVERAGE: 1.4,
+    /** 單位的保底受光（加在環境光上）：沒站在任何光池裡的單位仍然認得出職業與陣營 */
+    UNIT_FILL: [0.46, 0.46, 0.50] as RGB,
+    /**
+     * 特效照亮周圍：把上一幀泛光的亮部再縮小、抹開，當成一層光加在這一幀的受光面上（延遲一幀，肉眼看不出）。
+     * DOWNSCALE＝相對主畫布的縮小倍率，PASSES＝模糊來回次數，STRENGTH＝光的強度。
+     */
+    GLOW_LIGHT: { DOWNSCALE: 8, PASSES: 3, STEP_GROW: 1.5, STRENGTH: 2.2 },
 
     BLOOM: {
         /** HDR 亮度超過這個值才進泛光 */
-        THRESHOLD: 1.15,
-        STRENGTH: 0.55,
+        THRESHOLD: 1.25,
+        STRENGTH: 0.4,
         /** 泛光貼圖相對畫面的縮小倍率 */
         DOWNSCALE: 2,
         /** 模糊來回的次數（每次一橫一直）與每次的取樣步長增量 */
@@ -121,11 +136,11 @@ export const LIGHTING = {
 
     /** 所有群系共用的外觀 */
     BASE: {
-        ambient: [0.10, 0.14, 0.27],
+        ambient: [0.095, 0.13, 0.25],
         moonColor: [0.62, 0.74, 1.0],
-        moonIntensity: 1.15,
+        moonIntensity: 1.12,
         moonDir: [-0.72, -0.34, 0.5],
-        skyAmbient: 2.2,
+        skyAmbient: 1.5,
         skyMoon: 0.25,
         exposure: 1.25,
         envChroma: 0.5,
@@ -135,5 +150,9 @@ export const LIGHTING = {
     BIOME: {
         // 熔岩的橘紅就是這個群系的辨識色：降到一半會變成粉灰
         MAGMA: { envChroma: 0.8 },
+        // 草地降到一半會變灰青，認不出是森林
+        FOREST: { envChroma: 0.64 },
+        // 沙的橘色降彩後被藍色月光染成粉紫：月光與環境光往中性靠，彩度多留一點
+        DESERT: { envChroma: 0.7, ambient: [0.10, 0.10, 0.165], moonColor: [0.82, 0.80, 0.92] },
     } as Readonly<Record<string, Partial<LightingLook>>>,
 } as const;

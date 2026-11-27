@@ -95,7 +95,7 @@ void main(){
 export const lightFrag = (shadowSteps: number): string => `#version 300 es
 precision highp float;
 in vec4 vInst; in vec3 vCol; out vec4 o;
-uniform float uKnee, uSkipGround, uSkipUpright;
+uniform float uKnee, uSkipGround, uSkipUpright, uObstacleLight;
 ${surfaceChunk(shadowSteps)}
 void main(){
     Surface s = surfaceAt(gl_FragCoord.xy);
@@ -106,7 +106,9 @@ void main(){
     fall = fall * fall / (1.0 + dist2 / (r2 * uKnee));
     float ndl = max(dot(s.N, d * inversesqrt(dist2)), 0.0);
     float skip = mix(uSkipGround, uSkipUpright, s.upright);
-    o = vec4(vCol * ndl * fall * shadow(s.P, d, max(length(d.xy), skip + 1.0), skip), 1.0);
+    // 障礙物整面朝鏡頭，站在光旁邊會整棵被打亮、比地上的光池還搶眼：點光打在障礙物上時減弱
+    float obstacle = s.upright * (1.0 - s.unit);
+    o = vec4(vCol * ndl * fall * mix(1.0, uObstacleLight, obstacle) * shadow(s.P, d, max(length(d.xy), skip + 1.0), skip), 1.0);
 }`;
 
 /** 世界 × 光照；特效自發光、環境降彩、背景只調色；輸出線性 HDR */
@@ -118,15 +120,17 @@ uniform sampler2D tBack;    // 主畫布此刻的內容（只有背景）
 uniform sampler2D tLight;   // 點光累加
 uniform sampler2D tGlow;    // 特效遮罩（alpha＝特效覆蓋率）
 uniform sampler2D tInfo;    // 玩法標示遮罩（射程、預警、縮圈格）：照原樣顯示，不打光、不降彩
-uniform vec3 uAmbient, uMoonCol, uMoonDir, uSkyTint;
+uniform sampler2D tGlowLight;   // 上一幀的特效餘光（泛光亮部再抹開）：特效照亮周圍
+uniform vec3 uAmbient, uMoonCol, uMoonDir, uSkyTint, uUnitFill;
 uniform float uEmissiveGain, uInfoGain, uEnvChroma, uMoonShadowLen, uContact, uRim, uSkipGround, uSkipUpright;
+uniform float uGlowCoverage, uInfoCoverage, uGlowLight;
 ${surfaceChunk(shadowSteps)}
 vec3 toLinear(vec3 c){ return pow(c, vec3(2.2)); }
 vec3 chroma(vec3 c, float k){ return mix(vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))), c, k); }
 void main(){
     vec4 w = texture(tWorld, vUv);
-    float glow = texture(tGlow, vUv).a;
-    float info = texture(tInfo, vUv).a;
+    float glow = min(1.0, texture(tGlow, vUv).a * uGlowCoverage);
+    float info = min(1.0, texture(tInfo, vUv).a * uInfoCoverage);
     vec3 sky = chroma(toLinear(texture(tBack, vUv).rgb), uEnvChroma) * uSkyTint;
     Surface s = surfaceAt(gl_FragCoord.xy);
     vec3 albedo = chroma(toLinear(w.rgb / max(w.a, 1e-4)), mix(uEnvChroma, 1.0, max(s.unit, max(glow, info))));
@@ -138,6 +142,8 @@ void main(){
     if (moon > 0.0) light += uMoonCol * moon * shadow(s.P, uMoonDir, uMoonShadowLen, skip);
     light += s.upright * uMoonCol * uRim * pow(max(dot(s.N, normalize(vec3(uMoonDir.xy, 0.15))), 0.0), 1.5);
     light += texture(tLight, vUv).rgb;
+    light += texture(tGlowLight, vUv).rgb * uGlowLight;
+    light += s.unit * uUnitFill;
 
     vec3 lit = albedo * mix(mix(light, vec3(uInfoGain), info), vec3(uEmissiveGain), glow);
     o = vec4(mix(sky, lit, w.a), 1.0);

@@ -18,15 +18,22 @@
 // ║   幾何遮罩＝直立物（單位、障礙物）各蓋一張漸層章，記離腳底  ║
 // ║   的高度、是不是單位、橫向位置；特效遮罩；玩法標示遮罩。    ║
 // ║   同時收集點光（存活單位）與投影物（單位、障礙物的腳印）。  ║
+// ║   地塊 op 順帶畫的基礎疊層進玩法標示遮罩、貼地法陣進特效    ║
+// ║   遮罩（否則會被當成地面壓暗）。                            ║
 // ║  每幀流程：投影物貼圖 → 點光（instance 矩形，加法，含投影） ║
 // ║  → 著色（環境光、月光與投影、接觸暗部、邊光、自發光、背景   ║
-// ║  調色）→ 泛光 → 合成（曝光、暗角、色調映射）。              ║
+// ║  調色）→ 泛光 → 特效餘光（泛光再抹開，留給下一幀當光源）    ║
+// ║  → 合成（曝光、暗角、色調映射）。                           ║
+// ║  [ARCH] 通道不能用（render target 建不起來、context 遺失、  ║
+// ║         dispose 之後）時 present 把世界畫布原樣疊回主畫布。 ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { ISO_SCALE_Y, LIGHTING, RENDER_QUALITY, UNIT_SPRITE, type LightingLook } from '../../../constants';
 import type { HexLayout } from '../../../types';
 import type { UnitRenderSystem } from '../../presentation/unit';
 import { SpriteManager } from '../../sprites';
+import type { GroundDrapeLayer } from '../GroundDrape';
+import { GridOverlays } from '../grid/GridOverlays';
 import { RenderDispatcher } from '../RenderDispatcher';
 import { RenderOpType, type RenderOp } from '../RenderList';
 import {
@@ -59,6 +66,7 @@ const TEX_GLOW = 3;
 const TEX_INFO = 4;
 const TEX_GEO = 5;
 const TEX_CASTER = 6;
+const TEX_GLOW_LIGHT = 7;
 
 interface Program {
     readonly id: WebGLProgram;
@@ -152,6 +160,9 @@ export class LightingPass {
     private tHdr: Target | null = null;
     private tBloomA: Target | null = null;
     private tBloomB: Target | null = null;
+    /** 特效餘光（GLOW_LIGHT）：A 留到下一幀給著色讀，B 是模糊的暫存 */
+    private tGlowA: Target | null = null;
+    private tGlowB: Target | null = null;
     /** 群系外觀（BASE 疊上 BIOME 覆寫）；每個群系合併一次 */
     private readonly looks = new Map<string, LightingLook>();
 
@@ -166,8 +177,10 @@ export class LightingPass {
         this.scratchCtx = makeCanvas().ctx;
         this.maskCtxs = [this.geoCtx, this.glowCtx, this.infoCtx, this.scratchCtx];
         this.glCanvas = document.createElement('canvas');
+        // failIfMajorPerformanceCaveat：只有軟體算圖（沒有顯示卡加速）可用時不建 context，走原本的 Canvas 2D 路徑；
+        // 軟體 WebGL 跑全螢幕打光會把幀率拖到個位數
         const gl = this.glCanvas.getContext('webgl2', {
-            alpha: false, antialias: false, depth: false, stencil: false,
+            alpha: false, antialias: false, depth: false, stencil: false, failIfMajorPerformanceCaveat: true,
         });
         if (!gl) throw new Error('webgl2');
         // HDR 中間貼圖（RGBA16F）要能當 render target
@@ -254,13 +267,15 @@ export class LightingPass {
         const fbo = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        // 驅動不接受這個格式當 render target：整個通道停用，之後每幀走原本的直接路徑
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) this.lost = true;
         return { tex, fbo, w, h };
     }
 
     /** 建立（或 context 還原後重建）所有 GL 資源；render target 在 present 依畫布尺寸建立 */
     private createResources(): void {
         const gl = this.gl;
-        this.tCaster = this.tLight = this.tHdr = this.tBloomA = this.tBloomB = null;
+        this.tCaster = this.tLight = this.tHdr = this.tBloomA = this.tBloomB = this.tGlowA = this.tGlowB = null;
 
         const quad = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -400,11 +415,13 @@ export class LightingPass {
      * - 障礙物 → 幾何遮罩（蓋障礙物章）＋一個投影物；並從特效、玩法標示遮罩挖掉自己。
      * - 特效、投射物、施法圈、危害（熔岩、毒沼）→ 特效遮罩：照原樣再分發一次。
      * - 射程、預警、縮圈格（OVERLAY）→ 玩法標示遮罩：照原樣再分發一次。
-     * - 地塊不處理（最多、最貴）：被前方高地塊擋住的單位，遮罩會多出一塊（開案書 §6）。
+     * - 地塊本體不重畫（最多、最貴）：被前方高地塊擋住的單位，遮罩會多出一塊（開案書 §6）。
+     *   地塊 op 順帶畫的兩樣要進遮罩，否則會被當成地面壓暗：基礎疊層（狀態底色、區域、地塊光）→ 玩法標示遮罩；
+     *   貼地鋪設特效（法陣）→ 特效遮罩。繪製點和 RenderDispatcher 用同一個 snap。
      */
-    public tag(op: RenderOp, layout: HexLayout, t: number, units: UnitRenderSystem): void {
+    public tag(op: RenderOp, layout: HexLayout, t: number, units: UnitRenderSystem, drape: GroundDrapeLayer): void {
         const type = op.type;
-        if (type === RenderOpType.TERRAIN || type === RenderOpType.CORPSE) return;
+        if (type === RenderOpType.CORPSE) return;
         if (this.maskStale) {
             this.maskStale = false;
             const m = this.worldCtx.getTransform();
@@ -413,6 +430,15 @@ export class LightingPass {
             this.maskOX = m.e * k;
             this.maskOY = m.f * k;
             for (const mctx of this.maskCtxs) mctx.setTransform(m.a * k, m.b * k, m.c * k, m.d * k, m.e * k, m.f * k);
+        }
+        if (type === RenderOpType.TERRAIN) {
+            const snapX = RenderDispatcher.snap(op.tx, 0), snapY = RenderDispatcher.snap(op.ty, 1);
+            if (op.oStatus || op.oDanger || op.oHasUnit || (op.oLightCol && op.oLightInt > 0)) {
+                GridOverlays.drawOverlays(this.infoCtx, snapX, snapY, op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt,
+                    false, '', false, false, false, op.oHasUnit, op.tq, op.tr, op.time, layout);
+            }
+            drape.drawOnTile(this.glowCtx, op, snapX, snapY, layout, t);
+            return;
         }
         const G = LIGHTING.GEO;
         const stampH = G.MAX_HEIGHT * (1 + G.FOOT_PAD);
@@ -425,9 +451,11 @@ export class LightingPass {
             this.clipScratch(x0, y0, halfW * 2, stampH);
             for (let i = 0; i < SILHOUETTE_REPEAT; i++) units.drawSilhouette(this.scratchCtx, f, t, layout);
             this.stamp(this.unitStamp, x0, y0, halfW * 2, stampH);
-            this.glowCtx.globalCompositeOperation = 'destination-out';
-            for (let i = 0; i < SILHOUETTE_REPEAT; i++) units.drawSilhouette(this.glowCtx, f, t, layout);
-            this.glowCtx.globalCompositeOperation = 'source-over';
+            for (const mctx of [this.glowCtx, this.infoCtx]) {
+                mctx.globalCompositeOperation = 'destination-out';
+                for (let i = 0; i < SILHOUETTE_REPEAT; i++) units.drawSilhouette(mctx, f, t, layout);
+                mctx.globalCompositeOperation = 'source-over';
+            }
 
             this.pushCaster(f.footX, f.floorY, halfW * 2, height);
             if (this.lightCount < LIGHTING.MAX_LIGHTS) {
@@ -502,6 +530,21 @@ export class LightingPass {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, QUAD_VERTS);
     }
 
+    /** 釋放 GL context 與離屏畫布（LightingGate 判定這台機器跑不動時呼叫）；之後這個物件不再使用 */
+    public dispose(): void {
+        this.lost = true;
+        this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+        for (const c of [this.world, this.glCanvas, ...this.maskCtxs.map((m) => m.canvas)]) { c.width = 0; c.height = 0; }
+    }
+
+    /** 這一幀的世界已經畫在世界畫布上、通道卻不能用（context 遺失、render target 建不起來）：不打光，原樣疊回主畫布 */
+    private blitUnlit(main: CanvasRenderingContext2D): void {
+        main.save();
+        main.resetTransform();
+        main.drawImage(this.world, 0, 0);
+        main.restore();
+    }
+
     /**
      * 世界畫完後、世界畫布的相機變換還沒 restore 時呼叫（要讀這個變換把像素換回世界座標）。
      * main＝主畫布（此時只有背景）；biome＝SceneTheme.textureType。
@@ -509,8 +552,8 @@ export class LightingPass {
     public present(main: CanvasRenderingContext2D, biome: string): void {
         const { gl, glCanvas, world } = this;
         const { pCaster, pLight, pShade, pBright, pBlur, pComposite } = this;
-        if (this.lost || !pCaster || !pLight || !pShade || !pBright || !pBlur || !pComposite) return;
         const pW = world.width, pH = world.height;
+        if (this.lost || !pCaster || !pLight || !pShade || !pBright || !pBlur || !pComposite) { this.blitUnlit(main); return; }
         if (glCanvas.width !== pW || glCanvas.height !== pH) {
             glCanvas.width = pW;
             glCanvas.height = pH;
@@ -523,6 +566,12 @@ export class LightingPass {
         const tHdr = this.tHdr = this.target(this.tHdr, pW, pH);
         const tBloomA = this.tBloomA = this.target(this.tBloomA, bW, bH);
         const tBloomB = this.tBloomB = this.target(this.tBloomB, bW, bH);
+        const GL = LIGHTING.GLOW_LIGHT;
+        const gW = Math.max(1, Math.floor(pW / GL.DOWNSCALE)), gH = Math.max(1, Math.floor(pH / GL.DOWNSCALE));
+        const tGlowA = this.tGlowA = this.target(this.tGlowA, gW, gH);
+        const tGlowB = this.tGlowB = this.target(this.tGlowB, gW, gH);
+
+        if (this.lost) { this.blitUnlit(main); return; }
 
         const cam = this.worldCtx.getTransform();
         const look = this.lookFor(biome);
@@ -559,6 +608,7 @@ export class LightingPass {
             this.f1(pLight, 'uReach', 1);
             this.f1(pLight, 'uLift', LIGHTING.GEO.MAX_HEIGHT);
             this.f1(pLight, 'uKnee', LIGHTING.UNIT_LIGHT.KNEE);
+            this.f1(pLight, 'uObstacleLight', LIGHTING.UNIT_LIGHT.ON_OBSTACLE);
             this.drawInstances(this.lightData, this.lightCount);
         }
 
@@ -571,6 +621,12 @@ export class LightingPass {
         this.bindTexture(pShade, TEX_LIGHT, 'tLight', tLight.tex);
         this.bindTexture(pShade, TEX_GLOW, 'tGlow', this.glowTex);
         this.bindTexture(pShade, TEX_INFO, 'tInfo', this.infoTex);
+        // 上一幀留下的特效餘光（這一幀的在步驟 4 之後才更新）
+        this.bindTexture(pShade, TEX_GLOW_LIGHT, 'tGlowLight', tGlowA.tex);
+        this.f3(pShade, 'uUnitFill', LIGHTING.UNIT_FILL, 1);
+        this.f1(pShade, 'uGlowCoverage', LIGHTING.GLOW_COVERAGE);
+        this.f1(pShade, 'uInfoCoverage', LIGHTING.INFO_COVERAGE);
+        this.f1(pShade, 'uGlowLight', GL.STRENGTH);
         this.f3(pShade, 'uAmbient', look.ambient, 1);
         this.f3(pShade, 'uMoonCol', look.moonColor, look.moonIntensity);
         this.f3(pShade, 'uMoonDir', look.moonDir, 1 / moonLen);
@@ -600,6 +656,17 @@ export class LightingPass {
             this.bindTexture(pBlur, 0, 'tColor', tBloomB.tex);
             gl.uniform2f(this.loc(pBlur, 'uDir'), 0, step / bH);
             this.drawTo(tBloomA, bW, bH);
+        }
+
+        // 4b. 特效餘光：泛光再縮小、抹開，留給下一幀的著色當光源
+        for (let i = 0; i < GL.PASSES; i++) {
+            const step = 1 + i * GL.STEP_GROW;
+            this.bindTexture(pBlur, 0, 'tColor', i === 0 ? tBloomA.tex : tGlowA.tex);
+            gl.uniform2f(this.loc(pBlur, 'uDir'), step / gW, 0);
+            this.drawTo(tGlowB, gW, gH);
+            this.bindTexture(pBlur, 0, 'tColor', tGlowB.tex);
+            gl.uniform2f(this.loc(pBlur, 'uDir'), 0, step / gH);
+            this.drawTo(tGlowA, gW, gH);
         }
 
         // 5. 合成到 GL 畫布：泛光、曝光、暗角、色調映射
