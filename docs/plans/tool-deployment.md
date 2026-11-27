@@ -135,11 +135,14 @@ placed.size !== roster.length → 丟錯
 - 改完先**不帶 `--record`** 跑一次，記下每個情境的 `identical` 數。
 - 和預測不符（例如預測 ROYALE 60/60 卻不是）就停，不重錄。
 
-**(c) 統計型工具用「舊版跨種子範圍」當尺。** 佈陣改了等於重新抽樣，不該逐位元比。
+**(c) 統計型工具用「合併種子的兩比例 z 檢定」當尺。** 佈陣改了等於重新抽樣，不該逐位元比。
+
+> 2026-11-27 主代理依新證據改寫。原判準是「新版同種子的摘要落在舊版三個種子的最小～最大之間」；對一個獨立重抽的值，單一值落在這個範圍外的機率約 1/2（n=3 時 2/(n+1)），P2、P3 比對 105 個值有 20 個在外而停下（數字在 6d55d9b9、b50f01f4 的 commit 訊息）。改判準不是為了過關放寬：舊判準分不出回歸與抽樣。
 
 - P0 先用舊版各跑 3 個種子，存下摘要。
-- 新版同種子的摘要落在舊版三個種子的最小～最大之間，視為預期中的改變。
-- 落在外面就停下來問，不調門檻、不挑種子。
+- 比例型的值（勝率）把各種子合併後做兩比例 z 檢定，|z|<2 視為相同；超出才停下來問，不調門檻、不挑種子。
+- 證據（主代理跑，指令 `node tools/balance/ai-idle-sim.mjs --scenario=TEAMS --battles=200 --seed=N`，N=4..9；舊版在主資料夾、新版在工作樹，原始輸出在兩邊的 `tools/ui-e2e/out/td2/`）：勝率 old→new，種子 4～9 TANK 42.6→44.0（z 1.02）、WARRIOR 29.4→29.4、RANGER 38.0→38.0、MAGE 35.4→34.7、SUPPORT 36.4→35.7；種子 1～9 合併（每職業 3600 picks）全部 |z|≤0.75；`idlePct` 差 ≤0.1 點。種子 1～3 的「TANK、WARRIOR 三個都較低」在 4～9 反轉。
+- `--swapSides`（3000 場 × 3 種子，每臂合計 9000 場）：swap 藍方勝率 new−old +0.69 點（1.96σ＝±1.46），swap 與不 swap 的差 new−old −0.35 點（±2.06），都在雜訊內。
 - 比對欄位：
   - `batch-sim`：`blueWinRate`（連同 `ci95`）、`avgTime`、`damageAttribution.attributedPct`、`wins.TIMEOUT`。
   - `mobility-probe`：全部門檻列。既有門檻必須照樣 PASS。
@@ -216,11 +219,11 @@ P5 可以單獨否決。不做的話，`simFingerprint.ts` 會在 ADR 裡登記�
 |---|---|---|
 | P0 | 沒有程式改動；刪掉 `tools/ui-e2e/out/td/` 即可。 | 無 |
 | P1 | `git revert <P1>`。只有新增檔；要先退掉 P2～P5。 | 共同驗收 |
-| P2／P3／P4 | 各自 `git revert <sha>`，互不影響。工具輸出在 gitignore 目錄，沒有殘留。 | 共同驗收；該工具用 P0 的指令重跑，摘要與 `old-…` 相同 |
+| P2／P3／P4 | P4 可單獨 `git revert`。**P3 用到 P2 加的 `HEADLESS_SETUP`：要先退 P3 再退 P2**（2026-11-27 補；原寫「互不影響」不成立）。工具輸出在 gitignore 目錄，沒有殘留。 | 共同驗收；該工具用 P0 的指令重跑，摘要與 `old-…` 相同 |
 | P5 | `git revert <P5>`。程式和基準檔在同一個 commit，一起回到舊版。**不要**用 `--record` 回退。 | `npm run balance:fingerprint` 回到舊基準的 180/180 |
 | P6 | `git revert <P6>`。若 ADR 已是「採用」而之後要推翻，照 `docs/adr/README.md` 另開一份取代，不改原檔。 | `npm test` |
 
-回退順序是反向：P6 → P5 → P2～P4 → P1。
+回退順序是反向：P6 → P5 → P3 → P2 → P4 → P1。
 
 ## 6. 要不要 ADR
 
@@ -315,3 +318,19 @@ P5 可以單獨否決。不做的話，`simFingerprint.ts` 會在 ADR 裡登記�
 14. `public/replays/bench-magma-20.json` 由 `perf-frames.mjs`（`?replay=`）與 `ReplayIO.ts` 讀取；沒有流程自動重跑 record-bench。
 
 未核對：`queryMapKeys`、`queryHasObstacle` 內文、tick 迭代順序、ai-idle 的 `royaleRoles`、`startsNewMatch` 內文。
+
+**P0 舊版取證（2026-11-26，08f81481，工作樹 `_wt_tool-deploy`）**：使用者同意動工、含 P5。輸出在 `tools/ui-e2e/out/td/`（不進版控）。
+
+- `npm run balance:fingerprint`：180/180；三個情境的第 0 場 dump 另存 `old-dump-<情境>-0.txt`；`npx knip` 輸出另存 `old-knip.txt`。
+- `batch-sim` 200 場：seed 1／2／3 藍方勝率 0.485／0.560／0.520（ci95 0.069），seed 1 `--swapSides` 0.490；`avgTime` 19.5／19.5／19.3；`attributedPct` 88.8／89.6／89.0；TIMEOUT 0。
+- `mobility-probe --report` seed 31、32、33、`ai-idle-sim` 五情境 × seed 1、2、3（15 次都退出碼 0）、`record-bench`（MAGMA 20 人，807 tick）都存檔。
+- **P0 開放項目的量法**（判準在跑新版前寫定，`criterion.md`）：`batch-sim` 每個種子 3000 場、seed 1、2、3，swap 與不 swap 各一臂。舊版藍方勝率：不 swap 0.514／0.529／0.518，swap 0.513／0.494／0.509（各 ci95 0.018）。量 A＝swap 勝率 new − old；量 B＝(new swap − new 不 swap) − (old swap − old 不 swap)；以 9000 場合計為準，超過 1.96σ 就停在 P5 之前。
+- ADR 編號：`docs/adr/` 現在最大是 0026；0027 已被另一條分支（`refactor/play-order-path`）用掉，新 ADR 取 **0028**（上面寫的 0026 已過時；2026-11-27 主代理指定）。
+
+**P5 停下（2026-11-27）**：情境表先收成一份（`SIM_SCENARIOS` 改成 `BattleSetup` 的形狀，5ba85f97，指紋 180/180）。`buildBattle` 改成轉呼叫入口後，不帶 `--record` 的結果和預測一致：TEAMS 0/60、ROYALE 60/60、SQUADS 0/60 相同；三個情境第 0 場的 dump，TEAMS、SQUADS 第一個取樣點就不同（站位），ROYALE 全程相同。但 `npm test` 有 2 項非契約測試變紅（契約驗收全綠），照停下條件沒有重錄、沒有 commit：
+
+- `tests/PlayerOrders.test.ts`「縮圈：站在警告格上，下指令走到安全格，走得出去」：`buildBattle('TEAMS', 41)` 的 `agents[0]` 在新站位下 3000 tick 內沒有站上警告格（第 136 行的前提）。
+- `tests/PlayerStance.test.ts`「COUNTER：被打後會離開原地去打攻擊者；HOLD：同一場一步都不走」：種子 73 的前提（攻擊者在 3 格外）在新站位下不成立，`chasedAttacker` 為 false（第 56 行）。
+
+兩項都是測試用特定種子湊出的前提，跟著 TEAMS 的排法變了。要繼續 P5，得由主代理決定怎麼改這兩個測試的前提（換種子或自己擺位），那是改驗收，不在實作代理的權限內。P5 的改動存成 patch：`tools/ui-e2e/out/td/p5-buildBattle.patch`（只動 `tools/balance/simFingerprint.ts`）。P6 接在 P5 之後，尚未做。
+- P5 預測在改 `buildBattle` 前寫定（`p5-prediction.md`）：TEAMS 0/60、SQUADS 0/60、ROYALE 60/60 相同。

@@ -24,11 +24,11 @@ try {
     const { SIM_STEP_S, stepSimulation } = await server.ssrLoadModule('/engine/core/Replay.ts');
     const DT = DT_ARG === null ? SIM_STEP_S : Number(DT_ARG);
     const step = (engine) => (DT_ARG === null ? stepSimulation(engine) : engine.tick(DT));
-    const { GameEngine } = await server.ssrLoadModule('/engine/game.ts');
+    const { buildHeadlessBattle } = await server.ssrLoadModule('/tools/sim/headlessBattle.ts');
+    const { SIM_SCENARIOS } = await server.ssrLoadModule('/tools/balance/simFingerprint.ts');
     const { SkillExecutor } = await server.ssrLoadModule('/engine/systems/combat/SkillExecutor.ts');
     const { CombatSystem } = await server.ssrLoadModule('/engine/systems/combat/CombatSystem.ts');
     const { CCManager } = await server.ssrLoadModule('/engine/systems/combat/CCManager.ts');
-    const { Team, Role } = await server.ssrLoadModule('/types.ts');
     const { HexUtils } = await server.ssrLoadModule('/engine/utils.ts');
     const { BLOCK_HEIGHT } = await server.ssrLoadModule('/constants.ts');
 
@@ -101,23 +101,9 @@ try {
         return out;
     };
 
-    const roles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
     let ringOuts = 0, totalTime = 0;
     for (let b = 0; b < BATTLES; b++) {
-        const engine = new GameEngine({ audio: false });
-        engine.seedSimulation(SEED * 100000 + b);
-        engine.bus.emit('UI_COMMAND', { type: 'RANDOMIZE_MAP', randomizeScene: true });
-        const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
-        const valid = [...engine.map.mapKeys].map((k) => { const [q, r] = k.split(',').map(Number); return { q, r }; })
-            .filter((h) => !engine.hasObstacle(h.q, h.r) && HexUtils.dist({ q: 0, r: 0 }, h) < radius);
-        const left = valid.filter((h) => h.q < -1), right = valid.filter((h) => h.q > 1);
-        let s = (SEED * 7919 + b * 104729) >>> 0;
-        const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-        for (const arr of [left, right]) for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
-        for (let i = 0; i < 5; i++) {
-            engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.BLUE, q: left[i].q, r: left[i].r, role: roles[i] });
-            engine.bus.emit('UI_COMMAND', { type: 'PLACE_AGENT', team: Team.RED, q: right[i].q, r: right[i].r, role: roles[i] });
-        }
+        const { engine } = buildHeadlessBattle({ seed: SEED * 100000 + b, setup: SIM_SCENARIOS.TEAMS });
         const origDead = engine.agentManager.handleDeadState.bind(engine.agentManager);
         engine.agentManager.handleDeadState = (a, e, reason, text) => {
             if (text === 'RING_OUT') {
