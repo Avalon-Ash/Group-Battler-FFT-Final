@@ -24,7 +24,7 @@
 - `Agent` 是純資料，邏輯放在 System；改別的系統擁有的狀態要呼叫擁有者開的 API，`engine.bus` 只做通知、模擬層不訂閱（ADR 0027）；UI 只經 `UICommand` 寫入引擎。
 - SSOT：型別在 `types.ts`，參數與顏色在 `constants/*.ts`（依領域分檔，`constants.ts` 只轉發）或 `data/**`，不寫魔術數字。
 - 修改 Facade 底下的子目錄實作，不改 Facade（`engine/renderer.ts`、`engine/game.ts` 等），除非刻意改公開介面。
-- 不用 `as any`；tick 和渲染迴圈裡不放 `console.log`；不引入 Three／Pixi／WebGL。
+- 不用 `as any`；tick 和渲染迴圈裡不放 `console.log`；不引入 Three／Pixi 或其他渲染函式庫；WebGL 只用在 `engine/renderers/lighting/` 的打光通道（瀏覽器 WebGL2 API，ADR 0029）。
 - 一個狀態欄位只能有一個擁有者（單一模組，或 `engine/core/AgentOwnership.ts` 列為 `domain` 的同一 tick 階段模組組）；depth sort 的鍵要包含繪製時才套用的位移。
 - **座標協議以 `engine/renderers/RenderSpec.ts` 為準**（層序、sortBias、三種 Y、腳下高度 `getUnitGroundHeight`、發射點 `getCoreAnchor`、受擊點 `getUnitAnchor`）。各檔的方框檔頭（職責／上游／[ARCH]）是它的局部說明。寫任何動到位置、高度、排序、發射點的任務說明時，**必須要求代理先讀 RenderSpec 與檔頭，並在同一個 commit 同步更新兩者**；審查時對照 RenderSpec。`tests/CoordinateProtocol.test.ts` 用只減不增的基準擋住偏離。
 

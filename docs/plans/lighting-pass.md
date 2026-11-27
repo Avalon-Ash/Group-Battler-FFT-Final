@@ -53,3 +53,14 @@
 - 單位被前方高地塊擋住時，直立物遮罩會多出一塊；D 階段看圖決定要不要處理。
 - 特效用亮度門檻判定自發光，單位身上的高光也會微微發亮；不夠好就在 D 階段加一張特效畫布。
 - 桌機量到的 0.2～0.4 ms 不代表手機。
+
+## 7. 進度
+
+每階段一段：做了什麼、驗收指令與結果、沒做到的事。半夜長跑（2026-11-28，主席 Fable 5.2）。
+
+### A 合約（完成）
+
+- ADR 0029 改「採用」並加「取代：0001」；0001 標「已取代（由 0029）」。0001 的第二、三條（特效走預烘焙零件、0 個每幀 `shadowBlur`）寫進 0029 的決定，內容不變。
+- 同步：`docs/DECISIONS.md` §1、§3 的三行、`AGENTS.md` §1 第 4 點、`CLAUDE.md` 架構不變式、`docs/METHODOLOGY.md` §2 的治理規則摘要。WebGL 程式碼限定在 `engine/renderers/lighting/`。
+- `node tools/agent/sync-codex-contracts.mjs`：副本已是最新（這一階段沒動 skill 與子代理定義）。
+- 驗收：`npm run lint`、`npm test`、`npm run build` 的結果寫在這個 commit 的訊息裡。

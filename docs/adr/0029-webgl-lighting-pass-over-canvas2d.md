@@ -1,22 +1,24 @@
 # 0029 在 Canvas 2D 畫面之上加 WebGL 打光與後製
 
-狀態：提議
+狀態：採用
 日期：2026-11-28
+取代：0001
 
 ## 背景
 
 使用者 2026-11-27 指出戰場畫面「亂而平」，並以 Cinderwatch（前向渲染、冷色月光加暖色點光、陰影、泛光、調色）為對照。
 `npm run perf:layers` 量到 FOREST、ICE、DESERT 的地形與障礙物比單位亮；在 Canvas 2D 內壓暗環境、加六角光池（`docs/plans/visual-experiment.md` §9～§12）之後，
 光仍然只是蓋在圖上的一層顏色：不依距離衰減、不被物體擋住、不照出物體的受光面。這三件事需要逐像素運算，Canvas 2D 沒有著色器。
-使用者 2026-11-28 表示 0001 可以推翻（原話：「動 0001 沒差，不好看硬鑽沒意義」）。
+使用者 2026-11-28 同意推翻 0001 並接進引擎（原話：「0001 改！畫面證明自己鎖死自己沒意義。抓眼睛最重要」「接進去跑看看」）。
 
 ## 決定
 
-- 這份是提議，尚未採用；採用時取代 0001 的第一條（禁用任何 WebGL），0001 的第二、三條（特效走預烘焙零件、渲染路徑 0 個每幀 `shadowBlur`）不變。
-- 方向：世界畫面仍由現有 Canvas 2D 管線畫出，另加一個 WebGL2 全螢幕通道做打光與後製（環境光、方向光、點光、地面投影、泛光、色調映射），HUD 不打光。
-- 不引入 Three.js、Pixi.js 或其他渲染函式庫，只用瀏覽器的 WebGL2 API。
-- 光源、顏色、強度集中在一張表（原型是 `tools/ui-e2e/lit-proto.mjs` 的 `LOOK`）；進引擎時放 `constants/`。
-- 採用前要補齊：打光通道需要的每像素資料（類別、腳底位置、高度、法線）由引擎提供的做法；單位與障礙物的烘焙法線圖；iPhone 實機幀時間；WebGL 不可用時的退路。
+- 取代 0001 的第一條（禁用任何 WebGL）。0001 的另外兩條由本份接手，內容不變：特效一律走預烘焙零件；執行期渲染路徑維持 0 個每幀 `shadowBlur`。
+- 世界畫面仍由現有 Canvas 2D 管線畫出；另加一個 WebGL2 全螢幕通道做打光與後製（環境光、方向光、點光、地面投影、泛光、色調映射），HUD 不打光。
+- 不引入 Three.js、Pixi.js 或其他渲染函式庫，只用瀏覽器的 WebGL2 API；WebGL 程式碼只放在 `engine/renderers/lighting/`。
+- 光源、顏色、強度集中在 `constants/` 的一張打光參數表（階段 C2 建立，見開案書）；著色器只讀它。
+- 打光通道關閉（`?lit=0`）、WebGL2 或 `EXT_color_buffer_float` 拿不到、context 遺失時，走原本的 Canvas 2D 路徑，畫面與沒有這個通道時相同。
+- 光源與投影物的位置由引擎每幀提供（`UnitFrame` 與 render list），不從畫面反推。
 
 ## 放棄的做法
 
@@ -25,13 +27,16 @@
 
 ## 後果
 
-- 原型只是離線重打一張凍結幀：法線由精靈輪廓估計、位置由分層遮罩反推，這兩項進引擎時都要換成真實資料。
-- 桌機 RTX 4070、1280×720 量到打光加後製每幀 0.22～0.41 ms；手機沒有量，手機 GPU 已是瓶頸（HANDOFF §2 I）。
-- 採用後 `AGENTS.md` §1 第 4 點、`tests/VFXBackend.test.ts` 的相關限制與保真基準都要跟著改。
+- 採用時還沒有的：單位與障礙物的烘焙法線圖（輪廓法線先由直立物遮罩估計）、iPhone 實機幀時間。預設開或關、手機要不要開，量測後由使用者決定。
+- 原型在桌機 RTX 4070、1280×720 量到打光加後製每幀 0.22～0.41 ms；手機 GPU 已是瓶頸（HANDOFF §2 I），這個數字不代表手機。
+- 多出全畫面的離屏畫布與 HDR 貼圖，手機記憶體要量（`docs/METHODOLOGY.md` §4 第 13 條）。
+- 保真基準只對應 Canvas 2D 路徑；打光開啟時的畫面沒有基準，方向定案後才重錄。
+- 分階段做法與每階段的退路在 `docs/plans/lighting-pass.md`。
 
 ## 證據
 
-- `docs/plans/visual-experiment.md` §7～§12
+- `docs/plans/visual-experiment.md` §7～§13
+- `docs/plans/lighting-pass.md`
 - `tools/ui-e2e/lit-proto.mjs`
 - `tools/ui-e2e/layer-luma-probe.mjs`
 - `docs/adr/0001-canvas2d-and-prebaked-vfx.md`
