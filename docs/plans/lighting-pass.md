@@ -73,3 +73,13 @@
 - `npm run perf:layers`（桌機亮度中位數，地塊頂面／障礙物／單位）：VOID 38.1／49.9／56.3、FOREST 59.6／100.3／58.2、ICE 87.2／118.4／57.3、MAGMA 37.8／37.9／55.3、DESERT 85.7／157.5／58.1，和 `visual-experiment.md` §7 的表相同。退出碼 1 是原本就有的（FOREST 9／10 單位被樹冠擋住、明度順序 12 筆）。
 - `npm run perf:fidelity`：六張全過。這個工具本來就不是逐位元 0（基準是舊 commit 錄的）：meanAbsDiff／badPixel％ 為 VOID 0.296／0.00、FOREST 0.659／0.22、ICE 0.302／0.22、MAGMA 0.614／0.13、DESERT 0.500／0.22、battle_frozen 0.177／0.00。**之後各階段的「0 差異」以這組數字為準：關閉打光時要和它逐位數相同。**
 - `node tools/ui-e2e/runtime-smoke.mjs`：PASS（0 個頁面錯誤）。`npm run lint`、`npm test`（184 檔 1704 項）、`npm run build`（進入點 257.0／257.5 kB）都過。
+
+### C1 骨架（完成）
+
+- 新增 `engine/renderers/lighting/LightingPass.ts`（世界畫布、WebGL2 畫布、原樣貼回的著色器；延後載入的獨立 chunk，3.2 kB）與 `LightingGate.ts`（進入點只留開關與動態載入）。`RenderPipeline.draw` 在通道可用時把 `drawWorld` 畫進世界畫布，畫完 `present` 貼回主畫布。`RenderSpec` §1 尾段與兩個檔頭同步。
+- 這個 commit 裡通道是**無條件啟用**的（只做原樣貼回），所以沒改過的 `perf:fidelity` 量到的就是離屏路徑；C2 才改成 `?lit=1` 才開。頁面上的狀態寫在 `window.__LIGHTING__`，用和保真工具相同的瀏覽器參數確認是 `active`（未進版控的探針 `tools/ui-e2e/out/lit-state-probe.mjs`）。
+- §6 第二項風險成立，已照備案處理。量到的兩種做法（`npm run perf:fidelity`，括號內是 strict mean）：
+  - 世界畫在透明底、貼回主畫布：全過，但和階段 B 不是逐位數相同（VOID 0.3900 對 0.3903、FOREST 1.7389 對 1.7388、ICE 0.5037 對 0.5033、MAGMA 0.8701 對 0.8697；DESERT bad％ 1.6706 對 1.6699；battle_frozen 相同）。差在世界邊緣疊在天空上的半透明與混合模式。
+  - 先把主畫布（此時只有背景）畫進世界畫布再畫世界：六張的四個數字和階段 B **逐位數相同**（WebGL 上傳、輸出、貼回是逐位元的）。C1 採用這個做法。
+- `node tools/ui-e2e/runtime-smoke.mjs`：PASS。`npm run lint`、`npm test`（184 檔 1704 項）、`npm run build`（進入點 257.2／257.5 kB）、`npm run knip`（無新增）都過。`node tools/ui-e2e/perf-ab.mjs --assert` 的結果寫在 commit 訊息。
+- 給 C2 的結論：打光時需要知道哪裡是世界、哪裡是天空。備案寫「另傳一張世界 alpha」；C2 改用透明底的世界畫布（它的 alpha 就是世界覆蓋範圍，不必多畫一次）加上主畫布的背景貼圖，兩張在著色器裡合成。透明底那一點點邊緣差異只存在於打光開啟時，那時畫面本來就不同。
