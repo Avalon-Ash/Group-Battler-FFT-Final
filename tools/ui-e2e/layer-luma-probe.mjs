@@ -9,7 +9,7 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const out = join(here, 'out', 'layers');
 const assertOrder = process.argv.includes('--assert-order');
 // --dump: also write <scene>_<device>_albedo.png (final frame) and _labels.png (owner index in RGB, see layers.json
-// mask.labels) for offline consumers such as lit-proto.mjs.
+// mask.labels) for offline analysis.
 const dump = process.argv.includes('--dump');
 
 const lumaFormula = probeFixture('terrain-contrast.mjs', /luma: \+\(([\d.]+ \* R \+ [\d.]+ \* G \+ [\d.]+ \* B)\)\.toFixed/);

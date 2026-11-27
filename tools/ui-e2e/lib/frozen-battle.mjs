@@ -15,8 +15,11 @@ const map = JSON.parse(probeFixture(fidelity, /^const FIDELITY_MAP = (\{[^\n]+\}
 
 export const desktopProbe = { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 };
 
-/** extraQuery: appended to the fidelity query (e.g. '&lit=1'); the fixture itself is unchanged. */
-export async function openFrozenPage(context, url, install, extraQuery = '') {
+/**
+ * extraQuery: appended to the fidelity query; the fixture itself is unchanged. Defaults to the Canvas 2D path
+ * (lit=0, ADR 0029) because the layer probe and the VFX strips read the main canvas draw calls; pass '&lit=1' to light.
+ */
+export async function openFrozenPage(context, url, install, extraQuery = '&lit=0') {
     const page = await context.newPage();
     // Manual rendering can also advance time without invoking the app's RAF loop.
     await page.addInitScript({ content: `(${initClock}

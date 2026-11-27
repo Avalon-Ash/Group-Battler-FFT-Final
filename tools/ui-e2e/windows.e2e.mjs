@@ -81,12 +81,15 @@ const ok = (name, cond, extra = '') => {
     console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${extra ? '  ' + extra : ''}`);
 };
 
+// Headless Edge/Chrome picks the integrated GPU by default on dual-GPU machines; the lighting pass (ADR 0029) halves
+// the frame rate there and timing-sensitive pointer checks start to miss. Ask for the discrete GPU like the perf tools do.
+const GPU_ARGS = ['--force_high_performance_gpu'];
 const launchBrowser = async () => {
     if (process.env.E2E_BROWSER_PATH) {
-        return chromium.launch({ executablePath: process.env.E2E_BROWSER_PATH, headless: true });
+        return chromium.launch({ executablePath: process.env.E2E_BROWSER_PATH, headless: true, args: GPU_ARGS });
     }
     for (const channel of ['msedge', 'chrome']) {
-        try { return await chromium.launch({ channel, headless: true }); } catch { /* try next */ }
+        try { return await chromium.launch({ channel, headless: true, args: GPU_ARGS }); } catch { /* try next */ }
     }
     throw new Error('No Edge/Chrome found. Install one or set E2E_BROWSER_PATH.');
 };

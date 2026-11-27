@@ -17,7 +17,6 @@
     "perf:ab": "node tools/ui-e2e/perf-ab.mjs",
     "perf:fidelity": "node tools/ui-e2e/render-fidelity.mjs",
     "perf:layers": "node tools/ui-e2e/layer-luma-probe.mjs",
-    "proto:lit": "node tools/ui-e2e/lit-proto.mjs",
     "perf:lit": "node tools/ui-e2e/lit-shots.mjs",
     "perf:vfx-strip": "node tools/ui-e2e/vfx-strip.mjs",
     "perf:fidelity:record": "node tools/ui-e2e/render-fidelity.mjs --record",
