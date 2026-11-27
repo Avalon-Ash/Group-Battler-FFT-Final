@@ -27,13 +27,13 @@ KENNEY = os.path.join(ASSETS, 'kenney_nature_kit/extracted/Models/GLTF format')
 
 # fit: max footprint radius (hex units); height: projected screen height in canvas units; tint multiplies the
 # model colour (None = keep), override replaces it.
-# F2 trial, direction C (night): environment value sits under the unit median measured by perf:layers (~58 of 255).
+# F2 trial, dusk level (between the B and C boards): environment value sits under the unit median measured by perf:layers (~58 of 255).
 # All colours are linear; the shipped values are in the trailing comments.
-TREE_TINT = (0.17, 0.24, 0.26)        # shipped: no tint (1, 1, 1)
-SANDSTONE_RGB = (0.075, 0.058, 0.048)  # shipped: (0.86, 0.60, 0.36)
-GRASS_TINT = (0.20, 0.29, 0.24)        # shipped: (0.54, 0.78, 0.48)
-PEBBLE_RGB = (0.070, 0.055, 0.045)     # shipped: (0.55, 0.36, 0.20)
-ICE_GLOW_STRENGTH = 0.06               # shipped: 0.18
+TREE_TINT = (0.25, 0.35, 0.37)        # shipped: no tint (1, 1, 1)
+SANDSTONE_RGB = (0.150, 0.105, 0.070)  # shipped: (0.86, 0.60, 0.36)
+GRASS_TINT = (0.28, 0.40, 0.32)        # shipped: (0.54, 0.78, 0.48)
+PEBBLE_RGB = (0.110, 0.085, 0.065)     # shipped: (0.55, 0.36, 0.20)
+ICE_GLOW_STRENGTH = 0.08               # shipped: 0.18
 TYPES = {
     # F2 trial (exp/visual-lighting): canopy value pulled under the unit median (perf:layers); teal-leaning, less chroma
     'TREE': {'fit': 1.05, 'tint': TREE_TINT, 'variants': [
@@ -85,7 +85,7 @@ TYPES = {
     ]},
 }
 
-ICE_RGB = (0.11, 0.17, 0.22)           # shipped: (0.62, 0.86, 1.0)
+ICE_RGB = (0.14, 0.21, 0.27)           # shipped: (0.62, 0.86, 1.0)
 ICE_GLOW = (0.55, 0.85, 1.0)
 OBSIDIAN_RGB = (0.035, 0.028, 0.045)  # linear; Standard view transform lifts it to ~#2a2430
 OBSIDIAN_GLOW = (1.0, 0.36, 0.08)     # sRGB ~ (255,161,79): engine OBSTACLE_SPRITE.GLOW_KEYS.EMBER picks it up

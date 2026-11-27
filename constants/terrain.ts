@@ -449,10 +449,10 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
         cliffRimAlpha: 0.45,
     },
     // 2026-10-18 量測（貼圖路徑頂面中心 luma）：VOID 29、FOREST 53、MAGMA 46、ICE 128、DESERT 104
-    // F2 試作（夜景方向，2026-11-27）：FOREST、ICE、DESERT 壓到 VOID／MAGMA 的亮度（頂面中位數約 38～45）。
-    // 原值 FOREST 1.18、ICE 0.67、DESERT 0.81；這會低於 lumaBudget.min，進 main 前要先改規格。
-    exposure: { VOID: 1.65, FOREST: 0.75, MAGMA: 1.12, ICE: 0.35, DESERT: 0.43 },
-    chroma: { FOREST: 0.5, ICE: 0.6, DESERT: 0.5 },
+    // F2 試作（黃昏程度，2026-11-28；使用者看過夜景版說太暗）：FOREST、ICE、DESERT 的頂面中位數壓到約 46～55。
+    // 原值 FOREST 1.18、ICE 0.67、DESERT 0.81；進 main 前要對過 lumaBudget 與 ART_SPEC 的地形色盤。
+    exposure: { VOID: 1.65, FOREST: 0.91, MAGMA: 1.12, ICE: 0.46, DESERT: 0.55 },
+    chroma: { FOREST: 0.65, ICE: 0.75, DESERT: 0.7 },
     lumaBudget: { min: 45, max: 90 },
     foundation: {
         levels: 15,
