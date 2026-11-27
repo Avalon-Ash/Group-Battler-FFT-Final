@@ -1501,10 +1501,15 @@
     },
     "exposure": {
       "VOID": 1.65,
-      "FOREST": 1.18,
+      "FOREST": 0.75,
       "MAGMA": 1.12,
-      "ICE": 0.67,
-      "DESERT": 0.81
+      "ICE": 0.35,
+      "DESERT": 0.43
+    },
+    "chroma": {
+      "FOREST": 0.5,
+      "ICE": 0.6,
+      "DESERT": 0.5
     },
     "lumaBudget": {
       "min": 45,

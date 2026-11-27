@@ -426,6 +426,11 @@ export interface TerrainSkinConfig {
      * 量測與驗收：node tools/ui-e2e/terrain-contrast.mjs（acceptance 會檢查 lumaBudget）。未列的群系為 1。
      */
     exposure: Readonly<Record<string, number>>;
+    /**
+     * 群系彩度（F2 試作，docs/plans/visual-experiment.md）：烘焙時在曝光之後套用，1＝不變、0＝灰階。
+     * 用來讓環境退到單位後面；量測：npm run perf:layers。未列的群系為 1。
+     */
+    chroma: Readonly<Record<string, number>>;
     lumaBudget: { readonly min: number; readonly max: number };
 }
 
@@ -444,7 +449,10 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
         cliffRimAlpha: 0.45,
     },
     // 2026-10-18 量測（貼圖路徑頂面中心 luma）：VOID 29、FOREST 53、MAGMA 46、ICE 128、DESERT 104
-    exposure: { VOID: 1.65, FOREST: 1.18, MAGMA: 1.12, ICE: 0.67, DESERT: 0.81 },
+    // F2 試作（夜景方向，2026-11-27）：FOREST、ICE、DESERT 壓到 VOID／MAGMA 的亮度（頂面中位數約 38～45）。
+    // 原值 FOREST 1.18、ICE 0.67、DESERT 0.81；這會低於 lumaBudget.min，進 main 前要先改規格。
+    exposure: { VOID: 1.65, FOREST: 0.75, MAGMA: 1.12, ICE: 0.35, DESERT: 0.43 },
+    chroma: { FOREST: 0.5, ICE: 0.6, DESERT: 0.5 },
     lumaBudget: { min: 45, max: 90 },
     foundation: {
         levels: 15,
