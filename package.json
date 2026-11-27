@@ -16,6 +16,7 @@
     "perf:profile": "node tools/ui-e2e/perf-profile.mjs",
     "perf:ab": "node tools/ui-e2e/perf-ab.mjs",
     "perf:fidelity": "node tools/ui-e2e/render-fidelity.mjs",
+    "perf:layers": "node tools/ui-e2e/layer-luma-probe.mjs",
     "perf:fidelity:record": "node tools/ui-e2e/render-fidelity.mjs --record",
     "verify:coords": "node tools/ui-e2e/coord-guard.mjs",
     "perf:guard": "npm run perf:fidelity && node tools/ui-e2e/perf-ab.mjs --assert",
