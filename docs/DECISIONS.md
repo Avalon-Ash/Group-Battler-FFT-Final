@@ -9,6 +9,7 @@
 - 陣營色：BLUE＝皇家藍、RED＝深紅＋暗護甲。已知弱點：兩陣營辨識度偏弱（待辦池）。
 - HD 為主線，SD 像素原型已移除（tag `pixel-proto-ckpt`）。
 - 渲染限 HTML5 Canvas 2D、禁 Three／Pixi／WebGL，詳見 [0001](adr/0001-canvas2d-and-prebaked-vfx.md)。
+- （提議，尚未採用）在 Canvas 2D 畫面之上加 WebGL2 打光與後製通道，不引入渲染函式庫，詳見 [0029](adr/0029-webgl-lighting-pass-over-canvas2d.md)。
 
 ## 2. 素材策略與授權
 - 單位：AI 逐張生圖已放棄，改 KayKit 預渲染（Blender 可攜版在 `_asset_staging`）。AI 圖只用於地形材質與日後圖示。

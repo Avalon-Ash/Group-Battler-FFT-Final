@@ -8,6 +8,9 @@ import { desktopProbe, openFrozenPage, probeFixture, rebuildFrozenMap } from './
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = join(here, 'out', 'layers');
 const assertOrder = process.argv.includes('--assert-order');
+// --dump: also write <scene>_<device>_albedo.png (final frame) and _labels.png (owner index in RGB, see layers.json
+// mask.labels) for offline consumers such as lit-proto.mjs.
+const dump = process.argv.includes('--dump');
 
 const lumaFormula = probeFixture('terrain-contrast.mjs', /luma: \+\(([\d.]+ \* R \+ [\d.]+ \* G \+ [\d.]+ \* B)\)\.toFixed/);
 const mobileUA = probeFixture('perf-mobile-emu.mjs', /userAgent: '([^']+)'/);
@@ -352,6 +355,8 @@ async function installProbe({ palette, alphaMin, lumaFormula }) {
         const tile = makeCanvas(width, height).getContext('2d');
         tile.putImageData(labels, 0, 0);
         const maskPng = tile.canvas.toDataURL('image/png').split(',')[1];
+        tile.putImageData(original, 0, 0);
+        const albedoPng = tile.canvas.toDataURL('image/png').split(',')[1];
         [original, gray, overlay].forEach((image, i) => {
             tile.putImageData(image, 0, 0);
             panel.drawImage(tile.canvas, i * panelWidth, 0, panelWidth, panelHeight);
@@ -359,7 +364,7 @@ async function installProbe({ palette, alphaMin, lumaFormula }) {
         return {
             png: triptych.toDataURL('image/png').split(',')[1],
             width, height, panelWidth, panelHeight, dpr, renderDpr: getRenderDpr(), transition, layers, units,
-            mask: { pngBase64: maskPng, labels: [...keys, ...unitIds.map(id => `unit:${id}`)] },
+            mask: { pngBase64: maskPng, albedoBase64: albedoPng, labels: [...keys, ...unitIds.map(id => `unit:${id}`)] },
             camera: { x: engine.renderer.camera.x, y: engine.renderer.camera.y, zoom: engine.renderer.camera.zoom },
             biome: engine.currentScene.id, tick: engine.state.time.tick,
             liveIds: engine.agents.filter(agent => agent.hp > 0 && !agent.banished && !agent.fullyDead).map(agent => agent.id),
@@ -391,6 +396,11 @@ async function measureDevice(browser, url, device, options) {
             { frames, viewport: options.viewport });
         const file = `${scene}_${device}.png`;
         writeFileSync(join(out, file), Buffer.from(png, 'base64'));
+        if (dump) {
+            writeFileSync(join(out, `${scene}_${device}_albedo.png`), Buffer.from(row.mask.albedoBase64, 'base64'));
+            writeFileSync(join(out, `${scene}_${device}_labels.png`), Buffer.from(row.mask.pngBase64, 'base64'));
+        }
+        delete row.mask.albedoBase64;
         rows.push({ scene, device, file, ...row });
         console.log(`Captured ${file} (${row.width}×${row.height} native, tick ${row.tick})`);
     }
