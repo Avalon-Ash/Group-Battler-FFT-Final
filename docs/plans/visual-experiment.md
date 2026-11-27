@@ -74,3 +74,11 @@ F1 代表單位（BLUE TANK，`--lighting rim-ao`／`rim-ao-metal`／`contrast`�
 F6 冷暖方向（森林戰鬥幀離線調色）：Sonnet 評審給現況 4、A 5、B 5、C 6（評的是光池加強前的一版）。
 
 判斷：**先動場景分層（F2），不先動單位。** 第一步是障礙物（FOREST 樹冠、DESERT 岩柱、ICE 冰晶）的烘焙亮度與彩度，以及 ICE、DESERT 的地塊頂面；驗收用 `npm run perf:layers -- --assert-order`。這一步改圖集與 `constants/terrain.ts`，是渲染線，保真基準要照 `rebaseline-fidelity` 取證，進 `main` 前要使用者同意。
+
+## 8. 盲評原文與 F3 抽樣（2026-11-27）
+
+評審原文在 `docs/plans/visual-experiment/`（B0 現況、B1 對照板、F3 特效；都是 Codex gpt-6.2-astra，只讀）。對照板與長條圖在不進版控的 `tools/ui-e2e/out/`，用 `npm run perf:layers`、`npm run perf:vfx-strip` 可重產。
+
+F6、F1 取兩位評審的低分：現況 4、A 5、B 5、C 6（兩位看的 B、C 不是同一版，光池加強前後各一）；F1 兩位都判不量產。
+
+F3 抽樣十招（藍方、森林，一位評審，尚未取第二位）：可讀性 5～9、美術 3～7。重複問題：10／10 起手都是同一種同心圓環；7／10 在目標臉上疊白閃或光柱；6／10 藍方特效以金黃為主。評審建議先修 `sb_a1`、`rb_u1`、`wb_a1`。修特效要動 `data/vfx/`，是渲染線，還沒做。
