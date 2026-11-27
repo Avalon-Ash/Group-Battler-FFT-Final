@@ -1,18 +1,17 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  simFingerprint — 「兩場戰鬥是否相同」的唯一定義          ║
-// ║  職責：情境表、隨機佈陣開戰、單位與整場狀態字串、步長。    ║
+// ║  職責：情境表、單位與整場狀態字串、步長；佈陣轉呼叫        ║
+// ║        tools/sim/headlessBattle.ts（規則在 Deployment.ts）。║
 // ║  下游：tools/balance/sim-fingerprint.mjs（ssrLoadModule）、 ║
 // ║        tests/contracts/simState.ts（契約驗收轉呼叫）。     ║
 // ║  [ARCH] 兩邊只讀這裡，不得各自再定義欄位、情境或佈陣步驟。 ║
 // ║  放在 tools/ 而不是 engine/core/：它要 new GameEngine，    ║
 // ║  模擬層不得反過來 import 組合根 engine/game.ts。           ║
 // ╚══════════════════════════════════════════════════════════╝
-import { GameEngine } from '../../engine/game';
+import type { GameEngine } from '../../engine/game';
 import type { Agent } from '../../engine/core/Agent';
-import { Team, Role } from '../../types';
 import type { UICommand, EffectSlot, BattleSetup } from '../../types';
-import { querySpawnableHexes, layoutFactionHexes } from '../../engine/systems/ui/editorQueries';
-import { random } from '../../engine/math/rng';
+import { buildHeadlessBattle } from '../sim/headlessBattle';
 import { SIM_STEP_S } from '../../engine/core/Replay';
 
 /** 模擬步長＝遊戲的固定步長（engine/core/Replay.ts 的 SIM_STEP_S，不另算）。 */
@@ -29,38 +28,14 @@ export const SIM_SCENARIOS = {
 } as const satisfies Record<string, BattleSetup>;
 export type SimScenarioId = keyof typeof SIM_SCENARIOS;
 
-/** 第 f 陣營第 u 人的職業是 ROLES[(f + u) % 5]。 */
-const ROLES: readonly Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-
 export const emit = (e: GameEngine, cmd: UICommand): void => e.bus.emit('UI_COMMAND', cmd);
 
 /**
- * 佈陣完成、尚未開戰的引擎：設定陣營、隨機地圖、洗牌出生格後依陣營排人。
- * matchSalt：有傳就在放單位之前設給 agentManager（體型在 addAgent 時由鹽決定）；
- * 指紋工具傳它基準專屬的 SALT，契約驗收不傳（沿用引擎初值）。
+ * 佈陣完成、尚未開戰的引擎。佈陣走無畫面工具的共用入口（出生格、陣營、職業、放置順序在 Deployment.ts）。
+ * matchSalt：有傳就在放單位之前設給 agentManager；指紋工具傳它基準專屬的 SALT，契約驗收不傳（沿用引擎初值）。
  */
 export function buildBattle(scenario: SimScenarioId, seed: number, matchSalt?: number): GameEngine {
-    const sc = SIM_SCENARIOS[scenario];
-    const e = new GameEngine({ audio: false });
-    if (matchSalt !== undefined) e.agentManager.matchSalt = matchSalt;
-    e.seedSimulation(seed);
-    emit(e, { type: 'SET_BATTLE_SETUP', setup: { factions: sc.factions, unitsPerFaction: sc.unitsPerFaction } });
-    emit(e, { type: 'RANDOMIZE_MAP', randomizeScene: true });
-    const hexes = [...querySpawnableHexes(e)];
-    for (let i = hexes.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [hexes[i], hexes[j]] = [hexes[j], hexes[i]];
-    }
-    const layout = layoutFactionHexes(hexes, sc.factions, sc.unitsPerFaction);
-    for (let f = 0; f < sc.factions; f++) {
-        for (let u = 0; u < sc.unitsPerFaction; u++) {
-            const hex = layout[f]?.[u];
-            if (!hex) throw new Error(`${scenario}: 陣營 ${f} 第 ${u} 人沒有出生格`);
-            emit(e, { type: 'PLACE_AGENT', team: f % 2 === 0 ? Team.BLUE : Team.RED, side: f, q: hex.q, r: hex.r, role: ROLES[(f + u) % ROLES.length] });
-        }
-    }
-    if (e.agents.length !== sc.factions * sc.unitsPerFaction) throw new Error(`${scenario}: 只生成了 ${e.agents.length} 人`);
-    return e;
+    return buildHeadlessBattle({ seed, setup: SIM_SCENARIOS[scenario], matchSalt }).engine;
 }
 
 const effectsOf = (a: Agent): string => (Object.entries(a.effects) as [string, EffectSlot][])
