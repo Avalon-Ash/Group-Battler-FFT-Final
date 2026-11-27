@@ -12,10 +12,9 @@ import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
-import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, ZONE_RENDER, GRID_TRANSITION_PARAM, UNIT_OUTLINE, GRID_OVERLAY } from "../../../constants";
+import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, ZONE_RENDER, GRID_TRANSITION_PARAM, UNIT_OUTLINE } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
-import { HexMath } from "../../math/HexMath";
 
 import { groundPriority, GroundFlag as F, isCasterCenteredTelegraph } from './GroundPriority';
 import { HAZARD_VISUALS } from '../../../data/vfx/hazard_visuals';
@@ -28,13 +27,6 @@ export class GridRenderStrategy {
     private _unitVisualStatus = new Map<string, string>();
     /** 要亮腳下那格的單位（PLAY 主角，outlineKindOf）：格 key → 標示種類 */
     private _markerTiles = new Map<string, keyof typeof UNIT_OUTLINE>();
-    /** 暖色光池（GRID_OVERLAY.WARM_POOL）：格 key → 地塊光強度；每幀重建 */
-    private _warmTiles = new Map<string, number>();
-
-    private addWarm(q: number, r: number, intensity: number): void {
-        const key = `${q},${r}`;
-        if ((this._warmTiles.get(key) ?? 0) < intensity) this._warmTiles.set(key, intensity);
-    }
 
     public submit(
         cache: GridCache,
@@ -59,7 +51,6 @@ export class GridRenderStrategy {
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
         this._markerTiles.clear();
-        this._warmTiles.clear();
         groundPriority.begin(cache.tileList);
 
         for (const a of engine.agents) {
@@ -69,8 +60,6 @@ export class GridRenderStrategy {
                 if (a.view.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.view.visualStatus);
                 const marker = outlineKindOf(a);
                 if (marker) this._markerTiles.set(key, marker);
-                this.addWarm(a.q, a.r, GRID_OVERLAY.WARM_POOL.CENTER);
-                for (const d of HexMath.directions) this.addWarm(a.q + d.q, a.r + d.r, GRID_OVERLAY.WARM_POOL.RING);
 
                 // Check for casting AOE to highlight
                 if (a.castingSkillIdx !== -1 && a.currentTelegraph) {
@@ -145,10 +134,6 @@ export class GridRenderStrategy {
             // 主角腳下那格的地塊光（UNIT_OUTLINE.TILE_LIGHT；GridOverlays 的 LIGHT 層，優先序最低）
             const marker = this._markerTiles.get(key);
             if (marker) { op.oLightCol = UNIT_OUTLINE[marker].COLOR; op.oLightInt = UNIT_OUTLINE[marker].TILE_LIGHT; }
-            else {
-                const warm = this._warmTiles.get(key);
-                if (warm) { op.oLightCol = GRID_OVERLAY.WARM_POOL.COLOR; op.oLightInt = warm; }
-            }
             op.oDanger = engine.zones.getZoneAt(q, r); 
             
             // Mix player hover range and AI casting AOE

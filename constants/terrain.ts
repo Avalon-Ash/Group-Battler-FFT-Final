@@ -35,12 +35,6 @@ export const GRID_OVERLAY = {
     ZONE_LIFT: 1,
     /** 地格光源（lightColor）：screen 疊加，不透明度＝min(MAX_ALPHA, intensity × GAIN) */
     LIGHT: { MAX_ALPHA: 0.5, GAIN: 0.4 },
-    /**
-     * 暖色光池（F6 試作，docs/plans/visual-experiment.md）：存活單位腳下那格與相鄰六格走上面的 LIGHT 層（screen 疊色）。
-     * CENTER／RING＝地塊光強度（不透明度＝min(LIGHT.MAX_ALPHA, 強度 × LIGHT.GAIN)）；同一格被多個單位照到取最大值，不累加。
-     * 優先序和主角地塊光相同（最低）：同格有預警、危害、區域、施法範圍時讓開；主角那格仍用主角的顏色。
-     */
-    WARM_POOL: { COLOR: '#c47a3e', CENTER: 0.9, RING: 0.4 },
     /** 預警／射程／滑過的疊層再往上 LIFT px */
     MARK_LIFT: 2,
     /**
@@ -48,7 +42,7 @@ export const GRID_OVERLAY = {
      * 舊版逐格描 1.5～2 px 實線，AOE 範圍內相鄰格的雙邊排成密集網格，是畫面「毛刺、髒」的主因。
      * FILL_ALPHA＝底色、EDGE_ALPHA＝內緣光、CORE_ALPHA＝細芯線；預警整格不透明度在 ALPHA_MIN～＋ALPHA_PULSE 間以 FREQ 律動。
      */
-    WARNING: { FREQ: 5, ALPHA_MIN: 0.65, ALPHA_PULSE: 0.35, FILL: '#ff2a1f', EDGE: '#ffb0a6', FILL_ALPHA: 0.34, EDGE_ALPHA: 0.7, CORE_ALPHA: 0.45 },
+    WARNING: { FREQ: 5, ALPHA_MIN: 0.65, ALPHA_PULSE: 0.35, FILL: '#ff2a1f', EDGE: '#ffb0a6', FILL_ALPHA: 0.75, EDGE_ALPHA: 0.8, CORE_ALPHA: 0.45 },
     /** 射程（只描格邊）與施法範圍（詠唱預警、PLAY 範圍預覽：底色＋格邊，施法者陣營色）。CAST_BLEND＝施法範圍的混合方式：
      *  screen 在亮色地面（冰原、沙漠）上同色系會被洗掉看不見（2026-11-24 PLAY 截圖），所以施法範圍用一般疊加，射程維持 screen */
     RANGE: { FILL_ALPHA: 0.35, EDGE_ALPHA: 0.55, CORE_ALPHA: 0.3, CAST_BLEND: 'source-over' as GlobalCompositeOperation },
@@ -432,11 +426,6 @@ export interface TerrainSkinConfig {
      * 量測與驗收：node tools/ui-e2e/terrain-contrast.mjs（acceptance 會檢查 lumaBudget）。未列的群系為 1。
      */
     exposure: Readonly<Record<string, number>>;
-    /**
-     * 群系彩度（F2 試作，docs/plans/visual-experiment.md）：烘焙時在曝光之後套用，1＝不變、0＝灰階。
-     * 用來讓環境退到單位後面；量測：npm run perf:layers。未列的群系為 1。
-     */
-    chroma: Readonly<Record<string, number>>;
     lumaBudget: { readonly min: number; readonly max: number };
 }
 
@@ -455,10 +444,7 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
         cliffRimAlpha: 0.45,
     },
     // 2026-10-18 量測（貼圖路徑頂面中心 luma）：VOID 29、FOREST 53、MAGMA 46、ICE 128、DESERT 104
-    // F2 試作（黃昏程度，2026-11-28；使用者看過夜景版說太暗）：FOREST、ICE、DESERT 的頂面中位數壓到約 46～55。
-    // 原值 FOREST 1.18、ICE 0.67、DESERT 0.81；進 main 前要對過 lumaBudget 與 ART_SPEC 的地形色盤。
-    exposure: { VOID: 1.65, FOREST: 0.91, MAGMA: 1.12, ICE: 0.46, DESERT: 0.55 },
-    chroma: { FOREST: 0.65, ICE: 0.75, DESERT: 0.7 },
+    exposure: { VOID: 1.65, FOREST: 1.18, MAGMA: 1.12, ICE: 0.67, DESERT: 0.81 },
     lumaBudget: { min: 45, max: 90 },
     foundation: {
         levels: 15,

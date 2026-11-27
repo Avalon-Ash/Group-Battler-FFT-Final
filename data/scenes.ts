@@ -19,8 +19,8 @@ export const SCENE_DB: SceneTheme[] = [
         id: 'FOREST',
         name: '秘境古樹',
         background: '#022c22', // Emerald 950
-        horizon: '#0b4a3c',    // F2 試作：原 #059669（Emerald 600），壓暗讓島比天空亮
-        fogColor: '#053528',   // F2 試作：原 #064e3b
+        horizon: '#059669',    // Emerald 600
+        fogColor: '#064e3b',   // Emerald 900
         textureType: 'FOREST',
         obstacleStyle: 'TREE',
         hexStroke: '#14532d',
@@ -32,8 +32,8 @@ export const SCENE_DB: SceneTheme[] = [
         id: 'ICE',
         name: '極光凍土',
         background: '#082f49', // Sky 950
-        horizon: '#0b5a82',    // F2 試作：原 #0ea5e9（Sky 500）
-        fogColor: '#0a3550',   // F2 試作：原 #0c4a6e
+        horizon: '#0ea5e9',    // Sky 500
+        fogColor: '#0c4a6e',   // Sky 900
         textureType: 'ICE',
         obstacleStyle: 'ICE_CRYSTAL',
         hexStroke: '#075985',
@@ -58,8 +58,8 @@ export const SCENE_DB: SceneTheme[] = [
         id: 'DESERT',
         name: '風蝕遺跡',
         background: '#1c1917', // Stone 900
-        horizon: '#8a4a0a',    // F2 試作：原 #d97706（Amber 600）
-        fogColor: '#4a2410',   // F2 試作：原 #78350f
+        horizon: '#d97706',    // Amber 600
+        fogColor: '#78350f',   // Amber 900
         textureType: 'DESERT',
         obstacleStyle: 'SANDSTONE',
         hexStroke: '#451a03',

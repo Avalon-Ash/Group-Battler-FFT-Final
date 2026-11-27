@@ -27,16 +27,8 @@ KENNEY = os.path.join(ASSETS, 'kenney_nature_kit/extracted/Models/GLTF format')
 
 # fit: max footprint radius (hex units); height: projected screen height in canvas units; tint multiplies the
 # model colour (None = keep), override replaces it.
-# F2 trial, dusk level (between the B and C boards): environment value sits under the unit median measured by perf:layers (~58 of 255).
-# All colours are linear; the shipped values are in the trailing comments.
-TREE_TINT = (0.25, 0.35, 0.37)        # shipped: no tint (1, 1, 1)
-SANDSTONE_RGB = (0.150, 0.105, 0.070)  # shipped: (0.86, 0.60, 0.36)
-GRASS_TINT = (0.28, 0.40, 0.32)        # shipped: (0.54, 0.78, 0.48)
-PEBBLE_RGB = (0.110, 0.085, 0.065)     # shipped: (0.55, 0.36, 0.20)
-ICE_GLOW_STRENGTH = 0.08               # shipped: 0.18
 TYPES = {
-    # F2 trial (exp/visual-lighting): canopy value pulled under the unit median (perf:layers); teal-leaning, less chroma
-    'TREE': {'fit': 1.05, 'tint': TREE_TINT, 'variants': [
+    'TREE': {'fit': 1.05, 'variants': [
         {'file': f'{FOREST}/Tree_1_A_Color1.gltf', 'height': 132},
         {'file': f'{FOREST}/Tree_2_A_Color1.gltf', 'height': 120},
         {'file': f'{FOREST}/Tree_3_A_Color1.gltf', 'height': 140},
@@ -46,7 +38,7 @@ TYPES = {
     'WALL': {'fit': 0.80, 'variants': [
         {'prisms': 'void_monolith', 'seed': s, 'height': h} for s, h in ((31, 104), (32, 96), (33, 112), (34, 100))
     ]},
-    'SANDSTONE': {'fit': 0.86, 'override': SANDSTONE_RGB, 'variants': [
+    'SANDSTONE': {'fit': 0.86, 'override': (0.86, 0.60, 0.36), 'variants': [
         {'file': f'{KENNEY}/rock_tallA.glb', 'height': 72},
         {'file': f'{KENNEY}/rock_tallB.glb', 'height': 64},
         {'file': f'{KENNEY}/rock_tallC.glb', 'height': 78},
@@ -60,7 +52,7 @@ TYPES = {
         {'prisms': 'obsidian', 'seed': s, 'height': h} for s, h in ((11, 108), (12, 96), (13, 116), (14, 100))
     ]},
     # 不阻擋的地表裝飾（VISUAL_ROADMAP T2）：小尺寸、細描邊；TerrainLoopAtlas／bakeBlock 依格子雜湊擺放
-    'DECOR_GRASS': {'fit': 0.30, 'outline': 1.0, 'tint': GRASS_TINT, 'variants': [
+    'DECOR_GRASS': {'fit': 0.30, 'outline': 1.0, 'tint': (0.54, 0.78, 0.48), 'variants': [
         {'file': f'{FOREST}/Grass_1_A_Color1.gltf', 'height': 16},
         {'file': f'{FOREST}/Grass_1_C_Color1.gltf', 'height': 16},
         {'file': f'{FOREST}/Grass_1_B_Color1.gltf', 'height': 18},
@@ -68,7 +60,7 @@ TYPES = {
         {'file': f'{FOREST}/Bush_1_A_Color1.gltf', 'height': 20},
         {'file': f'{FOREST}/Bush_2_A_Color1.gltf', 'height': 18},
     ]},
-    'DECOR_PEBBLE': {'fit': 0.22, 'outline': 1.0, 'override': PEBBLE_RGB, 'variants': [
+    'DECOR_PEBBLE': {'fit': 0.22, 'outline': 1.0, 'override': (0.55, 0.36, 0.20), 'variants': [
         {'file': f'{KENNEY}/rock_smallA.glb', 'height': 10},
         {'file': f'{KENNEY}/rock_smallFlatA.glb', 'height': 7},
         {'file': f'{KENNEY}/rock_smallC.glb', 'height': 11},
@@ -85,7 +77,7 @@ TYPES = {
     ]},
 }
 
-ICE_RGB = (0.14, 0.21, 0.27)           # shipped: (0.62, 0.86, 1.0)
+ICE_RGB = (0.62, 0.86, 1.0)
 ICE_GLOW = (0.55, 0.85, 1.0)
 OBSIDIAN_RGB = (0.035, 0.028, 0.045)  # linear; Standard view transform lifts it to ~#2a2430
 OBSIDIAN_GLOW = (1.0, 0.36, 0.08)     # sRGB ~ (255,161,79): engine OBSTACLE_SPRITE.GLOW_KEYS.EMBER picks it up
@@ -271,7 +263,7 @@ def render_variant(type_id, cfg, idx, v):
         objs, kind = build_prisms(v['prisms'], v['seed'])
         mat = bpy.data.materials.new(kind)
         if kind in ('ice', 'ice_shards'):
-            toon(mat, base_rgb=ICE_RGB, emission=ICE_GLOW, emission_strength=ICE_GLOW_STRENGTH)
+            toon(mat, base_rgb=ICE_RGB, emission=ICE_GLOW, emission_strength=0.18)
         elif kind == 'void_monolith':
             glow_mask_material(mat, VOID_RGB, VOID_GLOW, 'void')
         else:

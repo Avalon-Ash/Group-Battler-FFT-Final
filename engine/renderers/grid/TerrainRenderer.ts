@@ -52,30 +52,6 @@ function applyExposure(ctx: CanvasRenderingContext2D, canvas: CanvasImageSource 
     ctx.restore();
 }
 
-/**
- * 群系彩度（TERRAIN_SKIN.chroma，F2 試作）：只在烘焙時執行。把地塊複製到暫存畫布，用 saturation 混合蓋一層灰
- * （灰的彩度是 0，所以結果往灰階靠；alpha＝1 − chroma），再以 source-atop 畫回，原本透明的地方不動。
- */
-function applyChroma(ctx: CanvasRenderingContext2D, canvas: CanvasImageSource & { width: number; height: number }, chroma: number, scratch: { canvas: CanvasImageSource; ctx: CanvasRenderingContext2D }): void {
-    if (!(chroma >= 0) || chroma >= 1) return;
-    const sCtx = scratch.ctx;
-    sCtx.save();
-    sCtx.setTransform(1, 0, 0, 1, 0, 0);
-    sCtx.drawImage(canvas, 0, 0);
-    sCtx.globalCompositeOperation = 'saturation';
-    sCtx.globalAlpha = 1 - chroma;
-    sCtx.fillStyle = CHROMA_NEUTRAL;
-    sCtx.fillRect(0, 0, canvas.width, canvas.height);
-    sCtx.restore();
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = 'source-atop';
-    ctx.drawImage(scratch.canvas, 0, 0);
-    ctx.restore();
-}
-/** saturation 混合的來源色：任何無彩度的顏色都一樣，只取它的彩度 0 */
-const CHROMA_NEUTRAL = '#808080';
-
 const PEDESTAL_DEPTH = 45; 
 const EXPANSION_BIAS = 0.6;
 
@@ -582,8 +558,6 @@ export const TerrainRenderer = {
 
         sCtx.restore();
         applyExposure(sCtx, surface.canvas, TERRAIN_SKIN.exposure[type] ?? 1);
-        const chroma = TERRAIN_SKIN.chroma[type] ?? 1;
-        if (chroma < 1) applyChroma(sCtx, surface.canvas, chroma, factory(pixelW, pixelH));
 
         return {
             canvas: surface.canvas,

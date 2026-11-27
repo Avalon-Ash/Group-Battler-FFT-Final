@@ -64,3 +64,12 @@
 - 同步：`docs/DECISIONS.md` §1、§3 的三行、`AGENTS.md` §1 第 4 點、`CLAUDE.md` 架構不變式、`docs/METHODOLOGY.md` §2 的治理規則摘要。WebGL 程式碼限定在 `engine/renderers/lighting/`。
 - `node tools/agent/sync-codex-contracts.mjs`：副本已是最新（這一階段沒動 skill 與子代理定義）。
 - 驗收：`npm run lint`、`npm test`、`npm run build` 的結果寫在這個 commit 的訊息裡。
+
+### B 還原壓暗（完成）
+
+- 從 `main` 取回：`constants/terrain.ts`、`data/scenes.ts`、`engine/renderers/grid/GridRenderStrategy.ts`、`TerrainRenderer.ts`、`engine/renderers/RenderSpec.ts`、`public/assets/obstacles/**`、`tests/GroundPriority.test.ts`、`tests/constants-snapshot.json`、`tools/assets/blender/render_obstacle.py`（顏色常數要和取回的圖集一致）。`TERRAIN_SKIN.chroma`、`applyChroma`、`GRID_OVERLAY.WARM_POOL` 一併消失。
+- 保留：`bake_common.py` 的打光預設（L0，預設 `classic` 與原本逐像素相同）、`render_unit.py`、探針與原型工具。
+- `git diff main --stat -- constants data public/assets/obstacles engine tests`：沒有輸出（與 main 相同）。
+- `npm run perf:layers`（桌機亮度中位數，地塊頂面／障礙物／單位）：VOID 38.1／49.9／56.3、FOREST 59.6／100.3／58.2、ICE 87.2／118.4／57.3、MAGMA 37.8／37.9／55.3、DESERT 85.7／157.5／58.1，和 `visual-experiment.md` §7 的表相同。退出碼 1 是原本就有的（FOREST 9／10 單位被樹冠擋住、明度順序 12 筆）。
+- `npm run perf:fidelity`：六張全過。這個工具本來就不是逐位元 0（基準是舊 commit 錄的）：meanAbsDiff／badPixel％ 為 VOID 0.296／0.00、FOREST 0.659／0.22、ICE 0.302／0.22、MAGMA 0.614／0.13、DESERT 0.500／0.22、battle_frozen 0.177／0.00。**之後各階段的「0 差異」以這組數字為準：關閉打光時要和它逐位數相同。**
+- `node tools/ui-e2e/runtime-smoke.mjs`：PASS（0 個頁面錯誤）。`npm run lint`、`npm test`（184 檔 1704 項）、`npm run build`（進入點 257.0／257.5 kB）都過。

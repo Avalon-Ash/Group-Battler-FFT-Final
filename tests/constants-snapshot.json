@@ -856,11 +856,6 @@
       "MAX_ALPHA": 0.5,
       "GAIN": 0.4
     },
-    "WARM_POOL": {
-      "COLOR": "#c47a3e",
-      "CENTER": 0.9,
-      "RING": 0.4
-    },
     "MARK_LIFT": 2,
     "WARNING": {
       "FREQ": 5,
@@ -868,8 +863,8 @@
       "ALPHA_PULSE": 0.35,
       "FILL": "#ff2a1f",
       "EDGE": "#ffb0a6",
-      "FILL_ALPHA": 0.34,
-      "EDGE_ALPHA": 0.7,
+      "FILL_ALPHA": 0.75,
+      "EDGE_ALPHA": 0.8,
       "CORE_ALPHA": 0.45
     },
     "RANGE": {
@@ -1506,15 +1501,10 @@
     },
     "exposure": {
       "VOID": 1.65,
-      "FOREST": 0.91,
+      "FOREST": 1.18,
       "MAGMA": 1.12,
-      "ICE": 0.46,
-      "DESERT": 0.55
-    },
-    "chroma": {
-      "FOREST": 0.65,
-      "ICE": 0.75,
-      "DESERT": 0.7
+      "ICE": 0.67,
+      "DESERT": 0.81
     },
     "lumaBudget": {
       "min": 45,
