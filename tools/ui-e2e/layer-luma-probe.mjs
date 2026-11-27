@@ -1,30 +1,19 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
-import { clickDice, launchBrowser, START_TEXT } from './lib/perf-common.mjs';
+import { clickDice, launchBrowser } from './lib/perf-common.mjs';
+import { desktopProbe, openFrozenPage, probeFixture, rebuildFrozenMap } from './lib/frozen-battle.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = join(here, 'out', 'layers');
 const assertOrder = process.argv.includes('--assert-order');
 
-// These standalone scripts do not export their fixtures. Read the specific
-// expressions in place so the probe follows the existing clock and luma rule.
-function fixture(file, pattern) {
-    const value = readFileSync(join(here, file), 'utf8').match(pattern)?.[1];
-    if (!value) throw new Error(`Probe fixture changed in ${file}: ${pattern}`);
-    return value;
-}
-
-const fidelity = 'render-fidelity.mjs';
-const initClock = fixture(fidelity, /await page\.addInitScript\((\(\) => \{[\s\S]*?)(?=\s*\/\/ Comparison helper)/) + '\n}';
-const map = JSON.parse(fixture(fidelity, /^const FIDELITY_MAP = (\{[^\n]+\});/m)
-    .replace(/(\w+):/g, '"$1":').replace(/'/g, '"'));
-const lumaFormula = fixture('terrain-contrast.mjs', /luma: \+\(([\d.]+ \* R \+ [\d.]+ \* G \+ [\d.]+ \* B)\)\.toFixed/);
-const mobileUA = fixture('perf-mobile-emu.mjs', /userAgent: '([^']+)'/);
+const lumaFormula = probeFixture('terrain-contrast.mjs', /luma: \+\(([\d.]+ \* R \+ [\d.]+ \* G \+ [\d.]+ \* B)\)\.toFixed/);
+const mobileUA = probeFixture('perf-mobile-emu.mjs', /userAgent: '([^']+)'/);
 
 const devices = {
-    desktop: { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 },
+    desktop: desktopProbe,
     mobile: { viewport: { width: 393, height: 852 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: mobileUA },
 };
 
@@ -382,33 +371,8 @@ async function installProbe({ palette, alphaMin, lumaFormula }) {
 async function measureDevice(browser, url, device, options) {
     const context = await browser.newContext(options);
     const rows = [];
-    async function createPage() {
-        const page = await context.newPage();
-        await page.addInitScript({ content: `(${initClock})();` });
-        await page.goto(`${url}?quality=0&mute`, { waitUntil: 'networkidle' });
-        await page.waitForFunction(() => window.__ASSETS_READY__ && window.__TACTICAL_ENGINE__?.renderer,
-            null, { polling: 100, timeout: 15000 });
-        await page.evaluate(installProbe, { palette, alphaMin, lumaFormula });
-        await page.evaluate(() => { window.__resetSeed(1337); window.__stepFrames(10); });
-        await page.getByText(START_TEXT).evaluate(button => button.click());
-        await page.waitForTimeout(400);
-        await page.evaluate(() => window.__stepFrames(10));
-        return page;
-    }
-
-    async function rebuild(page, sceneId, seed) {
-        await page.evaluate(async ({ sceneId, seed, map }) => {
-            const { SCENE_DB } = await import('/data/scenes.ts');
-            const { seedSetupStream } = await import('/engine/math/rng.ts');
-            window.__resetSeed(seed);
-            seedSetupStream(seed);
-            const engine = window.__TACTICAL_ENGINE__;
-            engine.currentScene = SCENE_DB.find(scene => scene.id === sceneId);
-            if (!engine.currentScene) throw new Error(`Unknown scene ${sceneId}`);
-            Object.assign(engine.mapConfig, map);
-            engine.map.rebuildMap(engine);
-        }, { sceneId, seed, map });
-    }
+    const createPage = () => openFrozenPage(context, url,
+        page => page.evaluate(installProbe, { palette, alphaMin, lumaFormula }));
 
     async function seedRoster(page) {
         await page.evaluate(async () => (await import('/engine/math/rng.ts')).seedSetupStream(42));
@@ -437,10 +401,10 @@ async function measureDevice(browser, url, device, options) {
         // The baseline biome fixture has no roster. Deal the same seeded
         // roster on each map and allow the native spawn fade to finish.
         for (const sceneId of sceneIds) {
-            await rebuild(page, sceneIds[0], 42);
+            await rebuildFrozenMap(page, sceneIds[0], 42);
             await page.evaluate(() => window.__stepFrames(5));
             await seedRoster(page);
-            await rebuild(page, sceneId, 1337);
+            await rebuildFrozenMap(page, sceneId, 1337);
             await page.evaluate(() => window.__TACTICAL_ENGINE__.play());
             await capture(page, sceneId, biomeFrames);
             await page.evaluate(() => window.__TACTICAL_ENGINE__.stop());
@@ -448,7 +412,7 @@ async function measureDevice(browser, url, device, options) {
         await page.close();
 
         const battle = await createPage();
-        await rebuild(battle, sceneIds[0], 42);
+        await rebuildFrozenMap(battle, sceneIds[0], 42);
         await battle.evaluate(() => window.__stepFrames(5));
         await seedRoster(battle);
         await battle.evaluate(() => window.__TACTICAL_ENGINE__.play());
