@@ -8,44 +8,57 @@
 // ║  [ARCH] 全專案唯一使用 WebGL 的目錄；只用瀏覽器 WebGL2 API。║
 // ║  [ARCH] 不改任何座標：世界畫布與主畫布同尺寸、同變換，      ║
 // ║         排序鍵與繪製點都不經過這裡（RenderSpec §1 尾段）。  ║
-// ║  [ARCH] 光源位置只讀 UnitFrame（footX、floorY、transition），║
-// ║         不自己算高度；外觀數值只讀 constants/lighting.ts。  ║
+// ║  [ARCH] 位置只讀本幀的 op 與 UnitFrame（footX、floorY、     ║
+// ║         hudAnchorY、transition）與障礙物精靈的錨點，不自己  ║
+// ║         算高度；外觀數值只讀 constants/lighting.ts。        ║
 // ║  [ARCH] 一個頁面只建一個 GL context（LightingGate 的模組    ║
 // ║         單例）；context 遺失時 beginWorld 回 null，管線走   ║
 // ║         原本的直接路徑。                                    ║
-// ║  [ARCH] 遮罩（tag）：單位剪影、特效、玩法標示各另畫一張半   ║
-// ║         解析度畫布，著色器用它分辨類別；地塊不重畫。        ║
-// ║  每幀流程：點光（instance 矩形，加法）→ 著色（世界×光、     ║
-// ║  自發光、背景調色）→ 亮部擷取與模糊（泛光）→ 合成（曝光、   ║
-// ║  暗角、色調映射）。                                         ║
+// ║  [ARCH] 遮罩（tag，半解析度，地塊不重畫）：                 ║
+// ║   幾何遮罩＝直立物（單位、障礙物）各蓋一張漸層章，記離腳底  ║
+// ║   的高度、是不是單位、橫向位置；特效遮罩；玩法標示遮罩。    ║
+// ║   同時收集點光（存活單位）與投影物（單位、障礙物的腳印）。  ║
+// ║  每幀流程：投影物貼圖 → 點光（instance 矩形，加法，含投影） ║
+// ║  → 著色（環境光、月光與投影、接觸暗部、邊光、自發光、背景   ║
+// ║  調色）→ 泛光 → 合成（曝光、暗角、色調映射）。              ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { ISO_SCALE_Y, LIGHTING, RENDER_QUALITY, UNIT_SPRITE, type LightingLook } from '../../../constants';
 import type { HexLayout } from '../../../types';
 import type { UnitRenderSystem } from '../../presentation/unit';
-import type { UnitFrameStore } from '../frame/UnitFrame';
+import { SpriteManager } from '../../sprites';
 import { RenderDispatcher } from '../RenderDispatcher';
 import { RenderOpType, type RenderOp } from '../RenderList';
-import { BLUR_FRAG, BRIGHT_FRAG, COMPOSITE_FRAG, FULLSCREEN_VERT, LIGHT_FRAG, LIGHT_VERT, SHADE_FRAG } from './shaders';
+import {
+    BLUR_FRAG, BRIGHT_FRAG, CASTER_FRAG, COMPOSITE_FRAG, FULLSCREEN_VERT, INSTANCE_VERT, lightFrag, shadeFrag,
+} from './shaders';
 
-/** 全螢幕四邊形（兩個三角形的 strip）；點光的矩形也用它 */
+/** 全螢幕四邊形（兩個三角形的 strip）；instance 矩形也用它 */
 const QUAD = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
 const QUAD_VERTS = 4;
-/** 一盞點光的 instance 資料：地面座標 xyz、範圍、顏色 rgb */
-const LIGHT_STRIDE = 7;
-const LIGHT_POS_SIZE = 4;
-const LIGHT_COL_SIZE = 3;
+/** 一個 instance（點光或投影物）的資料：xyz、w、rgb */
+const INST_STRIDE = 7;
+const INST_POS_SIZE = 4;
+const INST_COL_SIZE = 3;
 const FLOAT_BYTES = Float32Array.BYTES_PER_ELEMENT;
 /** 地面深度相對螢幕 Y 的倍率（等距投影把地面 y 壓成 ISO_SCALE_Y 倍） */
 const GROUND_PER_SCREEN_Y = 1 / ISO_SCALE_Y;
+/** 剪影是以 UNIT_SPRITE.silhouetteAlpha 畫的：畫這麼多次，遮罩的覆蓋率才過半 */
+const SILHOUETTE_REPEAT = Math.round(1 / UNIT_SPRITE.silhouetteAlpha);
+const BYTE_MAX = 255;
+const RGBA = 4;
 
 const ATTR_QUAD = 0;
-const ATTR_LIGHT_POS = 1;
-const ATTR_LIGHT_COL = 2;
-/** 著色階段的貼圖單元（0～2 是世界、背景、點光） */
-const TEX_UNIT_MASK = 3;
-const TEX_GLOW_MASK = 4;
-const TEX_INFO_MASK = 5;
+const ATTR_INST_POS = 1;
+const ATTR_INST_COL = 2;
+/** 貼圖單元 */
+const TEX_WORLD = 0;
+const TEX_BACK = 1;
+const TEX_LIGHT = 2;
+const TEX_GLOW = 3;
+const TEX_INFO = 4;
+const TEX_GEO = 5;
+const TEX_CASTER = 6;
 
 interface Program {
     readonly id: WebGLProgram;
@@ -61,39 +74,80 @@ interface Target {
 
 type Vec3 = readonly [number, number, number];
 
+function makeCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas2d');
+    return { canvas, ctx };
+}
+
+/**
+ * 漸層章：由上到下 r＝離腳底的高度（MAX_HEIGHT → 0，最下面 FOOT_PAD 那段是 0），
+ * 由左到右 b＝橫向位置，g＝是不是單位。蓋的時候拉伸到精靈的範圍並以 source-in 裁成精靈的形狀。
+ */
+function makeStamp(isUnit: boolean): HTMLCanvasElement {
+    const n = LIGHTING.GEO.STAMP_SIZE;
+    const { canvas, ctx } = makeCanvas();
+    canvas.width = n;
+    canvas.height = n;
+    const img = ctx.createImageData(n, n);
+    for (let y = 0; y < n; y++) {
+        const height = Math.max(0, 1 - (y + 0.5) / n * (1 + LIGHTING.GEO.FOOT_PAD));
+        for (let x = 0; x < n; x++) {
+            const i = (y * n + x) * RGBA;
+            img.data[i] = Math.round(height * BYTE_MAX);
+            img.data[i + 1] = isUnit ? BYTE_MAX : 0;
+            img.data[i + 2] = Math.round((x + 0.5) / n * BYTE_MAX);
+            img.data[i + 3] = BYTE_MAX;
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+}
+
 export class LightingPass {
     private readonly world: HTMLCanvasElement;
     private readonly worldCtx: CanvasRenderingContext2D;
-    /** 遮罩畫布（LIGHTING.MASK_SCALE 倍解析度，和世界畫布同一個相機變換）：只看 alpha */
-    private readonly unitMask: HTMLCanvasElement;
-    private readonly unitCtx: CanvasRenderingContext2D;
-    private readonly glowMask: HTMLCanvasElement;
+    /** 遮罩畫布（LIGHTING.MASK_SCALE 倍解析度，和世界畫布同一個相機變換） */
+    private readonly geoCtx: CanvasRenderingContext2D;
     private readonly glowCtx: CanvasRenderingContext2D;
-    private readonly infoMask: HTMLCanvasElement;
     private readonly infoCtx: CanvasRenderingContext2D;
+    /** 蓋章用的暫存畫布：精靈先畫在這裡、裁成漸層章，再貼進幾何遮罩 */
+    private readonly scratchCtx: CanvasRenderingContext2D;
     private readonly maskCtxs: readonly CanvasRenderingContext2D[];
+    private readonly unitStamp = makeStamp(true);
+    private readonly obstacleStamp = makeStamp(false);
     private readonly glCanvas: HTMLCanvasElement;
     private readonly gl: WebGL2RenderingContext;
     private lost = false;
     /** 遮罩畫布的變換要不要重設（每幀第一次 tag 時照世界畫布此刻的相機變換設一次） */
     private maskStale = true;
+    /** 遮罩畫布的相機變換（等比縮放 + 平移）：蓋章時把世界座標換成遮罩像素 */
+    private maskScale = 1;
+    private maskOX = 0;
+    private maskOY = 0;
     /** WEBGL_debug_renderer_info 的顯示卡字串；量測工具把它寫進證據 */
     public readonly gpu: string;
 
     private quadVao: WebGLVertexArrayObject | null = null;
-    private lightVao: WebGLVertexArrayObject | null = null;
-    private lightBuffer: WebGLBuffer | null = null;
-    private readonly lightData = new Float32Array(LIGHTING.MAX_LIGHTS * LIGHT_STRIDE);
+    private instVao: WebGLVertexArrayObject | null = null;
+    private instBuffer: WebGLBuffer | null = null;
+    private readonly lightData = new Float32Array(LIGHTING.MAX_LIGHTS * INST_STRIDE);
+    private lightCount = 0;
+    private readonly casterData = new Float32Array(LIGHTING.MAX_CASTERS * INST_STRIDE);
+    private casterCount = 0;
     private worldTex: WebGLTexture | null = null;
     private backTex: WebGLTexture | null = null;
-    private unitTex: WebGLTexture | null = null;
+    private geoTex: WebGLTexture | null = null;
     private glowTex: WebGLTexture | null = null;
     private infoTex: WebGLTexture | null = null;
+    private pCaster: Program | null = null;
     private pLight: Program | null = null;
     private pShade: Program | null = null;
     private pBright: Program | null = null;
     private pBlur: Program | null = null;
     private pComposite: Program | null = null;
+    private tCaster: Target | null = null;
     private tLight: Target | null = null;
     private tHdr: Target | null = null;
     private tBloomA: Target | null = null;
@@ -103,26 +157,21 @@ export class LightingPass {
 
     /** 拿不到 WebGL2 或需要的擴充時丟出錯誤，由 LightingGate 記成不支援 */
     constructor() {
-        this.world = document.createElement('canvas');
-        const worldCtx = this.world.getContext('2d');
-        this.unitMask = document.createElement('canvas');
-        const unitCtx = this.unitMask.getContext('2d');
-        this.glowMask = document.createElement('canvas');
-        const glowCtx = this.glowMask.getContext('2d');
-        this.infoMask = document.createElement('canvas');
-        const infoCtx = this.infoMask.getContext('2d');
+        const world = makeCanvas();
+        this.world = world.canvas;
+        this.worldCtx = world.ctx;
+        this.geoCtx = makeCanvas().ctx;
+        this.glowCtx = makeCanvas().ctx;
+        this.infoCtx = makeCanvas().ctx;
+        this.scratchCtx = makeCanvas().ctx;
+        this.maskCtxs = [this.geoCtx, this.glowCtx, this.infoCtx, this.scratchCtx];
         this.glCanvas = document.createElement('canvas');
         const gl = this.glCanvas.getContext('webgl2', {
             alpha: false, antialias: false, depth: false, stencil: false,
         });
-        if (!worldCtx || !unitCtx || !glowCtx || !infoCtx || !gl) throw new Error('webgl2');
+        if (!gl) throw new Error('webgl2');
         // HDR 中間貼圖（RGBA16F）要能當 render target
         if (!gl.getExtension('EXT_color_buffer_float')) throw new Error('EXT_color_buffer_float');
-        this.worldCtx = worldCtx;
-        this.unitCtx = unitCtx;
-        this.glowCtx = glowCtx;
-        this.infoCtx = infoCtx;
-        this.maskCtxs = [unitCtx, glowCtx, infoCtx];
         this.gl = gl;
         const dbg = gl.getExtension('WEBGL_debug_renderer_info');
         this.gpu = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
@@ -148,8 +197,8 @@ export class LightingPass {
         gl.attachShader(id, this.compile(gl.VERTEX_SHADER, vert));
         gl.attachShader(id, this.compile(gl.FRAGMENT_SHADER, frag));
         gl.bindAttribLocation(id, ATTR_QUAD, 'aPos');
-        gl.bindAttribLocation(id, ATTR_LIGHT_POS, 'iPos');
-        gl.bindAttribLocation(id, ATTR_LIGHT_COL, 'iCol');
+        gl.bindAttribLocation(id, ATTR_INST_POS, 'iPos');
+        gl.bindAttribLocation(id, ATTR_INST_COL, 'iCol');
         gl.linkProgram(id);
         if (!gl.getProgramParameter(id, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(id) ?? 'link');
         return { id, uniforms: new Map() };
@@ -164,8 +213,16 @@ export class LightingPass {
         return l;
     }
 
+    private f1(p: Program, name: string, v: number): void {
+        this.gl.uniform1f(this.loc(p, name), v);
+    }
+
+    private f3(p: Program, name: string, v: Vec3, k: number): void {
+        this.gl.uniform3f(this.loc(p, name), v[0] * k, v[1] * k, v[2] * k);
+    }
+
     /** 8 位元貼圖（Canvas 2D 畫布的上傳目的地） */
-    private canvasTexture(filter: number = this.gl.NEAREST): WebGLTexture | null {
+    private canvasTexture(filter: number): WebGLTexture | null {
         const gl = this.gl;
         const t = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, t);
@@ -174,6 +231,12 @@ export class LightingPass {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         return t;
+    }
+
+    private upload(tex: WebGLTexture | null, source: HTMLCanvasElement): void {
+        const gl = this.gl;
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
     }
 
     /** 線性 HDR 的 render target；尺寸沒變就沿用 */
@@ -197,7 +260,7 @@ export class LightingPass {
     /** 建立（或 context 還原後重建）所有 GL 資源；render target 在 present 依畫布尺寸建立 */
     private createResources(): void {
         const gl = this.gl;
-        this.tLight = this.tHdr = this.tBloomA = this.tBloomB = null;
+        this.tCaster = this.tLight = this.tHdr = this.tBloomA = this.tBloomB = null;
 
         const quad = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -208,19 +271,19 @@ export class LightingPass {
         gl.enableVertexAttribArray(ATTR_QUAD);
         gl.vertexAttribPointer(ATTR_QUAD, 2, gl.FLOAT, false, 0, 0);
 
-        this.lightVao = gl.createVertexArray();
-        gl.bindVertexArray(this.lightVao);
+        this.instVao = gl.createVertexArray();
+        gl.bindVertexArray(this.instVao);
         gl.enableVertexAttribArray(ATTR_QUAD);
         gl.vertexAttribPointer(ATTR_QUAD, 2, gl.FLOAT, false, 0, 0);
-        this.lightBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.lightBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.lightData.byteLength, gl.DYNAMIC_DRAW);
-        gl.enableVertexAttribArray(ATTR_LIGHT_POS);
-        gl.vertexAttribPointer(ATTR_LIGHT_POS, LIGHT_POS_SIZE, gl.FLOAT, false, LIGHT_STRIDE * FLOAT_BYTES, 0);
-        gl.vertexAttribDivisor(ATTR_LIGHT_POS, 1);
-        gl.enableVertexAttribArray(ATTR_LIGHT_COL);
-        gl.vertexAttribPointer(ATTR_LIGHT_COL, LIGHT_COL_SIZE, gl.FLOAT, false, LIGHT_STRIDE * FLOAT_BYTES, LIGHT_POS_SIZE * FLOAT_BYTES);
-        gl.vertexAttribDivisor(ATTR_LIGHT_COL, 1);
+        this.instBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.instBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, Math.max(this.lightData.byteLength, this.casterData.byteLength), gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(ATTR_INST_POS);
+        gl.vertexAttribPointer(ATTR_INST_POS, INST_POS_SIZE, gl.FLOAT, false, INST_STRIDE * FLOAT_BYTES, 0);
+        gl.vertexAttribDivisor(ATTR_INST_POS, 1);
+        gl.enableVertexAttribArray(ATTR_INST_COL);
+        gl.vertexAttribPointer(ATTR_INST_COL, INST_COL_SIZE, gl.FLOAT, false, INST_STRIDE * FLOAT_BYTES, INST_POS_SIZE * FLOAT_BYTES);
+        gl.vertexAttribDivisor(ATTR_INST_COL, 1);
         gl.bindVertexArray(null);
 
         gl.disable(gl.BLEND);
@@ -230,13 +293,15 @@ export class LightingPass {
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-        this.worldTex = this.canvasTexture();
-        this.backTex = this.canvasTexture();
-        this.unitTex = this.canvasTexture(gl.LINEAR);
+        this.worldTex = this.canvasTexture(gl.NEAREST);
+        this.backTex = this.canvasTexture(gl.NEAREST);
+        this.geoTex = this.canvasTexture(gl.LINEAR);
         this.glowTex = this.canvasTexture(gl.LINEAR);
         this.infoTex = this.canvasTexture(gl.LINEAR);
-        this.pLight = this.program(LIGHT_VERT, LIGHT_FRAG);
-        this.pShade = this.program(FULLSCREEN_VERT, SHADE_FRAG);
+        const steps = LIGHTING.SHADOW.STEPS;
+        this.pCaster = this.program(INSTANCE_VERT, CASTER_FRAG);
+        this.pLight = this.program(INSTANCE_VERT, lightFrag(steps));
+        this.pShade = this.program(FULLSCREEN_VERT, shadeFrag(steps));
         this.pBright = this.program(FULLSCREEN_VERT, BRIGHT_FRAG);
         this.pBlur = this.program(FULLSCREEN_VERT, BLUR_FRAG);
         this.pComposite = this.program(FULLSCREEN_VERT, COMPOSITE_FRAG);
@@ -278,59 +343,115 @@ export class LightingPass {
             mctx.clearRect(0, 0, mW, mH);
         }
         this.maskStale = true;
+        this.lightCount = 0;
+        this.casterCount = 0;
         return ctx;
     }
 
+    private pushInstance(data: Float32Array, n: number, x: number, y: number, z: number, w: number, col: Vec3 | null, k: number): void {
+        let i = n * INST_STRIDE;
+        data[i++] = x; data[i++] = y; data[i++] = z; data[i++] = w;
+        data[i++] = col ? col[0] * k : 0; data[i++] = col ? col[1] * k : 0; data[i] = col ? col[2] * k : 0;
+    }
+
+    /** 投影物：腳底在地面座標的位置、腳印半徑（由精靈寬推）、高度 */
+    private pushCaster(footX: number, footScreenY: number, spriteWidth: number, height: number): void {
+        if (this.casterCount >= LIGHTING.MAX_CASTERS) return;
+        const R = LIGHTING.SHADOW.CASTER_RADIUS;
+        const radius = Math.min(R.MAX, Math.max(R.MIN, spriteWidth * R.RATIO));
+        this.pushInstance(this.casterData, this.casterCount++, footX, footScreenY * GROUND_PER_SCREEN_Y, height, radius, null, 0);
+    }
+
     /**
-     * RenderPipeline 每畫完一個 op 呼叫一次：把「這個 op 是哪一類」另外記在遮罩畫布上（只看 alpha）。
-     * - 單位、屍體 → 單位遮罩：用剪影（drawSilhouette，和遮擋剪影同一個入口）。
+     * 把暫存畫布上（世界座標的矩形 x0,y0,w,h 內）剛畫好的精靈裁成漸層章，貼進幾何遮罩，再清掉暫存。
+     * 呼叫前暫存畫布已經 save 並 clip 到這個矩形。
+     */
+    private stamp(stampImage: HTMLCanvasElement, x0: number, y0: number, w: number, h: number): void {
+        const s = this.scratchCtx, g = this.geoCtx;
+        s.globalCompositeOperation = 'source-in';
+        s.drawImage(stampImage, x0, y0, w, h);
+        s.restore();
+        const k = this.maskScale;
+        const dx = Math.max(0, Math.floor(x0 * k + this.maskOX) - 1), dy = Math.max(0, Math.floor(y0 * k + this.maskOY) - 1);
+        const dw = Math.min(s.canvas.width - dx, Math.ceil(w * k) + 3), dh = Math.min(s.canvas.height - dy, Math.ceil(h * k) + 3);
+        if (dw <= 0 || dh <= 0) return;
+        g.save();
+        g.resetTransform();
+        g.drawImage(s.canvas, dx, dy, dw, dh, dx, dy, dw, dh);
+        g.restore();
+        s.save();
+        s.resetTransform();
+        s.clearRect(dx, dy, dw, dh);
+        s.restore();
+    }
+
+    private clipScratch(x0: number, y0: number, w: number, h: number): void {
+        const s = this.scratchCtx;
+        s.save();
+        s.beginPath();
+        s.rect(x0, y0, w, h);
+        s.clip();
+    }
+
+    /**
+     * RenderPipeline 每畫完一個 op 呼叫一次：把「這個 op 是哪一類」另外記在遮罩畫布上，並收集光源與投影物。
+     * - 單位 → 幾何遮罩（剪影 drawSilhouette，和遮擋剪影同一個入口，蓋單位章）＋一盞點光＋一個投影物；
+     *   並從特效遮罩挖掉自己（比它早畫的特效被它擋住）。
+     * - 障礙物 → 幾何遮罩（蓋障礙物章）＋一個投影物；並從特效、玩法標示遮罩挖掉自己。
      * - 特效、投射物、施法圈、危害（熔岩、毒沼）→ 特效遮罩：照原樣再分發一次。
      * - 射程、預警、縮圈格（OVERLAY）→ 玩法標示遮罩：照原樣再分發一次。
-     * - 障礙物：從三張遮罩挖掉自己的形狀（比它早畫的東西被它擋住）。
      * - 地塊不處理（最多、最貴）：被前方高地塊擋住的單位，遮罩會多出一塊（開案書 §6）。
      */
     public tag(op: RenderOp, layout: HexLayout, t: number, units: UnitRenderSystem): void {
         const type = op.type;
-        if (type === RenderOpType.TERRAIN) return;
+        if (type === RenderOpType.TERRAIN || type === RenderOpType.CORPSE) return;
         if (this.maskStale) {
             this.maskStale = false;
             const m = this.worldCtx.getTransform();
             const k = LIGHTING.MASK_SCALE;
+            this.maskScale = m.a * k;
+            this.maskOX = m.e * k;
+            this.maskOY = m.f * k;
             for (const mctx of this.maskCtxs) mctx.setTransform(m.a * k, m.b * k, m.c * k, m.d * k, m.e * k, m.f * k);
         }
-        if (type === RenderOpType.UNIT || type === RenderOpType.CORPSE) {
-            if (op.unitFrame) units.drawSilhouette(this.unitCtx, op.unitFrame, t, layout);
+        const G = LIGHTING.GEO;
+        const stampH = G.MAX_HEIGHT * (1 + G.FOOT_PAD);
+        if (type === RenderOpType.UNIT) {
+            const f = op.unitFrame;
+            if (!f || f.isCorpse) return;
+            const height = f.floorY - f.hudAnchorY;
+            const halfW = height * G.UNIT_HALF_WIDTH;
+            const x0 = f.footX - halfW, y0 = f.floorY - G.MAX_HEIGHT;
+            this.clipScratch(x0, y0, halfW * 2, stampH);
+            for (let i = 0; i < SILHOUETTE_REPEAT; i++) units.drawSilhouette(this.scratchCtx, f, t, layout);
+            this.stamp(this.unitStamp, x0, y0, halfW * 2, stampH);
+            this.glowCtx.globalCompositeOperation = 'destination-out';
+            for (let i = 0; i < SILHOUETTE_REPEAT; i++) units.drawSilhouette(this.glowCtx, f, t, layout);
+            this.glowCtx.globalCompositeOperation = 'source-over';
+
+            this.pushCaster(f.footX, f.floorY, halfW * 2, height);
+            if (this.lightCount < LIGHTING.MAX_LIGHTS) {
+                const U = LIGHTING.UNIT_LIGHT;
+                this.pushInstance(this.lightData, this.lightCount++,
+                    f.footX, (f.floorY + f.transition) * GROUND_PER_SCREEN_Y + U.FRONT, U.HEIGHT + f.agent.physics.z, U.RANGE,
+                    U.COLOR[f.agent.team] ?? U.FALLBACK, U.INTENSITY);
+            }
         } else if (type === RenderOpType.OBSTACLE) {
-            for (const mctx of this.maskCtxs) {
+            const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr, t);
+            const halfW = Math.max(ob.anchorX, ob.width - ob.anchorX);
+            const x0 = op.tx - halfW, y0 = op.ty - G.MAX_HEIGHT;
+            this.clipScratch(x0, y0, halfW * 2, stampH);
+            RenderDispatcher.dispatch(this.scratchCtx, op, layout, t, units);
+            this.stamp(this.obstacleStamp, x0, y0, halfW * 2, stampH);
+            for (const mctx of [this.glowCtx, this.infoCtx]) {
                 mctx.globalCompositeOperation = 'destination-out';
                 RenderDispatcher.dispatch(mctx, op, layout, t, units);
                 mctx.globalCompositeOperation = 'source-over';
             }
+            this.pushCaster(op.tx, op.ty, ob.width, Math.min(G.MAX_HEIGHT, ob.anchorY));
         } else {
             RenderDispatcher.dispatch(type === RenderOpType.OVERLAY ? this.infoCtx : this.glowCtx, op, layout, t, units);
         }
-    }
-
-    /** 本幀的點光寫進 lightData，回傳盞數。位置只讀 UnitFrame。 */
-    private collectLights(frames: UnitFrameStore): number {
-        const U = LIGHTING.UNIT_LIGHT;
-        const data = this.lightData;
-        let n = 0;
-        for (const f of frames.list) {
-            if (!f.visible || f.isCorpse) continue;
-            if (n >= LIGHTING.MAX_LIGHTS) break;
-            const col = U.COLOR[f.agent.team] ?? U.FALLBACK;
-            let i = n * LIGHT_STRIDE;
-            data[i++] = f.footX;
-            data[i++] = (f.floorY + f.transition) * GROUND_PER_SCREEN_Y + U.FRONT;
-            data[i++] = U.HEIGHT + f.agent.physics.z;
-            data[i++] = U.RANGE;
-            data[i++] = col[0] * U.INTENSITY;
-            data[i++] = col[1] * U.INTENSITY;
-            data[i] = col[2] * U.INTENSITY;
-            n++;
-        }
-        return n;
     }
 
     private bindTexture(p: Program, unit: number, name: string, tex: WebGLTexture | null): void {
@@ -340,8 +461,38 @@ export class LightingPass {
         gl.uniform1i(this.loc(p, name), unit);
     }
 
-    private uniform3(p: Program, name: string, v: Vec3, k: number): void {
-        this.gl.uniform3f(this.loc(p, name), v[0] * k, v[1] * k, v[2] * k);
+    /** 像素 → 世界的換算（k＝這個 render target 相對主畫布的解析度） */
+    private viewUniforms(p: Program, cam: DOMMatrix, w: number, h: number, k: number): void {
+        const gl = this.gl;
+        gl.uniform2f(this.loc(p, 'uRes'), w, h);
+        gl.uniform2f(this.loc(p, 'uOrigin'), cam.e * k, cam.f * k);
+        this.f1(p, 'uScale', cam.a * k);
+        this.f1(p, 'uGroundPerY', GROUND_PER_SCREEN_Y);
+    }
+
+    /** shaders.ts surfaceChunk 的 uniform：幾何遮罩、投影物貼圖、投影參數 */
+    private surfaceUniforms(p: Program, cam: DOMMatrix, w: number, h: number): void {
+        const S = LIGHTING.SHADOW;
+        this.viewUniforms(p, cam, w, h, 1);
+        this.bindTexture(p, TEX_GEO, 'tGeo', this.geoTex);
+        this.bindTexture(p, TEX_CASTER, 'tCaster', this.tCaster ? this.tCaster.tex : null);
+        this.f1(p, 'uMaxH', LIGHTING.GEO.MAX_HEIGHT);
+        this.f1(p, 'uBevel', LIGHTING.GEO.BEVEL);
+        this.f1(p, 'uShadowStrength', S.STRENGTH);
+        this.f1(p, 'uShadowSoft', S.SOFT);
+        this.f1(p, 'uSkipGround', S.SKIP_GROUND);
+        this.f1(p, 'uSkipUpright', S.SKIP_UPRIGHT);
+    }
+
+    private drawInstances(data: Float32Array, count: number): void {
+        const gl = this.gl;
+        gl.bindVertexArray(this.instVao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.instBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, data, 0, count * INST_STRIDE);
+        gl.enable(gl.BLEND);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, QUAD_VERTS, count);
+        gl.disable(gl.BLEND);
+        gl.bindVertexArray(this.quadVao);
     }
 
     private drawTo(t: Target | null, w: number, h: number): void {
@@ -355,17 +506,19 @@ export class LightingPass {
      * 世界畫完後、世界畫布的相機變換還沒 restore 時呼叫（要讀這個變換把像素換回世界座標）。
      * main＝主畫布（此時只有背景）；biome＝SceneTheme.textureType。
      */
-    public present(main: CanvasRenderingContext2D, frames: UnitFrameStore, biome: string): void {
+    public present(main: CanvasRenderingContext2D, biome: string): void {
         const { gl, glCanvas, world } = this;
-        const { pLight, pShade, pBright, pBlur, pComposite } = this;
-        if (this.lost || !pLight || !pShade || !pBright || !pBlur || !pComposite) return;
+        const { pCaster, pLight, pShade, pBright, pBlur, pComposite } = this;
+        if (this.lost || !pCaster || !pLight || !pShade || !pBright || !pBlur || !pComposite) return;
         const pW = world.width, pH = world.height;
         if (glCanvas.width !== pW || glCanvas.height !== pH) {
             glCanvas.width = pW;
             glCanvas.height = pH;
         }
-        const B = LIGHTING.BLOOM;
+        const B = LIGHTING.BLOOM, S = LIGHTING.SHADOW;
         const bW = Math.max(1, Math.floor(pW / B.DOWNSCALE)), bH = Math.max(1, Math.floor(pH / B.DOWNSCALE));
+        const cW = Math.max(1, Math.round(pW * S.CASTER_SCALE)), cH = Math.max(1, Math.round(pH * S.CASTER_SCALE));
+        const tCaster = this.tCaster = this.target(this.tCaster, cW, cH);
         const tLight = this.tLight = this.target(this.tLight, pW, pH);
         const tHdr = this.tHdr = this.target(this.tHdr, pW, pH);
         const tBloomA = this.tBloomA = this.target(this.tBloomA, bW, bH);
@@ -373,67 +526,70 @@ export class LightingPass {
 
         const cam = this.worldCtx.getTransform();
         const look = this.lookFor(biome);
-        const lightCount = this.collectLights(frames);
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.worldTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, world);
-        gl.bindTexture(gl.TEXTURE_2D, this.backTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, main.canvas);
-        gl.bindTexture(gl.TEXTURE_2D, this.unitTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.unitMask);
-        gl.bindTexture(gl.TEXTURE_2D, this.glowTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glowMask);
-        gl.bindTexture(gl.TEXTURE_2D, this.infoTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.infoMask);
+        this.upload(this.worldTex, world);
+        this.upload(this.backTex, main.canvas);
+        this.upload(this.geoTex, this.geoCtx.canvas);
+        this.upload(this.glowTex, this.glowCtx.canvas);
+        this.upload(this.infoTex, this.infoCtx.canvas);
+        gl.bindVertexArray(this.quadVao);
 
-        // 1. 點光：每盞一個矩形，加法疊進光照貼圖
+        // 1. 投影物貼圖：每個投影物在腳底畫一個橢圓，取最大值
+        gl.bindFramebuffer(gl.FRAMEBUFFER, tCaster.fbo);
+        gl.viewport(0, 0, cW, cH);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        if (this.casterCount > 0) {
+            gl.useProgram(pCaster.id);
+            this.viewUniforms(pCaster, cam, cW, cH, S.CASTER_SCALE);
+            this.f1(pCaster, 'uReach', S.CONTACT_REACH);
+            this.f1(pCaster, 'uLift', 0);
+            gl.blendEquation(gl.MAX);
+            this.drawInstances(this.casterData, this.casterCount);
+            gl.blendEquation(gl.FUNC_ADD);
+        }
+
+        // 2. 點光：每盞一個矩形，加法疊進光照貼圖；矩形往上多蓋 MAX_HEIGHT（直立物的像素在腳底上方）
         gl.bindFramebuffer(gl.FRAMEBUFFER, tLight.fbo);
         gl.viewport(0, 0, pW, pH);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        if (lightCount > 0) {
+        if (this.lightCount > 0) {
             gl.useProgram(pLight.id);
-            gl.uniform2f(this.loc(pLight, 'uRes'), pW, pH);
-            gl.uniform2f(this.loc(pLight, 'uOrigin'), cam.e, cam.f);
-            gl.uniform1f(this.loc(pLight, 'uScale'), cam.a);
-            gl.uniform1f(this.loc(pLight, 'uGroundPerY'), GROUND_PER_SCREEN_Y);
-            gl.uniform1f(this.loc(pLight, 'uKnee'), LIGHTING.UNIT_LIGHT.KNEE);
-            gl.bindVertexArray(this.lightVao);
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.lightBuffer);
-            gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.lightData, 0, lightCount * LIGHT_STRIDE);
-            gl.enable(gl.BLEND);
-            gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, QUAD_VERTS, lightCount);
-            gl.disable(gl.BLEND);
+            this.surfaceUniforms(pLight, cam, pW, pH);
+            this.f1(pLight, 'uReach', 1);
+            this.f1(pLight, 'uLift', LIGHTING.GEO.MAX_HEIGHT);
+            this.f1(pLight, 'uKnee', LIGHTING.UNIT_LIGHT.KNEE);
+            this.drawInstances(this.lightData, this.lightCount);
         }
-        gl.bindVertexArray(this.quadVao);
 
-        // 2. 著色：世界 × (環境光 + 月光 + 點光)，自發光不受光，背景只調色
+        // 3. 著色
         const moonLen = Math.hypot(look.moonDir[0], look.moonDir[1], look.moonDir[2]);
-        const moonFlat = look.moonIntensity * look.moonDir[2] / moonLen;   // 地面法線朝上：N·L = 月光方向的 z
         gl.useProgram(pShade.id);
-        this.bindTexture(pShade, 0, 'tWorld', this.worldTex);
-        this.bindTexture(pShade, 1, 'tBack', this.backTex);
-        this.bindTexture(pShade, 2, 'tLight', tLight.tex);
-        this.uniform3(pShade, 'uAmbient', look.ambient, 1);
-        this.uniform3(pShade, 'uMoon', look.moonColor, moonFlat);
+        this.surfaceUniforms(pShade, cam, pW, pH);
+        this.bindTexture(pShade, TEX_WORLD, 'tWorld', this.worldTex);
+        this.bindTexture(pShade, TEX_BACK, 'tBack', this.backTex);
+        this.bindTexture(pShade, TEX_LIGHT, 'tLight', tLight.tex);
+        this.bindTexture(pShade, TEX_GLOW, 'tGlow', this.glowTex);
+        this.bindTexture(pShade, TEX_INFO, 'tInfo', this.infoTex);
+        this.f3(pShade, 'uAmbient', look.ambient, 1);
+        this.f3(pShade, 'uMoonCol', look.moonColor, look.moonIntensity);
+        this.f3(pShade, 'uMoonDir', look.moonDir, 1 / moonLen);
         gl.uniform3f(this.loc(pShade, 'uSkyTint'),
             look.ambient[0] * look.skyAmbient + look.moonColor[0] * look.skyMoon,
             look.ambient[1] * look.skyAmbient + look.moonColor[1] * look.skyMoon,
             look.ambient[2] * look.skyAmbient + look.moonColor[2] * look.skyMoon);
-        this.bindTexture(pShade, TEX_UNIT_MASK, 'tUnit', this.unitTex);
-        this.bindTexture(pShade, TEX_GLOW_MASK, 'tGlow', this.glowTex);
-        this.bindTexture(pShade, TEX_INFO_MASK, 'tInfo', this.infoTex);
-        gl.uniform1f(this.loc(pShade, 'uInfoGain'), LIGHTING.INFO_GAIN);
-        gl.uniform1f(this.loc(pShade, 'uEmissiveGain'), LIGHTING.EMISSIVE_GAIN);
-        gl.uniform1f(this.loc(pShade, 'uEnvChroma'), LIGHTING.ENV_CHROMA);
-        // 剪影是以 UNIT_SPRITE.silhouetteAlpha 畫的：乘回去，遮罩才是 0～1 的覆蓋率
-        gl.uniform1f(this.loc(pShade, 'uUnitMaskGain'), 1 / UNIT_SPRITE.silhouetteAlpha);
+        this.f1(pShade, 'uEmissiveGain', LIGHTING.EMISSIVE_GAIN);
+        this.f1(pShade, 'uInfoGain', LIGHTING.INFO_GAIN);
+        this.f1(pShade, 'uEnvChroma', look.envChroma);
+        this.f1(pShade, 'uMoonShadowLen', S.MOON_LENGTH);
+        this.f1(pShade, 'uContact', S.CONTACT);
+        this.f1(pShade, 'uRim', LIGHTING.MOON_RIM);
         this.drawTo(tHdr, pW, pH);
 
-        // 3. 泛光：擷取亮部到縮小的貼圖，橫直來回模糊
+        // 4. 泛光：擷取亮部到縮小的貼圖，橫直來回模糊
         gl.useProgram(pBright.id);
         this.bindTexture(pBright, 0, 'tColor', tHdr.tex);
-        gl.uniform1f(this.loc(pBright, 'uThreshold'), B.THRESHOLD);
+        this.f1(pBright, 'uThreshold', B.THRESHOLD);
         this.drawTo(tBloomA, bW, bH);
         gl.useProgram(pBlur.id);
         for (let i = 0; i < B.PASSES; i++) {
@@ -446,14 +602,14 @@ export class LightingPass {
             this.drawTo(tBloomA, bW, bH);
         }
 
-        // 4. 合成到 GL 畫布：泛光、曝光、暗角、色調映射
+        // 5. 合成到 GL 畫布：泛光、曝光、暗角、色調映射
         gl.useProgram(pComposite.id);
         this.bindTexture(pComposite, 0, 'tColor', tHdr.tex);
         this.bindTexture(pComposite, 1, 'tBloom', tBloomA.tex);
-        gl.uniform1f(this.loc(pComposite, 'uBloom'), B.STRENGTH);
-        gl.uniform1f(this.loc(pComposite, 'uExposure'), look.exposure);
-        gl.uniform1f(this.loc(pComposite, 'uSplit'), LIGHTING.SPLIT_TONE);
-        gl.uniform1f(this.loc(pComposite, 'uVignette'), LIGHTING.VIGNETTE);
+        this.f1(pComposite, 'uBloom', B.STRENGTH);
+        this.f1(pComposite, 'uExposure', look.exposure);
+        this.f1(pComposite, 'uSplit', LIGHTING.SPLIT_TONE);
+        this.f1(pComposite, 'uVignette', LIGHTING.VIGNETTE);
         this.drawTo(null, pW, pH);
 
         main.save();

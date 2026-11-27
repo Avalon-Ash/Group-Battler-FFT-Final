@@ -211,7 +211,7 @@ export class RenderPipeline {
         // World objects use BattleTime to sync with logic
         this.drawWorld(wctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt, litCtx ? lit : null);
         // present 要讀世界畫布此刻的相機變換，所以在 restore 之前
-        if (lit && litCtx) lit.present(rawCtx, this.frames, sc.textureType);
+        if (lit && litCtx) lit.present(rawCtx, sc.textureType);
         wctx.restore();
         RenderStats.end('world');
 

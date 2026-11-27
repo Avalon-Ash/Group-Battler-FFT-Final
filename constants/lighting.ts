@@ -27,11 +27,15 @@ export interface LightingLook {
     skyMoon: number;
     /** 曝光（色調映射前的整體倍率） */
     exposure: number;
+    /** 環境（地形、障礙物、背景）打光前保留的彩度；單位、特效、玩法標示保留原彩度 */
+    envChroma: number;
 }
 
 export const LIGHTING = {
-    /** 一幀最多幾盞點光（instance 緩衝的大小）；超過的照 agents 順序截掉 */
+    /** 一幀最多幾盞點光（instance 緩衝的大小）；超過的照繪製順序截掉 */
     MAX_LIGHTS: 64,
+    /** 一幀最多幾個投影物（單位＋障礙物；12×8 地圖的障礙物約 20～40 個） */
+    MAX_CASTERS: 256,
 
     /** 單位腳前的暖色點光 */
     UNIT_LIGHT: {
@@ -50,14 +54,12 @@ export const LIGHTING = {
     },
 
     /**
-     * 遮罩畫布（單位、特效、玩法標示各一張）相對主畫布的解析度。遮罩只用來分辨「這個像素是單位／特效／環境」，
+     * 遮罩畫布（直立物幾何、特效、玩法標示各一張）相對主畫布的解析度。遮罩只用來分辨「這個像素是單位／特效／環境」，
      * 半解析度的邊緣夠用，記憶體與上傳量是全解析度的四分之一。
      */
     MASK_SCALE: 0.5,
-    /** 環境（地形、障礙物、背景）打光前保留的彩度；單位與特效保留原彩度 */
-    ENV_CHROMA: 0.5,
     /** 特效像素的亮度倍率（HDR，不受環境光壓暗；超過 1 的部分進泛光） */
-    EMISSIVE_GAIN: 2.2,
+    EMISSIVE_GAIN: 1.6,
     /** 玩法標示（射程、預警、縮圈格）的亮度倍率：不受光，維持接近原本畫出來的亮度 */
     INFO_GAIN: 1.0,
 
@@ -71,6 +73,46 @@ export const LIGHTING = {
         PASSES: 2,
         STEP_GROW: 1.5,
     },
+
+    /**
+     * 直立物（單位、障礙物）的幾何遮罩：每個精靈蓋一張「離腳底多高、橫向在哪」的漸層章，
+     * 著色器由它得到腳底位置、高度與左右彎的輪廓法線（烘焙法線圖之前的替代品）。
+     */
+    GEO: {
+        /** 章蓋住腳底以上這麼高（世界像素）；比它高的部分當成這個高度。最高的樹約 160 */
+        MAX_HEIGHT: 180,
+        /** 章往腳底以下多蓋的比例（精靈的底座、腳邊會略低於錨點） */
+        FOOT_PAD: 0.1,
+        /** 單位的半寬＝身高（腳底到血條錨點）× 這個比例 */
+        UNIT_HALF_WIDTH: 0.6,
+        /** 漸層章的邊長（像素）；拉伸後取線性內插，不需要大 */
+        STAMP_SIZE: 64,
+        /** 輪廓法線左右彎的幅度（0＝整片朝鏡頭的平板） */
+        BEVEL: 1.15,
+    },
+
+    /** 地面投影（月光與點光共用）與接觸暗部 */
+    SHADOW: {
+        /** 沿地面往光源走的取樣次數（每個受光像素、每盞照到它的光各一次）；手機要降 */
+        STEPS: 16,
+        STRENGTH: 0.8,
+        /** 遮擋邊緣的柔化：投影物比光線高出這麼多（世界像素）才算全擋 */
+        SOFT: 12,
+        /** 月光的影子最長（世界像素，地面平面上） */
+        MOON_LENGTH: 268,
+        /** 從受光點出發先跳過的距離：地面像素很短，直立物要跳過自己的腳印 */
+        SKIP_GROUND: 3.5,
+        SKIP_UPRIGHT: 26,
+        /** 投影物腳印半徑＝精靈寬 × RATIO，夾在 MIN～MAX（世界像素） */
+        CASTER_RADIUS: { RATIO: 0.22, MIN: 7, MAX: 30 },
+        /** 投影物貼圖相對主畫布的解析度 */
+        CASTER_SCALE: 0.5,
+        /** 接觸暗部：腳邊的環境光最多壓掉這個比例，影響範圍是腳印半徑的 CONTACT_REACH 倍 */
+        CONTACT: 0.45,
+        CONTACT_REACH: 2.2,
+    },
+    /** 直立物朝月亮那一側的冷色邊光強度（它們正面照不到月光） */
+    MOON_RIM: 0.55,
 
     /** 暗部偏藍、亮部偏暖的幅度 */
     SPLIT_TONE: 0.07,
@@ -86,8 +128,12 @@ export const LIGHTING = {
         skyAmbient: 2.2,
         skyMoon: 0.25,
         exposure: 1.25,
+        envChroma: 0.5,
     } as LightingLook,
 
     /** 群系覆寫（鍵＝SceneConfig.textureType）；沒列到的群系用 BASE */
-    BIOME: {} as Readonly<Record<string, Partial<LightingLook>>>,
+    BIOME: {
+        // 熔岩的橘紅就是這個群系的辨識色：降到一半會變成粉灰
+        MAGMA: { envChroma: 0.8 },
+    } as Readonly<Record<string, Partial<LightingLook>>>,
 } as const;

@@ -2556,6 +2556,7 @@
   },
   "LIGHTING": {
     "MAX_LIGHTS": 64,
+    "MAX_CASTERS": 256,
     "UNIT_LIGHT": {
       "COLOR": {
         "0": [
@@ -2581,8 +2582,7 @@
       "KNEE": 0.06
     },
     "MASK_SCALE": 0.5,
-    "ENV_CHROMA": 0.5,
-    "EMISSIVE_GAIN": 2.2,
+    "EMISSIVE_GAIN": 1.6,
     "INFO_GAIN": 1,
     "BLOOM": {
       "THRESHOLD": 1.15,
@@ -2591,6 +2591,30 @@
       "PASSES": 2,
       "STEP_GROW": 1.5
     },
+    "GEO": {
+      "MAX_HEIGHT": 180,
+      "FOOT_PAD": 0.1,
+      "UNIT_HALF_WIDTH": 0.6,
+      "STAMP_SIZE": 64,
+      "BEVEL": 1.15
+    },
+    "SHADOW": {
+      "STEPS": 16,
+      "STRENGTH": 0.8,
+      "SOFT": 12,
+      "MOON_LENGTH": 268,
+      "SKIP_GROUND": 3.5,
+      "SKIP_UPRIGHT": 26,
+      "CASTER_RADIUS": {
+        "RATIO": 0.22,
+        "MIN": 7,
+        "MAX": 30
+      },
+      "CASTER_SCALE": 0.5,
+      "CONTACT": 0.45,
+      "CONTACT_REACH": 2.2
+    },
+    "MOON_RIM": 0.55,
     "SPLIT_TONE": 0.07,
     "VIGNETTE": 0.42,
     "BASE": {
@@ -2612,8 +2636,13 @@
       ],
       "skyAmbient": 2.2,
       "skyMoon": 0.25,
-      "exposure": 1.25
+      "exposure": 1.25,
+      "envChroma": 0.5
     },
-    "BIOME": {}
+    "BIOME": {
+      "MAGMA": {
+        "envChroma": 0.8
+      }
+    }
   }
 }
