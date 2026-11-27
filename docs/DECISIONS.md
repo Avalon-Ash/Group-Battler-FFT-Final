@@ -26,6 +26,7 @@
 
 ## 4. 架構
 - 座標協議以 `engine/renderers/RenderSpec.ts` 為準，渲染／座標工作一次只開一條，詳見 [0003](adr/0003-coordinate-protocol-and-serial-render.md)。
+- 無畫面工具的佈陣一律經 `tools/sim/headlessBattle.ts` 組合 `Deployment.ts`，工具之間只差參數；指紋基準只在佈陣定義或玩法故意改變時重錄（2026-11-27，使用者同意含 P5），詳見 [0028](adr/0028-headless-tool-deployment-via-deployment.md)。
 - 狀態欄位唯一寫入者（`engine/core/AgentOwnership.ts`）與嘲諷鎖定歸屬，詳見 [0002](adr/0002-state-field-single-owner.md)。
 - 大逃殺的「發呆看門狗」不採用：B0 證據 IDLE 為 0，屬掩蓋症狀且改到 facade。根因修法是行為樹 `Combat Actions` SELECTOR。
 - 保真基準不得任意重錄、門檻不得放寬，重錄須附新舊差異圖並獨立 commit，詳見 [0007](adr/0007-visual-verification-same-env-ab.md)。

@@ -8,6 +8,8 @@
 // ║  做法：Vite ssrLoadModule 載入引擎（Node，無渲染），       ║
 // ║  每 tick 後分類單位狀態（busy/moving/waitInRange/發呆原因），║
 // ║  攔截死亡與擊殺統計，彙整各角色勝率與發呆原因。           ║
+// ║  [ARCH] 佈陣只經 tools/sim/headlessBattle.ts（ADR 0028）， ║
+// ║  不自己挑出生格、不洗牌、不自己放人。                    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { createServer } from 'vite';

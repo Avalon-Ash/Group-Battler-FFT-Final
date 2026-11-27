@@ -1,6 +1,8 @@
 // 無畫面工具的佈陣入口（tools/sim/headlessBattle.ts，ADR 0028）：
 // 佈陣規則讀 Deployment.ts，這裡驗入口有照它排、參數各自生效、缺格會丟錯、同種子可重現。
 import { describe, it, expect } from 'vitest';
+import { readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { buildHeadlessBattle, type HeadlessBattleSpec } from '../tools/sim/headlessBattle';
 import { SIM_SCENARIOS } from '../tools/balance/simFingerprint';
 import { planRoster } from '../engine/systems/match/Deployment';
@@ -93,5 +95,24 @@ describe('tools/sim/headlessBattle', () => {
     it('matchSalt 有傳就設給 agentManager', () => {
         const salt = 12345;
         expect(buildHeadlessBattle({ seed: SEED, setup: TEAMS, matchSalt: salt }).engine.agentManager.matchSalt).toBe(salt);
+    });
+});
+
+/** ADR 0028：對局佈陣只在 headlessBattle.ts；這些資料夾裡的其他檔不得自己佈陣 */
+const DEPLOY_SCAN_DIRS = ['tools/balance', 'tools/replay', 'tools/sim'];
+const DEPLOY_ENTRY = join('tools', 'sim', 'headlessBattle.ts');
+const DIRECT_DEPLOY = /PLACE_AGENT|querySpawnableHexes|layoutFactionHexes/;
+
+describe('ADR 0028：無畫面工具不自己佈陣', () => {
+    it('tools/balance、tools/replay、tools/sim 除入口外沒有直接佈陣', () => {
+        const offenders: string[] = [];
+        for (const dir of DEPLOY_SCAN_DIRS) {
+            for (const name of readdirSync(dir, { recursive: true }) as string[]) {
+                const file = join(dir, name);
+                if (!/[.](ts|mjs|js)$/.test(file) || file === DEPLOY_ENTRY) continue;
+                if (DIRECT_DEPLOY.test(readFileSync(file, 'utf8'))) offenders.push(file);
+            }
+        }
+        expect(offenders).toEqual([]);
     });
 });

@@ -11,6 +11,8 @@
 // ║  歸屬危害區傷害（hazardDmg，危害區記住是哪個技能放的）     ║
 // ║  Agent.prototype.hp 攔截雙方總失血量，CombatSystem 施放入口║
 // ║  量施放次數。引擎程式碼除 sourceId 外不修改。              ║
+// ║  [ARCH] 佈陣只經 tools/sim/headlessBattle.ts（ADR 0028）， ║
+// ║  不自己挑出生格、不洗牌、不自己放人。                    ║
 // ╚══════════════════════════════════════════════════════════╝
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync } from 'node:fs';

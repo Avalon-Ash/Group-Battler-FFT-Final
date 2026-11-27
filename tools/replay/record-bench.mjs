@@ -11,6 +11,8 @@
 // ║  [ARCH] 回放檔只記開戰快照＋種子＋指令：模擬改了（平衡、AI） ║
 // ║  它仍然播得出來，但已不是同一場；要固定的場景就重錄並在      ║
 // ║  commit 訊息寫明原因。                                       ║
+// ║  [ARCH] 佈陣只經 tools/sim/headlessBattle.ts（ADR 0028）， ║
+// ║  不自己挑出生格、不洗牌、不自己放人。                    ║
 // ╚══════════════════════════════════════════════════════════╝
 import { createServer } from 'vite';
 import { writeFileSync, mkdirSync } from 'fs';
