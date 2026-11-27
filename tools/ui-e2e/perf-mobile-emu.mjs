@@ -2,6 +2,7 @@
 // ║ 職責：R5 手機版面／CPU 模擬量測；真實 rAF、自適應品質，不設門檻。
 // ║ 用法：node tools/ui-e2e/perf-mobile-emu.mjs --cpu=4 --seconds=60
 // ║       [--out=tools/ui-e2e/out/perf_mobile_emu.json] [--headed]
+// ║       [--query=lit=1]（附加網址參數，例：打光通道）
 // ║ 使用 Vite dev server，便於讀既有模組；程序 Private 絕對值可能約
 // ║ 2 GB，只比較差值。預設 headless；headed 幀時間較接近實機。
 // ║ 只模擬 CPU 降速、393×852／DPR 3／觸控版面；不模擬手機 GPU、
@@ -88,7 +89,7 @@ try {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpu });
     await cdp.send('Performance.enable');
     const bcdp = await browser.newBrowserCDPSession();
-    await page.goto(`${server.resolvedUrls.local[0]}?mute`, { waitUntil: 'networkidle' });
+    await page.goto(`${server.resolvedUrls.local[0]}?mute${arg('query', '') ? `&${arg('query', '')}` : ''}`, { waitUntil: 'networkidle' });
     await page.waitForFunction(() => window.__ASSETS_READY__ && window.__TACTICAL_ENGINE__?.renderer, null, { timeout: 60000 });
     env = await getEnvInfo(page);
 

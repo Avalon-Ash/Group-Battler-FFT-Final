@@ -114,3 +114,50 @@
 - 看圖（`npm run perf:lit -- --walk 60`，`tools/ui-e2e/out/lit-engine/`）：五群系的樹、岩柱、冰晶有暗面與邊光，地面有往右下的影子；`battle_frozen_walk.png` 是戰鬥中 60 幀連續畫面（跟著 BLU-0002 裁切，期間鏡頭在拉近、單位在交戰與短距離移動），幀與幀之間地面亮度與單位身上的光是連續的，沒有看到整塊跳動或閃爍。這一段主要是交戰，單純長距離走路的連續畫面沒有另外擷取；大型特效在泛光下仍然偏亮。
 - 沒做、看得到的：地塊側面沒有自己的類別（和頂面一樣吃月光，原型裡側面是暗的）；被前方高地塊擋住的單位，遮罩會多出一塊（§6 第三項，凍結幀裡沒遇到明顯的例子，沒處理）；貼地的大型法陣仍被當成地面壓暗；單位死亡時光瞬間熄掉；投影物是橢圓腳印，影子沒有精靈的形狀。
 - 驗收指令與結果寫在這個 commit 的訊息裡。
+
+### E 量測與收尾（完成；盲評只有一位）
+
+量測都在階段 D 的 commit 上跑，一次只跑一個工具。瀏覽器都加 `--force_high_performance_gpu`（`lib/perf-common.mjs`），顯示卡字串是 `ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 (0x00002786) Direct3D11 vs_5_0 ps_5_0, D3D11)`（`perf:frames` 的 `env.gpu`、`perf:lit` 的 `lit-shots.json`）；`mem-probe` 不印顯示卡字串，它只量畫布位元組數。
+
+**桌機幀時間**（`PERF_SCENARIOS=battle_calm,battle_vfx_storm,replay_magma20 npm run perf:frames`，打光版加 `PERF_QUERY=lit=1`；2560×1440、DPR 1、有視窗、20 秒 × 3 輪）。這台螢幕這次的刷新率量到約 56 Hz（工具的 `refreshRate`：關 56、開 28；不是平常的 239），所以中位數被 vsync 釘在 17.7 ms，看得出差別的是掉幀：
+
+| 情境 | 版本 | 中位 ms | p90 | p95 | p99 | 平均 FPS | 1% low FPS |
+| :-- | :-- | --: | --: | --: | --: | --: | --: |
+| battle_calm | 關 | 17.6 | 18.0 | 18.1 | 18.6 | 56.6 | 37.8 |
+| battle_calm | 開 | 17.9 | 18.1 | 18.1 | 35.5 | 55.0 | 27.6 |
+| battle_vfx_storm | 關 | 17.8 | 18.1 | 18.1 | 35.3 | 55.5 | 28.0 |
+| battle_vfx_storm | 開 | 18.0 | 35.3 | 35.9 | 36.1 | 48.4 | 19.3 |
+| replay_magma20 | 關 | 17.7 | 18.1 | 18.1 | 35.4 | 55.9 | 28.0 |
+| replay_magma20 | 開 | 17.9 | 18.4 | 35.3 | 36.0 | 52.0 | 26.4 |
+
+打光在 2560×1440 的特效壓力下會多掉一拍 vsync（平均少約 7 FPS）。因為被 vsync 釘住，量不到「每幀多幾毫秒」；要那個數字得在 239 Hz 下或關掉 vsync 重量。原型的 0.22～0.41 ms 只算 GPU 著色，不含這裡多出來的畫布上傳與遮罩重畫。
+
+**手機模擬**（`node tools/ui-e2e/perf-mobile-emu.mjs --cpu=4 --seconds=45`，打光版加 `--query=lit=1`；393×852、DPR 3、CPU 降速 4 倍、自適應品質。只模擬 CPU，不模擬手機 GPU）：
+
+| 情境 | 版本 | 平均 FPS | 1% low | p95 ms | 降到階層 3 的時間 |
+| :-- | :-- | --: | --: | --: | :-- |
+| showcase | 關 | 44.07 | 9.75 | 36.10 | 21.07 秒 |
+| showcase | 開 | 30.70 | 7.45 | 54.90 | 5.78 秒 |
+| eight-ults | 關 | 46.69 | 14.99 | 36.00 | 一開始就在 3 |
+| eight-ults | 開 | 26.13 | 9.60 | 71.50 | 一開始就在 3 |
+
+手機模擬明顯變差（平均 FPS 少三到四成）。照 §5 這是要使用者決定的事；目前預設關，手機不受影響。主要成本推測是每幀五張畫布上傳、特效與障礙物多畫一次、每像素 16 次投影取樣，沒有逐項拆開量。
+
+**手機解析度的畫布記憶體**（`node tools/ui-e2e/mem-probe.mjs 60 mute` 與 `… 60 "mute&lit=1"`；393×852、DPR 3）：打光通道自己的 7 張 Canvas 畫布合計 6 MB（工具的「最高時的組成」那一行：`LightingPass×7=6MB`）。兩次跑到的局數不同（關 2 局、開 1 局），畫布總量（中位 387 對 268 MB）是不同內容，**不能拿來比**。工具量不到 GL 貼圖：照程式裡的格式估算（主畫布像素數 N，世界與背景貼圖各 4N、三張半解析度遮罩共 3N、兩張全解析度 RGBA16F 各 8N、投影物與兩張泛光半解析度 RGBA16F 共 6N，合計約 33N 位元組），在 N＝786×1704 時約 44 MB。這是估算，不是量到的。
+
+**盲評**（`reviewer` 子代理、Sonnet，只讀圖與 `visual-experiment.md` §2、§3，沒被告知哪版是新的；摘錄在 `docs/plans/visual-experiment/E_lit_blind_review_sonnet.md`）：六張平均，打光關 4.3、打光開 7.0（VOID 5→8、FOREST 4→7、ICE 4→8、MAGMA 4→5、DESERT 4→7、戰鬥幀 5→7）。開案書寫兩位評審取低分；另一位是 Codex Astra，HANDOFF 記使用者 11-23 說 Codex 額度這週不給本專案，這次的排程也只授權 Sonnet 評審，所以**只有一位，沒有取低分**。評審指出打光版的退步：
+- 沒進光池的紅方單位變成暗褐色、像剪影，陣營紅看不出來。
+- 戰鬥幀裡黃綠色的施法預警格變成淡白黃，範圍預警比原本弱（它畫在地塊 op 的貼地鋪設層裡，被當成環境降彩、壓暗）。
+- DESERT 地塊變粉紫偏白、群系感變弱；FOREST 有兩棵樹被點光打成黃綠色搶戲；MAGMA 的裂紋仍是全場最高對比。
+
+**同步**：`RenderSpec` §1 尾段補上 `LightingPass.tag`；`LightingPass.ts`、`LightingGate.ts`、`shaders.ts`、`constants/lighting.ts`、`RenderPipeline.ts` 的檔頭在各階段的 commit 已更新；`visual-experiment.md` 加 §14。`perf-frames.mjs` 加 `PERF_QUERY`、`perf-mobile-emu.mjs` 加 `--query`（只是附加網址參數）。
+
+### 沒做到與沒驗證的事（整輪）
+
+- iPhone 實機沒看過；手機 GPU 的成本沒有量（手機模擬只降 CPU）。WebKit 上的 WebGL2 與 `EXT_color_buffer_float` 沒測（拿不到時會退回原路徑，這條退路只在無頭測試環境 jsdom 與「旗標關閉」兩種情況跑過，沒有在真的不支援的瀏覽器上看過）。
+- context 遺失與還原的路徑寫了但沒有實際觸發過。
+- 桌機幀時間被 56 Hz 的 vsync 釘住，沒有每幀毫秒數的差。
+- 打光開啟時沒有保真基準（照開案書，方向定案後才重錄）；`perf:fidelity` 只保證關閉時和 main 相同。
+- 視覺上沒做的：地塊側面的類別（現在和頂面一樣吃月光）、被前方高地塊擋住的單位遮罩、貼地法陣與施法預警格的自發光、單位死亡時光的淡出、精靈形狀的影子、烘焙法線圖、群系各自的光色表（只有 MAGMA 的彩度覆寫）。
+- 長距離走路的連續畫面沒有單獨擷取；`perf:lit --walk` 跟到的是交戰中的單位。
+- 進入點只剩 0.1 kB（257.4／257.5 kB）：之後動 `RenderPipeline` 或任何首屏程式都可能超出預算。

@@ -108,7 +108,9 @@ const server = await createServer({
     logLevel: 'error',
 });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&mute`;
+// PERF_QUERY：附加的網址參數（例：PERF_QUERY=lit=1 量打光通道，ADR 0029），寫進輸出的 env.query
+const EXTRA_QUERY = process.env.PERF_QUERY ? `&${process.env.PERF_QUERY}` : '';
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&mute${EXTRA_QUERY}`;
 
 console.log('================================================================');
 console.log('  PERF-FRAMES BENCHMARK (2560x1440, DPR 1, RTX 4070)');
@@ -488,6 +490,7 @@ const outputData = {
     timestamp: new Date().toISOString(),
     env: {
         gpu: envInfo.gpu,
+        query: process.env.PERF_QUERY ?? '',
         dpr: envInfo.dpr,
         viewport: envInfo.viewport,
         screen: envInfo.screen,
