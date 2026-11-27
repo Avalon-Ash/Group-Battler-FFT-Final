@@ -30,9 +30,9 @@
 
 ## 第一次（不算盲評，分數偏高）
 
-評審：`reviewer` 子代理（Sonnet），只讀圖與 `docs/plans/visual-experiment.md` §2、§3，沒有被告知哪一版是新的。
+評審：`reviewer` 子代理（Sonnet），只讀圖與 `docs/plans/visual-experiment.md` §2、§3。派工單沒有明說哪一版是新的，但寫了 L＝`_off`、R＝`_lit`，等於說了。
 圖：`npm run perf:lit` 產生的 `tools/ui-e2e/out/lit-engine/<場景>_compare.png`（左 L＝`?lit=0`，右 R＝`?lit=1`；階段 D 的 commit）。
-只有一位評審（開案書寫兩位取低分；Codex 這週不給本專案，另一位沒有取）。下面是評審報告的摘錄，分數與位置照原文。
+下面是這位評審報告的摘錄，分數與位置照原文。
 
 ## 分數（A 分離／B 體積／C 材質／D 層次／E 可讀性，各 0～2；E 以 L 為現況）
 
