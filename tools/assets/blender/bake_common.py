@@ -1,6 +1,6 @@
 """Shared Blender bake setup for sprite-style renders (obstacles, CC bodies): camera, toon material, outline, normalise.
 
-Camera: orthographic, elevation 30deg = engine ISO_SCALE_Y 0.5, sun from upper left (same as render_unit.py).
+Camera: orthographic, elevation 30deg = engine ISO_SCALE_Y 0.5, key sun from upper left (SUN_EULER_DEG; render_unit.py reads it from here).
 World scale: 1 Blender unit = HEX_SIZE (hex circumradius). PX_PER_HEX pixels per unit; the ground origin (cell centre)
 lands at pixel ANCHOR. Imported by render_obstacle.py and render_cc_body.py (run inside Blender: blender -b -P ...).
 """
@@ -15,13 +15,41 @@ ELEVATION_DEG = 30.0
 OUTLINE_RGB = (0.07, 0.05, 0.05)
 OUTLINE_PX = 2.0
 
+# Bake lighting, single source for render_unit.py / render_obstacle.py / render_cc_body.py / render_status_art.py.
+# TOON_RAMP: (position on the diffuse-lit value, multiplier colour); CONSTANT interpolation = 3 flat bands
+# (ART_STYLE_BIBLE 11.1). The darkest band leans blue on purpose.
+TOON_RAMP = ((0.0, (0.50, 0.50, 0.58)), (0.38, (0.80, 0.80, 0.82)), (0.72, (1.0, 1.0, 1.0)))
+SUN_ENERGY = 3.0
+SUN_EULER_DEG = (50.0, 10.0, -35.0)   # key light from the upper left (ART_SPEC 1.2)
+
+
+def build_toon_ramp(nt):
+    """Add the shared constant colour ramp to a node tree and return the node."""
+    ramp = nt.nodes.new('ShaderNodeValToRGB')
+    ramp.color_ramp.interpolation = 'CONSTANT'
+    (pos0, rgb0), *rest = TOON_RAMP
+    ramp.color_ramp.elements[0].position = pos0
+    ramp.color_ramp.elements[0].color = (*rgb0, 1)
+    for pos, rgb in rest:
+        ramp.color_ramp.elements.new(pos).color = (*rgb, 1)
+    return ramp
+
+
+def add_key_sun(scene):
+    """Add the shared key sun and return the object."""
+    sun = bpy.data.objects.new('Sun', bpy.data.lights.new('Sun', 'SUN'))
+    sun.data.energy = SUN_ENERGY
+    scene.collection.objects.link(sun)
+    sun.rotation_euler = tuple(math.radians(d) for d in SUN_EULER_DEG)
+    return sun
+
 
 def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
 def toon(mat, base_rgb=None, tint=None, emission=None, emission_strength=0.0):
-    """Same 3-band toon ramp as render_unit.py; optional additive emission (crystal glow, obsidian cracks)."""
+    """Shared 3-band toon ramp (TOON_RAMP); optional additive emission (crystal glow, obsidian cracks)."""
     mat.use_nodes = True
     nt = mat.node_tree
     src = None
@@ -39,16 +67,11 @@ def toon(mat, base_rgb=None, tint=None, emission=None, emission_strength=0.0):
     emit = nt.nodes.new('ShaderNodeEmission')
     diff = nt.nodes.new('ShaderNodeBsdfDiffuse')
     s2r = nt.nodes.new('ShaderNodeShaderToRGB')
-    ramp = nt.nodes.new('ShaderNodeValToRGB')
+    ramp = build_toon_ramp(nt)
     mul = nt.nodes.new('ShaderNodeMix')
     mul.data_type = 'RGBA'
     mul.blend_type = 'MULTIPLY'
     mul.inputs['Factor'].default_value = 1.0
-    ramp.color_ramp.interpolation = 'CONSTANT'
-    ramp.color_ramp.elements[0].position = 0.0
-    ramp.color_ramp.elements[0].color = (0.50, 0.50, 0.58, 1)
-    ramp.color_ramp.elements.new(0.38).color = (0.80, 0.80, 0.82, 1)
-    ramp.color_ramp.elements.new(0.72).color = (1.0, 1.0, 1.0, 1)
     nt.links.new(diff.outputs['BSDF'], s2r.inputs['Shader'])
     nt.links.new(s2r.outputs['Color'], ramp.inputs['Fac'])
     nt.links.new(ramp.outputs['Color'], mul.inputs['A'])
@@ -83,10 +106,7 @@ def toon(mat, base_rgb=None, tint=None, emission=None, emission_strength=0.0):
 
 def setup_scene(outline_px=OUTLINE_PX):
     scene = bpy.context.scene
-    sun = bpy.data.objects.new('Sun', bpy.data.lights.new('Sun', 'SUN'))
-    sun.data.energy = 3.0
-    scene.collection.objects.link(sun)
-    sun.rotation_euler = (math.radians(50), math.radians(10), math.radians(-35))
+    add_key_sun(scene)
     cam = bpy.data.objects.new('Cam', bpy.data.cameras.new('Cam'))
     cam.data.type = 'ORTHO'
     cam.data.ortho_scale = max(RES_X, RES_Y) / PX_PER_HEX
