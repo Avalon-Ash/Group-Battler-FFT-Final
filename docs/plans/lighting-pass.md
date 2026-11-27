@@ -83,3 +83,22 @@
   - 先把主畫布（此時只有背景）畫進世界畫布再畫世界：六張的四個數字和階段 B **逐位數相同**（WebGL 上傳、輸出、貼回是逐位元的）。C1 採用這個做法。
 - `node tools/ui-e2e/runtime-smoke.mjs`：PASS。`npm run lint`、`npm test`（184 檔 1704 項）、`npm run build`（進入點 257.2／257.5 kB）、`npm run knip`（無新增）都過。`node tools/ui-e2e/perf-ab.mjs --assert` 的結果寫在 commit 訊息。
 - 給 C2 的結論：打光時需要知道哪裡是世界、哪裡是天空。備案寫「另傳一張世界 alpha」；C2 改用透明底的世界畫布（它的 alpha 就是世界覆蓋範圍，不必多畫一次）加上主畫布的背景貼圖，兩張在著色器裡合成。透明底那一點點邊緣差異只存在於打光開啟時，那時畫面本來就不同。
+
+### C2 打光（完成）
+
+- 開關：`?lit=1` 開、`?lit=0` 關，沒寫時看 `RENDER_QUALITY.LIT_DEFAULT_ON`（**false**）。預設關是因為保真工具的網址沒有這個旗標、基準又不能重錄；關閉時不載入打光 chunk、不建 GL context，`drawWorld` 直接畫主畫布（原路徑）。
+- 每幀流程（`engine/renderers/lighting/LightingPass.ts`、`shaders.ts`；參數全在 `constants/lighting.ts`）：
+  1. 世界畫在透明底的世界畫布；主畫布此時只有背景。兩張都上傳成貼圖。
+  2. 點光：每個存活單位一盞暖色光（藍方偏金、紅方偏橘紅），以 instance 矩形加法畫進光照貼圖，所以成本跟光照到的面積走、不跟盞數乘全螢幕走；上限 `MAX_LIGHTS` 64，手動模式 40 人不會截掉。
+  3. 著色：世界 ×（環境光＋月光＋點光）；環境降彩 `ENV_CHROMA`；背景只調色；輸出線性 HDR（RGBA16F）。
+  4. 泛光（半解析度、兩次橫直模糊）、曝光、暗角、filmic 色調映射、暗部偏藍亮部偏暖，貼回主畫布。
+- 長度單位改成世界像素（原型的螢幕像素 ÷ 原型擷取時的鏡頭縮放 0.857），著色器乘上本幀相機縮放，鏡頭拉近拉遠時光的大小跟著地圖走。
+- **和開案書不同的地方**：
+  - 「特效用亮度門檻判定自發光」做不到：FOREST 的地塊彩度 0.91～1.00、DESERT 的障礙物亮度中位數 157 都高過特效（147），門檻版把整片草地和樹當成發光（截圖看過）。改成 §6 寫的備案並提前到這一階段：RenderPipeline 每畫完一個 op 呼叫 `LightingPass.tag`，把單位（剪影）、特效／投射物／施法圈／危害、玩法標示（射程、預警、縮圈格）各另畫一張**半解析度**遮罩，障礙物從遮罩挖掉自己。地塊不重畫。
+  - 玩法標示不打光、不降彩（`INFO_GAIN` 1.0）：否則外圈縮圈預警格變成淡粉色，危險看不出來。
+  - 打光開啟時不跑 `applyToneGrade`（通道自己做色調映射，疊兩次會過飽和；也省掉一次全畫面濾鏡）。
+- 這一階段還沒有的（D 做）：直立物的法線與投影、接觸暗部。現在樹、岩柱、單位都被當成平躺的地面打光，所以樹冠偏亮偏白。貼地的大型法陣（鋪設層，屬於地塊 op）沒有進特效遮罩，會被環境光壓暗。單位死亡時它的光是瞬間熄掉的。
+- 驗收：
+  - `npm run perf:fidelity`（沒有 lit 旗標＝關）：六張的四個數字和階段 B 逐位數相同。
+  - `npm run perf:lit`（新工具 `tools/ui-e2e/lit-shots.mjs`）：五群系＋戰鬥幀的 `_off`／`_lit`／`_compare` 在 `tools/ui-e2e/out/lit-engine/`；`lit=1` 的狀態是 `active ANGLE (NVIDIA GeForce RTX 4070 … D3D11)`、`lit=0` 是沒載入，兩邊 0 個頁面錯誤。
+  - `npm run lint`、`npm test`（184 檔 1704 項，`constants-snapshot.json` 與匯出清單加了 `LIGHTING`）、`npm run build`（進入點 257.4／257.5 kB，打光 chunk 14.1 kB）、`npm run knip` 都過；`runtime-smoke` 與 `perf-ab --assert` 的結果在 commit 訊息。

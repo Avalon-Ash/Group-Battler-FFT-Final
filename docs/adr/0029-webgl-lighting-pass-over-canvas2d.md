@@ -16,7 +16,7 @@
 - 取代 0001 的第一條（禁用任何 WebGL）。0001 的另外兩條由本份接手，內容不變：特效一律走預烘焙零件；執行期渲染路徑維持 0 個每幀 `shadowBlur`。
 - 世界畫面仍由現有 Canvas 2D 管線畫出；另加一個 WebGL2 全螢幕通道做打光與後製（環境光、方向光、點光、地面投影、泛光、色調映射），HUD 不打光。
 - 不引入 Three.js、Pixi.js 或其他渲染函式庫，只用瀏覽器的 WebGL2 API；WebGL 程式碼只放在 `engine/renderers/lighting/`。
-- 光源、顏色、強度集中在 `constants/` 的一張打光參數表（階段 C2 建立，見開案書）；著色器只讀它。
+- 光源、顏色、強度集中在 `constants/lighting.ts` 一張表；著色器只讀它。
 - 打光通道關閉（`?lit=0`）、WebGL2 或 `EXT_color_buffer_float` 拿不到、context 遺失時，走原本的 Canvas 2D 路徑，畫面與沒有這個通道時相同。
 - 光源與投影物的位置由引擎每幀提供（`UnitFrame` 與 render list），不從畫面反推。
 

@@ -105,6 +105,10 @@ export const RENDER_QUALITY = {
     GLOW_QUERY_KEY: 'glow',
     /** 網址 ?interp=0 關掉兩個模擬 tick 之間的畫面插值（UnitFrameStore.build，契約 R1），給實機 A/B 與診斷 */
     INTERP_QUERY_KEY: 'interp',
+    /** 打光通道（ADR 0029）：網址 ?lit=1 開、?lit=0 關；沒寫時看 LIT_DEFAULT_ON。外觀參數在 constants/lighting.ts */
+    LIT_QUERY_KEY: 'lit',
+    /** 預設關：保真基準只對應 Canvas 2D 路徑；要不要預設開由使用者決定 */
+    LIT_DEFAULT_ON: false,
 } as const;
 
 /**

@@ -15,13 +15,14 @@ const map = JSON.parse(probeFixture(fidelity, /^const FIDELITY_MAP = (\{[^\n]+\}
 
 export const desktopProbe = { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 };
 
-export async function openFrozenPage(context, url, install) {
+/** extraQuery: appended to the fidelity query (e.g. '&lit=1'); the fixture itself is unchanged. */
+export async function openFrozenPage(context, url, install, extraQuery = '') {
     const page = await context.newPage();
     // Manual rendering can also advance time without invoking the app's RAF loop.
     await page.addInitScript({ content: `(${initClock}
         window.__advanceProbeClock = (ms) => { syntheticTime += ms; };
     })();` });
-    await page.goto(`${url}?quality=0&mute`, { waitUntil: 'networkidle' });
+    await page.goto(`${url}?quality=0&mute${extraQuery}`, { waitUntil: 'networkidle' });
     await page.waitForFunction(() => window.__ASSETS_READY__ && window.__TACTICAL_ENGINE__?.renderer,
         null, { polling: 100, timeout: 15000 });
     if (install) await install(page);
