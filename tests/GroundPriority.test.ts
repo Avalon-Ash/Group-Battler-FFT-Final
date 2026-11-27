@@ -71,12 +71,12 @@ describe('ground fill priority', () => {
         const strategy = new GridRenderStrategy();
         const list = new RenderList();
         strategy.submit(cache, list, engine, null, null, null, [], 0, 'IDLE', 0);
-        expect(groundPriority.flagsAt(tile.q, tile.r)).toBe(F.Warning | F.Cast | F.Hazard | F.Status);
+        expect(groundPriority.flagsAt(tile.q, tile.r)).toBe(F.Warning | F.Cast | F.Hazard | F.Status | F.Light); // F.Light：單位腳下那格有暖色光池（GRID_OVERLAY.WARM_POOL），優先序最低、不影響其他層
         expect(groundPriority.castColorAt(tile.q, tile.r)).toBe(getFactionSkin(Team.RED).fallbackBodyColor);
         a.targetHex = { q: a.q, r: a.r };
         list.reset();
         strategy.submit(cache, list, engine, null, null, null, [], 0, 'IDLE', 0);
-        expect(groundPriority.flagsAt(tile.q, tile.r)).toBe(F.Warning | F.Hazard | F.Status);
+        expect(groundPriority.flagsAt(tile.q, tile.r)).toBe(F.Warning | F.Hazard | F.Status | F.Light);
         expect(groundPriority.castColorAt(tile.q, tile.r)).toBeUndefined();
     });
 });

@@ -35,6 +35,12 @@ export const GRID_OVERLAY = {
     ZONE_LIFT: 1,
     /** 地格光源（lightColor）：screen 疊加，不透明度＝min(MAX_ALPHA, intensity × GAIN) */
     LIGHT: { MAX_ALPHA: 0.5, GAIN: 0.4 },
+    /**
+     * 暖色光池（F6 試作，docs/plans/visual-experiment.md）：存活單位腳下那格與相鄰六格走上面的 LIGHT 層（screen 疊色）。
+     * CENTER／RING＝地塊光強度（不透明度＝min(LIGHT.MAX_ALPHA, 強度 × LIGHT.GAIN)）；同一格被多個單位照到取最大值，不累加。
+     * 優先序和主角地塊光相同（最低）：同格有預警、危害、區域、施法範圍時讓開；主角那格仍用主角的顏色。
+     */
+    WARM_POOL: { COLOR: '#c47a3e', CENTER: 0.9, RING: 0.4 },
     /** 預警／射程／滑過的疊層再往上 LIFT px */
     MARK_LIFT: 2,
     /**

@@ -856,6 +856,11 @@
       "MAX_ALPHA": 0.5,
       "GAIN": 0.4
     },
+    "WARM_POOL": {
+      "COLOR": "#c47a3e",
+      "CENTER": 0.9,
+      "RING": 0.4
+    },
     "MARK_LIFT": 2,
     "WARNING": {
       "FREQ": 5,
