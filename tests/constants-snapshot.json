@@ -1387,8 +1387,7 @@
     "GLOW_QUERY_KEY": "glow",
     "INTERP_QUERY_KEY": "interp",
     "LIT_QUERY_KEY": "lit",
-    "LIT_DEFAULT_ON": true,
-    "LIT_MAX_TIER": 1
+    "LIT_DEFAULT_ON": true
   },
   "SCREEN_CONSTANTS": {
     "DEFAULT_WIDTH": 1200,

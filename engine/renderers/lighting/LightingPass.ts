@@ -24,8 +24,9 @@
 // ║  → 著色（環境光、月光與投影、接觸暗部、邊光、自發光、背景   ║
 // ║  調色）→ 泛光 → 特效餘光（泛光再抹開，留給下一幀當光源）    ║
 // ║  → 合成（曝光、暗角、色調映射）。                           ║
-// ║  [ARCH] 通道不能用（render target 建不起來、context 遺失、  ║
-// ║         dispose 之後）時 present 把世界畫布原樣疊回主畫布。 ║
+// ║  [ARCH] 通道不能用（render target 建不起來、context 遺失）  ║
+// ║         時 present 把世界畫布原樣疊回主畫布；context 還原   ║
+// ║         後重建資源、繼續打光。沒有主動釋放的路徑（ADR 0030）║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { ISO_SCALE_Y, LIGHTING, RENDER_QUALITY, UNIT_SPRITE, type LightingLook } from '../../../constants';
@@ -183,8 +184,6 @@ export class LightingPass {
             alpha: false, antialias: false, depth: false, stencil: false, failIfMajorPerformanceCaveat: true,
         });
         if (!gl) throw new Error('webgl2');
-        // HDR 中間貼圖（RGBA16F）要能當 render target
-        if (!gl.getExtension('EXT_color_buffer_float')) throw new Error('EXT_color_buffer_float');
         this.gl = gl;
         const dbg = gl.getExtension('WEBGL_debug_renderer_info');
         this.gpu = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
@@ -275,6 +274,9 @@ export class LightingPass {
     /** 建立（或 context 還原後重建）所有 GL 資源；render target 在 present 依畫布尺寸建立 */
     private createResources(): void {
         const gl = this.gl;
+        // HDR 中間貼圖（RGBA16F）要能當 render target。擴充在 context 還原後會失效，所以每次重建都重新啟用；
+        // 少了這一步，還原後 render target 建不起來，通道會永久停用（2026-11-28 用 WEBGL_lose_context 實測到）
+        if (!gl.getExtension('EXT_color_buffer_float') && !gl.getExtension('EXT_color_buffer_half_float')) throw new Error('EXT_color_buffer_float');
         this.tCaster = this.tLight = this.tHdr = this.tBloomA = this.tBloomB = this.tGlowA = this.tGlowB = null;
 
         const quad = gl.createBuffer();
@@ -528,13 +530,6 @@ export class LightingPass {
         gl.bindFramebuffer(gl.FRAMEBUFFER, t ? t.fbo : null);
         gl.viewport(0, 0, w, h);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, QUAD_VERTS);
-    }
-
-    /** 釋放 GL context 與離屏畫布（LightingGate 判定這台機器跑不動時呼叫）；之後這個物件不再使用 */
-    public dispose(): void {
-        this.lost = true;
-        this.gl.getExtension('WEBGL_lose_context')?.loseContext();
-        for (const c of [this.world, this.glCanvas, ...this.maskCtxs.map((m) => m.canvas)]) { c.width = 0; c.height = 0; }
     }
 
     /** 這一幀的世界已經畫在世界畫布上、通道卻不能用（context 遺失、render target 建不起來）：不打光，原樣疊回主畫布 */

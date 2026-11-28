@@ -1109,3 +1109,21 @@
 | ADR 0029 取代 0001；`AGENTS.md` §1 第 4 點、`CLAUDE.md` 架構不變式、`METHODOLOGY.md` §2 改成「WebGL 只用在 `engine/renderers/lighting/`，不引入渲染函式庫」 | 排程工作階段照這條把 WebGL 程式碼限定在一個目錄、沒有引入函式庫（`git diff main --stat` 只有 `lighting/` 三個檔用到 GL） | helped |
 | 全域 `art-benchmark` skill（開案先定標、交圖盲評） | 第一輪盲評就判 F1 不量產，省掉整組重烘；排程工作階段的第一位評審派工單洩漏了版本，靠「盲評要匿名」這條才發現並重評 | helped |
 | 排程任務的派工單寫「驗收失敗兩次就停、不改驗收」 | C1 的 0 差異驗收第一種做法沒過，它照備案改做法而不是放寬門檻（`lighting-pass.md` §7 C1） | helped |
+### DR. 2026-11-28 打光常開：拿掉自動關閉、所有裝置預設開、context 還原後繼續打光（ADR 0030；主席 Fable 5.2；使用者 11-28 實機回饋「沒兩下就被關掉了，不論如何都不可以被關掉」「預設開，然後我們要優化特效系統」）
+- **結論**：DQ 上線當天使用者在桌機看到打光很快被關掉。重現後確認不是選到內顯：一般 Chrome 視窗用的是 RTX 4070，打光開著 45～192 FPS，幀率短暫低於 45 就觸發 `LIT_MAX_TIER` 的自動關閉，關掉後 56～229 FPS。照使用者的決定拿掉自動關閉，手機也預設開；之後的效能工作改成降打光自己的成本（開案書 `docs/plans/lighting-cost.md`，等使用者選先做哪一包）。
+- **做法**：`LightingGate` 不再讀品質階層與裝置類別（`requested()` 只看網址與 `RENDER_QUALITY.LIT_DEFAULT_ON`）；刪 `RENDER_QUALITY.LIT_MAX_TIER` 與 `LightingPass.dispose`。跑不動時自適應品質照舊降解析度，打光通道的畫布跟著變小。
+- **順帶修到的錯**：用 `WEBGL_lose_context` 觸發 context 遺失再還原，還原後 `lost` 一直是 true、打光回不來。原因是擴充在還原後失效，`EXT_color_buffer_float` 只在建構子啟用一次，render target 建不起來就被判成永久停用。改成 `createResources` 每次重建都重新啟用；同時接受 `EXT_color_buffer_half_float` 當備援（中間貼圖是 RGBA16F）。
+- **量測**（探針都不進版控，在 `tools/ui-e2e/out/`）：
+  - 線上版時間軸：`node tools/ui-e2e/out/lit-timeline-probe.mjs "https://avalon-ash.github.io/Group-Battler-FFT-Final/" 75`（一般 Chrome 視窗、不加 GPU 旗標、2544×1345；顯示卡字串 `ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 (0x00002786) Direct3D11 vs_5_0 ps_5_0, D3D11)`）：第 48 秒 `__LIGHTING__` 變 `shed`。
+  - 階層與 context：`node tools/ui-e2e/out/lit-timeline-probe.mjs local 3 --torture`：階層 0→1→2→3→2→0 全程 `active`，世界畫布 2544×1345 → 1908×1008 → 1272×672 再回來；context 遺失時 `lost` true、畫面是未打光的原路徑、戰鬥照跑；還原後 `lost` false、畫面恢復打光（截圖 `tools/ui-e2e/out/lit-always-on/lost-vs-restored.png`）。修正前還原後 `lost` 仍是 true。
+  - 內顯：同一工具加 `--lowgpu --size=1280x720`，48 秒（`ANGLE (AMD, AMD Radeon(TM) Graphics …)`、1264×625、開發伺服器）：全程 `active`，第 8 秒起在階層 3，之後 30～41 FPS（第 0 秒 8 FPS、第 8 秒 13 FPS 是降階前）。
+  - 觸控模擬：加 `--touch --gpu`（393×660、DPR 3、`pointer: coarse`）：沒寫 `lit` 就是 `active`。
+  - 打光成本逐項關閉：見開案書 §2（場景不穩，只當初步證據）。
+- **手機解析度的畫布記憶體**（`node tools/ui-e2e/mem-probe.mjs 60 "mute&quality=0"` 與 `… "mute&quality=0&lit=0"`，393×852、DPR 3、品質階層釘 0，各三次，中位／最高 MB）：打光開 818／925（4 局）、458／525、431／490；打光關 403／479、482／606、358／475（其餘都 3 局）。同設定三次之間就差到一倍（抽到的場景不同），打光開關的差在這個雜訊之內；打光通道自己的畫布是 7 張 10 MB（第一次那筆記成 21 張 21 MB，工具用呼叫堆疊歸類，把經過 `tag` 建立的別的快取也算進去）。GL 貼圖工具量不到，DQ 的估算（階層 0 約 44 MB）沒有變。
+- **沒驗證的**：iPhone 實機（幀數、發熱、分頁回收、真實的 context 遺失）、WebKit 上兩個擴充的支援；`EXT_color_buffer_half_float` 那條路在桌機沒有被走到（桌機有 `EXT_color_buffer_float`）。
+- **驗證**（`feat/lit-always-on`）：lint、`npm test`、build（進入點 257,372／257,500 位元組）、knip、`runtime-smoke`、`perf:guard`（保真六張過、效能護欄過）、`e2e:ui`、`e2e:play`、`perf:lit` 全部退出碼 0（紀錄 `tools/ui-e2e/out/gates-lit-always-on.log`，未進版控）。
+- **回退**：revert 這個 commit 回到「桌機開、觸控關、降到解析度階層就關」；只想關掉效果的話把 `RENDER_QUALITY.LIT_DEFAULT_ON` 改成 false。
+
+| 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+| :-- | :-- | :-- |
+| ADR 0030（只改 0029 的預設與自動關閉一條，0029 維持採用） | 還沒有後續工作用到 | unverified |
