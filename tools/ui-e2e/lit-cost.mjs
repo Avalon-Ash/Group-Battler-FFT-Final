@@ -8,7 +8,7 @@
  * Canvas 2D / JS work and the queued GPU work.
  *
  * Run:
- *   node tools/ui-e2e/lit-cost.mjs [--size 2560x1440] [--frames 120] [--windows 3] [--warmup 150] [--only a,b] [--repeat 1] [--no-warm-page]
+ *   node tools/ui-e2e/lit-cost.mjs [--size 2560x1440] [--frames 120] [--windows 3] [--warmup 150] [--only a,b] [--repeat 1] [--no-warm-page] [--shot]
  * An untimed 'full' page runs first (the first page of a run measures ~1 ms slow); full_again / direct_again repeat
  * the two references on later pages so one run shows its own page-to-page noise.
  * Output:
@@ -42,6 +42,9 @@ const REPEAT = Number(arg('--repeat', 1));
 /** Roster seed: 20 units on the board (asserted below, so a changed dealer cannot silently shrink the scene). */
 const ROSTER_SEED = 42;
 const MIN_UNITS = 8;
+// P4 extra lights / glows: ground-plane radius (world px, about a large glow part), light height and intensity, and
+// the side of the baked glow sprite (device px). Passed into the page with the variant id.
+const P4 = { RADIUS: 100, LIGHT_Z: 40, INTENSITY: 2, SPRITE_PX: 128 };
 
 /** id → what is switched off. 'full' is the shipped lighting pass; 'direct' is the Canvas 2D path (lit=0). */
 const VARIANTS = {
@@ -75,6 +78,17 @@ const VARIANTS = {
     tag_terrain_first: 'mask draws replayed after the world: terrain ops first (contiguous drape blits), then the rest',
     tag_deferred: 'same mask draws in the same order, all replayed after the world (no interleaving)',
     no_lights: 'point-light pass gets 0 lights',
+    lights16: 'P4: 16 extra point lights (with the ground shadow walk), radius P4.RADIUS',
+    lights32: 'P4: 32 extra point lights (shadow)',
+    lights64: 'P4: 64 extra point lights (shadow)',
+    lights64_wide: 'P4: 64 extra point lights (shadow), radius of a unit light',
+    lightsns0: 'P4: light shader without the shadow walk (STEPS 0), no extra lights (base of the lightsns rows)',
+    lightsns16: 'P4: light shader without the shadow walk, 16 extra lights',
+    lightsns32: 'P4: light shader without the shadow walk, 32 extra lights',
+    lightsns64: 'P4: light shader without the shadow walk, 64 extra lights',
+    glow16: 'P4: 16 extra glow sprites, drawn into the world (lighter) and the VFX mask like a glow part',
+    glow32: 'P4: 32 extra glow sprites',
+    glow64: 'P4: 64 extra glow sprites',
     full_no_vfx: 'lighting on; VFX-type ops not drawn at all',
     direct_no_vfx: 'direct path; VFX-type ops not drawn',
     full_again: 'lighting as shipped, measured again on a later page (page-to-page noise within one run)',
@@ -83,7 +97,8 @@ const VARIANTS = {
 const ids = Object.keys(VARIANTS).filter((id) => !only.length || only.includes(id) || id === 'full');
 
 /** Runs in the page: install the variant (or nothing for 'full' / 'direct'). */
-async function install(id) {
+async function install({ id, P4 }) {
+    const { RADIUS: P4_RADIUS, LIGHT_Z: P4_LIGHT_Z, INTENSITY: P4_INTENSITY, SPRITE_PX: P4_SPRITE_PX } = P4;
     const { RenderDispatcher } = await import('/engine/renderers/RenderDispatcher.ts');
     const { RenderOpType: T } = await import('/engine/renderers/RenderList.ts');
     const isVfx = (op) => op.type === T.VFX || op.type === T.PROJECTILE || op.type === T.HAZARD || op.type === T.AURA || op.type === T.OVERLAY;
@@ -256,6 +271,57 @@ async function install(id) {
             };
             break;
         }
+        case 'lights16': case 'lights32': case 'lights64': case 'lights64_wide':
+        case 'lightsns0': case 'lightsns16': case 'lightsns32': case 'lightsns64':
+        case 'glow16': case 'glow32': case 'glow64': {
+            // P4 (plan §5 C2 step 1): what N extra lights cost, with and without the ground shadow walk, against N glow
+            // sprites drawn the way a glow part is drawn under lighting (once into the world, once into the VFX mask).
+            // Same positions in every variant: N board tiles spread evenly.
+            const [{ LIGHTING, ISO_SCALE_Y }, { HexUtils }, { VisualMath }, { INSTANCE_VERT, lightFrag }] = await Promise.all([
+                import('/constants.ts'), import('/engine/utils.ts'), import('/engine/math/VisualMath.ts'), import('/engine/renderers/lighting/shaders.ts'),
+            ]);
+            const kind = id.startsWith('glow') ? 'glow' : id.startsWith('lightsns') ? 'noshadow' : 'shadow';
+            const n = Number(id.replace(/\D+/g, '').replace(/^$/, '0'));
+            const engine = window.__TACTICAL_ENGINE__;
+            const keys = [...engine.map.getMapKeys()].sort();
+            const spots = [];
+            for (let i = 0; i < n; i++) {
+                const [q, r] = keys[Math.floor((i + 0.5) * keys.length / n)].split(',').map(Number);
+                const { x, y } = HexUtils.toPx(q, r, engine.mapConfig);
+                spots.push({ x, y: VisualMath.getIsoVisualY(y, engine.getTerrainHeight(q, r)) });
+            }
+            /** Ground-plane radius of one extra light / glow (a glow part is far smaller than a unit light's 300) */
+            const radius = id === 'lights64_wide' ? LIGHTING.UNIT_LIGHT.RANGE : P4_RADIUS;
+            const gl = pass.gl;
+            if (kind === 'noshadow') pass.pLight = pass.program(INSTANCE_VERT, lightFrag(0));
+            if (kind === 'glow') {
+                const sprite = document.createElement('canvas');
+                sprite.width = sprite.height = P4_SPRITE_PX;
+                const sctx = sprite.getContext('2d');
+                const g = sctx.createRadialGradient(P4_SPRITE_PX / 2, P4_SPRITE_PX / 2, 0, P4_SPRITE_PX / 2, P4_SPRITE_PX / 2, P4_SPRITE_PX / 2);
+                g.addColorStop(0, 'rgba(255,170,90,0.9)'); g.addColorStop(1, 'rgba(255,170,90,0)');
+                sctx.fillStyle = g; sctx.fillRect(0, 0, P4_SPRITE_PX, P4_SPRITE_PX);
+                pass.present = function (...a) {
+                    for (const c of [this.worldCtx, this.glowCtx]) {
+                        c.globalCompositeOperation = 'lighter';
+                        for (const p of spots) c.drawImage(sprite, p.x - radius, p.y - radius * ISO_SCALE_Y, radius * 2, radius * 2 * ISO_SCALE_Y);
+                        c.globalCompositeOperation = 'source-over';
+                    }
+                    return proto.present.apply(this, a);
+                };
+                break;
+            }
+            // Room for the unit lights plus n extra
+            pass.lightData = new Float32Array((LIGHTING.MAX_LIGHTS + n) * 7);
+            gl.bindBuffer(gl.ARRAY_BUFFER, pass.instBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, Math.max(pass.lightData.byteLength, pass.casterData.byteLength), gl.DYNAMIC_DRAW);
+            const col = [1.0, 0.6, 0.3];
+            pass.present = function (...a) {
+                for (const p of spots) this.pushInstance(this.lightData, this.lightCount++, p.x, p.y / ISO_SCALE_Y, P4_LIGHT_Z, radius, col, P4_INTENSITY);
+                return proto.present.apply(this, a);
+            };
+            break;
+        }
         case 'no_lights': pass.present = function (...a) { this.lightCount = 0; return proto.present.apply(this, a); }; break;
         case 'full_no_vfx': skipVfxDraws(); break;
         default: throw new Error(`unknown variant ${id}`);
@@ -344,11 +410,13 @@ async function measure(browser, url, id) {
         await page.evaluate(() => window.__TACTICAL_ENGINE__.play());
         await page.evaluate(wholeBoard);
         await page.evaluate((n) => window.__stepFrames(n), WARMUP);
-        await page.evaluate(install, id);
+        await page.evaluate(install, { id, P4 });
         // One untimed window so caches a variant touches for the first time are built before timing
         await page.evaluate(timeWindow, 10);
         const windows = [];
         for (let i = 0; i < WINDOWS; i++) windows.push(await page.evaluate(timeWindow, FRAMES));
+        // --shot: the last frame of each variant, to check that a variant draws what it claims (e.g. the P4 lights)
+        if (argv.includes('--shot')) await page.screenshot({ path: join(out, `lit-cost-${id}.png`) });
         return { id, env, state, windows, errors };
     } finally { await context.close(); }
 }

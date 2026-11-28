@@ -11,6 +11,8 @@
  * recovery of the stored rect when the viewport grows again. Plus a multi-window check
  * (bring-to-front, canvas click-through).
  *
+ * Option `--lit=0`: append `&lit=0` to every page URL (baseUrl), turning the WebGL lighting pass off (A/B for flaky checks).
+ *
  * Add a window: add an entry to SUITES below (how to open it) — everything else is generic.
  */
 import { chromium } from 'playwright-core';
@@ -96,7 +98,7 @@ const launchBrowser = async () => {
 
 const server = await createServer({ server: { port: 3199, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&mute`;
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&mute${process.argv.includes('--lit=0') ? '&lit=0' : ''}`;
 const browser = await launchBrowser();
 const consoleErrors = [];
 
