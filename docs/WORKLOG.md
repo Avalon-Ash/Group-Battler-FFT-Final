@@ -1166,3 +1166,22 @@
 | :-- | :-- | :-- |
 | 開案書 §8「同一份程式重跑兩次的差當雜訊，改動的效果要超過它才算」 | 主席照做才發現第一頁偏差（`full_again`），把 `texSubImage2D` 的 −0.84 ms 判成偏差而不是收進正式路徑 | helped |
 | 開案書 §8「做不到 2 ms 也要交出量到的最好結果與原因」 | 主席沒有為了達標去做會動畫面的近似（鋪設不跟逐格高度），停在精確等價的做法都試完 | helped |
+
+### DU. 2026-11-28 打光成本第三批 Q1～Q4：仿光效零件改成光（ADR 0031；開案書 `docs/plans/lighting-cost.md` §9；主席 Opus 5.5，分支 `perf/lighting-cost-2`；使用者 11-28「仿光效特效全面改光效通道」「現代化」，同日「新製程需求和舊 ADR 衝突時主代理直接決定」）
+- **結論**：打光開啟時，柔邊、加法的 `glow` 零件改登記成點光（不帶投影）、只畫縮小核心；打光關閉時畫面與保真數字和 main 相同。桌機量測場景每幀只有 3～9 個柔邊 glow，光暈改成光的開關差在雜訊內，打光的額外成本 3.07～3.21 ms（第二批 3.06～3.29），沒有變大也沒有變小。外觀只調一次初值（範圍 2.5 → 6、強度 3 → 12），定調待原工作階段看對照板（`tools/ui-e2e/out/c2-boards/`，`INDEX.md` 列每一格）。
+- **Q1**（Sonnet 子代理實作，主席審 diff）：首屏 5 個元件改成直接 import 單一 primitives 檔，進入點 gzip 257,365 → 253,581 位元組（`npm run build`），`e2e:ui` 全過（commit `210b501f`）。
+- **Q2 機制**（commit `ebbd545c`）：
+  - kept -> 「哪些零件是仿光效」只在 `PartSpec.partLight`；「貼圖還是光」只在 `drawPart`，依畫布角色（`PartLightSink.roleOf`）：世界畫布登記成光、特效與玩法標示遮罩照同一個 op 世界那一趟的盞數一一對應、其他畫布照舊 -> 單元測試 `tests/PartLight.test.ts` 7 項；`perf:lit-cost` 與 `perf:vfx-strip` 讀 `LightingPass.partStats`，遮罩對不上的 op 數在量測場景與 50 招奧義都是 0。
+  - kept -> 登記口 `engine/renderers/lighting/PartLightSink.ts` 在進入點、不讀 `LIGHTING`（核心縮放由 sink 回傳）-> 進入點 253,581 → 253,999 位元組，預算 257,500。
+  - kept -> 上限 `PART_LIGHT.MAX` 64 和單位的 `MAX_LIGHTS` 分開算 -> 單位的光不會被擠掉。
+  - kept -> `PART_LIGHT.MAX` 0 等於改前 -> 暫設 0 跑 `npm run perf:lit -- --walk 60`，和改前分支 `lit-branch-walk/` 比：靜止 0～1 px、連續格 2 px；對照板的「改前」用這個設定。
+- **Q3 對照板**（commit `96d9a9c6`）：`perf:vfx-strip` 加 `--lit`、`--lighting`、`--out`。7 招（F3 點名的 `sb_a1`、`rb_u1`、`wb_a1`；50 招奧義掃過後零件光最多的 `rr_u3` 每幀 30.5、`mb_u2` 18.2、`mr_u5` 9.1；投射物 `mb_a1`）× 4 版本（改前、只有光、光＋核心、草擬值光＋核心）。F3 那三招每幀最多只有 1 個柔邊 glow：它們的同心圓環與白閃是 ring、rays、硬光暈，不在這次範圍。只有 `rr_u3` 撞上限（29 幀）；命中後相鄰幀平均差 9.56 → 9.70～9.73，和沒撞上限的 `mb_u2`（5.32 → 5.18～5.50）同量級，看不出上限造成的閃爍。
+- **Q4**：ADR 0031（狀態：採用；修訂 0029「特效一律走預烘焙零件」在打光開啟時的做法，0029 其他各條不變，不標取代），`docs/DECISIONS.md` 加索引，開案書 §4.3 增補。
+- **驗證**：lint、`npm test` 1711 項、build（進入點 254.0／257.5 kB）、knip、`runtime-smoke` PASS；`perf:guard` 保真 VOID 0.296、FOREST 0.659、ICE 0.302、MAGMA 0.614、DESERT 0.500、battle_frozen 0.177（和 main 相同），效能護欄過；`perf:lit -- --walk 60` 和改前比 VOID 1.082%、battle_frozen 0.328%、連續格 2.522%，其餘四張 0（差異是光，看過 VOID 那一塊：單位旁地面多一塊藍光）；`e2e:ui` 一次 1 項紅（PLAY iPhone 直向 K4「點己方身後地面送出移動指令」，送出的格差一格），和 DT 的 P5 兩組都出現的偶發同一類，沒有為它改程式。
+- **沒驗的**：手機（iPhone）的成本與外觀；光暈多的奧義單獨量時間；context 遺失或 render target 建不起來那一幀（已登記成光的零件那一幀只剩核心）。
+- **既有耦合（回報，沒處理）**：hex 色碼解析有三份：`data/ui/tokens.ts` 的 `hexToRgbChannels`（這次用它）、`TerrainLoopAtlas.parseHex`、`PartBakers.withAlpha`。
+- **回退**：revert `96d9a9c6`、`ebbd545c`；只想關掉不 revert 時把 `LIGHTING.PART_LIGHT.MAX` 設 0（等於改前）。
+
+| 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+| :-- | :-- | :-- |
+| 派工單 §9「外觀由原工作階段看圖決定，線主席調一次初值就停」 | 主席看到草擬值幾乎沒有受光後只調一次（6／12），保留草擬值那一列在對照板上，沒有反覆調 | helped |

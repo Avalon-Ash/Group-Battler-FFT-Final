@@ -159,6 +159,25 @@ P2、P3 試過的做法（都在 `perf:lit-cost` 裡有對應的做法，可以�
 
 **P2、P3 的結論**：在 ADR 0029 的架構（世界由 Canvas 2D 畫、遮罩用 Canvas 2D 再畫一次）裡，剩下的成本是遮罩上的重畫；這一批想到的精確等價做法都量過，沒有一個超過雜訊。鋪設那 1 ms 比它的呼叫數該有的貴，成因沒查明（上面第 4 點），查明之後可能還有不用動架構的解法。2 ms 以下要等 §5 C5（精靈由顯示卡成批畫，遮罩跟著同一次繪製輸出，鋪設的 1 ms 與特效的 0.6 ms 才會消失），或接受畫面差異（例如鋪設在遮罩裡不跟著逐格高度）。
 
+### 4.3 C2：仿光效零件改成光（第三批 Q2～Q4，ADR 0031）
+
+做法（commit `ebbd545c`、`96d9a9c6`）：「哪些零件是仿光效」只在 `PartSpec.partLight`（柔邊、加法的 `glow`，顏色＝色階 main）；「貼圖還是光」只在 `drawPart` 決定，依畫布：世界畫布登記成光、只畫縮小核心；特效與玩法標示遮罩照同一個 op 世界那一趟登記的盞數一一對應；鋪設平面、主畫布等其他畫布與排不進上限的照舊貼圖。上限 `PART_LIGHT.MAX` 64 和單位的 `MAX_LIGHTS` 分開算（派工單寫「MAX_LIGHTS、單位優先」：分開算就不會擠掉單位）。光不帶投影（`SHADOW_STEPS` 0），另一個 program 在單位光之後加法畫進光照貼圖。
+
+| 量什麼 | 數字 | 指令 |
+| :-- | :-- | :-- |
+| 打光關閉的保真 | VOID 0.296、FOREST 0.659、ICE 0.302、MAGMA 0.614、DESERT 0.500、battle_frozen 0.177（和 main 相同） | `npm run perf:guard` |
+| `PART_LIGHT.MAX` 0 是不是等於改前 | 打光靜止 6 張 0～1 px、連續格 2 px（同版本連拍的雜訊） | 暫設 MAX 0 跑 `npm run perf:lit -- --walk 60`，和改前分支的 `lit-branch-walk/` 逐像素比 |
+| 打光的額外成本 | full − direct 3.07（草擬值）、3.21 ms（調過的值）；第二批 3.06～3.29 | `node tools/ui-e2e/lit-cost.mjs --repeat 2 --only direct,part_light_off,full_again` |
+| 光暈改成光的開關差 | `part_light_off` −0.02（雜訊 0.43）、−0.04 ms（雜訊 0.33）：在雜訊內 | 同上 |
+| 量測場景裡的零件光 | 每幀平均 3.4 盞、最多 9 盞，撞上限 0 幀，遮罩對不上 0 | 同上（表的 `partLights`、`partMax`、`partAtCap`、`partMismatch`） |
+| 50 招奧義的零件光 | 每幀平均最多 rr_u3 30.5、mb_u2 18.2、mr_u5 9.1；只有 rr_u3 撞上限（29 幀）；遮罩對不上 0 | `node tools/ui-e2e/vfx-strip.mjs --lit --skill <50 招> --out c2-scan` |
+| 撞上限會不會閃 | 命中後相鄰幀平均差 rr_u3 改前 9.56、改後 9.70～9.73；沒撞上限的 mb_u2 5.32 → 5.18～5.50：同量級 | `tools/ui-e2e/out/flicker.py`（探針，不進版控） |
+
+讀得出來的：
+1. 量測場景（凍結戰鬥 tick 400～519）每幀只有 3～9 個柔邊 glow，所以開關差在雜訊內，不能當成省了多少；光暈多的奧義（rr_u3 每幀 30 個以上）沒有單獨量時間。
+2. F3 點名的 `sb_a1`、`rb_u1`、`wb_a1` 每幀最多只有 1 個柔邊 glow：它們的「同心圓環、臉上白閃」是 ring、rays、硬光暈，不在這次的範圍。
+3. 草擬值（範圍＝半徑 × 2.5、強度 3）在對照板上幾乎看不出受光；強度暫設 40 才看到投射物下的地面光池。調一次到 6／12 就停，外觀待定調（`tools/ui-e2e/out/c2-boards/`）。
+
 ## 5. 接下來的順序
 
 渲染線同時只開一條，依序做；每包用 `npm run perf:lit-cost`（連對照組）與 `npm run perf:lit` 截圖驗收。
