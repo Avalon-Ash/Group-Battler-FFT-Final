@@ -79,6 +79,43 @@ void main(){
     gl_Position = vec4(px.x / uRes.x * 2.0 - 1.0, 1.0 - px.y / uRes.y * 2.0, 0.0, 1.0);
 }`;
 
+/**
+ * 幾何遮罩（GL 路徑，docs/plans/gpu-geo-mask.md）：一張精靈貼圖一個 instance。
+ * iM0、iM1.xy＝drawImage 當下的畫布變換 (a,b,c,d,e,f)（裝置像素）；iDst＝局部目的矩形；iUv＝來源矩形（貼圖已上下翻轉）；
+ * iM1.z＝不透明度，iM1.w＝是不是單位；iStamp＝章的世界矩形 (x0, y0, 寬)，高＝uStampH。uK＝遮罩相對主畫布的解析度。
+ */
+export const GEO_VERT = `#version 300 es
+in vec2 aPos;
+in vec4 iM0, iM1, iDst, iUv, iStamp;
+uniform vec2 uRes;
+uniform float uK;
+out vec2 vUv; out vec2 vFlags; out vec3 vStamp;
+void main(){
+    vec2 t = aPos * 0.5 + 0.5;
+    vec2 l = iDst.xy + iDst.zw * vec2(t.x, 1.0 - t.y);
+    vec2 px = (vec2(iM0.x * l.x + iM0.z * l.y, iM0.y * l.x + iM0.w * l.y) + iM1.xy) * uK;
+    vUv = vec2(mix(iUv.x, iUv.z, t.x), mix(iUv.y, iUv.w, 1.0 - t.y));
+    vFlags = iM1.zw; vStamp = iStamp.xyz;
+    gl_Position = vec4(px.x / uRes.x * 2.0 - 1.0, 1.0 - px.y / uRes.y * 2.0, 0.0, 1.0);
+}`;
+
+/** 漸層章（LightingPass 檔頭、LIGHTING.GEO）：r＝離腳底的高度、g＝是不是單位、b＝橫向位置；章的矩形外不畫；輸出預乘 alpha */
+export const GEO_FRAG = `#version 300 es
+precision highp float;
+in vec2 vUv; in vec2 vFlags; in vec3 vStamp; out vec4 o;
+uniform sampler2D tSprite;
+uniform vec2 uRes, uOrigin;
+uniform float uScale, uMaxH, uStampH;
+void main(){
+    vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+    vec2 w = (px - uOrigin) / uScale;
+    vec2 rel = (w - vStamp.xy) / vec2(vStamp.z, uStampH);
+    if (rel.x < 0.0 || rel.x > 1.0 || rel.y < 0.0 || rel.y > 1.0) discard;
+    float a = texture(tSprite, vUv).a * vFlags.x;
+    float h = max(0.0, 1.0 - (w.y - vStamp.y) / uMaxH);
+    o = vec4(vec3(h, vFlags.y, rel.x) * a, a);
+}`;
+
 /** 投影物：腳底的橢圓，r＝高度（iPos.z）、g＝往外淡出的存在感；以 MAX 混合 */
 export const CASTER_FRAG = `#version 300 es
 precision highp float;

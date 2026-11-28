@@ -8,11 +8,13 @@
 // ║  規則。方向與精靈同一套（selectSpriteDirection），時間取 t。  ║
 // ║  執行期只有 drawImage，零                                  ║
 // ║  分配、無 shadowBlur、無漸層。圖集未載入時回傳 false，由呼叫    ║
-// ║  端畫原本的單位。                                            ║
+// ║  端畫原本的單位。剪影經 SpriteCapture.blit（打光幾何遮罩     ║
+// ║  用同一條路查切片與變換）。                                  ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Agent } from "../../../core/Agent";
 import { UnitOutlinePass } from '../UnitOutlinePass';
+import { SpriteCapture } from '../../SpriteCapture';
 import { UNIT_SCALE, UNIT_SPRITE } from "../../../../constants";
 import { SHEEP_BODY } from "../../../../data/units/appearance/ccBody";
 import { selectSpriteDirection } from "../../../../data/units/appearance/selectSpriteFrame";
@@ -42,7 +44,7 @@ export const PolymorphPainter = {
         ctx.save();
         ctx.translate(0, UNIT_SPRITE.footOffsetLocal);
         if (isSilhouette) {
-            ctx.drawImage(entry.silhouette, f.x, f.y, f.w, f.h, dx, dy, dw, dh);
+            SpriteCapture.blit(ctx, entry.silhouette, f.x, f.y, f.w, f.h, dx, dy, dw, dh);
         } else {
             poisonRect.dx = dx; poisonRect.dy = dy; poisonRect.dw = dw; poisonRect.dh = dh;
             if (!(isStatusVisible('POISON', agent) && poisonMaterialStore.draw(ctx, S.materialKey, frames,

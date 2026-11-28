@@ -1185,3 +1185,26 @@
 | 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
 | :-- | :-- | :-- |
 | 派工單 §9「外觀由原工作階段看圖決定，線主席調一次初值就停」 | 主席看到草擬值幾乎沒有受光後只調一次（6／12），保留草擬值那一列在對照板上，沒有反覆調 | helped |
+
+### DV. 2026-11-28 幾何遮罩改由 WebGL 畫（C5 第一片；ADR 0032；開案書 `docs/plans/gpu-geo-mask.md`；主席 Opus 5.5，分支 `feat/gpu-geo-mask`；使用者 11-28「現代化」「精靈由顯示卡畫」，同日「舊的管線真的沒用了可以拔掉，不需要併行」）
+- **結論**：打光開啟時，幾何遮罩（單位剪影、障礙物）不再用 Canvas 2D 暫存畫布蓋漸層章、整張上傳，改由 GL 一趟 instanced quad 畫進遮罩貼圖；舊路徑與比對用的旗標已刪。同一幀新舊幾何遮罩內部 alpha、g 0 差，r／b 最多 2（FOREST、ICE、MAGMA）；最終畫面差超過 8 的像素在單位與障礙物邊緣。成本在雜訊內（新舊同一次執行 −0.25 ms，雜訊 0.66）：這一片是之後法線圖、特效遮罩、世界本體走同一條 instance 路的地基，不是省時間的那一步。
+- **機制**（commit `fe44cf45`）：
+  - kept -> `engine/renderers/SpriteCapture.ts`：painter 貼精靈的唯一出口（`SpriteUnitRenderer`、`PolymorphPainter` 的剪影分支、`RenderDispatcher` 的 OBSTACLE 本體與加法疊層）；擷取畫布（1×1、不點陣化）上只記來源圖、來源矩形、目的矩形、變換、不透明度、混合 -> 單位剪影的影格、mip、目的矩形、傾斜、翻滾、淡入淡出全部只在 painter 裡，打光目錄不重算；`tests/SpriteCapture.test.ts` 3 項。
+  - kept -> `engine/renderers/lighting/GeoMaskGpu.ts`：每張擷取到的貼圖一個 instance（五個 vec4），同一張圖的連續 instance 一次 `drawArraysInstanced`，順序＝繪製順序、一律預乘 source-over；章的 r、g、b 在片段著色器解析計算（`shaders.ts` `GEO_VERT`／`GEO_FRAG`）-> 量測場景每幀 28 個 instance、26 次繪製。
+  - kept -> 圖集第一次用到時上傳成 `gl.ALPHA` 貼圖 -> 量測場景 22 張 13,498,780 位元組；RGBA 是 53,995,120，比對結果相同。
+  - kept -> `perf:lit`（`lit-shots.mjs`）加 `--query`、`--out`（兩種設定各拍一組逐像素比）。
+  - 修正（commit `20536300`）-> 障礙物加法疊層原本用 `ONE, ONE` -> 比對在 ICE（7 個疊層）、MAGMA（16 個）量到障礙物內部 r／b 差到 113（章的顏色加到超過覆蓋率；FOREST 那一幀沒有疊層，第一輪沒抓到）；改成 source-over 後內部 ≤2。`SpriteCapture` 不再記混合模式。
+- **比對**（探針 `tools/ui-e2e/out/geo-compare.mjs`、`geo-pixdiff.py`，不進版控；完整表在開案書 §6）：
+  - 同一幀兩條路的幾何遮罩（`readPixels` 讀著色器實際取樣的貼圖，2560×1440）：FOREST 3 幀內部 alpha、g 0 差、r／b ≤2，alpha 差 >2 的 561～635 px（直立物約 11.7 萬 px），0～2 個單位帶旋轉；ICE 3 幀（33 個 instance，含 7 個疊層）221～310 px；MAGMA（42 個，含 16 個疊層）491 px（直立物 2.1 萬），內部同樣 0／0／≤2；差異在邊緣與疊層光暈那一圈（看過 FOREST、MAGMA 的差異圖）。
+  - 旗標關和 main 的 `perf:lit`：打光 6 張 0 px、連續格 10 px（差 1）。旗標開和關：1.1～4.0% 像素有差，差 >8 的 69～635 px，在單位與障礙物邊緣（兩個單位重疊的邊也算）；差 1 的約 3.4 萬 px 散在直立物周圍，推論是泛光與特效餘光把邊緣差異抹開（沒有拆開驗）。
+- **刪舊路徑**（commit `77f31973`）：`beginItem`／`endItem`／`flushItems`、`makeStamp`、暫存畫布與幾何遮罩畫布、它們的上傳、`GEO.STAMP_SIZE`、`?geogpu` 旗標、`lit-cost` 的 `item_no_stamp`／`item_no_cell`／`geo_gpu`。遮罩貼圖建不起來時整個通道停用（同 render target）。
+- **驗證**（HEAD）：lint、`npm test` 1714 項、build（進入點 254.4／257.5 kB）、knip、`runtime-smoke` PASS；`perf:lit -- --walk 60` 刪舊路徑後和刪前的 GL 路徑 0～1 px，`lit=0` 和 main 0～2 px，疊層修正後和舊路徑差 >8 的 69～635 px 在邊緣；`perf:guard` 保真 VOID 0.207、FOREST 0.695、ICE 0.359、MAGMA 0.668、DESERT 0.529、battle_frozen 0.000，效能護欄過。**保真數字和以前記的 0.296／0.659／0.302／0.614／0.500／0.177 不同，但同一天 main 跑出完全相同的六個數字**（`fe44cf45` 也相同，battle_frozen 擷取圖 main 與分支 0 px 差）：是環境漂移（今天的瀏覽器 158.0.4370.45；以前沒記版本，瀏覽器更新是可能的原因，沒查證）；以後比 main 要同一天各跑一次。`lit-cost` 改過的做法（`no_upload`、`no_mask_upload`、`mask_upload_twice`）在 HEAD 各跑 10 幀沒有錯誤（`--frames 10 --windows 1`）。`e2e:ui` 跑三次：`77f31973` 上第一次 3 項紅（PLAY 桌機 K3「左鍵拖曳只送一個指令、不拖鏡頭」、iPhone 橫向 K4「技能鈕拖到敵人放開」、iPhone 橫向「瞄準時點敵人」），重跑全過；HEAD 上 3 項紅（PLAY 桌機 K3「Quick Cast 畫面裡沒有敵人」、iPhone 橫向 K4 拖放技能鈕、iPhone 橫向瞄準時點敵人）。後兩次的紅都在 PLAY 觸控／瞄準的已知偶發類；K3 左鍵拖曳那一項不在已知清單裡，只出現一次（三次裡），沒有為它改程式。
+- **量測**（`node tools/ui-e2e/lit-cost.mjs --repeat 2`，RTX 4070、2560×1440）：新舊同一次 full 9.915、geo_gpu 9.665（−0.25，雜訊 0.656）、direct 6.544、full_again 9.965 ms；刪舊路徑後單獨一次 full − direct 3.30 ms（不和前一次比）。
+- **沒驗的**：iPhone／WebKit（`gl.ALPHA` 從畫布上傳、instanced 繪製）；第一次用到圖集那一幀的上傳卡頓（量測都有暖身）；手機顯示卡記憶體多一份 alpha 圖集；變羊、暈眩的單位沒有特地放進比對的幀（擷取走的是同一個 painter，旋轉的單位有 0～2 個）；context 遺失與還原。
+- **既有的（回報，沒改）**：幾何遮罩的單位腳底用 `UnitFrame.footX／floorY`（不含轉場位移、不經 `snap`），世界畫布上的單位畫在 `snap(op.ty)`，差次像素、轉場中差一個轉場位移；GL 路徑照舊沿用。障礙物加法疊層：舊路徑先以 lighter 加進自己那一格再 source-over，GL 一律 source-over（`20536300`），疊層光暈和本體都半透明的那一圈 alpha 不同（1 −（1 − a₁）（1 − a₂）對 min(1, a₁ + a₂)）。
+- **回退**：依序 revert 文件 commit、`20536300`、`77f31973`（回到兩條路並存，`?geogpu=1`）、`fe44cf45`（回到 main）。
+
+| 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+| :-- | :-- | :-- |
+| 派工單「單位剪影的來源矩形要有單一出處的查詢介面，不要在打光目錄裡重算」 | 主席沒有在打光目錄算影格與變換，改成讓 painter 經 `SpriteCapture` 交出貼圖參數；旋轉、翻滾、淡出的單位不用另寫一份就對得上（比對內部 0 差） | helped |
+| 派工單「新舊兩條路輸出的幾何遮罩要能比對」＋顧問「比著色器實際取樣的貼圖」 | 探針同一幀兩條路都畫、用 `readPixels` 讀兩張貼圖，不經 `getImageData` 的解預乘；邊緣與內部分開數 | helped |

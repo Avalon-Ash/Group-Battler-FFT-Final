@@ -6,7 +6,9 @@
  * frame (120 frames), camera snapped to the whole board.
  *
  * Run:
- *   node tools/ui-e2e/lit-shots.mjs [--scene FOREST ...] [--walk 60]
+ *   node tools/ui-e2e/lit-shots.mjs [--scene FOREST ...] [--walk 60] [--query '&k=v'] [--out <dir>]
+ *   --query: appended to both page URLs (e.g. a renderer switch under comparison); --out: output folder under
+ *            tools/ui-e2e/out/ (default lit-engine), so two variants can be shot and compared pixel by pixel.
  * Output (tools/ui-e2e/out/lit-engine/):
  *   <scene>_off.png, <scene>_lit.png, <scene>_compare.png (off | lit), lit-shots.json (GPU string, page errors)
  *   --walk N: also <scene>_walk.png, a strip of N consecutive lit frames cropped around one moving unit
@@ -21,10 +23,11 @@ import { clickDice, launchBrowser } from './lib/perf-common.mjs';
 import { desktopProbe, openFrozenPage, rebuildFrozenMap } from './lib/frozen-battle.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const out = join(here, 'out', 'lit-engine');
-mkdirSync(out, { recursive: true });
 const argv = process.argv.slice(2);
 const argList = (name) => argv.flatMap((a, i) => (a === name && argv[i + 1] ? [argv[i + 1]] : []));
+const out = join(here, 'out', argList('--out')[0] ?? 'lit-engine');
+mkdirSync(out, { recursive: true });
+const extraQuery = argList('--query')[0] ?? '';
 const wanted = argList('--scene');
 const walkFrames = Number(argList('--walk')[0] ?? 0);
 
@@ -123,7 +126,7 @@ async function shoot(browser, url, lit) {
         page.on('console', (m) => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) errors.push(m.text()); });
     };
     const open = async () => {
-        const page = await openFrozenPage(context, url, watch, `&lit=${lit ? 1 : 0}`);
+        const page = await openFrozenPage(context, url, watch, `&lit=${lit ? 1 : 0}${extraQuery}`);
         if (lit) {
             await page.waitForFunction(() => typeof window.__LIGHTING__ === 'string' && window.__LIGHTING__ !== 'loading', null, { timeout: 15000 });
         }

@@ -31,7 +31,7 @@
    - Allocate events through `GameEventPool` (`engine/events/GameEventPool.ts`) to avoid GC pressure. Visual/game events pushed with `engine.pushEvent` are queued and dispatched at the end of the tick; `engine.bus` is the synchronous notification channel.
 
 4. **No heavy graphics dependencies**:
-   - The world is drawn with HTML5 Canvas 2D and procedural materials (`engine/graphics/materials/NoiseLib.ts`, `MaterialPainter.ts`). The only WebGL code is the full-screen lighting and post pass in `engine/renderers/lighting/` (raw WebGL2 API, ADR 0029); do not use WebGL anywhere else. With the pass off or WebGL2 unavailable the frame must equal the Canvas 2D path.
+   - The world is drawn with HTML5 Canvas 2D and procedural materials (`engine/graphics/materials/NoiseLib.ts`, `MaterialPainter.ts`). The only WebGL code is the lighting and post pass in `engine/renderers/lighting/` (raw WebGL2 API, ADR 0029; its geometry mask draws sprite instances captured through `engine/renderers/SpriteCapture.ts`, ADR 0032); do not use WebGL anywhere else. With the pass off or WebGL2 unavailable the frame must equal the Canvas 2D path.
    - **Do not import Three.js, Pixi.js, or any other rendering library.**
 
 5. **Mutation gate**:
