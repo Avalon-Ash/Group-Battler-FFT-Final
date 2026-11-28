@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SpriteCapture } from '../engine/renderers/SpriteCapture';
 
-// SpriteCapture：painter 貼精靈的唯一出口。平常照畫；畫在擷取畫布上時只記下切片、目的矩形、變換、不透明度、混合。
+// SpriteCapture：painter 貼精靈的唯一出口。平常照畫；畫在擷取畫布上時只記下切片、目的矩形、變換、不透明度。
 
 interface M { a: number; b: number; c: number; d: number; e: number; f: number }
 const mul = (m: M, n: M): M => ({
@@ -50,10 +50,10 @@ describe('SpriteCapture', () => {
         expect(draws).toEqual([[image, 1, 2, 3, 4, 5, 6, 7, 8], [image, 5, 6, 7, 8]]);
     });
 
-    it('擷取畫布上記下切片、局部矩形、painter 那一串變換、不透明度與混合，不畫', () => {
+    it('擷取畫布上記下切片、局部矩形、painter 那一串變換與不透明度，不畫', () => {
         const base = { a: 2, b: 0, c: 0, d: 2, e: 10, f: 20 } as DOMMatrixReadOnly;
         const c = SpriteCapture.begin(base);
-        // painter 自己的變換：平移、縮放、旋轉、半透明，再貼一塊切片；之後加法貼整張圖
+        // painter 自己的變換：平移、縮放、旋轉、半透明，再貼一塊切片；之後貼整張圖
         c.save();
         c.translate(5, 6);
         c.scale(0.5, 0.5);
@@ -61,7 +61,6 @@ describe('SpriteCapture', () => {
         c.globalAlpha *= 0.25;
         SpriteCapture.blit(c, image, 1, 2, 3, 4, -8, -16, 16, 32);
         c.restore();
-        c.globalCompositeOperation = 'lighter';
         SpriteCapture.blitWhole(c, image, 0, 0, 64, 32);
         expect(SpriteCapture.end()).toBe(2);
         expect(captureCtx.draws).toEqual([]);
@@ -75,11 +74,10 @@ describe('SpriteCapture', () => {
         expect(first.d).toBeCloseTo(0);
         expect([first.e, first.f]).toEqual([20, 32]);
         expect(first.alpha).toBe(0.25);
-        expect(first.additive).toBe(false);
 
         const second = SpriteCapture.at(1);
         expect(SpriteCapture.isWhole(second)).toBe(true);
-        expect(second.additive).toBe(true);
+        expect(second.alpha).toBe(1);
         expect([second.a, second.e, second.f]).toEqual([2, 10, 20]);
     });
 

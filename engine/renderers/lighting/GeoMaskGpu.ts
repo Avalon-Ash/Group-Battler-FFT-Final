@@ -10,9 +10,10 @@
 // ║  [ARCH] 位置與形狀只讀 SpriteCapture 擷取到的 drawImage 參數 ║
 // ║        與變換，不自己算；章的矩形由 LightingPass 給（UnitFrame ║
 // ║        與障礙物精靈錨點，RenderSpec §1 尾段）。              ║
-// ║  [ARCH] 疊合順序＝繪製順序（預乘 alpha 的 source-over；加法  ║
-// ║        疊層用 ONE, ONE）；同一張來源圖、同一種混合的連續     ║
-// ║        instance 合成一次繪製，不依貼圖重排。                ║
+// ║  [ARCH] 疊合順序＝繪製順序，一律預乘 alpha 的 source-over    ║
+// ║        （障礙物的加法疊層也是：舊路徑先把疊層加進自己那一格、║
+// ║        整格再 source-over，加法會把章的顏色疊到超過覆蓋率）；║
+// ║        同一張來源圖的連續 instance 合成一次繪製，不依貼圖重排。║
 // ║  [ARCH] 精靈圖集第一次用到時上傳成貼圖（之後不再上傳）；     ║
 // ║        尺寸變了重傳；TEX_IDLE_FRAMES 幀沒用到就刪。context   ║
 // ║        還原時 LightingPass 重建整個物件。                    ║
@@ -83,9 +84,8 @@ export class GeoMaskGpu {
     private readonly vao: WebGLVertexArrayObject | null;
     private readonly buffer: WebGLBuffer | null;
     private readonly data: Float32Array;
-    /** 每個 instance 的來源貼圖與混合（run 的切分依據） */
+    /** 每個 instance 的來源貼圖（run 的切分依據） */
     private readonly texOf: (WebGLTexture | null)[];
-    private readonly additiveOf: Uint8Array;
     private count = 0;
     private frame = 0;
     private readonly cache = new Map<CanvasImageSource, CachedTexture>();
@@ -100,7 +100,6 @@ export class GeoMaskGpu {
         const max = LIGHTING.MAX_CASTERS * LIGHTING.GEO.GPU_BLITS_PER_ITEM;
         this.data = new Float32Array(max * STRIDE);
         this.texOf = new Array<WebGLTexture | null>(max).fill(null);
-        this.additiveOf = new Uint8Array(max);
         this.prog = f.program(GEO_VERT, GEO_FRAG, ATTRIBS);
         this.vao = gl.createVertexArray();
         gl.bindVertexArray(this.vao);
@@ -183,7 +182,6 @@ export class GeoMaskGpu {
         d[i++] = sx / t.w; d[i++] = 1 - sy / t.h; d[i++] = (sx + sw) / t.w; d[i++] = 1 - (sy + sh) / t.h;
         d[i++] = x0; d[i++] = y0; d[i++] = w; d[i] = 0;
         this.texOf[n] = t.tex;
-        this.additiveOf[n] = b.additive ? 1 : 0;
         this.count = n + 1;
     }
 
@@ -214,6 +212,7 @@ export class GeoMaskGpu {
     /**
      * 把本幀的 instance 畫進遮罩貼圖（mW×mH＝遮罩解析度；cam＝世界畫布此刻的相機變換）。回傳遮罩貼圖；建不起來回 null。
      * 結束時 GL 狀態還原成 LightingPass 預設的（不混合、blendFunc ONE, ONE、沒綁 VAO）。
+     * 加法疊層（障礙物 glint／glow）也用 source-over。
      */
     public render(cam: DOMMatrixReadOnly, mW: number, mH: number): WebGLTexture | null {
         const gl = this.gl, p = this.prog, f = this.f;
@@ -243,12 +242,12 @@ export class GeoMaskGpu {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.data, 0, n * STRIDE);
         gl.enable(gl.BLEND);
+        // 預乘 alpha 的 source-over
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         for (let start = 0; start < n;) {
-            const tex = this.texOf[start], add = this.additiveOf[start];
+            const tex = this.texOf[start];
             let end = start + 1;
-            while (end < n && this.texOf[end] === tex && this.additiveOf[end] === add) end++;
-            // 預乘 alpha：source-over＝(ONE, ONE_MINUS_SRC_ALPHA)；加法疊層（lighter）＝(ONE, ONE)
-            gl.blendFunc(gl.ONE, add ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
+            while (end < n && this.texOf[end] === tex) end++;
             gl.bindTexture(gl.TEXTURE_2D, tex);
             this.pointAttribs(start);
             gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, QUAD_VERTS, end - start);

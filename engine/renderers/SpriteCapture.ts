@@ -2,7 +2,8 @@
 // ║  SpriteCapture — 「這個 painter 會貼哪幾張圖」的唯一查詢口  ║
 // ║  職責：painter 貼精靈時呼叫 blit（取代 ctx.drawImage）；    ║
 // ║        平常照常畫，畫在擷取畫布上時改成記下來：來源圖、來源 ║
-// ║        矩形、局部目的矩形、當下的畫布變換與不透明度。       ║
+// ║        矩形、局部目的矩形、當下的畫布變換與不透明度（混合   ║
+// ║        模式不記：幾何遮罩一律 source-over，GeoMaskGpu）。   ║
 // ║  上游：SpriteUnitRenderer／PolymorphPainter 的剪影分支、    ║
 // ║        RenderDispatcher 的 OBSTACLE（本體與加法疊層）。     ║
 // ║        讀者：lighting/LightingPass（幾何遮罩由 GL 畫，      ║
@@ -22,8 +23,6 @@ export interface CapturedBlit {
     dx: number; dy: number; dw: number; dh: number;
     a: number; b: number; c: number; d: number; e: number; f: number;
     alpha: number;
-    /** 當下的混合模式是 lighter（加法） */
-    additive: boolean;
 }
 
 /** 整張圖的來源寬（sw）標記 */
@@ -89,14 +88,13 @@ class SpriteCaptureImpl {
         let b = this.pool[this.count];
         const m = ctx.getTransform();
         if (!b) {
-            b = { image, sx, sy, sw, sh, dx, dy, dw, dh, a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, alpha: 1, additive: false };
+            b = { image, sx, sy, sw, sh, dx, dy, dw, dh, a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, alpha: 1 };
             this.pool.push(b);
         }
         this.count++;
         b.image = image; b.sx = sx; b.sy = sy; b.sw = sw; b.sh = sh; b.dx = dx; b.dy = dy; b.dw = dw; b.dh = dh;
         b.a = m.a; b.b = m.b; b.c = m.c; b.d = m.d; b.e = m.e; b.f = m.f;
         b.alpha = ctx.globalAlpha;
-        b.additive = ctx.globalCompositeOperation === 'lighter';
     }
 }
 
