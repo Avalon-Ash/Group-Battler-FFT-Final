@@ -259,3 +259,33 @@ Canvas 2D 路徑（`?lit=0`、WebGL2 拿不到、context 遺失期間）在 C2 �
 - 畫面出現上面允許範圍以外的差異、修不掉。
 - 要動 `RenderSpec` 的座標協議、要推翻 ADR、或進入點預算騰不出空間。
 - 同一個問題試兩次不過：先查是不是規則或架構造成的，是就回報。
+
+## 9. 第三批的分工：仿光效零件改成光（C2）（2026-11-28，原工作階段 Fable 安排）
+
+第二批的結論（§4.2、WORKLOG §2 DT）：現有架構下畫面等價的優化都在雜訊內；桌機上點光比光暈貼圖便宜（64 盞 +0.16 ms 對 64 張 +0.72 ms）。所以第三批做使用者要的方向，也是看得到畫面結果的一項。
+
+線：同一條（主資料夾、分支 `perf/lighting-cost-2`，主席 Opus 5.5 high）。WORKLOG 節號 **DU**。不合併、不 push。
+
+**目標**：打光開啟時，特效裡的 `glow` 零件不再貼圖，改成登記一盞光（照到地面與單位）；打光關閉（`?lit=0`、WebGL2 拿不到、context 遺失期間）時照舊貼圖，保真基準不動。交出機制、量測、和給原工作階段看圖定調用的前後對照。
+
+| 包 | 內容 | 執行者 | 檔案範圍 | 紅色驗收 |
+| :-- | :-- | :-- | :-- | :-- |
+| Q1 | 騰進入點空間：找首屏（展示模式）用不到、現在卻在進入點裡的元件或模組改成延後載入（做法照 WORKLOG §2 DF 與 11-25 播放列那兩次），至少騰出 1.5 kB gzip | Sonnet 子代理（`general-purpose`，model sonnet；prompt 開頭要它先讀 `AGENTS.md`） | `components/**`、`App.tsx`、`hooks/**`；不動 `engine/` | `npm run build` 的進入點數字少 1,500 位元組以上；`npm run e2e:ui` 除了已知的 PLAY 瞄準類偶發之外全過；畫面與行為不變 |
+| Q2 | 機制：「哪些零件是仿光效」只定義在零件表一處（`engine/renderers/vfxparts/PartSpec.ts`）；特效的繪製路徑只有一個地方決定「這個零件這一幀是貼圖還是登記成光」，各 painter 不各自判斷打光狀態。光的數量有上限（`LIGHTING.MAX_LIGHTS`，單位的光優先），排不進去的零件照舊貼圖。遮罩重畫那一趟不得重複登記。新的數值全部進 `constants/lighting.ts` | 線主席 | `engine/renderers/lighting/**`、`engine/renderers/vfxparts/**`、`engine/presentation/vfx/**`、其他畫 `glow` 零件的地方、`constants/lighting.ts`、`tests/constants-snapshot.json`、`engine/renderers/RenderSpec.ts`（同步說明） | 打光關閉時 `npm run perf:guard` 保真六張數字和 main 相同；`npm run perf:lit-cost` 的 `full − direct` 不變大；新增一個做法量「光暈改成光」開與關的差 |
+| Q3 | 定調用的對照：`npm run perf:vfx-strip` 帶 `lit=1`，改前（main）與改後各拍 `sb_a1`、`rb_u1`、`wb_a1`（F3 點名）加上三招光暈最重的奧義與一個投射物；改後至少兩種外觀：只有光、光加上縮小的發光核心。並排成對照板存在 `tools/ui-e2e/out/c2-boards/`；另拍 `npm run perf:lit -- --walk 60` | 線主席 | 工具與 `tools/ui-e2e/out/` | 對照板每格標招式與版本；附一張清單寫每一格的檔名 |
+| Q4 | ADR：這一項改變了「特效一律走預烘焙零件」（0029 接手自 0001）在打光開啟時的做法。照 `docs/adr/README.md` 寫一份**狀態：提議**的 ADR（下一個編號），不改 0029 原文；`docs/DECISIONS.md` 加索引 | 線主席 | `docs/adr/**`、`docs/DECISIONS.md` | `npx vitest run tests/AdrIndex.test.ts tests/DocDrift.test.ts` 過 |
+
+**外觀的方向（定調由原工作階段看圖決定，線主席不要自己反覆調）**
+- 光暈貼圖是「空中一團亮」，光是「照到東西才看得到」。全部換掉之後空中的光暈會消失，改由泛光（亮的本體自己暈開）與地面、單位上的受光來表現。這是要的方向，但可讀性不能掉：投射物在空中要看得到、命中的瞬間要有亮點。
+- 所以要有「光加縮小的發光核心」這個變體，核心大小、光的範圍與強度相對零件半徑與透明度的換算都是 `constants/lighting.ts` 裡的具名數值，交兩組數值的對照板就停。
+- 光的顏色取零件的色階（ramp），不另外定一張表。
+
+**驗收怎麼跑**：同 §8（每次連對照組、只比同一次裡的差、閘門在跑時不改原始碼）。量測工具已有 `--repeat`、`full_again`、`--shot`，照第二批的用法。每個 commit 前 `npm run lint && npm test && npm run build`、`npm run knip`、`node tools/ui-e2e/runtime-smoke.mjs`；全部做完跑 `npm run perf:guard`、`npm run e2e:ui`（紅的項目照 P5 的結論判斷是不是已知偶發，逐項列出）。
+
+**固定三條**同 §8。**不要做**：合併、push、重錄保真基準、放寬門檻或預算、逐招改 `data/vfx/**`（機制是依零件種類全域生效，不需要改資料；發現非改不可就停下回報）。
+
+**什麼時候停下來回報**
+- Q1～Q4 做完、對照板交出。
+- Q1 騰不出 1.5 kB：回報找到多少、卡在哪，不要改預算。
+- 機制做不到「只有一個地方決定」而不新增耦合。
+- 光的數量上限造成明顯的閃爍（同一個零件這一幀是光、下一幀是貼圖）：回報現象與連續格，不要自己加遲滯以外的大改。
