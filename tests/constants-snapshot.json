@@ -2584,8 +2584,8 @@
     },
     "PART_LIGHT": {
       "MAX": 64,
-      "RANGE_PER_RADIUS": 2.5,
-      "INTENSITY": 3,
+      "RANGE_PER_RADIUS": 6,
+      "INTENSITY": 12,
       "HEIGHT_AIR": 30,
       "HEIGHT_GROUND": 6,
       "KNEE": 0.15,

@@ -59,14 +59,15 @@ export const LIGHTING = {
      * 仿光效零件改成光（ADR 0031）：打光開啟時，柔邊加法的 glow 零件（PartSpec.partLight）不貼光暈圖，
      * 改登記一盞點光，另畫一個縮小的發光核心。和單位的光分開算上限，排不進去的照舊貼圖。
      * 位置、半徑由 drawPart 當下的變換換算；顏色＝零件色階的 main（sRGB 值直接當線性用，和 UNIT_LIGHT.COLOR 同一種寫法）。
+     * 範圍、強度：草擬 2.5／3 在 perf:vfx-strip 上幾乎看不出受光（投射物光暈半徑 10～18），調一次到 6／12（WORKLOG §2 DU）；外觀待定調。
      */
     PART_LIGHT: {
         /** 一幀最多幾盞（0＝全部照舊貼圖，等於改版前的畫面）；不得超過 MAX_CASTERS（共用 instance 緩衝） */
         MAX: 64,
         /** 光照得到的範圍＝零件畫出來的半徑（世界像素）× 這個倍率 */
-        RANGE_PER_RADIUS: 2.5,
+        RANGE_PER_RADIUS: 6,
         /** 光的強度＝色階顏色 × 零件畫出來的不透明度 × 這個倍率 */
-        INTENSITY: 3,
+        INTENSITY: 12,
         /** 空中零件的光源假設離地多高（世界像素）：畫點往下這麼多當腳底 */
         HEIGHT_AIR: 30,
         /** 貼地零件（drawPart 有 scaleY）的光源離地高度；畫點就是腳底 */
