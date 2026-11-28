@@ -1387,7 +1387,8 @@
     "GLOW_QUERY_KEY": "glow",
     "INTERP_QUERY_KEY": "interp",
     "LIT_QUERY_KEY": "lit",
-    "LIT_DEFAULT_ON": true
+    "LIT_DEFAULT_ON": true,
+    "GEO_GPU_QUERY_KEY": "geogpu"
   },
   "SCREEN_CONSTANTS": {
     "DEFAULT_WIDTH": 1200,
@@ -2622,7 +2623,9 @@
       "UNIT_HALF_WIDTH": 0.6,
       "UNIT_COVERAGE": 0.68,
       "STAMP_SIZE": 64,
-      "BEVEL": 1.15
+      "BEVEL": 1.15,
+      "GPU_BLITS_PER_ITEM": 2,
+      "TEX_IDLE_FRAMES": 600
     },
     "SHADOW": {
       "STEPS": 16,

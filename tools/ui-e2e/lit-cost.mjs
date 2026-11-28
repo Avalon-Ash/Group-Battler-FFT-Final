@@ -80,6 +80,7 @@ const VARIANTS = {
     tag_deferred: 'same mask draws in the same order, all replayed after the world (no interleaving)',
     no_lights: 'point-light pass gets 0 lights',
     part_light_off: 'Q2 (ADR 0031): glow parts stay glow sprites (LIGHTING.PART_LIGHT.MAX = 0, the look before C2)',
+    geo_gpu: 'G1 (docs/plans/gpu-geo-mask.md): geometry mask drawn by GL instances (GeoMaskGpu), no scratch canvas, no geo upload',
     lights16: 'P4: 16 extra point lights (with the ground shadow walk), radius P4.RADIUS',
     lights32: 'P4: 32 extra point lights (shadow)',
     lights64: 'P4: 64 extra point lights (shadow)',
@@ -330,6 +331,10 @@ async function install({ id, P4 }) {
             LIGHTING.PART_LIGHT.MAX = 0;
             break;
         }
+        case 'geo_gpu':
+            if (!('geoGpu' in pass)) throw new Error('LightingPass.geoGpu missing');
+            pass.geoGpu = true;
+            break;
         case 'no_lights': pass.present = function (...a) { this.lightCount = 0; return proto.present.apply(this, a); }; break;
         case 'full_no_vfx': skipVfxDraws(); break;
         default: throw new Error(`unknown variant ${id}`);

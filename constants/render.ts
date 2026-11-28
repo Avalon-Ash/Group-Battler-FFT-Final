@@ -113,6 +113,11 @@ export const RENDER_QUALITY = {
      * 保真基準只對應 Canvas 2D 路徑，所以 render-fidelity 與凍結幀探針的網址固定帶 lit=0。
      */
     LIT_DEFAULT_ON: true,
+    /**
+     * 打光開啟時幾何遮罩改由 GL 畫（docs/plans/gpu-geo-mask.md）：網址 ?geogpu=1 走新路徑，沒寫走 Canvas 2D 暫存畫布。
+     * 只在開發與新舊比對期間存在，比對過了就刪掉舊路徑與這個旗標。
+     */
+    GEO_GPU_QUERY_KEY: 'geogpu',
 } as const;
 
 /**

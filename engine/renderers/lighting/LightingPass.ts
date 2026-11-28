@@ -46,6 +46,8 @@ import { GridOverlays } from '../grid/GridOverlays';
 import { RenderDispatcher } from '../RenderDispatcher';
 import { RenderOpType, type RenderOp } from '../RenderList';
 import { setPartLightSink, type PartLightRole, type PartLightSink } from './PartLightSink';
+import { SpriteCapture } from '../SpriteCapture';
+import { GeoMaskGpu, type GlProgram, type GlProgramFactory } from './GeoMaskGpu';
 import {
     BLUR_FRAG, BRIGHT_FRAG, CASTER_FRAG, COMPOSITE_FRAG, FULLSCREEN_VERT, INSTANCE_VERT, lightFrag, shadeFrag,
 } from './shaders';
@@ -86,10 +88,9 @@ const TEX_GEO = 5;
 const TEX_CASTER = 6;
 const TEX_GLOW_LIGHT = 7;
 
-interface Program {
-    readonly id: WebGLProgram;
-    readonly uniforms: Map<string, WebGLUniformLocation | null>;
-}
+type Program = GlProgram;
+/** LightingPass 自己的 program 用的頂點屬性（instance 矩形） */
+const PASS_ATTRIBS: readonly string[] = ['aPos', 'iPos', 'iCol'];
 
 interface Target {
     readonly tex: WebGLTexture | null;
@@ -144,7 +145,7 @@ interface PartLightStats {
     mismatch: number;
 }
 
-export class LightingPass implements PartLightSink {
+export class LightingPass implements PartLightSink, GlProgramFactory {
     private readonly world: HTMLCanvasElement;
     private readonly worldCtx: CanvasRenderingContext2D;
     /** 遮罩畫布（LIGHTING.MASK_SCALE 倍解析度，和世界畫布同一個相機變換） */
@@ -178,6 +179,15 @@ export class LightingPass implements PartLightSink {
     private maskOY = 0;
     /** WEBGL_debug_renderer_info 的顯示卡字串；量測工具把它寫進證據 */
     public readonly gpu: string;
+    /**
+     * 幾何遮罩改由 GL 畫（GeoMaskGpu，docs/plans/gpu-geo-mask.md）；網址 RENDER_QUALITY.GEO_GPU_QUERY_KEY=1 開。
+     * 新舊比對期間的開關，量測工具與比對探針在頁面裡直接改它。geoCompare＝兩條路同一幀都畫（只給比對探針）。
+     */
+    public geoGpu: boolean;
+    public geoCompare = false;
+    private geo: GeoMaskGpu | null = null;
+    /** 本幀世界畫布的相機變換（tag 第一次呼叫時讀；SpriteCapture 的基準） */
+    private cam: DOMMatrix = new DOMMatrix();
 
     private quadVao: WebGLVertexArrayObject | null = null;
     private instVao: WebGLVertexArrayObject | null = null;
@@ -202,6 +212,8 @@ export class LightingPass implements PartLightSink {
     private worldTex: WebGLTexture | null = null;
     private backTex: WebGLTexture | null = null;
     private geoTex: WebGLTexture | null = null;
+    /** 本幀 GL 畫好的幾何遮罩（GeoMaskGpu.render 的結果；null＝用 geoTex） */
+    private geoGpuTex: WebGLTexture | null = null;
     private glowTex: WebGLTexture | null = null;
     private infoTex: WebGLTexture | null = null;
     private pCaster: Program | null = null;
@@ -244,6 +256,7 @@ export class LightingPass implements PartLightSink {
         this.gpu = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
         this.glCanvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; });
         this.glCanvas.addEventListener('webglcontextrestored', () => { this.createResources(); this.lost = false; });
+        this.geoGpu = typeof location !== 'undefined' && new URLSearchParams(location.search).get(RENDER_QUALITY.GEO_GPU_QUERY_KEY) === '1';
         this.createResources();
         setPartLightSink(this);
     }
@@ -290,21 +303,20 @@ export class LightingPass implements PartLightSink {
         return s;
     }
 
-    private program(vert: string, frag: string): Program {
+    /** attribs[i] 綁在頂點屬性位置 i（預設是這個檔的 instance 矩形：aPos、iPos、iCol） */
+    public program(vert: string, frag: string, attribs: readonly string[] = PASS_ATTRIBS): Program {
         const gl = this.gl;
         const id = gl.createProgram();
         if (!id) throw new Error('program');
         gl.attachShader(id, this.compile(gl.VERTEX_SHADER, vert));
         gl.attachShader(id, this.compile(gl.FRAGMENT_SHADER, frag));
-        gl.bindAttribLocation(id, ATTR_QUAD, 'aPos');
-        gl.bindAttribLocation(id, ATTR_INST_POS, 'iPos');
-        gl.bindAttribLocation(id, ATTR_INST_COL, 'iCol');
+        attribs.forEach((name, i) => gl.bindAttribLocation(id, i, name));
         gl.linkProgram(id);
         if (!gl.getProgramParameter(id, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(id) ?? 'link');
         return { id, uniforms: new Map() };
     }
 
-    private loc(p: Program, name: string): WebGLUniformLocation | null {
+    public loc(p: Program, name: string): WebGLUniformLocation | null {
         let l = p.uniforms.get(name);
         if (l === undefined) {
             l = this.gl.getUniformLocation(p.id, name);
@@ -411,6 +423,8 @@ export class LightingPass implements PartLightSink {
         this.pBright = this.program(FULLSCREEN_VERT, BRIGHT_FRAG);
         this.pBlur = this.program(FULLSCREEN_VERT, BLUR_FRAG);
         this.pComposite = this.program(FULLSCREEN_VERT, COMPOSITE_FRAG);
+        // 舊的圖集貼圖跟著遺失的 context 失效：整個重建
+        this.geo = new GeoMaskGpu(gl, this, quad);
     }
 
     private lookFor(biome: string): LightingLook {
@@ -456,6 +470,7 @@ export class LightingPass implements PartLightSink {
         this.opRedrawn = false;
         this.itemCount = 0;
         this.packX = this.packY = this.shelfH = 0;
+        this.geo?.begin();
         return ctx;
     }
 
@@ -560,7 +575,7 @@ export class LightingPass implements PartLightSink {
         if (type === RenderOpType.CORPSE) return;
         if (this.maskStale) {
             this.maskStale = false;
-            const m = this.worldCtx.getTransform();
+            const m = this.cam = this.worldCtx.getTransform();
             const k = LIGHTING.MASK_SCALE;
             this.maskScale = m.a * k;
             this.maskOX = m.e * k;
@@ -584,7 +599,11 @@ export class LightingPass implements PartLightSink {
             const height = f.floorY - f.hudAnchorY;
             const halfW = height * G.UNIT_HALF_WIDTH;
             const x0 = f.footX - halfW, y0 = f.floorY - G.MAX_HEIGHT;
-            if (this.beginItem(x0, y0, halfW * 2, stampH)) {
+            if (this.geoGpu && this.geo) {
+                units.drawSilhouette(SpriteCapture.begin(this.cam), f, t, layout);
+                this.addCaptured(SpriteCapture.end(), x0, y0, halfW * 2, true, G.UNIT_COVERAGE);
+            }
+            if ((!this.geoGpu || this.geoCompare) && this.beginItem(x0, y0, halfW * 2, stampH)) {
                 this.scratchCtx.globalAlpha = G.UNIT_COVERAGE;
                 units.drawSilhouette(this.scratchCtx, f, t, layout);
                 this.scratchCtx.globalAlpha = 1;
@@ -609,7 +628,11 @@ export class LightingPass implements PartLightSink {
             const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr, t);
             const halfW = Math.max(ob.anchorX, ob.width - ob.anchorX);
             const x0 = op.tx - halfW, y0 = op.ty - G.MAX_HEIGHT;
-            if (this.beginItem(x0, y0, halfW * 2, stampH)) {
+            if (this.geoGpu && this.geo) {
+                RenderDispatcher.dispatch(SpriteCapture.begin(this.cam), op, layout, t, units);
+                this.addCaptured(SpriteCapture.end(), x0, y0, halfW * 2, false, 1);
+            }
+            if ((!this.geoGpu || this.geoCompare) && this.beginItem(x0, y0, halfW * 2, stampH)) {
                 RenderDispatcher.dispatch(this.scratchCtx, op, layout, t, units);
                 this.endItem(this.obstacleStamp, x0, y0, halfW * 2, stampH);
             }
@@ -622,6 +645,16 @@ export class LightingPass implements PartLightSink {
         } else {
             this.opRedrawn = true;
             RenderDispatcher.dispatch(type === RenderOpType.OVERLAY ? this.infoCtx : this.glowCtx, op, layout, t, units);
+        }
+    }
+
+    /** SpriteCapture 剛擷取到的 n 張貼圖交給 GL 幾何遮罩（章的世界矩形 x0, y0, w） */
+    private addCaptured(n: number, x0: number, y0: number, w: number, isUnit: boolean, coverage: number): void {
+        const geo = this.geo;
+        if (!geo) return;
+        for (let i = 0; i < n; i++) {
+            const b = SpriteCapture.at(i);
+            geo.add(b, SpriteCapture.isWhole(b), x0, y0, w, isUnit, coverage);
         }
     }
 
@@ -670,7 +703,7 @@ export class LightingPass implements PartLightSink {
     private surfaceUniforms(p: Program, cam: DOMMatrix, w: number, h: number): void {
         const S = LIGHTING.SHADOW;
         this.viewUniforms(p, cam, w, h, 1);
-        this.bindTexture(p, TEX_GEO, 'tGeo', this.geoTex);
+        this.bindTexture(p, TEX_GEO, 'tGeo', this.geoGpu && this.geoGpuTex ? this.geoGpuTex : this.geoTex);
         this.bindTexture(p, TEX_CASTER, 'tCaster', this.tCaster ? this.tCaster.tex : null);
         this.f1(p, 'uMaxH', LIGHTING.GEO.MAX_HEIGHT);
         this.f1(p, 'uBevel', LIGHTING.GEO.BEVEL);
@@ -742,7 +775,9 @@ export class LightingPass implements PartLightSink {
         gl.activeTexture(gl.TEXTURE0);
         this.upload(this.worldTex, world);
         this.upload(this.backTex, main.canvas);
-        this.upload(this.geoTex, this.geoCtx.canvas);
+        if (!this.geoGpu || this.geoCompare) this.upload(this.geoTex, this.geoCtx.canvas);
+        // 0. 幾何遮罩（GL 路徑）：直立物的貼圖一趟 instanced 畫進遮罩貼圖；建不起來時退回 Canvas 2D 那張（geoTex）
+        this.geoGpuTex = this.geoGpu && this.geo ? this.geo.render(cam, this.geoCtx.canvas.width, this.geoCtx.canvas.height) : null;
         this.upload(this.glowTex, this.glowCtx.canvas);
         this.upload(this.infoTex, this.infoCtx.canvas);
         gl.bindVertexArray(this.quadVao);

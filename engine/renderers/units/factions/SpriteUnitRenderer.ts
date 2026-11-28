@@ -9,6 +9,7 @@
  *  - 受擊閃白直接 blit 預烘焙之白色剪影，被遮擋輪廓以 low alpha 剪影 blit。
  *  - 嚴格遵守零 magic number、零體型字面值、無 shadowBlur。
  *  - [ARCH] 重用選格／矩形；POISON 只取固定材質頁，缺頁畫原圖。
+ *  - [ARCH] 剪影的貼圖經 SpriteCapture.blit：打光幾何遮罩（GL）查同一塊切片與變換，不另算。
  */
 
 import { Agent } from '../../../core/Agent';
@@ -21,6 +22,7 @@ import { variantKey } from '../../../../data/units/factionTint';
 import { poisonMaterialStore } from '../../status/PoisonMaterialStore';
 import { isStatusVisible } from '../../status/StatusActivity';
 import { UnitOutlinePass } from '../UnitOutlinePass';
+import { SpriteCapture } from '../../SpriteCapture';
 
 /** 受擊抖動頻率（弧度／秒） */
 const HIT_SHAKE_FREQ = 80;
@@ -210,9 +212,10 @@ export const SpriteUnitRenderer = {
         }
 
         // 繪製本體
-        // 剪影只畫形狀；透明度由呼叫端決定（遮擋剪影在 SilhouetteMask 設成半透明，打光遮罩要不透明）
+        // 剪影只畫形狀；透明度由呼叫端決定（遮擋剪影在 SilhouetteMask 設成半透明，打光遮罩要不透明）。
+        // 經 SpriteCapture：打光的幾何遮罩用同一條路查「剪影貼哪一塊、貼在哪」，數字只在這裡
         if (isSilhouette) {
-            ctx.drawImage(atlasImage, sx, sy, sw, sh, dx, dy, dw, dh);
+            SpriteCapture.blit(ctx, atlasImage, sx, sy, sw, sh, dx, dy, dw, dh);
             return;
         }
 

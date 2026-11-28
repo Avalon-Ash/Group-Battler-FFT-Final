@@ -7,6 +7,8 @@
 // ║         繪製點對齊裝置像素（setDeviceGrid／snap，§3），     ║
 // ║         排序鍵 op.y 不動。                                  ║
 // ║         OBSTACLE 錨點讀精靈本身（SpriteManager），不寫死。  ║
+// ║         OBSTACLE 的貼圖經 SpriteCapture（打光幾何遮罩查同一 ║
+// ║         個繪製點，不另算）。                                ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { RenderOp, RenderOpType } from "./RenderList";
@@ -20,6 +22,7 @@ import { ProjectilePartPainter } from "../presentation/vfx/renderers/painters/Pr
 import { HexLayout } from "../../types";
 import { UnitRenderSystem } from "../presentation/unit";
 import { RENDER_DISPATCH_PARAM } from "../../constants";
+import { SpriteCapture } from "./SpriteCapture";
 
 export class RenderDispatcher {
     /**
@@ -88,14 +91,15 @@ export class RenderDispatcher {
             {
                 // 錨點＝格子中心地面點（ObstacleSpriteStore manifest；程序化退回 ENV_SPRITE）
                 const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr, globalTime);
-                if (ob.sw !== undefined) ctx.drawImage(ob.image, ob.sx!, ob.sy!, ob.sw, ob.sh!, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
-                else ctx.drawImage(ob.image, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
+                // 經 SpriteCapture：打光的幾何遮罩（GL）用同一條路查障礙物貼哪張圖、貼在哪
+                if (ob.sw !== undefined) SpriteCapture.blit(ctx, ob.image, ob.sx!, ob.sy!, ob.sw, ob.sh!, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
+                else SpriteCapture.blitWhole(ctx, ob.image, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
                 const ov = ob.overlay;
                 if (ov && ov.alpha > 0) {
                     const prevA = ctx.globalAlpha, prevOp = ctx.globalCompositeOperation;
                     ctx.globalAlpha = prevA * ov.alpha;
                     ctx.globalCompositeOperation = 'lighter';
-                    ctx.drawImage(ov.image, snapX + ov.x, snapY + ov.y, ov.width, ov.height);
+                    SpriteCapture.blitWhole(ctx, ov.image, snapX + ov.x, snapY + ov.y, ov.width, ov.height);
                     ctx.globalAlpha = prevA;
                     ctx.globalCompositeOperation = prevOp;
                 }
