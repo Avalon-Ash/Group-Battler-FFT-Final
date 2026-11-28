@@ -9,7 +9,7 @@ import { launchBrowser } from './lib/perf-common.mjs';
 const STEP_S = 0.05;
 const MAX_FRAMES = 60;
 const SEED = 1337;
-const out = fileURLToPath(new URL('./out/vfx-strip/', import.meta.url));
+const outRoot = fileURLToPath(new URL('./out/', import.meta.url));
 
 async function skillList({ ids, teamName, biome }) {
     const [{ DEFAULT_SKILL_DB }, { Role, Team }, { SCENE_DB }, { roleSkills }] = await Promise.all([
@@ -55,6 +55,10 @@ async function captureStrip({ id, team, step, maxFrames }) {
     const e = window.__TACTICAL_ENGINE__;
     const renderer = e.renderer;
     const cmd = command => e.bus.emit('UI_COMMAND', command);
+    // Glow parts drawn as lights (ADR 0031): running totals kept by the lighting pass (null on the Canvas 2D path)
+    const { getLightingPass } = await import('/engine/renderers/lighting/LightingGate.ts');
+    const partStats = () => { const st = getLightingPass()?.partStats; return st ? { ...st } : null; };
+    const partStart = partStats();
     const skill = e.skillDB.find(entry => entry.id === id);
     if (!skill) throw new Error('Skill unavailable in the engine: ' + id);
     const substeps = Math.round(step / SIM_STEP_S);
@@ -252,16 +256,46 @@ async function captureStrip({ id, team, step, maxFrames }) {
     output.putImageData(frames[endIndex], 2 * width, crop.height);
     const png = sheet.toDataURL('image/png').split(',')[1];
     if (!png) throw new Error('Could not encode sheet for ' + id);
+    const partEnd = partStats();
+    // max: most glow-part lights in one frame since the page opened; framesAtCap: frames of this strip where some glow
+    // parts stayed sprites (cap full: a part can flip between light and sprite); mismatch: ops whose mask redraw differed
+    const partLights = partStart && partEnd ? {
+        max: partEnd.maxPerFrame, framesAtCap: partEnd.framesAtCap - partStart.framesAtCap, mismatch: partEnd.mismatch - partStart.mismatch,
+        perFrame: +((partEnd.lights - partStart.lights) / Math.max(1, partEnd.frames - partStart.frames)).toFixed(1),
+    } : null;
     return {
+        partLights,
         png, frameCount: frames.length, startIndex, hitIndex, impactIndex, impactKind, endIndex,
         capped: active, maxChangedPixels, crop, canvas: { width, height }, positions, sourceHex, targetHex,
     };
 }
 
-async function record(browser, url, biome, skill) {
+/**
+ * Runs in the page: deep-merge `--lighting` (JSON) into the live LIGHTING table, e.g. '{"PART_LIGHT":{"MAX":0}}'.
+ * Only for look comparisons (the shipped values stay in constants/lighting.ts).
+ */
+async function overrideLighting(patch) {
+    const { LIGHTING } = await import('/constants.ts');
+    const merge = (target, src, path) => {
+        for (const [k, v] of Object.entries(src)) {
+            if (!(k in target)) throw new Error('LIGHTING has no ' + path + k);
+            if (v && typeof v === 'object' && !Array.isArray(v)) merge(target[k], v, path + k + '.');
+            else target[k] = v;
+        }
+    };
+    merge(LIGHTING, patch, '');
+}
+
+async function record(browser, url, biome, skill, { lit, lighting }) {
     const context = await browser.newContext(desktopProbe);
     try {
-        const page = await openFrozenPage(context, url);
+        const page = await openFrozenPage(context, url, undefined, lit ? '&lit=1' : '&lit=0');
+        if (lit) {
+            await page.waitForFunction(() => typeof window.__LIGHTING__ === 'string' && window.__LIGHTING__ !== 'loading', null, { timeout: 15000 });
+            const state = await page.evaluate(() => window.__LIGHTING__);
+            if (!String(state).startsWith('active')) throw new Error('lighting pass not active: ' + state);
+        }
+        if (lighting) await page.evaluate(overrideLighting, lighting);
         await page.evaluate(() => {
             const engine = window.__TACTICAL_ENGINE__;
             engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
@@ -281,7 +315,14 @@ async function main() {
         biome: { type: 'string', default: 'FOREST' },
         team: { type: 'string' },
         'check-determinism': { type: 'boolean' },
+        // --lit: lighting pass on (default off, the Canvas 2D path); --lighting '<json>': override LIGHTING values
+        // for this run; --out <dir>: output folder under tools/ui-e2e/out/ (default vfx-strip)
+        lit: { type: 'boolean' },
+        lighting: { type: 'string' },
+        out: { type: 'string', default: 'vfx-strip' },
     } });
+    const out = join(outRoot, values.out);
+    const look = { lit: !!values.lit, lighting: values.lighting ? JSON.parse(values.lighting) : null };
     const biome = values.biome.toUpperCase();
     const teamName = values.team?.toUpperCase();
     if (teamName !== undefined && !['BLUE', 'RED'].includes(teamName)) throw new Error('--team must be BLUE or RED');
@@ -307,14 +348,14 @@ async function main() {
         const failures = [];
         for (const skill of skills) {
             try {
-                const { png, metadata } = await record(browser, url, biome, skill);
+                const { png, metadata } = await record(browser, url, biome, skill, look);
                 const file = skill.id + '_' + biome + '.png';
                 writeFileSync(join(out, file), png);
                 const row = { ...skill, ...metadata, file };
                 rows.push(row);
                 if (!metadata.maxChangedPixels) failures.push(skill.id + ': no changed pixels in crop');
                 if (values['check-determinism']) {
-                    const second = await record(browser, url, biome, skill);
+                    const second = await record(browser, url, biome, skill, look);
                     row.deterministic = png.equals(second.png);
                     if (!row.deterministic) failures.push(skill.id + ': PNG bytes differ between runs');
                 }
@@ -324,7 +365,7 @@ async function main() {
             } catch (error) { failures.push(skill.id + ': ' + error.message); }
         }
         writeFileSync(join(out, 'strips.json'), JSON.stringify({
-            biome, stepSeconds: STEP_S, maxFrames: MAX_FRAMES, strips: rows, failures,
+            biome, lit: look.lit, lighting: look.lighting, stepSeconds: STEP_S, maxFrames: MAX_FRAMES, strips: rows, failures,
         }, null, 2) + '\n');
         console.log(out);
         for (const failure of failures) console.error(failure);

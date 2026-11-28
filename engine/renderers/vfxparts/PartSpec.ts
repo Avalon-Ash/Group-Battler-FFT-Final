@@ -4,10 +4,12 @@ import { offsetMulberry32 } from '../../math/hash';
  * -----------------------------------------------------------------------------
  *  - 純函式、無 DOM 依賴，可直接單元測試。
  *  - normalizePartSpec 把連續參數量化到有限級距，確保快取量有上限。
+ *  - partLight 是「哪些零件是仿光效」唯一的定義（ADR 0031，RenderSpec §1 尾段）。
  */
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
-import { VFX_SOLID_RAMPS, type VFXRampId, type VFXNeutralId } from '../../../data/vfx/parts/vfxPalette';
+import { VFX_RAMPS, VFX_SOLID_RAMPS, type VFXRampId, type VFXNeutralId } from '../../../data/vfx/parts/vfxPalette';
+import { hexToRgbChannels } from '../../../data/ui/tokens';
 import { ISO_SCALE_Y } from '../../../constants';
 import type { HexLayout } from '../../../types';
 
@@ -212,6 +214,24 @@ export function partBlend(n: PartSpec): GlobalCompositeOperation {
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';
     if (n.kind === 'shard' && n.shape !== 'crystal' && n.shape !== 'hex') return 'source-over';
     return 'lighter';
+}
+
+/** 仿光效零件的光：radius＝零件半徑（世界像素，縮放前），color＝色階 main 的 0～1 三值 */
+export interface PartLight {
+    radius: number;
+    color: readonly [number, number, number];
+}
+
+const CHANNEL_MAX = 255;
+
+/**
+ * 「哪些零件是仿光效」唯一的定義（ADR 0031）：柔邊、加法的 glow。打光開啟時 drawPart 把它們登記成光、不貼圖；
+ * 其他零件回 null。顏色取色階 main（hexToRgbChannels 是全專案共用的 hex 解析），只在烘焙時算一次。
+ */
+export function partLight(n: PartSpec): PartLight | null {
+    if (n.kind !== 'glow' || n.hard || partBlend(n) !== 'lighter') return null;
+    const [r, g, b] = hexToRgbChannels(VFX_RAMPS[n.ramp].main).split(' ').map((c) => Number(c) / CHANNEL_MAX);
+    return { radius: n.radius, color: [r, g, b] };
 }
 
 /** 世界單位外框（未含 PAD）。錨點：圓形零件在中心；柱狀、火焰、雷在底部中央；火花在頭端。 */

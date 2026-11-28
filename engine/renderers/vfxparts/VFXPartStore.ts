@@ -5,13 +5,17 @@
  *  - 快取鍵只含參數與影格數，不含時間；超過當前品質階層的條目或位元組上限時丟 LRU；
  *    觸控裝置的上限至少取 CONSTRAINED_MIN_LIMIT_TIER（影格數仍跟實際階層）。
  *  - drawPart：執行期只用 drawImage／globalAlpha／globalCompositeOperation／平移縮放旋轉。
+ *  - drawPart 是「這個零件這一幀貼圖還是登記成光」唯一的決定點（ADR 0031，RenderSpec §1 尾段）：
+ *    仿光效零件（PartSpec.partLight）在打光開啟時依畫布（PartLightSink.roleOf）：世界畫布登記成光、只畫縮小核心；
+ *    遮罩畫布照同一個 op 世界那一趟的決定；其他畫布與排不進上限的照舊貼圖。各 painter 不判斷打光狀態。
  *  - 純衍生資源快取（不持遊戲狀態），可注入 createSurface 與 getTier 供測試。
  */
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { createCanvas } from '../../graphics/CanvasUtils';
 import { getQualityTier, isMemoryConstrainedDevice } from '../RenderQuality';
-import { type PartSpec, type PartKind, normalizePartSpec, partKey, partBounds, partBlend, partBakeScale, frameCountForTier, baseFrameCount, emblemCounterRotation } from './PartSpec';
+import { type PartSpec, type PartKind, type PartLight, normalizePartSpec, partKey, partBounds, partBlend, partBakeScale, partLight, frameCountForTier, baseFrameCount, emblemCounterRotation } from './PartSpec';
+import { getPartLightSink } from '../lighting/PartLightSink';
 import { bakePart } from './PartBakers';
 
 export interface PartSprite {
@@ -23,6 +27,8 @@ export interface PartSprite {
     anchorX: number;
     anchorY: number;
     blend: GlobalCompositeOperation;
+    /** 仿光效零件的光（PartSpec.partLight）；null＝一律貼圖 */
+    light: PartLight | null;
     /** 建議播放速率：影格數因品質階層減少時同步降低，循環週期不變 */
     fps: number;
     /** 估算記憶體（RGBA bytes，含全部影格） */
@@ -72,7 +78,7 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
             frames.push(canvas);
         }
         const fps = basePartFps(n.kind) * (frameCount / baseFrameCount(n.kind));
-        return { frames, width: b.width, height: b.height, anchorX: b.anchorX, anchorY: b.anchorY, blend: partBlend(n), fps, bytes: pw * ph * 4 * frameCount, key };
+        return { frames, width: b.width, height: b.height, anchorX: b.anchorX, anchorY: b.anchorY, blend: partBlend(n), light: partLight(n), fps, bytes: pw * ph * 4 * frameCount, key };
     }
 
     /**
@@ -147,16 +153,37 @@ export function setAdditiveGain(gain: number): void {
     additiveGain = gain;
 }
 
+/**
+ * 仿光效零件在這張畫布上怎麼畫：−1＝照舊貼圖，0＝什麼都不畫，正數＝登記成光、只畫縮成這個比例的核心。
+ * 位置與半徑用呼叫當下（平移、旋轉之前）的變換換成裝置像素；貼地零件＝有 scaleY 且不是 1（畫點就是腳底）。
+ */
+function partLightCore(ctx: CanvasRenderingContext2D, light: PartLight, x: number, y: number, scale: number, scaleY: number | undefined, strength: number): number {
+    const sink = getPartLightSink();
+    if (!sink) return -1;
+    const role = sink.roleOf(ctx.canvas);
+    if (role === 'mask') return sink.takeMaskLight();
+    if (role !== 'world') return -1;
+    const m = ctx.getTransform();
+    return sink.addPartLight(m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f, light.radius * scale * Math.hypot(m.a, m.b),
+        scaleY !== undefined && scaleY !== 1, light.color, strength);
+}
+
 export function drawPart(ctx: CanvasRenderingContext2D, sprite: PartSprite, x: number, y: number, opts: DrawPartOptions = {}): void {
     const n = sprite.frames.length;
     const img = sprite.frames[(((opts.frame ?? 0) % n) + n) % n];
-    const scale = opts.scale ?? 1;
+    let scale = opts.scale ?? 1;
     const alpha = opts.alpha ?? 1;
     if (alpha <= 0 || scale <= 0) return;
     const prevAlpha = ctx.globalAlpha;
     const prevBlend = ctx.globalCompositeOperation;
     const blend = opts.blend ?? sprite.blend;
-    ctx.globalAlpha = prevAlpha * alpha * (blend === 'lighter' ? additiveGain : 1);
+    const drawAlpha = prevAlpha * alpha * (blend === 'lighter' ? additiveGain : 1);
+    if (sprite.light && blend === 'lighter') {
+        const core = partLightCore(ctx, sprite.light, x, y, scale, opts.scaleY, drawAlpha);
+        if (core === 0) return;
+        if (core > 0) scale *= core;
+    }
+    ctx.globalAlpha = drawAlpha;
     ctx.globalCompositeOperation = blend;
     const w = sprite.width * scale;
     const h = sprite.height * scale;

@@ -11,6 +11,7 @@
 - （已取代，由 0029）渲染限 HTML5 Canvas 2D、禁 Three／Pixi／WebGL，詳見 [0001](adr/0001-canvas2d-and-prebaked-vfx.md)。
 - 世界畫面仍用 Canvas 2D 畫，之上加一個 WebGL2 打光與後製通道（只用瀏覽器 API，禁 Three／Pixi 與其他渲染函式庫；關閉或拿不到 WebGL2 時走原路徑），詳見 [0029](adr/0029-webgl-lighting-pass-over-canvas2d.md)。
 - 打光通道所有裝置預設開、載入後不因效能關閉（跑不動時降解析度；context 還原後繼續打光）；只改 0029 的預設與自動關閉那一條（2026-11-28，使用者實機回饋），詳見 [0030](adr/0030-lighting-always-on.md)。
+- 打光開啟時柔邊加法的 `glow` 零件改登記成點光、只畫縮小核心（定義只在 `PartSpec.partLight`、決定只在 `drawPart`；打光關閉照舊貼圖）；修訂 0029「特效一律走預烘焙零件」在打光開啟時的做法（2026-11-28，使用者：新製程和舊 ADR 衝突時主代理直接決定），詳見 [0031](adr/0031-part-glow-as-light.md)。
 
 ## 2. 素材策略與授權
 - 單位：AI 逐張生圖已放棄，改 KayKit 預渲染（Blender 可攜版在 `_asset_staging`）。AI 圖只用於地形材質與日後圖示。
@@ -19,7 +20,7 @@
 - 使用者的風格參考圖（`_asset_staging\art\ref_*`）不得進 repo。
 
 ## 3. 視覺細節
-- 特效一律預烘焙零件、渲染路徑 0 個每幀 `shadowBlur`，原訂於 [0001](adr/0001-canvas2d-and-prebaked-vfx.md)，由 [0029](adr/0029-webgl-lighting-pass-over-canvas2d.md) 接手、內容不變。
+- 特效一律預烘焙零件、渲染路徑 0 個每幀 `shadowBlur`，原訂於 [0001](adr/0001-canvas2d-and-prebaked-vfx.md)，由 [0029](adr/0029-webgl-lighting-pass-over-canvas2d.md) 接手、內容不變；打光開啟時柔邊加法的 `glow` 零件改成光，見 [0031](adr/0031-part-glow-as-light.md)。
 - 零件外框語言是六角（ART_SPEC §0）；**詠唱法陣例外改圓形 `magicCircle`**（2026-10-19：實線六角高速旋轉造成毛刺，使用者回饋）。線條一律「模糊光暈＋細亮芯」，不畫實心粗線。
 - 逐格鋪開的疊層（範圍、預警、區域）用柔光格 `SoftTile`，不逐格描實線（相鄰格雙邊會排成網格）。
 - 地形變體 4→8 刻意不做：地塊快取翻倍，地表裝飾已提供變化。

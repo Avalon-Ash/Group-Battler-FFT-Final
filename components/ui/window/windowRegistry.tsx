@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { AppMode, WindowDef, WindowId } from '../../../types';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { Icons } from '../icons';
-import { EmptyState } from '../primitives';
+import { EmptyState } from '../primitives/EmptyState';
 import { ToolWindow } from './ToolWindow';
 import { windowStore } from './windowStore';
 

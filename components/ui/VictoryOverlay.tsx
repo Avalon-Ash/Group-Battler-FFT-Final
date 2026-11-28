@@ -2,7 +2,7 @@ import React from 'react';
 import { BattleSetup, Team } from '../../types';
 import { getFactionSkin } from '../../data/units/factionSkin';
 import { UI_Z } from '../../constants';
-import { Button } from './primitives';
+import { Button } from './primitives/Button';
 import { Icons } from './icons';
 import { cn } from './primitives/cn';
 

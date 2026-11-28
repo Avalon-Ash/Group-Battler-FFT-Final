@@ -6,7 +6,8 @@ import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { useWindowStore } from '../../../hooks/useWindowStore';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
-import { Button, IconButton } from '../primitives';
+import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Icons } from '../icons';
 import { SHOWCASE_ENTRY, showcaseSwapLabel, type ShowcaseEntryMode } from '../../../data/ui/labels/showcase';
 
