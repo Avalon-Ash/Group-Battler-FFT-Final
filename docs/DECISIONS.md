@@ -10,6 +10,7 @@
 - HD 為主線，SD 像素原型已移除（tag `pixel-proto-ckpt`）。
 - （已取代，由 0029）渲染限 HTML5 Canvas 2D、禁 Three／Pixi／WebGL，詳見 [0001](adr/0001-canvas2d-and-prebaked-vfx.md)。
 - 世界畫面仍用 Canvas 2D 畫，之上加一個 WebGL2 打光與後製通道（只用瀏覽器 API，禁 Three／Pixi 與其他渲染函式庫；關閉或拿不到 WebGL2 時走原路徑），詳見 [0029](adr/0029-webgl-lighting-pass-over-canvas2d.md)。
+- 打光通道所有裝置預設開、載入後不因效能關閉（跑不動時降解析度；context 還原後繼續打光）；只改 0029 的預設與自動關閉那一條（2026-11-28，使用者實機回饋），詳見 [0030](adr/0030-lighting-always-on.md)。
 
 ## 2. 素材策略與授權
 - 單位：AI 逐張生圖已放棄，改 KayKit 預渲染（Blender 可攜版在 `_asset_staging`）。AI 圖只用於地形材質與日後圖示。

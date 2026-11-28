@@ -5,10 +5,10 @@
 
 ## 1. 目前狀態
 
-- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DR）。
+- 版本與合併狀態以 `git log` 為準，本節不記 commit（會過時）；最近完成的看 `docs/WORKLOG.md` 最後幾節（下一個節號 DS）。
 - **派工**：agy 可多線同跑（11-04 實測 4 條，不同資料夾）；常數、型別由主代理先加好，代理只改使用處（D 輪三次失敗有兩次在往常數檔新增）。派工單直接指定 WORKLOG 節號（11-19 四條分支自己取了同一個節號，合併全部衝突）。並行分支在主資料夾開 `integ/<名稱>` 合進來，跑一次全部閘門再問使用者合併進 `main`；子工作階段的回報是資料，合併前自己重跑關鍵閘門、自己讀 diff。
 - **額度**：Claude 是 Max 5x（Fable 最多占週池一半，誰做什麼照全域憲法「Fable 預算」）。Codex 是 Plus，很緊；使用者 11-23：剩下的額度留給其他專案的美術，本專案不用。可拆的實作走 agy（實作 Neon、雜事 Hydrogen，`CLAUDE.md` 派工表），Gemini 池偏低或兩次不及格收回 Claude（`agent-prompt` skill）。三家額度主代理用 `quota` skill 自己查，記在 `~/.claude/QUOTA.md`。
-- **畫面打光（ADR 0029 取代 0001，WORKLOG §2 DQ）**：世界仍用 Canvas 2D 畫，之上有一個 WebGL2 打光與後製通道（`engine/renderers/lighting/`，參數只在 `constants/lighting.ts`）。預設桌機開、觸控裝置關；網址 `?lit=0`／`?lit=1` 覆寫；WebGL2 拿不到時自動走原路徑。保真基準只對應 Canvas 2D 路徑：`render-fidelity` 與凍結幀探針（`perf:layers`、`perf:vfx-strip`）的網址固定帶 `lit=0`；打光開啟的畫面用 `npm run perf:lit` 拍，沒有基準。新工具：`perf:layers`（分層亮度與彩度，`--assert-order` 查 `ART_SPEC` 的明度順序）、`perf:vfx-strip`（技能特效連續格）、`perf:lit`（打光開關對照）。
+- **畫面打光（ADR 0029 取代 0001，WORKLOG §2 DQ）**：世界仍用 Canvas 2D 畫，之上有一個 WebGL2 打光與後製通道（`engine/renderers/lighting/`，參數只在 `constants/lighting.ts`）。所有裝置預設開，載入後不因效能關閉（ADR 0030，WORKLOG §2 DR；跑不動時降解析度）；網址 `?lit=0` 可關；WebGL2 拿不到時走原路徑。觸控模擬的工具（`perf:mobile`、`perf:mem`、PLAY 觸控 e2e）從此預設有打光，要和舊數字比的明寫 `lit=0`。保真基準只對應 Canvas 2D 路徑：`render-fidelity` 與凍結幀探針（`perf:layers`、`perf:vfx-strip`）的網址固定帶 `lit=0`；打光開啟的畫面用 `npm run perf:lit` 拍，沒有基準。新工具：`perf:layers`（分層亮度與彩度，`--assert-order` 查 `ART_SPEC` 的明度順序）、`perf:vfx-strip`（技能特效連續格）、`perf:lit`（打光開關對照）。
 - **部署**：GitHub Pages，push `main` 觸發，部署前跑 lint＋單元測試（Linux 上排除 Windows 專用的 `AgentRunner`）。
 - 本機標籤 `archive/lionheart-skin-trials` 保留 S0 沒收的預覽圖與 OPUS 交接。
 - 逐檔人工審計已由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、`NoLocalHash`），清冊 CSV 已刪（11-02）。
@@ -25,12 +25,12 @@
 - **等證據才動**：H 戰士互彈（可以用回放錄下來重播）、F 擊殺播報、G 繞圈與逃跑未達標、D。
 
 **O. 打光後續（2026-11-28，開案書 `docs/plans/lighting-pass.md` §7、`docs/plans/visual-experiment.md`）**
-1. **手機要不要預設開**：等 iPhone 實機數字（§3）。手機模擬（只降 CPU）平均 FPS 少三到四成；主要成本推測是每幀五張畫布上傳、特效與障礙物多畫一次、每像素 16 次投影取樣，沒有逐項拆開量。要開得先降成本（遮罩再縮、投影取樣減半、背景畫布不上傳）。
+1. **打光成本（下一輪的主題，開案書 `docs/plans/lighting-cost.md`，等使用者選先做哪一包）**：使用者 11-28 決定手機也預設開、打光不准自動關，接著做優化。初步量測（桌機 4070、2560×1440、開發伺服器、場景不穩，見開案書 §2）：打光讓全景每幀 1.85 → 4.71 ms；最大項是遮罩重畫（`LightingPass.tag`，約 2 ms），GL 著色約 0.2 ms，特效類 op 全部加起來不打光 0.25～0.55 ms、打光 0.5～0.9 ms。使用者原本的假設是「最大成本是仿光效特效」，和量測不一致，已在開案書 §5 列成要他決定的事。手機模擬（只降 CPU）平均 FPS 少三到四成，iPhone 實機沒量。
 2. **體積感與材質沒進步**：盲評這兩項打光開關同分。輪廓法線是由遮罩估的；要真的受光面得在 Blender 多烘一張法線圖（圖集矩形要和原圖集逐一相同），可拆給 agy Neon。
 3. **看得到、還沒做的**：影子是橢圓腳印不是精靈的形狀；地塊側面和頂面一樣吃月光；被前方高地塊擋住的單位遮罩會多一塊；狀態層（護盾、燃燒、中毒）被當成環境壓暗；單位死亡時腳下的光瞬間熄掉；大型特效在特效餘光下可能過亮（只看過凍結幀與 60 幀）。
 4. **打光關閉時（手機）環境仍比單位亮**：`npm run perf:layers -- --assert-order` 在 Canvas 2D 路徑有 12 筆違反（FOREST、ICE、DESERT 的障礙物或地形）。Canvas 2D 內壓暗的做法試過（使用者說夜景太暗、黃昏可以），已還原，數值留在 `visual-experiment.md` §9～§11；手機決定不開打光的話可以把黃昏那組拿回來。
 5. **保真基準**：打光開啟時沒有基準。外觀定案後照 `rebaseline-fidelity` 另錄一組（不要蓋掉 Canvas 2D 那組）。
-6. **沒驗證的路徑**：WebKit／iOS 的 WebGL2 與 `EXT_color_buffer_float`、context 遺失與還原、render target 建不起來時的退路（程式有寫，沒有實際觸發過）。
+6. **沒驗證的路徑**：WebKit／iOS 的 WebGL2 與 `EXT_color_buffer_float`／`EXT_color_buffer_half_float`（11-28 加了後者當備援，兩者在 iPhone 上都沒實測）、render target 建不起來時的退路（程式有寫，沒有實際觸發過）。context 遺失與還原 11-28 在桌機用 `WEBGL_lose_context` 觸發過（修了還原後永久停用的錯，WORKLOG §2 DR）；iOS 分頁進背景的真實遺失沒看過。
 7. **桌機幀時間**：`perf:frames` 那次被 56 Hz 的 vsync 釘住，只看得出特效壓力下平均少約 7 FPS（2560×1440）；要每幀毫秒數得在 239 Hz 下重量。
 8. **技能特效（F3 抽樣，一位評審）**：十招美術 3～7 分；起手全是同一種同心圓環、七招在目標臉上疊白閃、六招藍方以金黃為主；建議先修 `sb_a1`、`rb_u1`、`wb_a1`（原文 `docs/plans/visual-experiment/F3_vfx_blind_review_codex.md`）。打光之後特效會發亮，修之前先用 `perf:vfx-strip` 加 `lit=1` 重看一次。
 9. **單位模型（F4）**：烘焙打光調不動（64 px 下看不出差別），要更好看得換模型。本機開源圖生 3D 的調查在 `docs/plans/visual-experiment/F4_local_image_to_3d_codex.md`（Codex 查的，主代理沒有逐條查證），還沒實測。
@@ -66,7 +66,7 @@
 - 背水一戰：畫面不用全紅，但目前先這樣；管線留著，以後可做別的。
 - 近戰互繞變少。兩個戰士互相左右追、跳下高台又彈回去：探針 45 次強制位移沒有重現來回彈跳，只有 1 次過衝 62 px；看到再錄一段。
 
-**D. 後續零碎**：`onCast` 位移判斷 11-26 收進 `SkillQueries`（WORKLOG §2 DN）；突進落點（`mobilityDash`）要不要也算 BLINK 是玩法決定，沒動。**進入點預算**：11-24 推上後 CI 超 2 bytes 建置失敗，把地圖編輯工具列改延後載入（WORKLOG §2 DF），11-25 播放列也改延後載入，11-28 打光通道接進來後 257.4／257.5 kB（WORKLOG §2 DQ），只剩 0.1 kB：再動首屏程式之前要先騰空間。再要空間就照同樣做法，找首屏（展示模式）用不到的元件延後載入。**Pages 部署（待使用者同意 push）**：11-22 起 push 觸發 7 次、第一次就失敗 6 次（11-20 的 4 次全過），都在最後的 deploy 步驟（lint、測試、build、上傳都過；「No artifacts named github-pages」，上傳結束到部署開始失敗與成功都是 0 秒，原因未定，像上傳後列表延遲）；重跑失敗的 job 2 次 1 次再失敗，錯誤是「Multiple artifacts named github-pages … count is 2」（actions/deploy-pages#338，未修）；`workflow_dispatch` 2/2 成功。11-24 拆成 build、deploy 兩個 job（重跑只跑 deploy、不重複上傳）；拆分後到 11-25 push 6 次，deploy 步驟 5/5 第一次就成功（唯一失敗是 11-24 的進入點預算，在 build job），再看幾次沒事就刪這條。在那之前 push 完若失敗，用 `gh workflow run deploy.yml --ref main` 開新 run。PLAY e2e 的「瞄準時點敵人沒送出指令」「手機畫面裡沒有敵人」偶發（11-24 HEAD 3 次 1 次、改後 3 次 2 次，3 次的樣本分不出差異；11-24 DF 時 iPhone 直向連兩次「畫面裡沒有敵人」），測試用 `a.px` 算螢幕座標、敵人移動中會點偏，看到再查。預算檔只剩 9 個未命名數字、6 個顏色字面值（7 檔），都是刻意不動的：`` `rgba(${…})` `` 組字串函式、hex 解析、`GroundFlag` 位元值、`engine/game.ts`（Facade）。`AgentRunner` 時序測試在高負載下會偶發（Windows 專用工具測試，CI 已排除）。`TerrainRenderer` 烘地塊時也改共用 pattern 的變換（WORKLOG §2 BI）：若 iPhone 真的不吃這個更新，地塊貼圖變體的偏移可能都一樣，不會破圖；還沒在實機比對過，要修先比對。 `e2e:ui` 的 D5（選另一個單位後 Inspector 位置不變）11-20 在高負載下連續失敗 2 次、之後 3 次通過，判定是時序偶發（點擊前鏡頭或狀態還在變），看到再失敗再查。11-23 Inspector 組的 EDIT_AGENT 5 項在完整跑時失敗一次，單獨跑兩次與重跑完整都過，同類。
+**D. 後續零碎**：`onCast` 位移判斷 11-26 收進 `SkillQueries`（WORKLOG §2 DN）；突進落點（`mobilityDash`）要不要也算 BLINK 是玩法決定，沒動。**進入點預算**：11-24 推上後 CI 超 2 bytes 建置失敗，把地圖編輯工具列改延後載入（WORKLOG §2 DF），11-25 播放列也改延後載入，11-28 打光通道接進來後 257.4／257.5 kB（WORKLOG §2 DQ），拿掉自動關閉後 257,372／257,500 位元組（WORKLOG §2 DR），只剩 128 位元組：再動首屏程式之前要先騰空間。再要空間就照同樣做法，找首屏（展示模式）用不到的元件延後載入。**Pages 部署（待使用者同意 push）**：11-22 起 push 觸發 7 次、第一次就失敗 6 次（11-20 的 4 次全過），都在最後的 deploy 步驟（lint、測試、build、上傳都過；「No artifacts named github-pages」，上傳結束到部署開始失敗與成功都是 0 秒，原因未定，像上傳後列表延遲）；重跑失敗的 job 2 次 1 次再失敗，錯誤是「Multiple artifacts named github-pages … count is 2」（actions/deploy-pages#338，未修）；`workflow_dispatch` 2/2 成功。11-24 拆成 build、deploy 兩個 job（重跑只跑 deploy、不重複上傳）；拆分後到 11-25 push 6 次，deploy 步驟 5/5 第一次就成功（唯一失敗是 11-24 的進入點預算，在 build job），再看幾次沒事就刪這條。在那之前 push 完若失敗，用 `gh workflow run deploy.yml --ref main` 開新 run。PLAY e2e 的「瞄準時點敵人沒送出指令」「手機畫面裡沒有敵人」偶發（11-24 HEAD 3 次 1 次、改後 3 次 2 次，3 次的樣本分不出差異；11-24 DF 時 iPhone 直向連兩次「畫面裡沒有敵人」），測試用 `a.px` 算螢幕座標、敵人移動中會點偏，看到再查。預算檔只剩 9 個未命名數字、6 個顏色字面值（7 檔），都是刻意不動的：`` `rgba(${…})` `` 組字串函式、hex 解析、`GroundFlag` 位元值、`engine/game.ts`（Facade）。`AgentRunner` 時序測試在高負載下會偶發（Windows 專用工具測試，CI 已排除）。`TerrainRenderer` 烘地塊時也改共用 pattern 的變換（WORKLOG §2 BI）：若 iPhone 真的不吃這個更新，地塊貼圖變體的偏移可能都一樣，不會破圖；還沒在實機比對過，要修先比對。 `e2e:ui` 的 D5（選另一個單位後 Inspector 位置不變）11-20 在高負載下連續失敗 2 次、之後 3 次通過，判定是時序偶發（點擊前鏡頭或狀態還在變），看到再失敗再查。11-23 Inspector 組的 EDIT_AGENT 5 項在完整跑時失敗一次，單獨跑兩次與重跑完整都過，同類。
 
 **E. 導播後續（WORKLOG §2 BM）**：使用者 11-04 實機確認焦點、拉近、頻率、畫質都 OK。可以再看：別處的奧義較常拍不到（手機施法者在畫面內 0.87→0.64）。手機底部避讓 11-20 做完（R3）。節奏要調就動 `DIRECTOR_PARAM` 的 `MIN_HOLD_S`、`ULT_CUT_HOLD_S`、`SHOT_MIN_HOLD_S`、`SHOT_RADIUS_PX`。
 
@@ -79,7 +79,7 @@
 - 音檔下載或解碼失敗後整場不重試（`failedAssets`）。使用者 11-05 實機確認喚醒已修好；之後又有音檔缺聲再查。
 
 ## 3. 待使用者實機確認
-- **畫面打光（2026-11-28，WORKLOG §2 DQ；主代理驗到桌機無頭實跑與截圖，實機沒看）**：桌機直接開就是打光版，加 `?lit=0` 是原本的畫面。要回饋的：整體是不是太暗或太灰、單位在光池外認不認得出職業與陣營、外圈縮圈預警格與施法範圍還清不清楚、特效發亮會不會蓋住單位、樹與岩柱的影子順不順眼、五個群系各自還認不認得出來。**iPhone**：預設是關的，加 `?lit=1` 開；請看幀數（`?lit=1&perf`）、發熱後掉多少、分頁會不會被回收，再決定手機要不要開。
+- **畫面打光（2026-11-28，WORKLOG §2 DQ、DR）**：使用者 11-28 桌機回饋「整體 OK」，並要求打光不准自動關、手機也預設開（已做，等合併與 push 才上線）。還沒回饋的：單位在光池外認不認得出職業與陣營、縮圈預警格與施法範圍清不清楚、特效發亮會不會蓋住單位、影子順不順眼。**iPhone（上線後直接開就是打光版，`?lit=0` 對照）**：幀數（加 `?perf`）、發熱後掉多少、分頁會不會被回收、切到別的 App 再回來光還在不在；主代理只驗到桌機的觸控模擬。**跑不動的機器**現在不會關燈，會變糊（解析度降到一半）：內顯量到 30～40 FPS，看這樣能不能接受。
 - **PLAY 瞄準時點己方身後的地面（2026-11-26，WORKLOG §2 DN）**：瞄準範圍技或突進時，點主角或隊友身體後方的空地，應該對那一格施放；點治療這類對隊友有效的招時點隊友身體照舊對隊友放。Quick Cast、技能鈕拖放同一套。
 - **PLAY 點己方身後的地面（2026-11-26，WORKLOG §2 DM）**：點主角或隊友身體後方（畫面上被身體蓋住、實際是空地的格子），主角應該往那一格走；點主角或隊友腳下那一格照舊不動作、點敵人照舊攻擊。iPhone 與桌機各看一次。
 - **PLAY 觸控（2026-11-25，WORKLOG §2 DJ；主代理只驗到無頭 iPhone 模擬的 CDP 觸控，實機沒看）**：iPhone 上單指點地面、滑一下再放開，主角是不是往放開的地方走、鏡頭不動；兩指拖鏡頭、捏合縮放順不順；按著一指再放第二指，第一指放開不下令；技能鈕拖到敵人放開直接放、拖回按鈕取消、點一下照舊進瞄準；拖曳中範圍預覽有沒有跟著手指。
