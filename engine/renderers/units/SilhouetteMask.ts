@@ -5,11 +5,14 @@
 // ║        當幀 TERRAIN／OBSTACLE op 的繪製位置）              ║
 // ║  [ARCH] RenderSpec §13；座標一律取 op 的 snap 後繪製位置， ║
 // ║        不自己重算高度或漂浮                               ║
+// ║  [ARCH] 剪影的透明度（UNIT_SPRITE.silhouetteAlpha）只在    ║
+// ║        這裡設：單位的 painter 只畫形狀，打光遮罩用同一個   ║
+// ║        入口畫不透明的剪影                                 ║
 // ╚══════════════════════════════════════════════════════════╝
 //
 // 以前剪影整個疊在被判定遮擋的單位上（25% 白），露在外面的身體也變灰白。
 
-import { HEX_SIZE, SILHOUETTE_MASK } from "../../../constants";
+import { HEX_SIZE, SILHOUETTE_MASK, UNIT_SPRITE } from "../../../constants";
 import { HexLayout } from "../../../types";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SpriteManager } from "../../sprites";
@@ -86,6 +89,7 @@ export const SilhouetteMask = {
                 ctx.closePath();
             }
             ctx.clip();
+            ctx.globalAlpha = UNIT_SPRITE.silhouetteAlpha;
             drawSilhouette(ctx);
             ctx.restore();
         }
@@ -109,7 +113,9 @@ export const SilhouetteMask = {
                 s.clearRect(0, 0, dw, dh);
                 // 同一個世界→裝置變換，只是原點移到這個外框的左上角
                 s.setTransform(m.a, m.b, m.c, m.d, m.e - dx0, m.f - dy0);
+                s.globalAlpha = UNIT_SPRITE.silhouetteAlpha;
                 drawSilhouette(s);
+                s.globalAlpha = 1;
                 // 只留障礙物圖不透明的地方
                 s.globalCompositeOperation = 'destination-in';
                 if (ob.sw !== undefined) s.drawImage(ob.image, ob.sx!, ob.sy!, ob.sw, ob.sh!, sx, sy, ob.width, ob.height);
