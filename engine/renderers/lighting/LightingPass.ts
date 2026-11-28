@@ -15,11 +15,12 @@
 // ║         單例）；context 遺失時 beginWorld 回 null，管線走   ║
 // ║         原本的直接路徑。                                    ║
 // ║  [ARCH] 遮罩（tag，半解析度，地塊不重畫）：                 ║
-// ║   幾何遮罩＝直立物（單位、障礙物）各蓋一張漸層章，記離腳底  ║
-// ║   的高度、是不是單位、橫向位置；特效遮罩；玩法標示遮罩。    ║
-// ║   章先蓋在暫存畫布上各自的格子裡，整幀畫完才一次貼進幾何    ║
-// ║   遮罩（flushItems）：畫布每被讀一次都要先送出累積的繪製。  ║
-// ║   同時收集點光（存活單位）與投影物（單位、障礙物的腳印）。  ║
+// ║   幾何遮罩＝直立物（單位、障礙物）的漸層章（離腳底的高度、  ║
+// ║   是不是單位、橫向位置），由 GL 畫（GeoMaskGpu，ADR 0032）：║
+// ║   tag 在 SpriteCapture 的擷取畫布上跑一次同一個 painter，    ║
+// ║   取得貼圖與變換，present 一趟 instanced 畫進遮罩貼圖。      ║
+// ║   特效遮罩、玩法標示遮罩仍是 Canvas 2D 畫布（直立物在上面    ║
+// ║   挖洞）。同時收集點光（存活單位）與投影物（腳印）。        ║
 // ║   地塊 op 順帶畫的基礎疊層進玩法標示遮罩、貼地法陣進特效    ║
 // ║   遮罩（否則會被當成地面壓暗）。                            ║
 // ║  [ARCH] 仿光效零件的光（ADR 0031，PartLightSink）：drawPart  ║
@@ -27,7 +28,7 @@
 // ║   用本幀相機變換換回世界座標；遮罩那一趟（tag 重畫同一個    ║
 // ║   op）照世界那一趟登記的盞數一一對應，不重複登記。上限       ║
 // ║   PART_LIGHT.MAX 和單位的光分開算。                          ║
-// ║  每幀流程：投影物貼圖 → 點光（instance 矩形，加法，含投影） ║
+// ║  每幀流程：幾何遮罩 → 投影物貼圖 → 點光（instance 矩形，加法，含投影） ║
 // ║  → 零件的光（同一種矩形，PART_LIGHT.SHADOW_STEPS）          ║
 // ║  → 著色（環境光、月光與投影、接觸暗部、邊光、自發光、背景   ║
 // ║  調色）→ 泛光 → 特效餘光（泛光再抹開，留給下一幀當光源）    ║
@@ -62,18 +63,6 @@ const INST_COL_SIZE = 3;
 const FLOAT_BYTES = Float32Array.BYTES_PER_ELEMENT;
 /** 地面深度相對螢幕 Y 的倍率（等距投影把地面 y 壓成 ISO_SCALE_Y 倍） */
 const GROUND_PER_SCREEN_Y = 1 / ISO_SCALE_Y;
-/** 直立物的像素外框往外多取的像素數（左上各 1、右下各 2：取整與邊緣的半透明像素） */
-const ITEM_EDGE_PX = 3;
-/** 一個待貼直立物的紀錄（各欄在紀錄裡的位置）：暫存畫布上那一格的 x、y、寬、高，與它在幾何遮罩上的 x、y */
-const ITEM_CELL_X = 0;
-const ITEM_CELL_Y = 1;
-const ITEM_W = 2;
-const ITEM_H = 3;
-const ITEM_DST_X = 4;
-const ITEM_DST_Y = 5;
-const ITEM_STRIDE = 6;
-const BYTE_MAX = 255;
-const RGBA = 4;
 
 const ATTR_QUAD = 0;
 const ATTR_INST_POS = 1;
@@ -108,30 +97,6 @@ function makeCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2
     return { canvas, ctx };
 }
 
-/**
- * 漸層章：由上到下 r＝離腳底的高度（MAX_HEIGHT → 0，最下面 FOOT_PAD 那段是 0），
- * 由左到右 b＝橫向位置，g＝是不是單位。蓋的時候拉伸到精靈的範圍並以 source-in 裁成精靈的形狀。
- */
-function makeStamp(isUnit: boolean): HTMLCanvasElement {
-    const n = LIGHTING.GEO.STAMP_SIZE;
-    const { canvas, ctx } = makeCanvas();
-    canvas.width = n;
-    canvas.height = n;
-    const img = ctx.createImageData(n, n);
-    for (let y = 0; y < n; y++) {
-        const height = Math.max(0, 1 - (y + 0.5) / n * (1 + LIGHTING.GEO.FOOT_PAD));
-        for (let x = 0; x < n; x++) {
-            const i = (y * n + x) * RGBA;
-            img.data[i] = Math.round(height * BYTE_MAX);
-            img.data[i + 1] = isUnit ? BYTE_MAX : 0;
-            img.data[i + 2] = Math.round((x + 0.5) / n * BYTE_MAX);
-            img.data[i + 3] = BYTE_MAX;
-        }
-    }
-    ctx.putImageData(img, 0, 0);
-    return canvas;
-}
-
 /** 零件光 instance 暫存的 z 欄：present 換算前先記「是不是貼地零件」 */
 const PART_GROUND_FLAG = 1;
 
@@ -148,43 +113,18 @@ interface PartLightStats {
 export class LightingPass implements PartLightSink, GlProgramFactory {
     private readonly world: HTMLCanvasElement;
     private readonly worldCtx: CanvasRenderingContext2D;
-    /** 遮罩畫布（LIGHTING.MASK_SCALE 倍解析度，和世界畫布同一個相機變換） */
-    private readonly geoCtx: CanvasRenderingContext2D;
+    /** 遮罩畫布（LIGHTING.MASK_SCALE 倍解析度，和世界畫布同一個相機變換）；幾何遮罩由 GL 畫（geo） */
     private readonly glowCtx: CanvasRenderingContext2D;
     private readonly infoCtx: CanvasRenderingContext2D;
-    /**
-     * 蓋章用的暫存畫布：每個直立物在上面分到自己的一格（由左到右、排滿換下一列），精靈先畫在格子裡、裁成漸層章；
-     * 整幀畫完才一次貼進幾何遮罩（flushItems）。畫布被讀取時瀏覽器要先把它累積的繪製送出去：
-     * 每個直立物讀一次，27 個就占 2.4 ms（2026-11-28，npm run perf:lit-cost 的 no_geo_copy），所以整幀只讀一次。
-     */
-    private readonly scratchCtx: CanvasRenderingContext2D;
-    /** 待貼的直立物（ITEM_STRIDE 個數一筆），順序＝繪製順序（後面的蓋掉前面的） */
-    private readonly items = new Int32Array(LIGHTING.MAX_CASTERS * ITEM_STRIDE);
-    private itemCount = 0;
-    /** 暫存畫布的排版游標：下一格的左上角、這一列目前的高度 */
-    private packX = 0;
-    private packY = 0;
-    private shelfH = 0;
     private readonly maskCtxs: readonly CanvasRenderingContext2D[];
-    private readonly unitStamp = makeStamp(true);
-    private readonly obstacleStamp = makeStamp(false);
     private readonly glCanvas: HTMLCanvasElement;
     private readonly gl: WebGL2RenderingContext;
     private lost = false;
     /** 遮罩畫布的變換要不要重設（每幀第一次 tag 時照世界畫布此刻的相機變換設一次） */
     private maskStale = true;
-    /** 遮罩畫布的相機變換（等比縮放 + 平移）：蓋章時把世界座標換成遮罩像素 */
-    private maskScale = 1;
-    private maskOX = 0;
-    private maskOY = 0;
     /** WEBGL_debug_renderer_info 的顯示卡字串；量測工具把它寫進證據 */
     public readonly gpu: string;
-    /**
-     * 幾何遮罩改由 GL 畫（GeoMaskGpu，docs/plans/gpu-geo-mask.md）；網址 RENDER_QUALITY.GEO_GPU_QUERY_KEY=1 開。
-     * 新舊比對期間的開關，量測工具與比對探針在頁面裡直接改它。geoCompare＝兩條路同一幀都畫（只給比對探針）。
-     */
-    public geoGpu: boolean;
-    public geoCompare = false;
+    /** 幾何遮罩（ADR 0032）；context 還原時重建 */
     private geo: GeoMaskGpu | null = null;
     /** 本幀世界畫布的相機變換（tag 第一次呼叫時讀；SpriteCapture 的基準） */
     private cam: DOMMatrix = new DOMMatrix();
@@ -211,9 +151,8 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
     public readonly partStats: PartLightStats = { frames: 0, lights: 0, rejected: 0, maxPerFrame: 0, framesAtCap: 0, mismatch: 0 };
     private worldTex: WebGLTexture | null = null;
     private backTex: WebGLTexture | null = null;
+    /** 本幀 GL 畫好的幾何遮罩（GeoMaskGpu.render 的結果） */
     private geoTex: WebGLTexture | null = null;
-    /** 本幀 GL 畫好的幾何遮罩（GeoMaskGpu.render 的結果；null＝用 geoTex） */
-    private geoGpuTex: WebGLTexture | null = null;
     private glowTex: WebGLTexture | null = null;
     private infoTex: WebGLTexture | null = null;
     private pCaster: Program | null = null;
@@ -239,11 +178,9 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
         const world = makeCanvas();
         this.world = world.canvas;
         this.worldCtx = world.ctx;
-        this.geoCtx = makeCanvas().ctx;
         this.glowCtx = makeCanvas().ctx;
         this.infoCtx = makeCanvas().ctx;
-        this.scratchCtx = makeCanvas().ctx;
-        this.maskCtxs = [this.geoCtx, this.glowCtx, this.infoCtx, this.scratchCtx];
+        this.maskCtxs = [this.glowCtx, this.infoCtx];
         this.glCanvas = document.createElement('canvas');
         // failIfMajorPerformanceCaveat：只有軟體算圖（沒有顯示卡加速）可用時不建 context，走原本的 Canvas 2D 路徑；
         // 軟體 WebGL 跑全螢幕打光會把幀率拖到個位數
@@ -256,7 +193,6 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
         this.gpu = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
         this.glCanvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; });
         this.glCanvas.addEventListener('webglcontextrestored', () => { this.createResources(); this.lost = false; });
-        this.geoGpu = typeof location !== 'undefined' && new URLSearchParams(location.search).get(RENDER_QUALITY.GEO_GPU_QUERY_KEY) === '1';
         this.createResources();
         setPartLightSink(this);
     }
@@ -412,7 +348,6 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
 
         this.worldTex = this.canvasTexture(gl.NEAREST);
         this.backTex = this.canvasTexture(gl.NEAREST);
-        this.geoTex = this.canvasTexture(gl.LINEAR);
         this.glowTex = this.canvasTexture(gl.LINEAR);
         this.infoTex = this.canvasTexture(gl.LINEAR);
         const steps = LIGHTING.SHADOW.STEPS;
@@ -468,8 +403,6 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
         this.partCount = this.partSinceTag = this.maskQuota = 0;
         this.partWorldCalls = this.opWorldCalls = this.partMaskCalls = this.partRejectedFrame = 0;
         this.opRedrawn = false;
-        this.itemCount = 0;
-        this.packX = this.packY = this.shelfH = 0;
         this.geo?.begin();
         return ctx;
     }
@@ -489,75 +422,10 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
     }
 
     /**
-     * 開始記一個直立物（世界座標的矩形 x0,y0,w,h）：在暫存畫布上配一格、裁切到這一格與這個矩形、把變換對準
-     * （和遮罩畫布同一個縮放，只差整數像素的平移），之後畫在 scratchCtx 上的東西位置和直接畫在遮罩上相同。
-     * 整個在畫面外時回 false（不必畫）。回 true 時畫完要呼叫 endItem。
-     */
-    private beginItem(x0: number, y0: number, w: number, h: number): boolean {
-        const s = this.scratchCtx, k = this.maskScale, mask = s.canvas;
-        const x = Math.max(0, Math.floor(x0 * k + this.maskOX) - 1), y = Math.max(0, Math.floor(y0 * k + this.maskOY) - 1);
-        const pw = Math.min(mask.width - x, Math.ceil(w * k) + ITEM_EDGE_PX), ph = Math.min(mask.height - y, Math.ceil(h * k) + ITEM_EDGE_PX);
-        if (pw <= 0 || ph <= 0) return false;
-        if (this.packX + pw > mask.width) {
-            this.packX = 0;
-            this.packY += this.shelfH;
-            this.shelfH = 0;
-        }
-        // 排不下（或紀錄滿了）：先把已經畫好的貼進幾何遮罩，清空重排
-        if (this.packY + ph > mask.height || (this.itemCount + 1) * ITEM_STRIDE > this.items.length) this.flushItems();
-        const cx = this.packX, cy = this.packY;
-        this.packX += pw;
-        this.shelfH = Math.max(this.shelfH, ph);
-        const i = this.itemCount++ * ITEM_STRIDE, it = this.items;
-        it[i + ITEM_CELL_X] = cx; it[i + ITEM_CELL_Y] = cy; it[i + ITEM_W] = pw; it[i + ITEM_H] = ph;
-        it[i + ITEM_DST_X] = x; it[i + ITEM_DST_Y] = y;
-        s.save();
-        s.resetTransform();
-        s.beginPath();
-        s.rect(cx, cy, pw, ph);
-        s.clip();
-        s.setTransform(k, 0, 0, k, this.maskOX - x + cx, this.maskOY - y + cy);
-        s.beginPath();
-        s.rect(x0, y0, w, h);
-        s.clip();
-        return true;
-    }
-
-    /**
-     * 這一格裡剛畫好的精靈染成漸層章（章蓋在同一個世界座標矩形上）。用 source-atop：只改已經有像素的地方、透明度不變。
-     * 這一格已經裁切到章的矩形，所以結果和 source-in 相同；source-in 要影響整個裁切區，瀏覽器得為它另開一層，
-     * 27 個直立物占 1.3 ms（2026-11-28，npm run perf:lit-cost 的 item_no_stamp）。
-     */
-    private endItem(stampImage: HTMLCanvasElement, x0: number, y0: number, w: number, h: number): void {
-        const s = this.scratchCtx;
-        s.globalCompositeOperation = 'source-atop';
-        s.drawImage(stampImage, x0, y0, w, h);
-        s.restore();
-    }
-
-    /** 把暫存畫布上所有格子照繪製順序貼進幾何遮罩，清空暫存畫布與排版；present 每幀呼叫一次（排不下時 beginItem 也會呼叫） */
-    private flushItems(): void {
-        const n = this.itemCount;
-        this.itemCount = 0;
-        this.packX = this.packY = this.shelfH = 0;
-        if (n === 0) return;
-        const s = this.scratchCtx, g = this.geoCtx, it = this.items;
-        g.save();
-        g.resetTransform();
-        for (let i = 0; i < n * ITEM_STRIDE; i += ITEM_STRIDE) {
-            const w = it[i + ITEM_W], h = it[i + ITEM_H];
-            g.drawImage(s.canvas, it[i + ITEM_CELL_X], it[i + ITEM_CELL_Y], w, h, it[i + ITEM_DST_X], it[i + ITEM_DST_Y], w, h);
-        }
-        g.restore();
-        s.resetTransform();
-        s.clearRect(0, 0, s.canvas.width, s.canvas.height);
-    }
-
-    /**
      * RenderPipeline 每畫完一個 op 呼叫一次：把「這個 op 是哪一類」另外記在遮罩畫布上，並收集光源與投影物。
-     * - 單位 → 幾何遮罩（剪影 drawSilhouette，和遮擋剪影同一個入口，以 GEO.UNIT_COVERAGE 畫一次，蓋單位章）＋一盞點光＋一個投影物；
-     *   並從特效遮罩挖掉自己（比它早畫的特效被它擋住）。
-     * - 障礙物 → 幾何遮罩（蓋障礙物章）＋一個投影物；並從特效、玩法標示遮罩挖掉自己。
+     * - 單位 → 幾何遮罩（剪影 drawSilhouette 在 SpriteCapture 擷取畫布上跑一次，貼圖交給 GeoMaskGpu，覆蓋率 GEO.UNIT_COVERAGE）
+     *   ＋一盞點光＋一個投影物；並從特效遮罩挖掉自己（比它早畫的特效被它擋住）。
+     * - 障礙物 → 幾何遮罩（同上，RenderDispatcher.dispatch）＋一個投影物；並從特效、玩法標示遮罩挖掉自己。
      * - 特效、投射物、施法圈、危害（熔岩、毒沼）→ 特效遮罩：照原樣再分發一次。
      * - 射程、預警、縮圈格（OVERLAY）→ 玩法標示遮罩：照原樣再分發一次。
      * - 地塊本體不重畫（最多、最貴）：被前方高地塊擋住的單位，遮罩會多出一塊（開案書 §6）。
@@ -577,9 +445,6 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
             this.maskStale = false;
             const m = this.cam = this.worldCtx.getTransform();
             const k = LIGHTING.MASK_SCALE;
-            this.maskScale = m.a * k;
-            this.maskOX = m.e * k;
-            this.maskOY = m.f * k;
             for (const mctx of this.maskCtxs) mctx.setTransform(m.a * k, m.b * k, m.c * k, m.d * k, m.e * k, m.f * k);
         }
         if (type === RenderOpType.TERRAIN) {
@@ -592,23 +457,14 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
             return;
         }
         const G = LIGHTING.GEO;
-        const stampH = G.MAX_HEIGHT * (1 + G.FOOT_PAD);
         if (type === RenderOpType.UNIT) {
             const f = op.unitFrame;
             if (!f || f.isCorpse) return;
             const height = f.floorY - f.hudAnchorY;
             const halfW = height * G.UNIT_HALF_WIDTH;
             const x0 = f.footX - halfW, y0 = f.floorY - G.MAX_HEIGHT;
-            if (this.geoGpu && this.geo) {
-                units.drawSilhouette(SpriteCapture.begin(this.cam), f, t, layout);
-                this.addCaptured(SpriteCapture.end(), x0, y0, halfW * 2, true, G.UNIT_COVERAGE);
-            }
-            if ((!this.geoGpu || this.geoCompare) && this.beginItem(x0, y0, halfW * 2, stampH)) {
-                this.scratchCtx.globalAlpha = G.UNIT_COVERAGE;
-                units.drawSilhouette(this.scratchCtx, f, t, layout);
-                this.scratchCtx.globalAlpha = 1;
-                this.endItem(this.unitStamp, x0, y0, halfW * 2, stampH);
-            }
+            units.drawSilhouette(SpriteCapture.begin(this.cam), f, t, layout);
+            this.addCaptured(SpriteCapture.end(), x0, y0, halfW * 2, true, G.UNIT_COVERAGE);
             for (const mctx of [this.glowCtx, this.infoCtx]) {
                 mctx.globalCompositeOperation = 'destination-out';
                 mctx.globalAlpha = G.UNIT_COVERAGE;
@@ -628,14 +484,8 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
             const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr, t);
             const halfW = Math.max(ob.anchorX, ob.width - ob.anchorX);
             const x0 = op.tx - halfW, y0 = op.ty - G.MAX_HEIGHT;
-            if (this.geoGpu && this.geo) {
-                RenderDispatcher.dispatch(SpriteCapture.begin(this.cam), op, layout, t, units);
-                this.addCaptured(SpriteCapture.end(), x0, y0, halfW * 2, false, 1);
-            }
-            if ((!this.geoGpu || this.geoCompare) && this.beginItem(x0, y0, halfW * 2, stampH)) {
-                RenderDispatcher.dispatch(this.scratchCtx, op, layout, t, units);
-                this.endItem(this.obstacleStamp, x0, y0, halfW * 2, stampH);
-            }
+            RenderDispatcher.dispatch(SpriteCapture.begin(this.cam), op, layout, t, units);
+            this.addCaptured(SpriteCapture.end(), x0, y0, halfW * 2, false, 1);
             for (const mctx of [this.glowCtx, this.infoCtx]) {
                 mctx.globalCompositeOperation = 'destination-out';
                 RenderDispatcher.dispatch(mctx, op, layout, t, units);
@@ -703,7 +553,7 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
     private surfaceUniforms(p: Program, cam: DOMMatrix, w: number, h: number): void {
         const S = LIGHTING.SHADOW;
         this.viewUniforms(p, cam, w, h, 1);
-        this.bindTexture(p, TEX_GEO, 'tGeo', this.geoGpu && this.geoGpuTex ? this.geoGpuTex : this.geoTex);
+        this.bindTexture(p, TEX_GEO, 'tGeo', this.geoTex);
         this.bindTexture(p, TEX_CASTER, 'tCaster', this.tCaster ? this.tCaster.tex : null);
         this.f1(p, 'uMaxH', LIGHTING.GEO.MAX_HEIGHT);
         this.f1(p, 'uBevel', LIGHTING.GEO.BEVEL);
@@ -771,13 +621,12 @@ export class LightingPass implements PartLightSink, GlProgramFactory {
         const look = this.lookFor(biome);
         this.finishPartLights(cam);
 
-        this.flushItems();
+        // 0. 幾何遮罩：直立物的貼圖一趟 instanced 畫進遮罩貼圖（和其他遮罩同解析度）；建不起來時整個通道停用，同 render target
+        this.geoTex = this.geo ? this.geo.render(cam, this.glowCtx.canvas.width, this.glowCtx.canvas.height) : null;
+        if (!this.geoTex) { this.lost = true; this.blitUnlit(main); return; }
         gl.activeTexture(gl.TEXTURE0);
         this.upload(this.worldTex, world);
         this.upload(this.backTex, main.canvas);
-        if (!this.geoGpu || this.geoCompare) this.upload(this.geoTex, this.geoCtx.canvas);
-        // 0. 幾何遮罩（GL 路徑）：直立物的貼圖一趟 instanced 畫進遮罩貼圖；建不起來時退回 Canvas 2D 那張（geoTex）
-        this.geoGpuTex = this.geoGpu && this.geo ? this.geo.render(cam, this.geoCtx.canvas.width, this.geoCtx.canvas.height) : null;
         this.upload(this.glowTex, this.glowCtx.canvas);
         this.upload(this.infoTex, this.infoCtx.canvas);
         gl.bindVertexArray(this.quadVao);

@@ -99,7 +99,7 @@ void main(){
     gl_Position = vec4(px.x / uRes.x * 2.0 - 1.0, 1.0 - px.y / uRes.y * 2.0, 0.0, 1.0);
 }`;
 
-/** 和 Canvas 2D 的漸層章同一個定義（LightingPass 檔頭）：r＝離腳底的高度、g＝是不是單位、b＝橫向位置；輸出預乘 alpha */
+/** 漸層章（LightingPass 檔頭、LIGHTING.GEO）：r＝離腳底的高度、g＝是不是單位、b＝橫向位置；章的矩形外不畫；輸出預乘 alpha */
 export const GEO_FRAG = `#version 300 es
 precision highp float;
 in vec2 vUv; in vec2 vFlags; in vec3 vStamp; out vec4 o;

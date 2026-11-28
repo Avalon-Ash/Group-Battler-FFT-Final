@@ -58,18 +58,16 @@ const VARIANTS = {
     no_obstacle_tag: 'tag skips obstacles',
     no_terrain_tag: 'tag skips terrain ops (overlays, ground drape)',
     no_vfx_tag: 'tag skips VFX / projectile / hazard / aura / overlay ops',
-    item_no_stamp: 'upright items: silhouette drawn in its scratch cell, not stamped (no source-in)',
     item_no_cut: 'upright items: not cut out of the VFX and info masks',
     item_no_info_cut: 'upright items: not cut out of the info mask (still cut out of the VFX mask)',
     item_no_glow_cut: 'upright items: not cut out of the VFX mask (still cut out of the info mask)',
-    item_no_cell: 'upright items: no scratch cell work at all (cut-outs only)',
     no_upload: 'GL runs on stale textures: no canvas uploads',
     no_back_upload: 'only the background (main canvas) upload skipped',
-    no_mask_upload: 'only the three mask uploads (geo, glow, info) skipped',
+    no_mask_upload: 'only the two mask uploads (glow, info) skipped; the geometry mask is drawn by GL (ADR 0032)',
     no_world_upload: 'only the world canvas upload skipped',
     terrain_no_overlay: 'terrain tag: base overlays (status, zone, tile light) not drawn into the info mask',
     terrain_no_drape: 'terrain tag: ground drape not drawn into the VFX mask',
-    mask_upload_twice: 'each of the three masks uploaded twice per frame (diagnosis: per-upload cost vs rasterising)',
+    mask_upload_twice: 'each of the two canvas masks uploaded twice per frame (diagnosis: per-upload cost vs rasterising)',
     no_flip: 'uploads without UNPACK_FLIP_Y_WEBGL (picture upside down; diagnosis of the copy path)',
     drape_upload_only: 'VFX mask: no drape draws; instead every drape layer canvas used this frame is uploaded to a texture',
     drape_no_blit: 'VFX mask: ground drape flat-plane blits skipped (raised-plane pieces still drawn)',
@@ -80,7 +78,6 @@ const VARIANTS = {
     tag_deferred: 'same mask draws in the same order, all replayed after the world (no interleaving)',
     no_lights: 'point-light pass gets 0 lights',
     part_light_off: 'Q2 (ADR 0031): glow parts stay glow sprites (LIGHTING.PART_LIGHT.MAX = 0, the look before C2)',
-    geo_gpu: 'G1 (docs/plans/gpu-geo-mask.md): geometry mask drawn by GL instances (GeoMaskGpu), no scratch canvas, no geo upload',
     lights16: 'P4: 16 extra point lights (with the ground shadow walk), radius P4.RADIUS',
     lights32: 'P4: 32 extra point lights (shadow)',
     lights64: 'P4: 64 extra point lights (shadow)',
@@ -128,14 +125,6 @@ async function install({ id, P4 }) {
         case 'no_obstacle_tag': tagUnless((op) => op.type === T.OBSTACLE); break;
         case 'no_terrain_tag': tagUnless((op) => op.type === T.TERRAIN); break;
         case 'no_vfx_tag': tagUnless(isVfx); break;
-        case 'item_no_stamp':
-            if (typeof proto.endItem !== 'function') throw new Error('LightingPass.endItem missing');
-            pass.endItem = function () { this.scratchCtx.restore(); };
-            break;
-        case 'item_no_cell':
-            if (typeof proto.beginItem !== 'function') throw new Error('LightingPass.beginItem missing');
-            pass.beginItem = () => false;
-            break;
         case 'item_no_cut': case 'item_no_info_cut': case 'item_no_glow_cut': {
             const cutCtxs = { item_no_cut: [pass.glowCtx, pass.infoCtx], item_no_info_cut: [pass.infoCtx], item_no_glow_cut: [pass.glowCtx] }[id];
             const isCut = (ctx) => cutCtxs.includes(ctx);
@@ -155,7 +144,7 @@ async function install({ id, P4 }) {
         }
         case 'no_back_upload': case 'no_mask_upload': case 'no_world_upload': {
             // Skip the chosen textures after their first upload (so they have storage); the rest upload every frame
-            const skip = { no_back_upload: ['backTex'], no_mask_upload: ['geoTex', 'glowTex', 'infoTex'], no_world_upload: ['worldTex'] }[id];
+            const skip = { no_back_upload: ['backTex'], no_mask_upload: ['glowTex', 'infoTex'], no_world_upload: ['worldTex'] }[id];
             for (const m of skip) if (!(m in pass)) throw new Error(`LightingPass.${m} missing`);
             const seen = new Set();
             pass.upload = function (tex, source) {
@@ -182,7 +171,7 @@ async function install({ id, P4 }) {
             // Diagnosis: is a mask upload's cost per upload (doubles) or the rasterising of its recorded draws (second is free)?
             pass.upload = function (tex, source) {
                 proto.upload.call(this, tex, source);
-                if (tex === this.geoTex || tex === this.glowTex || tex === this.infoTex) proto.upload.call(this, tex, source);
+                if (tex === this.glowTex || tex === this.infoTex) proto.upload.call(this, tex, source);
             };
             break;
         }
@@ -331,10 +320,6 @@ async function install({ id, P4 }) {
             LIGHTING.PART_LIGHT.MAX = 0;
             break;
         }
-        case 'geo_gpu':
-            if (!('geoGpu' in pass)) throw new Error('LightingPass.geoGpu missing');
-            pass.geoGpu = true;
-            break;
         case 'no_lights': pass.present = function (...a) { this.lightCount = 0; return proto.present.apply(this, a); }; break;
         case 'full_no_vfx': skipVfxDraws(); break;
         default: throw new Error(`unknown variant ${id}`);
