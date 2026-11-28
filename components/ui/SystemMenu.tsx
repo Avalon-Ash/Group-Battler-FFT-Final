@@ -5,7 +5,8 @@ import type { AppMode } from '../../types';
 import { useWindowStore, useWindowActions } from '../../hooks/useWindowStore';
 import { UI_Z } from '../../constants';
 import { useCompactViewport } from '../../hooks/useCompactViewport';
-import { Button, IconButton } from './primitives';
+import { Button } from './primitives/Button';
+import { IconButton } from './primitives/IconButton';
 import { cn } from './primitives/cn';
 import { MENU_DOT_CLASSES, MENU_SECTIONS } from '../../data/ui/labels/l1';
 

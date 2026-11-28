@@ -7,7 +7,7 @@ import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowI
 import { VIEW_INSET_KIND } from '../../../hooks/useViewInsets';
 import { clampRect, getMaximizedRect, getWindowLayerZ } from './windowStore';
 import { Icons } from '../icons';
-import { IconButton } from '../primitives';
+import { IconButton } from '../primitives/IconButton';
 
 export interface ToolWindowProps {
     id: WindowId;
