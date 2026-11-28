@@ -98,8 +98,8 @@ G3、G4 之前要先決定：鋪設（`GroundDrape`）的三色六角遮罩在 G
 | 刪舊路徑後的打光畫面和刪之前的 GL 路徑（`geo-on`） | 打光 6 張 0～1 px、連續格 0 px | `node tools/ui-e2e/lit-shots.mjs --walk 60 --out geo-final`，`geo-pixdiff.py geo-on geo-final` |
 | 刪舊路徑後的 `lit=0` 和 main | 6 張 0～2 px（max 2，ICE） | 同上，和 `geo-main` 比 |
 | 疊層改 source-over（commit `20536300`）之後的打光畫面和舊路徑 | 6 張 0.86～3.99% 像素有差，差 >8 的 69～635 px；VOID、ICE 比改前少（9,904 → 7,932、11,746 → 11,368 px），MAGMA 差 >8 的 102 → 137 px；看過 MAGMA、VOID 差異圖，在單位與障礙物邊緣 | `node tools/ui-e2e/lit-shots.mjs --walk 60 --out geo-final2`，和 `geo-off` 比 |
-| 保真（`lit=0`，Canvas 2D 路徑） | 分支 VOID 0.207、FOREST 0.695、ICE 0.359、MAGMA 0.668、DESERT 0.529、battle_frozen 0.000；**同一天 main 跑出完全相同的六個數字**，`fe44cf45` 也相同；battle_frozen 的擷取圖 main 與分支 0 px 差。以前記的 0.296／0.659／0.302／0.614／0.500／0.177 今天在 main 上重現不出來（瀏覽器與 GPU 字串和以前的紀錄相同），是環境漂移，不是這個分支 | `npm run perf:fidelity`（main、`fe44cf45`、HEAD 兩次；`npm run perf:guard` 兩次） |
-| e2e | 第一次 3 項紅（PLAY 桌機 K3「左鍵拖曳只送一個指令、不拖鏡頭」、iPhone 橫向 K4「技能鈕拖到敵人放開」、iPhone 橫向「瞄準時點敵人」）；重跑一次全過 | `npm run e2e:ui` |
+| 保真（`lit=0`，Canvas 2D 路徑） | 分支 VOID 0.207、FOREST 0.695、ICE 0.359、MAGMA 0.668、DESERT 0.529、battle_frozen 0.000；**同一天 main 跑出完全相同的六個數字**，`fe44cf45` 也相同；battle_frozen 的擷取圖 main 與分支 0 px 差。以前記的 0.296／0.659／0.302／0.614／0.500／0.177 今天在 main 上重現不出來，是環境漂移，不是這個分支。GPU 字串和以前的紀錄相同；以前的紀錄沒有瀏覽器版本（UA 截在 `HeadlessC`），今天是 158.0.4370.45，所以瀏覽器更新是可能的原因、沒有查證 | `npm run perf:fidelity`（main、`fe44cf45`、HEAD 兩次；`npm run perf:guard` 兩次） |
+| e2e | `77f31973`：第一次 3 項紅（PLAY 桌機 K3「左鍵拖曳只送一個指令、不拖鏡頭」、iPhone 橫向 K4「技能鈕拖到敵人放開」、iPhone 橫向「瞄準時點敵人」），重跑全過；HEAD：3 項紅（桌機 K3「Quick Cast 畫面裡沒有敵人」、K4 拖放、瞄準時點敵人）。K3 左鍵拖曳不在已知偶發清單，三次出現一次 | `npm run e2e:ui` |
 | 打光的額外成本（單獨一次，不和 §6 那次比） | full 9.853、direct 6.550、full_again 9.786 ms；full − direct 3.30 ms | `node tools/ui-e2e/lit-cost.mjs --repeat 2 --only direct,full_again` |
 
 成本：新舊路徑只在 §6 那一次執行裡同時量過（−0.25 ms，雜訊 0.66），在雜訊內。這一片沒有讓打光變便宜；省時間要等特效遮罩（鋪設 0.9 ms、特效 0.6 ms，`lighting-cost.md` §4.2）也搬過來（G3）。

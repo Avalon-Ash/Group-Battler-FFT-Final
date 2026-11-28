@@ -137,9 +137,11 @@ async function install({ id, P4 }) {
             break;
         }
         case 'no_upload': {
-            // Let the first frame upload so the textures have storage, then freeze them
+            // Let the first frame upload so the textures have storage, then freeze them (4 canvas uploads per frame:
+            // world, background, VFX mask, info mask; the geometry mask is drawn by GL, ADR 0032)
+            const UPLOADS_PER_FRAME = 4;
             let n = 0;
-            pass.upload = function (...a) { if (n++ < 5) return proto.upload.apply(this, a); };
+            pass.upload = function (...a) { if (n++ < UPLOADS_PER_FRAME) return proto.upload.apply(this, a); };
             break;
         }
         case 'no_back_upload': case 'no_mask_upload': case 'no_world_upload': {
