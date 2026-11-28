@@ -43,7 +43,7 @@
 
 頂點著色器（`shaders.ts` `GEO_VERT`）把局部矩形四角乘上變換、再乘 `MASK_SCALE` 換成遮罩像素；片段著色器（`GEO_FRAG`）把像素換回世界座標，章矩形外 `discard`（舊路徑的裁切），算 r＝`max(0, 1 − (y − y0) / MAX_HEIGHT)`、g＝是不是單位、b＝`(x − x0) / 寬`（漸層章的解析式，舊路徑是 64 格拉伸），輸出預乘 alpha。
 
-疊合：預乘的 source-over（`ONE, ONE_MINUS_SRC_ALPHA`），加法疊層 `ONE, ONE`，順序＝繪製順序。同一張來源圖、同一種混合的連續 instance 合成一次 `drawArraysInstanced`（WebGL2 沒有 baseInstance，每段重設屬性指標）。不依貼圖重排（單位疊在障礙物前面時 g 要照順序混）。
+疊合：一律預乘的 source-over（`ONE, ONE_MINUS_SRC_ALPHA`），順序＝繪製順序；障礙物的加法疊層（glint／glow）也是 source-over（見 §5）。同一張來源圖的連續 instance 合成一次 `drawArraysInstanced`（WebGL2 沒有 baseInstance，每段重設屬性指標）。不依貼圖重排（單位疊在障礙物前面時 g 要照順序混）。
 
 ### 3.3 圖集怎麼變成貼圖、記憶體
 
@@ -54,7 +54,7 @@
 
 ### 3.4 舊路徑
 
-比對通過之後刪除（使用者：「舊的管線真的沒用了可以拔掉，不需要併行」）：`beginItem`／`endItem`／`flushItems`、漸層章、暫存畫布與它的常數、幾何遮罩畫布與上傳、比對旗標。打光關閉（`?lit=0`、WebGL2 拿不到、context 遺失期間）走 Canvas 2D 直接路徑不變，那不是這條舊路徑。
+比對通過之後已刪除（commit `77f31973`；使用者：「舊的管線真的沒用了可以拔掉，不需要併行」）：`beginItem`／`endItem`／`flushItems`、漸層章、暫存畫布與它的常數（`GEO.STAMP_SIZE`）、幾何遮罩畫布與上傳、比對旗標（`?geogpu=1`）、`perf:lit-cost` 只對舊路徑有意義的做法。遮罩貼圖建不起來時整個通道停用（和 render target 建不起來同一條路）。打光關閉（`?lit=0`、WebGL2 拿不到、context 遺失期間）走 Canvas 2D 直接路徑不變，那不是這條舊路徑。
 
 ## 4. 分階段
 
@@ -73,7 +73,7 @@ G3、G4 之前要先決定：鋪設（`GroundDrape`）的三色六角遮罩在 G
 - **顯示卡記憶體多一份**：圖集在 Canvas 2D 那邊本來就有一份，GL 這邊多一份 alpha（量測場景 12.9 MiB）。手機（`perf:mem`）沒量。
 - 圖集畫布若在原地重畫而尺寸不變，GL 那份會是舊的（目前讀碼沒看到這種寫法；`SpriteAtlasStore` 釋放時設寬高 0、換陣營色是另一張畫布）。
 - 圖集沒載入時單位畫備援圓形，GL 路徑不擷取它（那一刻幾何遮罩沒有這個單位）；舊路徑會把圓形畫進遮罩。只在載入前那幾幀。
-- 障礙物的加法疊層蓋在別的直立物上時，舊路徑是「疊層先加進自己那一格、整格再 source-over」，GL 是直接加在遮罩上：兩個直立物重疊處的 r／b 不同（只在疊層的半透明光暈範圍）。
+- 障礙物的加法疊層：舊路徑是「疊層先以 lighter 加進自己那一格（alpha 相加封頂）、整格再 source-over」。GL 先用 `ONE, ONE` 照做，比對在 ICE（7 個疊層）、MAGMA（16 個）量到障礙物內部 r／b 差到 113：章的顏色加到超過覆蓋率。改成一律 source-over 之後內部 r／b ≤2；剩下的差是疊層光暈和本體都半透明的那一圈（alpha 是 1 −（1 − a₁）（1 − a₂），舊路徑是 min(1, a₁ + a₂)）。
 - 單位剪影的位置沿用舊路徑：腳底 `footX／floorY` 不含轉場位移、不經 `snap`，和世界畫布的單位（`snap(op.ty)`）差次像素，轉場中差一個轉場位移。這是既有的，這一片不改。
 - 只量了桌機 RTX 4070；WebKit／iOS 上 `gl.ALPHA` 從畫布上傳、instanced 繪製都沒有實測。
 
@@ -86,11 +86,20 @@ G3、G4 之前要先決定：鋪設（`GroundDrape`）的三色六角遮罩在 G
 | 同一幀新舊幾何遮罩（`readPixels` 讀著色器實際取樣的兩張貼圖，預乘位元組；5 幀、間隔 20 幀，2560×1440） | 內部（3×3 鄰域 alpha 相同）alpha、g 差 0，r／b 最多 2；alpha 差 >2 的 561～635 px（直立物像素約 11.7 萬），最大 46，全在直立物邊緣；每幀 28 個 instance（10 單位、18 障礙物）、26 次繪製，其中 0～2 個單位帶旋轉 | `node tools/ui-e2e/out/geo-compare.mjs`（`geo-compare/diff_*.png`、`sheet_0.png`） |
 | 同上，`perf:lit` 那一幀（1280×720） | 內部 0／0／2；alpha 差 >2 的 290 px（直立物 2.9 萬） | `node tools/ui-e2e/out/geo-compare.mjs --shots --frames 1` |
 | 旗標關（舊路徑）和 main 的最終畫面 | 打光 6 張 0 px；`lit=0` 6 張 0～2 px（max 1）；連續格 10 px（max 1） | main 與分支各跑 `node tools/ui-e2e/lit-shots.mjs --walk 60`，`tools/ui-e2e/out/geo-pixdiff.py` 逐像素比 |
-| 旗標開（GL）和旗標關的最終畫面 | 打光 6 張 1.1～4.0% 像素有差，差 >8 的 69～635 px（最大 95～125）；連續格 2.8%（>8 的 254 px）。差 1 的約 3.4 萬 px 是泛光把邊緣差異抹開；差 >8 的在單位與障礙物邊緣（兩個單位重疊的邊也算） | 同上加 `--query '&geogpu=1'`（`geo-on-diff/battle_sheet.png`） |
+| 旗標開（GL）和旗標關的最終畫面 | 打光 6 張 1.1～4.0% 像素有差，差 >8 的 69～635 px（最大 95～125）；連續格 2.8%（>8 的 254 px）。差 >8 的在單位與障礙物邊緣（兩個單位重疊的邊也算；看過 battle_frozen、ICE、MAGMA 三張差異圖）。差 1 的約 3.4 萬 px 散在直立物周圍，推論是泛光與特效餘光把邊緣差異抹開（沒有拆開驗） | 同上加 `--query '&geogpu=1'`（`geo-on-diff/battle_sheet.png`） |
 | 打光的額外成本 | 同一次執行：full 9.915、geo_gpu 9.665（−0.25，雜訊 0.656）、direct 6.544、full_again 9.965 ms：在雜訊內 | `node tools/ui-e2e/lit-cost.mjs --repeat 2 --only direct,geo_gpu,full_again` |
 
 比對通過後刪掉舊路徑（§3.4）。刪除之後的數字見 §7。
 
 ## 7. 刪掉舊路徑之後
 
-RESULTS_AFTER
+| 量什麼 | 數字 | 指令 |
+| :-- | :-- | :-- |
+| 刪舊路徑後的打光畫面和刪之前的 GL 路徑（`geo-on`） | 打光 6 張 0～1 px、連續格 0 px | `node tools/ui-e2e/lit-shots.mjs --walk 60 --out geo-final`，`geo-pixdiff.py geo-on geo-final` |
+| 刪舊路徑後的 `lit=0` 和 main | 6 張 0～2 px（max 2，ICE） | 同上，和 `geo-main` 比 |
+| 疊層改 source-over（commit `20536300`）之後的打光畫面和舊路徑 | 6 張 0.86～3.99% 像素有差，差 >8 的 69～635 px；VOID、ICE 比改前少（9,904 → 7,932、11,746 → 11,368 px），MAGMA 差 >8 的 102 → 137 px；看過 MAGMA、VOID 差異圖，在單位與障礙物邊緣 | `node tools/ui-e2e/lit-shots.mjs --walk 60 --out geo-final2`，和 `geo-off` 比 |
+| 保真（`lit=0`，Canvas 2D 路徑） | 分支 VOID 0.207、FOREST 0.695、ICE 0.359、MAGMA 0.668、DESERT 0.529、battle_frozen 0.000；**同一天 main 跑出完全相同的六個數字**，`fe44cf45` 也相同；battle_frozen 的擷取圖 main 與分支 0 px 差。以前記的 0.296／0.659／0.302／0.614／0.500／0.177 今天在 main 上重現不出來（瀏覽器與 GPU 字串和以前的紀錄相同），是環境漂移，不是這個分支 | `npm run perf:fidelity`（main、`fe44cf45`、HEAD 兩次；`npm run perf:guard` 兩次） |
+| e2e | 第一次 3 項紅（PLAY 桌機 K3「左鍵拖曳只送一個指令、不拖鏡頭」、iPhone 橫向 K4「技能鈕拖到敵人放開」、iPhone 橫向「瞄準時點敵人」）；重跑一次全過 | `npm run e2e:ui` |
+| 打光的額外成本（單獨一次，不和 §6 那次比） | full 9.853、direct 6.550、full_again 9.786 ms；full − direct 3.30 ms | `node tools/ui-e2e/lit-cost.mjs --repeat 2 --only direct,full_again` |
+
+成本：新舊路徑只在 §6 那一次執行裡同時量過（−0.25 ms，雜訊 0.66），在雜訊內。這一片沒有讓打光變便宜；省時間要等特效遮罩（鋪設 0.9 ms、特效 0.6 ms，`lighting-cost.md` §4.2）也搬過來（G3）。
