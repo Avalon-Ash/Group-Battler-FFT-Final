@@ -17,6 +17,8 @@
 // ║  [ARCH] 遮罩（tag，半解析度，地塊不重畫）：                 ║
 // ║   幾何遮罩＝直立物（單位、障礙物）各蓋一張漸層章，記離腳底  ║
 // ║   的高度、是不是單位、橫向位置；特效遮罩；玩法標示遮罩。    ║
+// ║   章先蓋在暫存畫布上各自的格子裡，整幀畫完才一次貼進幾何    ║
+// ║   遮罩（flushItems）：畫布每被讀一次都要先送出累積的繪製。  ║
 // ║   同時收集點光（存活單位）與投影物（單位、障礙物的腳印）。  ║
 // ║   地塊 op 順帶畫的基礎疊層進玩法標示遮罩、貼地法陣進特效    ║
 // ║   遮罩（否則會被當成地面壓暗）。                            ║
@@ -29,7 +31,7 @@
 // ║         後重建資源、繼續打光。沒有主動釋放的路徑（ADR 0030）║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { ISO_SCALE_Y, LIGHTING, RENDER_QUALITY, UNIT_SPRITE, type LightingLook } from '../../../constants';
+import { ISO_SCALE_Y, LIGHTING, RENDER_QUALITY, type LightingLook } from '../../../constants';
 import type { HexLayout } from '../../../types';
 import type { UnitRenderSystem } from '../../presentation/unit';
 import { SpriteManager } from '../../sprites';
@@ -51,8 +53,16 @@ const INST_COL_SIZE = 3;
 const FLOAT_BYTES = Float32Array.BYTES_PER_ELEMENT;
 /** 地面深度相對螢幕 Y 的倍率（等距投影把地面 y 壓成 ISO_SCALE_Y 倍） */
 const GROUND_PER_SCREEN_Y = 1 / ISO_SCALE_Y;
-/** 剪影是以 UNIT_SPRITE.silhouetteAlpha 畫的：畫這麼多次，遮罩的覆蓋率才過半 */
-const SILHOUETTE_REPEAT = Math.round(1 / UNIT_SPRITE.silhouetteAlpha);
+/** 直立物的像素外框往外多取的像素數（左上各 1、右下各 2：取整與邊緣的半透明像素） */
+const ITEM_EDGE_PX = 3;
+/** 一個待貼直立物的紀錄（各欄在紀錄裡的位置）：暫存畫布上那一格的 x、y、寬、高，與它在幾何遮罩上的 x、y */
+const ITEM_CELL_X = 0;
+const ITEM_CELL_Y = 1;
+const ITEM_W = 2;
+const ITEM_H = 3;
+const ITEM_DST_X = 4;
+const ITEM_DST_Y = 5;
+const ITEM_STRIDE = 6;
 const BYTE_MAX = 255;
 const RGBA = 4;
 
@@ -121,8 +131,19 @@ export class LightingPass {
     private readonly geoCtx: CanvasRenderingContext2D;
     private readonly glowCtx: CanvasRenderingContext2D;
     private readonly infoCtx: CanvasRenderingContext2D;
-    /** 蓋章用的暫存畫布：精靈先畫在這裡、裁成漸層章，再貼進幾何遮罩 */
+    /**
+     * 蓋章用的暫存畫布：每個直立物在上面分到自己的一格（由左到右、排滿換下一列），精靈先畫在格子裡、裁成漸層章；
+     * 整幀畫完才一次貼進幾何遮罩（flushItems）。畫布被讀取時瀏覽器要先把它累積的繪製送出去：
+     * 每個直立物讀一次，27 個就占 2.4 ms（2026-11-28，npm run perf:lit-cost 的 no_geo_copy），所以整幀只讀一次。
+     */
     private readonly scratchCtx: CanvasRenderingContext2D;
+    /** 待貼的直立物（ITEM_STRIDE 個數一筆），順序＝繪製順序（後面的蓋掉前面的） */
+    private readonly items = new Int32Array(LIGHTING.MAX_CASTERS * ITEM_STRIDE);
+    private itemCount = 0;
+    /** 暫存畫布的排版游標：下一格的左上角、這一列目前的高度 */
+    private packX = 0;
+    private packY = 0;
+    private shelfH = 0;
     private readonly maskCtxs: readonly CanvasRenderingContext2D[];
     private readonly unitStamp = makeStamp(true);
     private readonly obstacleStamp = makeStamp(false);
@@ -362,6 +383,8 @@ export class LightingPass {
         this.maskStale = true;
         this.lightCount = 0;
         this.casterCount = 0;
+        this.itemCount = 0;
+        this.packX = this.packY = this.shelfH = 0;
         return ctx;
     }
 
@@ -380,39 +403,73 @@ export class LightingPass {
     }
 
     /**
-     * 把暫存畫布上（世界座標的矩形 x0,y0,w,h 內）剛畫好的精靈裁成漸層章，貼進幾何遮罩，再清掉暫存。
-     * 呼叫前暫存畫布已經 save 並 clip 到這個矩形。
+     * 開始記一個直立物（世界座標的矩形 x0,y0,w,h）：在暫存畫布上配一格、裁切到這一格與這個矩形、把變換對準
+     * （和遮罩畫布同一個縮放，只差整數像素的平移），之後畫在 scratchCtx 上的東西位置和直接畫在遮罩上相同。
+     * 整個在畫面外時回 false（不必畫）。回 true 時畫完要呼叫 endItem。
      */
-    private stamp(stampImage: HTMLCanvasElement, x0: number, y0: number, w: number, h: number): void {
-        const s = this.scratchCtx, g = this.geoCtx;
-        s.globalCompositeOperation = 'source-in';
-        s.drawImage(stampImage, x0, y0, w, h);
-        s.restore();
-        const k = this.maskScale;
-        const dx = Math.max(0, Math.floor(x0 * k + this.maskOX) - 1), dy = Math.max(0, Math.floor(y0 * k + this.maskOY) - 1);
-        const dw = Math.min(s.canvas.width - dx, Math.ceil(w * k) + 3), dh = Math.min(s.canvas.height - dy, Math.ceil(h * k) + 3);
-        if (dw <= 0 || dh <= 0) return;
-        g.save();
-        g.resetTransform();
-        g.drawImage(s.canvas, dx, dy, dw, dh, dx, dy, dw, dh);
-        g.restore();
+    private beginItem(x0: number, y0: number, w: number, h: number): boolean {
+        const s = this.scratchCtx, k = this.maskScale, mask = s.canvas;
+        const x = Math.max(0, Math.floor(x0 * k + this.maskOX) - 1), y = Math.max(0, Math.floor(y0 * k + this.maskOY) - 1);
+        const pw = Math.min(mask.width - x, Math.ceil(w * k) + ITEM_EDGE_PX), ph = Math.min(mask.height - y, Math.ceil(h * k) + ITEM_EDGE_PX);
+        if (pw <= 0 || ph <= 0) return false;
+        if (this.packX + pw > mask.width) {
+            this.packX = 0;
+            this.packY += this.shelfH;
+            this.shelfH = 0;
+        }
+        // 排不下（或紀錄滿了）：先把已經畫好的貼進幾何遮罩，清空重排
+        if (this.packY + ph > mask.height || (this.itemCount + 1) * ITEM_STRIDE > this.items.length) this.flushItems();
+        const cx = this.packX, cy = this.packY;
+        this.packX += pw;
+        this.shelfH = Math.max(this.shelfH, ph);
+        const i = this.itemCount++ * ITEM_STRIDE, it = this.items;
+        it[i + ITEM_CELL_X] = cx; it[i + ITEM_CELL_Y] = cy; it[i + ITEM_W] = pw; it[i + ITEM_H] = ph;
+        it[i + ITEM_DST_X] = x; it[i + ITEM_DST_Y] = y;
         s.save();
         s.resetTransform();
-        s.clearRect(dx, dy, dw, dh);
-        s.restore();
-    }
-
-    private clipScratch(x0: number, y0: number, w: number, h: number): void {
-        const s = this.scratchCtx;
-        s.save();
+        s.beginPath();
+        s.rect(cx, cy, pw, ph);
+        s.clip();
+        s.setTransform(k, 0, 0, k, this.maskOX - x + cx, this.maskOY - y + cy);
         s.beginPath();
         s.rect(x0, y0, w, h);
         s.clip();
+        return true;
+    }
+
+    /**
+     * 這一格裡剛畫好的精靈染成漸層章（章蓋在同一個世界座標矩形上）。用 source-atop：只改已經有像素的地方、透明度不變。
+     * 這一格已經裁切到章的矩形，所以結果和 source-in 相同；source-in 要影響整個裁切區，瀏覽器得為它另開一層，
+     * 27 個直立物占 1.3 ms（2026-11-28，npm run perf:lit-cost 的 item_no_stamp）。
+     */
+    private endItem(stampImage: HTMLCanvasElement, x0: number, y0: number, w: number, h: number): void {
+        const s = this.scratchCtx;
+        s.globalCompositeOperation = 'source-atop';
+        s.drawImage(stampImage, x0, y0, w, h);
+        s.restore();
+    }
+
+    /** 把暫存畫布上所有格子照繪製順序貼進幾何遮罩，清空暫存畫布與排版；present 每幀呼叫一次（排不下時 beginItem 也會呼叫） */
+    private flushItems(): void {
+        const n = this.itemCount;
+        this.itemCount = 0;
+        this.packX = this.packY = this.shelfH = 0;
+        if (n === 0) return;
+        const s = this.scratchCtx, g = this.geoCtx, it = this.items;
+        g.save();
+        g.resetTransform();
+        for (let i = 0; i < n * ITEM_STRIDE; i += ITEM_STRIDE) {
+            const w = it[i + ITEM_W], h = it[i + ITEM_H];
+            g.drawImage(s.canvas, it[i + ITEM_CELL_X], it[i + ITEM_CELL_Y], w, h, it[i + ITEM_DST_X], it[i + ITEM_DST_Y], w, h);
+        }
+        g.restore();
+        s.resetTransform();
+        s.clearRect(0, 0, s.canvas.width, s.canvas.height);
     }
 
     /**
      * RenderPipeline 每畫完一個 op 呼叫一次：把「這個 op 是哪一類」另外記在遮罩畫布上，並收集光源與投影物。
-     * - 單位 → 幾何遮罩（剪影 drawSilhouette，和遮擋剪影同一個入口，蓋單位章）＋一盞點光＋一個投影物；
+     * - 單位 → 幾何遮罩（剪影 drawSilhouette，和遮擋剪影同一個入口，以 GEO.UNIT_COVERAGE 畫一次，蓋單位章）＋一盞點光＋一個投影物；
      *   並從特效遮罩挖掉自己（比它早畫的特效被它擋住）。
      * - 障礙物 → 幾何遮罩（蓋障礙物章）＋一個投影物；並從特效、玩法標示遮罩挖掉自己。
      * - 特效、投射物、施法圈、危害（熔岩、毒沼）→ 特效遮罩：照原樣再分發一次。
@@ -450,12 +507,17 @@ export class LightingPass {
             const height = f.floorY - f.hudAnchorY;
             const halfW = height * G.UNIT_HALF_WIDTH;
             const x0 = f.footX - halfW, y0 = f.floorY - G.MAX_HEIGHT;
-            this.clipScratch(x0, y0, halfW * 2, stampH);
-            for (let i = 0; i < SILHOUETTE_REPEAT; i++) units.drawSilhouette(this.scratchCtx, f, t, layout);
-            this.stamp(this.unitStamp, x0, y0, halfW * 2, stampH);
+            if (this.beginItem(x0, y0, halfW * 2, stampH)) {
+                this.scratchCtx.globalAlpha = G.UNIT_COVERAGE;
+                units.drawSilhouette(this.scratchCtx, f, t, layout);
+                this.scratchCtx.globalAlpha = 1;
+                this.endItem(this.unitStamp, x0, y0, halfW * 2, stampH);
+            }
             for (const mctx of [this.glowCtx, this.infoCtx]) {
                 mctx.globalCompositeOperation = 'destination-out';
-                for (let i = 0; i < SILHOUETTE_REPEAT; i++) units.drawSilhouette(mctx, f, t, layout);
+                mctx.globalAlpha = G.UNIT_COVERAGE;
+                units.drawSilhouette(mctx, f, t, layout);
+                mctx.globalAlpha = 1;
                 mctx.globalCompositeOperation = 'source-over';
             }
 
@@ -470,9 +532,10 @@ export class LightingPass {
             const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr, t);
             const halfW = Math.max(ob.anchorX, ob.width - ob.anchorX);
             const x0 = op.tx - halfW, y0 = op.ty - G.MAX_HEIGHT;
-            this.clipScratch(x0, y0, halfW * 2, stampH);
-            RenderDispatcher.dispatch(this.scratchCtx, op, layout, t, units);
-            this.stamp(this.obstacleStamp, x0, y0, halfW * 2, stampH);
+            if (this.beginItem(x0, y0, halfW * 2, stampH)) {
+                RenderDispatcher.dispatch(this.scratchCtx, op, layout, t, units);
+                this.endItem(this.obstacleStamp, x0, y0, halfW * 2, stampH);
+            }
             for (const mctx of [this.glowCtx, this.infoCtx]) {
                 mctx.globalCompositeOperation = 'destination-out';
                 RenderDispatcher.dispatch(mctx, op, layout, t, units);
@@ -571,6 +634,7 @@ export class LightingPass {
         const cam = this.worldCtx.getTransform();
         const look = this.lookFor(biome);
 
+        this.flushItems();
         gl.activeTexture(gl.TEXTURE0);
         this.upload(this.worldTex, world);
         this.upload(this.backTex, main.canvas);

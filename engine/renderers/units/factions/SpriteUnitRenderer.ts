@@ -210,11 +210,9 @@ export const SpriteUnitRenderer = {
         }
 
         // 繪製本體
+        // 剪影只畫形狀；透明度由呼叫端決定（遮擋剪影在 SilhouetteMask 設成半透明，打光遮罩要不透明）
         if (isSilhouette) {
-            ctx.save();
-            ctx.globalAlpha = UNIT_SPRITE.silhouetteAlpha;
             ctx.drawImage(atlasImage, sx, sy, sw, sh, dx, dy, dw, dh);
-            ctx.restore();
             return;
         }
 

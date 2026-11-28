@@ -2609,6 +2609,7 @@
       "MAX_HEIGHT": 180,
       "FOOT_PAD": 0.1,
       "UNIT_HALF_WIDTH": 0.6,
+      "UNIT_COVERAGE": 0.68,
       "STAMP_SIZE": 64,
       "BEVEL": 1.15
     },

@@ -42,7 +42,6 @@ export const PolymorphPainter = {
         ctx.save();
         ctx.translate(0, UNIT_SPRITE.footOffsetLocal);
         if (isSilhouette) {
-            ctx.globalAlpha *= UNIT_SPRITE.silhouetteAlpha;
             ctx.drawImage(entry.silhouette, f.x, f.y, f.w, f.h, dx, dy, dw, dh);
         } else {
             poisonRect.dx = dx; poisonRect.dy = dy; poisonRect.dw = dw; poisonRect.dh = dh;
