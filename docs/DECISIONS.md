@@ -20,7 +20,7 @@
 - 使用者的風格參考圖（`_asset_staging\art\ref_*`）不得進 repo。
 
 ## 3. 視覺細節
-- 特效一律預烘焙零件、渲染路徑 0 個每幀 `shadowBlur`，原訂於 [0001](adr/0001-canvas2d-and-prebaked-vfx.md)，由 [0029](adr/0029-webgl-lighting-pass-over-canvas2d.md) 接手、內容不變。
+- 特效一律預烘焙零件、渲染路徑 0 個每幀 `shadowBlur`，原訂於 [0001](adr/0001-canvas2d-and-prebaked-vfx.md)，由 [0029](adr/0029-webgl-lighting-pass-over-canvas2d.md) 接手、內容不變；打光開啟時柔邊加法的 `glow` 零件改成光，見 [0031](adr/0031-part-glow-as-light.md)。
 - 零件外框語言是六角（ART_SPEC §0）；**詠唱法陣例外改圓形 `magicCircle`**（2026-10-19：實線六角高速旋轉造成毛刺，使用者回饋）。線條一律「模糊光暈＋細亮芯」，不畫實心粗線。
 - 逐格鋪開的疊層（範圍、預警、區域）用柔光格 `SoftTile`，不逐格描實線（相鄰格雙邊會排成網格）。
 - 地形變體 4→8 刻意不做：地塊快取翻倍，地表裝飾已提供變化。
