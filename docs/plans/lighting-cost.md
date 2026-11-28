@@ -130,3 +130,49 @@ Canvas 2D 路徑（`?lit=0`、WebGL2 拿不到、context 遺失期間）在 C2 �
 - C2：點光每盞約 0.09 ms、上限 64 盞；光暈零件一對一換成點光在特效多的時候會比現在貴，也會超過上限。量完才定做法與取捨規則。
 - 單位的點光本身就是成本：20 個單位約 1.5～1.9 ms（推算）。C3 之後若它變成最大項，要看投影取樣能不能依距離或階層減少。
 - C3：玩法標示改由著色器擋之後，被前方高地塊擋住的單位身上會少一塊標示的顏色（現在幾何遮罩在那裡本來就不準）。
+
+## 8. 第二批的分工（2026-11-28，使用者：「妳安排，到明天之前所有額度都妳調用，我要結果」）
+
+線：主資料夾、分支 `perf/lighting-cost-2`。主席 Opus 5.5 high（Fable 週計量 83%、其他模型只用週池 13.5%，實作線放 Opus；Fable 留做終審）。WORKLOG 節號 **DT**。不合併、不 push：做完回報，由原工作階段審 diff 後問使用者。
+
+**目標**：打光的額外成本（`npm run perf:lit-cost` 的「完整打光 − 不打光」）從 3.52 ms 降到 2 ms 以下，畫面和 main 相比只允許單位輪廓邊緣那一類的差異。做不到 2 ms 也要交出量到的最好結果與原因。
+
+**成品**：分支上的 commit（每一步一個，訊息寫改前改後的數字與指令）、本檔 §4 增補（每步一列，失敗的也記）、WORKLOG §2 DT、`tools/ui-e2e/out/` 裡的對照圖。
+
+| 包 | 內容 | 執行者 | 檔案範圍 | 紅色驗收 |
+| :-- | :-- | :-- | :-- | :-- |
+| P1 | 上傳與地塊遮罩的細項量測：在 `tools/ui-e2e/lit-cost.mjs` 加做法（只跳過背景上傳、只跳過三張遮罩上傳、只跳過世界上傳；地塊遮罩只跳過疊層、只跳過鋪設層），跑一次連對照組 | 線主席 | `tools/ui-e2e/lit-cost.mjs` | 表格進本檔；決定 P2、P3 先後 |
+| P2 | 遮罩重畫降成本（§5 的 C3）。已知事實見下面「已經量到的」；做法自己定，先量再改 | 線主席 | `engine/renderers/lighting/**`、`engine/renderers/RenderPipeline.ts`（只動呼叫 `tag` 的地方）、`constants/lighting.ts`、`tests/constants-snapshot.json` | `perf:lit-cost` 的差變小；截圖驗收（下面） |
+| P3 | 上傳降成本（§5 的 C4） | 線主席 | 同 P2 | 同 P2 |
+| P4 | 光的成本量測（§5 C2 的第一步，**只量、不改特效資料**）：`lit-cost` 加「多 N 盞光」的做法，帶投影與不帶投影各量 16、32、64 盞，和同樣數量的 `glow` 貼圖比；寫出 C2 該走哪條路的建議 | 線主席 | `tools/ui-e2e/lit-cost.mjs`（著色器要加不帶投影的變體時可動 `engine/renderers/lighting/shaders.ts`，但不接進正式路徑） | 表格與建議進本檔 §5 |
+| P5 | PLAY e2e 偶發紅是不是打光造成（HANDOFF §2 D 末段）：`npm run e2e:play` 帶與不帶 `lit=0` 各 5 次，數紅的次數與項目。**只在沒有效能量測在跑的時候跑**；只查不修 | Sonnet 子代理（`worker`），P2、P3 都做完之後 | 只讀；e2e 若要加網址參數可動 `tools/ui-e2e/windows.e2e.mjs` | 兩組的次數表進 WORKLOG §2 DT |
+| P6 | C5 的讀碼盤點（只讀）：`engine/renderers/**`、`engine/presentation/**` 每個 painter 用到哪些 Canvas 2D 功能，分成「貼已烘好的圖」與「程序化繪製（路徑、漸層、文字、混合模式）」，各自每幀大約幾次（讀 `CtxOpCounter`） | Sonnet 子代理（`explorer` 或 `general-purpose`，model sonnet），可以和 P1～P4 同時跑（不佔顯示卡） | 只讀，報告寫 `docs/plans/gpu-sprites-survey.md` | 表格每列附檔案與行號 |
+
+**已經量到的（不要重新發現）**
+- 成本跟「一張畫布被讀幾次」成正比：畫布當成 `drawImage` 的來源或上傳成貼圖時，瀏覽器要先把它累積的繪製送出去，每次約 0.09 ms（27 個直立物各讀一次＝2.4 ms）。改用小暫存畫布反而更慢（讀的次數變多）。
+- 單位的整套繪製（`drawAssembly`）很便宜：12 次降到 3 次只省 0.1 ms。
+- 每個直立物現在還有：兩個裁切、一次蓋章、兩次 `destination-out` 挖洞（特效遮罩與玩法標示遮罩）。`item_no_stamp` −1.3、`item_no_cut` −1.2、`item_no_cell` −1.5 ms（27 個；各項不能相加）。
+- 可以考慮但沒驗證的方向：`tag` 改成畫完世界之後依遮罩分三趟重畫（同一張遮罩的繪製連在一起，三張遮罩可以排在同一張畫布上只上傳一次）；玩法標示遮罩不由直立物挖洞，改在著色器用幾何遮罩擋；背景不經 GL（GL 輸出透明底疊在背景上，要保留背景的調色）；障礙物是靜態精靈，蓋好章的圖可以快取。
+- 點光約 0.09 ms 一盞（9 盞 0.84 ms）。
+
+**驗收怎麼跑**
+- 數字：`npm run perf:lit-cost`，每次都含 `full` 與 `direct`；只比同一次裡的差。機器有別的負載時整組會一起慢三成，看到 `direct` 不在 4.6～4.9 就重跑。同一份程式重跑兩次的差當雜訊，改動的效果要超過它才算。
+- 畫面：同一個工作階段在 main 與分支各跑 `npm run perf:lit -- --walk 60`，逐像素比（`tools/ui-e2e/out/` 裡有 `lit-main-walk/` 當 main 的對照，用 PIL 的 `ImageChops.difference`）。這一批相對 main 的差應該接近 0；超過「靜止 1.3%、連續格 2.4%」或出現單位邊緣以外的差異就停下來看圖。
+- 幀中途貼圖的路徑（`beginItem` 裡的 `flushItems`）改過的話，暫時強制每個直立物都中途貼一次，和正常版比（應差 20 個像素以內），驗完還原。
+- `npm run perf:guard`：保真六張的數字要和 main 相同（VOID 0.296、FOREST 0.659、ICE 0.302、MAGMA 0.614、DESERT 0.500、battle_frozen 0.177）。
+- 每個 commit 前：`npm run lint && npm test && npm run build`、`npm run knip`、`node tools/ui-e2e/runtime-smoke.mjs`。進入點目前 257,371／257,500 位元組，動 `RenderPipeline.ts` 會吃這個預算，超過就先在別處騰空間，不改預算。
+- `e2e:ui`、`e2e:play` 在 main 上本來就有 PLAY 瞄準類的偶發紅（三次兩次），回報紅的次數與項目即可，不為它改程式。
+
+**環境**
+- 這台機器副螢幕接 AMD 內顯（56 Hz）：有視窗的量測工具已經加 `--force_high_performance_gpu`；自己寫探針時要讀 `UNMASKED_RENDERER_WEBGL` 寫進輸出。
+- 用 vite 的閘門（smoke、perf、e2e）在跑的時候不要改原始碼（HMR 會讓那次結果不可信）。
+- 臨時探針寫在 `tools/ui-e2e/out/`（不進版控），含反斜線的檔案內容用 Write 工具寫。
+- 重量測（`perf:lit-cost`、`perf:guard`、`e2e`）一次只跑一個。
+
+**固定三條**：只結束自己啟動的行程（記下 PID，不用名稱或萬用條件）；不為了過檢查改造形或改驗收（保真基準不重錄、門檻與預算不放寬）；不新增耦合（同一個判斷不在多處重複，數值進 `constants/lighting.ts`）。
+
+**什麼時候停下來回報（不要硬做）**
+- 額外成本到 2 ms 以下，或 P2、P3 能試的都試過了。
+- 畫面出現上面允許範圍以外的差異、修不掉。
+- 要動 `RenderSpec` 的座標協議、要推翻 ADR、或進入點預算騰不出空間。
+- 同一個問題試兩次不過：先查是不是規則或架構造成的，是就回報。
