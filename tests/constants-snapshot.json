@@ -2582,6 +2582,17 @@
       "KNEE": 0.1,
       "ON_OBSTACLE": 0.45
     },
+    "PART_LIGHT": {
+      "MAX": 64,
+      "RANGE_PER_RADIUS": 2.5,
+      "INTENSITY": 3,
+      "HEIGHT_AIR": 30,
+      "HEIGHT_GROUND": 6,
+      "KNEE": 0.15,
+      "ON_OBSTACLE": 0.45,
+      "SHADOW_STEPS": 0,
+      "CORE_SCALE": 0.35
+    },
     "MASK_SCALE": 0.5,
     "EMISSIVE_GAIN": 1.2,
     "INFO_GAIN": 1,

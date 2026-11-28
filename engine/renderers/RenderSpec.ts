@@ -44,7 +44,9 @@ export class RenderSpec {
         s += "打光通道（ADR 0029，engine/renderers/lighting/）：啟用時整個 RenderList 與剪影、狀態層（drawWorld）畫進和主畫布同尺寸、同變換的世界畫布，\n";
         s += "畫完由 LightingPass.present 處理後貼回主畫布（背景之上、後製與疊層之前）。它不改 op 的任何座標與排序鍵；關閉或 WebGL2 拿不到時 drawWorld 直接畫主畫布。\n";
         s += "通道需要的每像素類別由 LightingPass.tag 取得：RenderPipeline 每分發完一個 op 呼叫一次，它用同一個 op（同一個繪製點）把單位剪影、障礙物、特效、玩法標示\n";
-        s += "另畫在半解析度的遮罩畫布上，並收集點光與投影物；單位的腳底與高度只讀 UnitFrame（footX、floorY、hudAnchorY、transition），障礙物讀精靈錨點，不自己算高度。地塊 op 不重畫。\n\n";
+        s += "另畫在半解析度的遮罩畫布上，並收集點光與投影物；單位的腳底與高度只讀 UnitFrame（footX、floorY、hudAnchorY、transition），障礙物讀精靈錨點，不自己算高度。地塊 op 不重畫。\n";
+        s += "仿光效零件（ADR 0031）：通道啟用時，柔邊加法的 glow（PartSpec.partLight 唯一定義）由 drawPart 在世界畫布上登記成一盞點光（中心＝drawPart 當下變換的畫點，不另算高度），\n";
+        s += "只畫縮小核心（LIGHTING.PART_LIGHT.CORE_SCALE）；遮罩重畫同一個 op 時照世界那一趟的盞數一一對應。排不進上限、其他畫布（鋪設平面、主畫布）照舊貼圖。不改任何繪製點與排序鍵。\n\n";
 
         s += "--- \n\n";
 

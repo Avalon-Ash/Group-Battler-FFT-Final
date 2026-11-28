@@ -22,7 +22,13 @@
 // ║   同時收集點光（存活單位）與投影物（單位、障礙物的腳印）。  ║
 // ║   地塊 op 順帶畫的基礎疊層進玩法標示遮罩、貼地法陣進特效    ║
 // ║   遮罩（否則會被當成地面壓暗）。                            ║
+// ║  [ARCH] 仿光效零件的光（ADR 0031，PartLightSink）：drawPart  ║
+// ║   在世界畫布上把柔邊加法 glow 登記成光（裝置像素），present  ║
+// ║   用本幀相機變換換回世界座標；遮罩那一趟（tag 重畫同一個    ║
+// ║   op）照世界那一趟登記的盞數一一對應，不重複登記。上限       ║
+// ║   PART_LIGHT.MAX 和單位的光分開算。                          ║
 // ║  每幀流程：投影物貼圖 → 點光（instance 矩形，加法，含投影） ║
+// ║  → 零件的光（同一種矩形，PART_LIGHT.SHADOW_STEPS）          ║
 // ║  → 著色（環境光、月光與投影、接觸暗部、邊光、自發光、背景   ║
 // ║  調色）→ 泛光 → 特效餘光（泛光再抹開，留給下一幀當光源）    ║
 // ║  → 合成（曝光、暗角、色調映射）。                           ║
@@ -39,6 +45,7 @@ import type { GroundDrapeLayer } from '../GroundDrape';
 import { GridOverlays } from '../grid/GridOverlays';
 import { RenderDispatcher } from '../RenderDispatcher';
 import { RenderOpType, type RenderOp } from '../RenderList';
+import { setPartLightSink, type PartLightRole, type PartLightSink } from './PartLightSink';
 import {
     BLUR_FRAG, BRIGHT_FRAG, CASTER_FRAG, COMPOSITE_FRAG, FULLSCREEN_VERT, INSTANCE_VERT, lightFrag, shadeFrag,
 } from './shaders';
@@ -124,7 +131,20 @@ function makeStamp(isUnit: boolean): HTMLCanvasElement {
     return canvas;
 }
 
-export class LightingPass {
+/** 零件光 instance 暫存的 z 欄：present 換算前先記「是不是貼地零件」 */
+const PART_GROUND_FLAG = 1;
+
+/** 診斷（量測工具讀）：零件光的累計數字；mismatch＝世界那一趟與遮罩那一趟的合格零件數不同的 op 數 */
+interface PartLightStats {
+    frames: number;
+    lights: number;
+    rejected: number;
+    maxPerFrame: number;
+    framesAtCap: number;
+    mismatch: number;
+}
+
+export class LightingPass implements PartLightSink {
     private readonly world: HTMLCanvasElement;
     private readonly worldCtx: CanvasRenderingContext2D;
     /** 遮罩畫布（LIGHTING.MASK_SCALE 倍解析度，和世界畫布同一個相機變換） */
@@ -166,6 +186,19 @@ export class LightingPass {
     private lightCount = 0;
     private readonly casterData = new Float32Array(LIGHTING.MAX_CASTERS * INST_STRIDE);
     private casterCount = 0;
+    /** 仿光效零件的光：drawPart 登記時是裝置像素，present 換成地面座標（ADR 0031） */
+    private readonly partData = new Float32Array(Math.min(LIGHTING.PART_LIGHT.MAX, LIGHTING.MAX_CASTERS) * INST_STRIDE);
+    private partCount = 0;
+    /** 上一次 tag 之後世界那一趟登記成光的盞數；tag 一開頭交給 maskQuota，遮罩重畫同一個 op 時照順序消耗 */
+    private partSinceTag = 0;
+    private maskQuota = 0;
+    /** 診斷：這個 op 世界那一趟、遮罩那一趟各有幾個合格零件（含排不進上限的）；opRedrawn＝這個 op 會照原樣重畫進遮罩 */
+    private partWorldCalls = 0;
+    private opWorldCalls = 0;
+    private partMaskCalls = 0;
+    private opRedrawn = false;
+    private partRejectedFrame = 0;
+    public readonly partStats: PartLightStats = { frames: 0, lights: 0, rejected: 0, maxPerFrame: 0, framesAtCap: 0, mismatch: 0 };
     private worldTex: WebGLTexture | null = null;
     private backTex: WebGLTexture | null = null;
     private geoTex: WebGLTexture | null = null;
@@ -173,6 +206,7 @@ export class LightingPass {
     private infoTex: WebGLTexture | null = null;
     private pCaster: Program | null = null;
     private pLight: Program | null = null;
+    private pPartLight: Program | null = null;
     private pShade: Program | null = null;
     private pBright: Program | null = null;
     private pBlur: Program | null = null;
@@ -211,6 +245,39 @@ export class LightingPass {
         this.glCanvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; });
         this.glCanvas.addEventListener('webglcontextrestored', () => { this.createResources(); this.lost = false; });
         this.createResources();
+        setPartLightSink(this);
+    }
+
+    public roleOf(canvas: HTMLCanvasElement): PartLightRole | null {
+        if (canvas === this.world) return 'world';
+        for (const mctx of this.maskCtxs) if (mctx.canvas === canvas) return 'mask';
+        return null;
+    }
+
+    public addPartLight(devX: number, devY: number, devRadius: number, ground: boolean, color: readonly [number, number, number], strength: number): number {
+        const P = LIGHTING.PART_LIGHT;
+        this.partWorldCalls++;
+        // 上限每次讀現值（量測與對照板會在頁面裡改 MAX），夾在緩衝容量內
+        if (this.partCount >= Math.min(P.MAX, this.partData.length / INST_STRIDE)) {
+            this.partRejectedFrame++;
+            return -1;
+        }
+        this.pushInstance(this.partData, this.partCount++, devX, devY, ground ? PART_GROUND_FLAG : 0, devRadius, color, strength * P.INTENSITY);
+        this.partSinceTag++;
+        return P.CORE_SCALE;
+    }
+
+    public takeMaskLight(): number {
+        this.partMaskCalls++;
+        if (this.maskQuota <= 0) return -1;
+        this.maskQuota--;
+        return LIGHTING.PART_LIGHT.CORE_SCALE;
+    }
+
+    /** 上一個 op 若照原樣重畫進遮罩，兩趟的合格零件數要相同（不同就是遮罩對不上，記進 partStats.mismatch） */
+    private checkPartRedraw(): void {
+        if (this.opRedrawn && this.partMaskCalls !== this.opWorldCalls) this.partStats.mismatch++;
+        this.opRedrawn = false;
     }
 
     private compile(type: number, src: string): WebGLShader {
@@ -315,7 +382,7 @@ export class LightingPass {
         gl.vertexAttribPointer(ATTR_QUAD, 2, gl.FLOAT, false, 0, 0);
         this.instBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.instBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, Math.max(this.lightData.byteLength, this.casterData.byteLength), gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, Math.max(this.lightData.byteLength, this.casterData.byteLength, this.partData.byteLength), gl.DYNAMIC_DRAW);
         gl.enableVertexAttribArray(ATTR_INST_POS);
         gl.vertexAttribPointer(ATTR_INST_POS, INST_POS_SIZE, gl.FLOAT, false, INST_STRIDE * FLOAT_BYTES, 0);
         gl.vertexAttribDivisor(ATTR_INST_POS, 1);
@@ -339,6 +406,7 @@ export class LightingPass {
         const steps = LIGHTING.SHADOW.STEPS;
         this.pCaster = this.program(INSTANCE_VERT, CASTER_FRAG);
         this.pLight = this.program(INSTANCE_VERT, lightFrag(steps));
+        this.pPartLight = this.program(INSTANCE_VERT, lightFrag(LIGHTING.PART_LIGHT.SHADOW_STEPS));
         this.pShade = this.program(FULLSCREEN_VERT, shadeFrag(steps));
         this.pBright = this.program(FULLSCREEN_VERT, BRIGHT_FRAG);
         this.pBlur = this.program(FULLSCREEN_VERT, BLUR_FRAG);
@@ -383,6 +451,9 @@ export class LightingPass {
         this.maskStale = true;
         this.lightCount = 0;
         this.casterCount = 0;
+        this.partCount = this.partSinceTag = this.maskQuota = 0;
+        this.partWorldCalls = this.opWorldCalls = this.partMaskCalls = this.partRejectedFrame = 0;
+        this.opRedrawn = false;
         this.itemCount = 0;
         this.packX = this.packY = this.shelfH = 0;
         return ctx;
@@ -479,6 +550,12 @@ export class LightingPass {
      *   貼地鋪設特效（法陣）→ 特效遮罩。繪製點和 RenderDispatcher 用同一個 snap。
      */
     public tag(op: RenderOp, layout: HexLayout, t: number, units: UnitRenderSystem, drape: GroundDrapeLayer): void {
+        // 零件光的交接在所有提早 return 之前：這個 op 世界那一趟登記的盞數，只給這個 op 的遮罩重畫用
+        this.checkPartRedraw();
+        this.maskQuota = this.partSinceTag;
+        this.partSinceTag = 0;
+        this.opWorldCalls = this.partWorldCalls;
+        this.partWorldCalls = this.partMaskCalls = 0;
         const type = op.type;
         if (type === RenderOpType.CORPSE) return;
         if (this.maskStale) {
@@ -543,8 +620,34 @@ export class LightingPass {
             }
             this.pushCaster(op.tx, op.ty, ob.width, Math.min(G.MAX_HEIGHT, ob.anchorY));
         } else {
+            this.opRedrawn = true;
             RenderDispatcher.dispatch(type === RenderOpType.OVERLAY ? this.infoCtx : this.glowCtx, op, layout, t, units);
         }
+    }
+
+    /**
+     * 零件光從裝置像素換成地面座標（和 shaders.ts 檔頭同一套換算）：w＝(px − 平移) ÷ 縮放；
+     * 空中零件的畫點往下 HEIGHT_AIR 當腳底，貼地零件的畫點就是腳底；範圍＝畫出來的半徑 × RANGE_PER_RADIUS。
+     * 順便結算這一幀的診斷數字。
+     */
+    private finishPartLights(cam: DOMMatrix): void {
+        this.checkPartRedraw();
+        const P = LIGHTING.PART_LIGHT, d = this.partData, st = this.partStats;
+        for (let i = 0; i < this.partCount; i++) {
+            const o = i * INST_STRIDE;
+            const ground = d[o + 2] === PART_GROUND_FLAG;
+            const z = ground ? P.HEIGHT_GROUND : P.HEIGHT_AIR;
+            const wy = (d[o + 1] - cam.f) / cam.d;
+            d[o] = (d[o] - cam.e) / cam.a;
+            d[o + 1] = (wy + (ground ? 0 : z)) * GROUND_PER_SCREEN_Y;
+            d[o + 2] = z;
+            d[o + 3] = d[o + 3] / cam.a * P.RANGE_PER_RADIUS;
+        }
+        st.frames++;
+        st.lights += this.partCount;
+        st.rejected += this.partRejectedFrame;
+        st.maxPerFrame = Math.max(st.maxPerFrame, this.partCount);
+        if (this.partRejectedFrame > 0) st.framesAtCap++;
     }
 
     private bindTexture(p: Program, unit: number, name: string, tex: WebGLTexture | null): void {
@@ -609,9 +712,9 @@ export class LightingPass {
      */
     public present(main: CanvasRenderingContext2D, biome: string): void {
         const { gl, glCanvas, world } = this;
-        const { pCaster, pLight, pShade, pBright, pBlur, pComposite } = this;
+        const { pCaster, pLight, pPartLight, pShade, pBright, pBlur, pComposite } = this;
         const pW = world.width, pH = world.height;
-        if (this.lost || !pCaster || !pLight || !pShade || !pBright || !pBlur || !pComposite) { this.blitUnlit(main); return; }
+        if (this.lost || !pCaster || !pLight || !pPartLight || !pShade || !pBright || !pBlur || !pComposite) { this.blitUnlit(main); return; }
         if (glCanvas.width !== pW || glCanvas.height !== pH) {
             glCanvas.width = pW;
             glCanvas.height = pH;
@@ -633,6 +736,7 @@ export class LightingPass {
 
         const cam = this.worldCtx.getTransform();
         const look = this.lookFor(biome);
+        this.finishPartLights(cam);
 
         this.flushItems();
         gl.activeTexture(gl.TEXTURE0);
@@ -669,6 +773,17 @@ export class LightingPass {
             this.f1(pLight, 'uKnee', LIGHTING.UNIT_LIGHT.KNEE);
             this.f1(pLight, 'uObstacleLight', LIGHTING.UNIT_LIGHT.ON_OBSTACLE);
             this.drawInstances(this.lightData, this.lightCount);
+        }
+        // 2b. 仿光效零件的光：同一種矩形，加法疊在單位光之後（取樣步數 PART_LIGHT.SHADOW_STEPS，0＝不帶投影）
+        if (this.partCount > 0) {
+            const P = LIGHTING.PART_LIGHT;
+            gl.useProgram(pPartLight.id);
+            this.surfaceUniforms(pPartLight, cam, pW, pH);
+            this.f1(pPartLight, 'uReach', 1);
+            this.f1(pPartLight, 'uLift', LIGHTING.GEO.MAX_HEIGHT);
+            this.f1(pPartLight, 'uKnee', P.KNEE);
+            this.f1(pPartLight, 'uObstacleLight', P.ON_OBSTACLE);
+            this.drawInstances(this.partData, this.partCount);
         }
 
         // 3. 著色

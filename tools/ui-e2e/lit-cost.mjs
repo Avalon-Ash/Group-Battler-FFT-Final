@@ -16,7 +16,8 @@
  *   position over the --repeat pages),
  *   and the difference from the full lighting pass.
  * Exit code 1 when: the GPU is not the RTX card, the lighting pass is not active, the scene differs between variants
- * (op counts), or any page logs an error.
+ * (op counts), a mask redraw saw a different number of glow parts than the world draw (ADR 0031), or any page logs
+ * an error.
  *
  * The variants patch the live LightingPass / RenderDispatcher by member name. A renamed member fails the run loudly
  * (the patch asserts the member exists) rather than silently measuring the unpatched path.
@@ -78,6 +79,7 @@ const VARIANTS = {
     tag_terrain_first: 'mask draws replayed after the world: terrain ops first (contiguous drape blits), then the rest',
     tag_deferred: 'same mask draws in the same order, all replayed after the world (no interleaving)',
     no_lights: 'point-light pass gets 0 lights',
+    part_light_off: 'Q2 (ADR 0031): glow parts stay glow sprites (LIGHTING.PART_LIGHT.MAX = 0, the look before C2)',
     lights16: 'P4: 16 extra point lights (with the ground shadow walk), radius P4.RADIUS',
     lights32: 'P4: 32 extra point lights (shadow)',
     lights64: 'P4: 64 extra point lights (shadow)',
@@ -322,6 +324,12 @@ async function install({ id, P4 }) {
             };
             break;
         }
+        case 'part_light_off': {
+            const { LIGHTING } = await import('/constants.ts');
+            if (!LIGHTING.PART_LIGHT) throw new Error('LIGHTING.PART_LIGHT missing');
+            LIGHTING.PART_LIGHT.MAX = 0;
+            break;
+        }
         case 'no_lights': pass.present = function (...a) { this.lightCount = 0; return proto.present.apply(this, a); }; break;
         case 'full_no_vfx': skipVfxDraws(); break;
         default: throw new Error(`unknown variant ${id}`);
@@ -330,7 +338,9 @@ async function install({ id, P4 }) {
 
 /** Runs in the page: step `frames` frames, then wait for the GPU; returns ms per frame and the scene's op counts. */
 async function timeWindow(frames) {
-    const { RenderOpType: T } = await import('/engine/renderers/RenderList.ts');
+    const [{ RenderOpType: T }, { getLightingPass }] = await Promise.all([
+        import('/engine/renderers/RenderList.ts'), import('/engine/renderers/lighting/LightingGate.ts'),
+    ]);
     const main = document.querySelector('canvas');
     if (!window.__gpuSync) {
         // 1x1 read-back of the main canvas through a throwaway WebGL context: forces the queued 2D and GL work to
@@ -349,16 +359,25 @@ async function timeWindow(frames) {
     }
     // The fixture replaces performance.now with its synthetic clock (an own property); the prototype's is the real one
     const realNow = () => Performance.prototype.now.call(performance);
+    // Glow parts turned into lights (ADR 0031): the pass keeps running totals; this window's share is the difference
+    const stats = () => ({ ...(getLightingPass()?.partStats ?? { frames: 0, lights: 0, rejected: 0, maxPerFrame: 0, framesAtCap: 0, mismatch: 0 }) });
+    const s0 = stats();
     window.__gpuSync();
     const t0 = realNow();
     window.__stepFrames(frames);
     window.__gpuSync();
     const ms = (realNow() - t0) / frames;
+    const s1 = stats();
+    const partFrames = s1.frames - s0.frames;
+    const partLights = {
+        perFrame: partFrames ? (s1.lights - s0.lights) / partFrames : 0, max: s1.maxPerFrame,
+        framesAtCap: s1.framesAtCap - s0.framesAtCap, mismatch: s1.mismatch - s0.mismatch,
+    };
     const engine = window.__TACTICAL_ENGINE__;
     const list = engine.renderer.pipeline.renderList;
     const ops = {};
     for (let i = 0; i < list.count; i++) { const k = T[list.ops[i].type]; ops[k] = (ops[k] ?? 0) + 1; }
-    return { ms, ops, alive: engine.agents.filter((a) => a.hp > 0).length, particles: engine.renderer.vfx.state.particles.length, tick: engine.state.time.tick };
+    return { ms, ops, partLights, alive: engine.agents.filter((a) => a.hp > 0).length, particles: engine.renderer.vfx.state.particles.length, tick: engine.state.time.tick };
 }
 
 /** Runs in the page: director off, camera on the whole board (same framing as lit-shots). */
@@ -457,11 +476,18 @@ try {
             const same = ms.filter((_, j) => j % WINDOWS === k);
             noise = Math.max(noise, Math.max(...same) - Math.min(...same));
         }
-        return { id: r.id, what: VARIANTS[r.id], msPerFrame: +mean.toFixed(3), noise: +noise.toFixed(3), sameScene: r.windows.map(sceneKey).join('|') === reference, errors: r.errors.length };
+        const pl = r.windows.map((w) => w.partLights);
+        const partLights = +(pl.reduce((a, b) => a + b.perFrame, 0) / pl.length).toFixed(1);
+        const partMax = Math.max(...pl.map((p) => p.max));
+        const partAtCap = pl.reduce((a, b) => a + b.framesAtCap, 0);
+        const partMismatch = pl.reduce((a, b) => a + b.mismatch, 0);
+        return { id: r.id, what: VARIANTS[r.id], msPerFrame: +mean.toFixed(3), noise: +noise.toFixed(3), partLights, partMax, partAtCap, partMismatch, sameScene: r.windows.map(sceneKey).join('|') === reference, errors: r.errors.length };
     });
     const full = rows.find((r) => r.id === 'full').msPerFrame;
     for (const r of rows) r.vsFull = +(r.msPerFrame - full).toFixed(3);
-    console.table(rows.map(({ id, msPerFrame, vsFull, noise, sameScene, errors }) => ({ id, msPerFrame, vsFull, noise, sameScene, errors })));
+    // partLights: glow parts drawn as lights per frame (mean), partMax: most in one frame, partAtCap: frames where some
+    // stayed sprites because the cap was full, partMismatch: ops whose mask redraw saw a different glow-part count
+    console.table(rows.map(({ id, msPerFrame, vsFull, noise, partLights, partMax, partAtCap, partMismatch, sameScene, errors }) => ({ id, msPerFrame, vsFull, noise, partLights, partMax, partAtCap, partMismatch, sameScene, errors })));
     const direct = rows.find((r) => r.id === 'direct');
     if (direct) console.log(`lighting overhead (full - direct): ${(full - direct.msPerFrame).toFixed(2)} ms per frame`);
     const last = results[0].windows.at(-1);
@@ -473,6 +499,7 @@ try {
     }, null, 2) + '\n');
     if (last.alive < MIN_UNITS) { console.error(`FAIL: only ${last.alive} units alive in the measured scene (need >= ${MIN_UNITS})`); failed = true; }
     if (rows.some((r) => !r.sameScene)) { console.error('FAIL: a variant rendered a different scene (tick / alive count differs from full)'); failed = true; }
+    if (rows.some((r) => r.partMismatch)) { console.error('FAIL: a mask redraw saw a different number of glow parts than the world draw (ADR 0031)'); failed = true; }
     if (rows.some((r) => r.errors)) { console.error('FAIL: page errors'); for (const r of results) for (const e of r.errors.slice(0, 3)) console.error('  ', r.id, e); failed = true; }
 } finally {
     await browser?.close();
